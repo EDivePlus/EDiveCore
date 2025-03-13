@@ -1,0 +1,16 @@
+{
+    "name": "EDIVE.Utils",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.OdinExtensions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

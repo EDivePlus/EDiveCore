@@ -1,0 +1,28 @@
+{
+    "name": "EDIVE.Tweening",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.DataStructures",
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils",
+        "EDIVE.EditorUtils",
+        "DOTween.Modules",
+        "Unity.TextMeshPro",
+        "EDIVE.StateHandling",
+        "EDIVE.Utils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "DOTween.dll",
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.Utilities.Editor.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

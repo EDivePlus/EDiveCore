@@ -1,0 +1,19 @@
+{
+    "name": "EDIVE.Tweening.StateHandling",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.OdinExtensions",
+        "EDIVE.StateHandling",
+        "EDIVE.Tweening",
+        "EDIVE.NativeUtils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

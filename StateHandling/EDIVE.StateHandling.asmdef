@@ -1,0 +1,25 @@
+{
+    "name": "EDIVE.StateHandling",
+    "rootNamespace": "",
+    "references": [
+        "Unity.TextMeshPro",
+        "EDIVE.DataStructures",
+        "EDIVE.EditorUtils",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.Utils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.Utilities.Editor.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

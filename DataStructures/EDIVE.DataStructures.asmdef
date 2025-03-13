@@ -1,0 +1,23 @@
+{
+    "name": "EDIVE.DataStructures",
+    "rootNamespace": "",
+    "references": [
+        "DOTween.Modules",
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.Utilities.dll",
+        "Sirenix.Utilities.Editor.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

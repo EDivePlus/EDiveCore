@@ -1,0 +1,17 @@
+{
+    "name": "EDIVE.External.SelectionHistory",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.External.DomainReloadHelper",
+        "EDIVE.OdinExtensions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
