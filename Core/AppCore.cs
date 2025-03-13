@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
 using UnityEngine;
@@ -85,6 +86,13 @@ namespace EDIVE.Core
 
             _loadedPromise ??= new Promise();
             _loadedPromise.Then(action);
+        }
+
+        public UniTask AwaitLoaded()
+        {
+            var source = new UniTaskCompletionSource();
+            WhenLoaded(() => source.TrySetResult());
+            return source.Task;
         }
     }
 }
