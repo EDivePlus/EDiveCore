@@ -1,0 +1,40 @@
+{
+    "name": "EDIVE.AppLoading",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "UniTask.Addressables",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.TextMeshPro",
+        "DOTween.Modules",
+        "EDIVE.Utils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.External.Signals",
+        "EDIVE.Core",
+        "EDIVE.EditorUtils",
+        "EDIVE.NativeUtils",
+        "EDIVE.External.ToolbarExtensions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.Utilities.dll",
+        "Sirenix.Utilities.Editor.dll",
+        "DOTween.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.addressables",
+            "expression": "",
+            "define": "ADDRESSABLES"
+        }
+    ],
+    "noEngineReferences": false
+}
