@@ -25,6 +25,8 @@ namespace EDIVE.AppLoading
         [SerializeReference]
         private ILoadFinalizer _Finalizer;
 
+        [ShowCreateNew]
+        [EnhancedInlineEditor]
         [PropertySpace]
         [SerializeField]
         [EnhancedValidate("ValidateGroups")]
