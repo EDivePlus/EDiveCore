@@ -10,36 +10,27 @@ namespace EDIVE.External.ParrelSync
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public struct ParrelSyncArgumentsBundle : IEquatable<ParrelSyncArgumentsBundle>
+    public struct ParrelSyncArgumentsBundle
     {
-        [JsonProperty("ID")]
+        [JsonProperty("SyncPlaymode")]
         [SerializeField]
-        private string _ID;
+        private bool _SyncPlaymode;
 
         [JsonProperty("MasterPlaying")]
+        [HideInInspector]
         [SerializeField]
         private bool _IsMasterPlaying;
 
-        public string ID => _ID;
         public bool IsMasterPlaying
         {
             get => _IsMasterPlaying;
             set => _IsMasterPlaying = value;
         }
 
-        public bool Equals(ParrelSyncArgumentsBundle other)
+        public bool SyncPlaymode
         {
-            return _ID == other._ID && _IsMasterPlaying == other._IsMasterPlaying;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is ParrelSyncArgumentsBundle other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(_ID, _IsMasterPlaying);
+            get => _SyncPlaymode;
+            set => _SyncPlaymode = value;
         }
     }
 }
