@@ -1,0 +1,25 @@
+{
+    "name": "EDIVE.External.ParrelSync",
+    "rootNamespace": "",
+    "references": [
+        "ParrelSync",
+        "EDIVE.OdinExtensions"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.veriorpies.parrelsync",
+            "expression": "",
+            "define": "PARREL_SYNC"
+        }
+    ],
+    "noEngineReferences": false
+}
