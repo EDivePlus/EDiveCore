@@ -4,7 +4,10 @@
     "references": [
         "EDIVE.External.DomainReloadHelper",
         "EDIVE.External.Promises",
-        "UniTask"
+        "UniTask",
+        "EDIVE.NativeUtils",
+        "Unity.TextMeshPro",
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
