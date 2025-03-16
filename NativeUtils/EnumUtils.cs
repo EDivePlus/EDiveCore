@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
 
 namespace EDIVE.NativeUtils
 {
-    public static class EnumExtensions
+    public static class EnumUtils
     {
         public static bool IsOneOf<T>(this T value, params T[] comparisons) where T: Enum
         {
@@ -47,6 +48,11 @@ namespace EDIVE.NativeUtils
             var values = (T[])Enum.GetValues(src.GetType());
             var index = (Array.IndexOf(values, src) - 1).PositiveModulo(values.Length);
             return values[index];
+        }
+
+        public static IEnumerable<T> GetValues<T>() where T : Enum
+        {
+            return (T[])Enum.GetValues(typeof(T));
         }
     }
 }
