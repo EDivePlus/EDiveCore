@@ -6,7 +6,10 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.NativeUtils",
         "Unity.Addressables",
-        "Unity.Addressables.Editor"
+        "Unity.Addressables.Editor",
+        "Unity.EditorCoroutines.Editor",
+        "EDIVE.Core",
+        "EDIVE.External.Promises"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
