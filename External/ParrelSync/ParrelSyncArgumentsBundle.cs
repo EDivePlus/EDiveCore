@@ -3,6 +3,7 @@
 
 #if PARREL_SYNC
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -20,7 +21,12 @@ namespace EDIVE.External.ParrelSync
         [HideInInspector]
         [SerializeField]
         private bool _IsMasterPlaying;
-
+        
+        [JsonProperty("Actions")]
+        [SerializeReference]
+        private List<IParrelSyncAction> _Actions;
+        
+        public IReadOnlyList<IParrelSyncAction> Actions => _Actions;
         public bool IsMasterPlaying
         {
             get => _IsMasterPlaying;

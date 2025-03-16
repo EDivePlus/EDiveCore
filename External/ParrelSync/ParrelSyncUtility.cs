@@ -54,11 +54,21 @@ namespace EDIVE.External.ParrelSync
                 if (argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
                 {
                     EditorApplication.EnterPlaymode();
+                    OnClonePlaymodeEntered();
                 }
                 if (!argumentsBundle.IsMasterPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
                 {
                     EditorApplication.ExitPlaymode();
                 }
+            }
+        }
+
+        private static void OnClonePlaymodeEntered()
+        {
+            var bundle = SelfArgumentsBundle;
+            foreach (var action in bundle.Actions)
+            {
+                action?.OnPlayModeStarted();
             }
         }
 
