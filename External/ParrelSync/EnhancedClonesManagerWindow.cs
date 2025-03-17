@@ -38,7 +38,7 @@ namespace EDIVE.External.ParrelSync
         [ShowInInspector]
         [HideLabel]
         [InlineProperty]
-        [BoxGroup("Clone Arguments")]
+        [EnhancedBoxGroup("Arguments", SpaceBefore = 6, Order = 100)]
         [HideReferenceObjectPicker]
         private ParrelSyncArgumentsBundle ArgumentsBundle
         {
@@ -109,6 +109,26 @@ namespace EDIVE.External.ParrelSync
             {
                 ParrelSyncUtility.RefreshClones();
             }
+        }
+
+        [OnInspectorGUI]
+        private void DrawMasterEditorRunning()
+        {
+            var isEditorRunning = ClonesManager.IsCloneProjectRunning(MasterProjectPath);
+            EditorGUILayout.BeginHorizontal();
+            GUIHelper.PushColor(isEditorRunning ? Color.green : Color.red);
+            GUILayout.Label(isEditorRunning ? "Running" : "Not running");
+            GUIHelper.PopColor();
+
+            if (isEditorRunning)
+            {
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Focus", GUILayout.Width(80)))
+                {
+                    ParrelSyncUtility.FocusUnityEditor(MasterProjectPath);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
         }
     }
 }

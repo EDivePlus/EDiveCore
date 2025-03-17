@@ -60,12 +60,20 @@ namespace EDIVE.External.ParrelSync
             GUIHelper.PopColor();
 
             GUILayout.FlexibleSpace();
-            EditorGUI.BeginDisabledGroup(isEditorRunning);
-            if(GUILayout.Button("Start", GUILayout.Width(80)))
+            if (isEditorRunning)
             {
-                ClonesManager.OpenProject(_ProjectPath);
+                if (GUILayout.Button("Focus", GUILayout.Width(80)))
+                {
+                    ParrelSyncUtility.FocusUnityEditor(_ProjectPath);
+                }
             }
-            EditorGUI.EndDisabledGroup();
+            else
+            {
+                if (GUILayout.Button("Start", GUILayout.Width(80)))
+                {
+                    ClonesManager.OpenProject(_ProjectPath);
+                }
+            }
             EditorGUILayout.EndHorizontal();
         }
     }

@@ -2,11 +2,17 @@
 // Created: 14.03.2025
 
 #if PARREL_SYNC
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 using Newtonsoft.Json;
 using ParrelSync;
 using UnityEditor;
+using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace EDIVE.External.ParrelSync
 {
@@ -24,6 +30,7 @@ namespace EDIVE.External.ParrelSync
         [InitializeOnLoadMethod]
         public static void Initialize()
         {
+            SaveProcessID();
             if (ClonesManager.IsClone())
             {
                 EditorApplication.update -= WatchForStateChange;
@@ -114,7 +121,7 @@ namespace EDIVE.External.ParrelSync
             if (!File.Exists(argumentFilePath))
                 return false;
 
-            var argumentsData = File.ReadAllText(argumentFilePath, System.Text.Encoding.UTF8);
+            var argumentsData = File.ReadAllText(argumentFilePath, Encoding.UTF8);
             var success = true;
             var settings = new JsonSerializerSettings
             {
@@ -132,7 +139,60 @@ namespace EDIVE.External.ParrelSync
                 return;
 
             var argumentsData = JsonConvert.SerializeObject(argumentsBundle);
-            File.WriteAllText(argumentFilePath, argumentsData, System.Text.Encoding.UTF8);
+            File.WriteAllText(argumentFilePath, argumentsData, Encoding.UTF8);
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        private static void SaveProcessID()
+        {
+            if (Application.isBatchMode)
+                return;
+
+            var pidFilePath = Path.Combine(Directory.GetParent(Application.dataPath)!.FullName, "Temp", "UnityEditorPID.txt");
+            try
+            {
+                var processId = Process.GetCurrentProcess().Id;
+                File.WriteAllText(pidFilePath, processId.ToString());
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
+
+        public static void FocusUnityEditor(string projectPath)
+        {
+            if (!ClonesManager.IsCloneProjectRunning(projectPath))
+            {
+                Debug.LogError("Unity Editor is not running.");
+                return;
+            }
+
+            var pidFilePath = Path.Combine(projectPath, "Temp", "UnityEditorPID.txt");
+            if (!File.Exists(pidFilePath))
+            {
+                Debug.LogError("Editor process ID not saved.");
+                return;
+            }
+
+            try
+            {
+                var pidText = File.ReadAllText(pidFilePath);
+                if (!int.TryParse(pidText, out var processId))
+                {
+                    Debug.LogError("Failed to parse process ID.");
+                    return;
+                }
+
+                var unityProcess = Process.GetProcessById(processId);
+                SetForegroundWindow(unityProcess.MainWindowHandle);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
     }
 }
