@@ -139,8 +139,7 @@ namespace EDIVE.Core.Versions
             return Build.CompareTo(other.Build);
         }
 
-        [Button]
-        public string GetString(AppVersionFormat format)
+        public string GetFormatedString(AppVersionFormat format)
         {
             var stringBuilder = new StringBuilder(20);
 
@@ -157,23 +156,7 @@ namespace EDIVE.Core.Versions
             return stringBuilder.ToString();
         }
         
-        public int GetCode(BundleCodeFormat bundleFormat)
-        {
-            return Major * (int) Math.Pow(10, bundleFormat.MinorDigits + bundleFormat.PatchDigits) + Minor * (int) Math.Pow(10, bundleFormat.PatchDigits) + Patch;
-        }
         
-        public AppVersion FromCode(int code, BundleCodeFormat bundleFormat)
-        {
-            var minorPatchFactor = (int) Math.Pow(10, bundleFormat.PatchDigits);
-            var majorFactor = (int) Math.Pow(10, bundleFormat.MinorDigits + bundleFormat.PatchDigits);
-
-            var major = code / majorFactor;
-            var remainder = code % majorFactor;
-            var minor = remainder / minorPatchFactor;
-            var patch = remainder % minorPatchFactor;
-            return new AppVersion(major, minor, patch);
-        }
-
         public static AppVersion FromBaseString(string versionString)
         {
             var parts = versionString.Split('.');
@@ -183,6 +166,24 @@ namespace EDIVE.Core.Versions
             if (parts.Length > 2) version.Patch = int.Parse(parts[2]);
             if (parts.Length > 3) version.Build = int.Parse(parts[3]);
             return version;
+        }
+
+        
+        public int GetBundleCode(BundleCodeFormat bundleFormat)
+        {
+            return Major * (int) Math.Pow(10, bundleFormat.MinorDigits + bundleFormat.PatchDigits) + Minor * (int) Math.Pow(10, bundleFormat.PatchDigits) + Patch;
+        }
+        
+        public AppVersion FromBundleCode(int code, BundleCodeFormat bundleFormat)
+        {
+            var minorPatchFactor = (int) Math.Pow(10, bundleFormat.PatchDigits);
+            var majorFactor = (int) Math.Pow(10, bundleFormat.MinorDigits + bundleFormat.PatchDigits);
+
+            var major = code / majorFactor;
+            var remainder = code % majorFactor;
+            var minor = remainder / minorPatchFactor;
+            var patch = remainder % minorPatchFactor;
+            return new AppVersion(major, minor, patch);
         }
 
         public static bool operator <(AppVersion a, AppVersion b) { return a.CompareTo(b) < 0; }
@@ -237,8 +238,8 @@ namespace EDIVE.Core.Versions
 #if UNITY_EDITOR
         public void ApplyVersion(AppVersionFormat format, BundleCodeFormat bundleFormat)
         {
-            PlayerSettings.bundleVersion = GetString(format);
-            PlayerSettings.Android.bundleVersionCode = GetCode(bundleFormat);
+            PlayerSettings.bundleVersion = GetFormatedString(format);
+            PlayerSettings.Android.bundleVersionCode = GetBundleCode(bundleFormat);
             PlayerSettings.iOS.buildNumber = Mathf.Max(0, Build).ToString();
         }
 #endif
