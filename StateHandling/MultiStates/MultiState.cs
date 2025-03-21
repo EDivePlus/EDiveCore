@@ -44,7 +44,7 @@ namespace EDIVE.StateHandling.MultiStates
         private MultiStateRecord CustomStatePresetDrawer(MultiStateRecord value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
             var previousBgColor = GUI.backgroundColor;
-            GUI.backgroundColor = ColorUtils.GetRainbowColor(_StatePresets.IndexOf(value), _StatePresets.Count);
+            GUI.backgroundColor = FancyColors.GetRainbowColor(_StatePresets.IndexOf(value), _StatePresets.Count);
             Sirenix.Utilities.Editor.SirenixEditorGUI.BeginBox();
             GUI.backgroundColor = previousBgColor;
             callNextDrawer(label);

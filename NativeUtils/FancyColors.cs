@@ -4,7 +4,7 @@ using UnityEngine;
 namespace EDIVE.NativeUtils
 {
     [SuppressMessage("ReSharper", "InconsistentNaming", Justification = "For convenient usage")]
-    public static class ColorUtils
+    public static class FancyColors
     {
         public static readonly Color Red       = new(0.9f,   0.05f, 0.05f);
         public static readonly Color Orange    = new(0.9f,   0.45f, 0.05f);
