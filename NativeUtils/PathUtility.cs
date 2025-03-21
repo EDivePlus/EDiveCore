@@ -26,5 +26,12 @@ namespace EDIVE.NativeUtils
         {
             return path.Replace('\\', '/');
         }
+
+        public static void EnsurePathExists(string filePath)
+        {
+            var dirPath = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dirPath))
+                Directory.CreateDirectory(dirPath);
+        }
     }
 }
