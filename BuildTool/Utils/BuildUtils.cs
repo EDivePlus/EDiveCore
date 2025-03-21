@@ -14,6 +14,11 @@ namespace EDIVE.BuildTool.Utils
 {
     public static class BuildUtils
     {
+        public const BuildOptions BUILD_OPTIONS = BuildOptions.ShowBuiltPlayer;
+        public const BuildOptions BUILD_AND_RUN_OPTIONS = BuildOptions.AutoRunPlayer;
+        public const BuildOptions PATCH_OPTIONS = BuildOptions.BuildScriptsOnly | BuildOptions.PatchPackage | BuildOptions.Development;
+        public const BuildOptions PATCH_AND_RUN_OPTIONS = PATCH_OPTIONS | BuildOptions.AutoRunPlayer;
+
         public static readonly string ANDROID_PLAYER_TOOLS_PATH = $"{EditorApplication.applicationContentsPath}/PlaybackEngines/AndroidPlayer";
         public static readonly string OPEN_JDK_BIN_PATH = $"{ANDROID_PLAYER_TOOLS_PATH}/OpenJDK/bin";
         public static readonly string BUNDLE_TOOL_FOLDER = $"{ANDROID_PLAYER_TOOLS_PATH}/Tools/";

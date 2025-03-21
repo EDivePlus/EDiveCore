@@ -1,9 +1,4 @@
-﻿// Author: František Holubec
-// Created: 18.10.2022
-// Copyright (c) Noxgames
-// http://www.noxgames.com/
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 

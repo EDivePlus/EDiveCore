@@ -17,6 +17,7 @@ namespace EDIVE.BuildTool.Utils
     {
         [SerializeField]
         [JsonProperty("Records")]
+        [LabelText("@$property.Parent.NiceName")]
         private List<PlatformRecord> _Records = new();
 
         public IEnumerable<BuildSetupData> GetData(NamedBuildTarget namedBuildTarget, BuildTarget target)

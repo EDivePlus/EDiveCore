@@ -1,3 +1,4 @@
+using EDIVE.BuildTool.Presets;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -16,7 +17,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
     {
         [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1)]
         [SerializeField]
-        private AndroidArchitecture _TargetArchitectures = AndroidArchitecture.All;
+        private AndroidArchitecture _TargetArchitectures = AndroidArchitecture.ARMv7 | AndroidArchitecture.ARM64;
 
         [EnhancedBoxGroup("Backend")]
         [SerializeField]
@@ -29,13 +30,15 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         [EnhancedBoxGroup("Backend")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
+        [LabelText("IL2CPP Config")]
         [SerializeField]
         private Il2CppCompilerConfiguration _Il2CppConfig = Il2CppCompilerConfiguration.Release;
 
         [EnhancedBoxGroup("Backend")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
-        [SerializeField]
         [PropertyTooltip("IL2CPP compiler will generate code optimized for:\nOptimizeSpeed - runtime performance.\nOptimizeSize - size and build time")]
+        [LabelText("IL2CPP Code Generation")]
+        [SerializeField]
         private Il2CppCodeGeneration _Il2CppCodeGeneration = Il2CppCodeGeneration.OptimizeSpeed;
 
         [EnhancedBoxGroup("Build")]
@@ -113,6 +116,8 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public override NamedBuildTarget NamedBuildTarget => NamedBuildTarget.Android;
         public override BuildTarget BuildTarget => BuildTarget.Android;
         public override string BuildExtension => BuildAndroidAppBundle ? ".aab" : ".apk";
+
+        public override ABuildPreset CreatePreset(BuildUserConfig userConfig) => new AndroidBuildPreset(userConfig, this);
     }
 
 #if UNITY_6000_0_OR_NEWER

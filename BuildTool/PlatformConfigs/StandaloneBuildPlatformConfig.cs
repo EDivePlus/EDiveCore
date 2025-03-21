@@ -1,4 +1,5 @@
 using System;
+using EDIVE.BuildTool.Presets;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -29,13 +30,15 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         [EnhancedBoxGroup("Backend")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
+        [LabelText("IL2CPP Config")]
         [SerializeField]
         private Il2CppCompilerConfiguration _Il2CppConfig = Il2CppCompilerConfiguration.Release;
 
         [EnhancedBoxGroup("Backend")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
-        [SerializeField]
         [PropertyTooltip("IL2CPP compiler will generate code optimized for:\nOptimizeSpeed - runtime performance.\nOptimizeSize - size and build time")]
+        [LabelText("IL2CPP Code Generation")]
+        [SerializeField]
         private Il2CppCodeGeneration _Il2CppCodeGeneration = Il2CppCodeGeneration.OptimizeSpeed;
 
         public ScriptingImplementation ScriptingImplementation => _ScriptingImplementation;
@@ -77,5 +80,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             StandalonePlatform.MacOS => ".x86_64",
             _ => throw new ArgumentOutOfRangeException()
         };
+
+        public override ABuildPreset CreatePreset(BuildUserConfig userConfig) => new StandaloneBuildPreset(userConfig, this);
     }
 }

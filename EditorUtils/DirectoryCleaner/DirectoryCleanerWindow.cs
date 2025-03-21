@@ -66,7 +66,7 @@ namespace EDIVE.EditorUtils.DirectoryCleaner
             RefreshSelected();
         }
 
-        [MenuItem("NoxE/Directory Cleaner")]
+        [MenuItem("Tools/Directory Cleaner")]
         public static void ShowWindow()
         {
             GetWindow<DirectoryCleanerWindow>();

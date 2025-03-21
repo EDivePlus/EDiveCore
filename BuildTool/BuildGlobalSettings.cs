@@ -2,12 +2,16 @@
 // Created: 17.03.2025
 
 using System.Collections.Generic;
+using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
-using EDIVE.OdinExtensions.Editor;
+using EDIVE.OdinExtensions;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
+using Sirenix.OdinInspector.Editor.Internal;
 using Sirenix.Utilities;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -15,7 +19,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool
 {
     [GlobalConfig("Assets/_Project/Settings/Editor/")]
-    public class BuildGlobalConfig : GlobalConfig<BuildGlobalConfig>
+    public class BuildGlobalSettings : ProjectSettingsGlobalConfig<BuildGlobalSettings>
     {
         [SerializeField]
         private AppVersionDefinition _VersionDefinition;
@@ -23,16 +27,29 @@ namespace EDIVE.BuildTool
         [SerializeField]
         private BuildUserConfig _DefaultUser;
 
-        [SerializeField]
+        [PropertyOrder(10)]
+        [PropertySpace]
+        [EnhancedTableList]
+        [HideReferenceObjectPicker]
+        [SerializeReference]
+        private List<ABuildPreset> _Presets;
+
+        [PropertyOrder(100)]
+        [PropertySpace]
         [InlineProperty]
         [HideLabel]
+        [SerializeField]
         private MultiPlatformBuildSetupData _BuildSetupData;
 
-        private readonly AssetPersistentContext<BuildUserConfig> _currentUserContext = new (PersistentContext.Get("BuildGlobalConfig", "CurrentUser"));
-        private BuildUserConfig CurrentUser
+        public AppVersionDefinition VersionDefinition => _VersionDefinition;
+        public BuildUserConfig DefaultUser => _DefaultUser;
+
+        [PropertySpace]
+        [ShowInInspector]
+        public BuildUserConfig CurrentUser
         {
-            get => _currentUserContext.Value ??= _DefaultUser;
-            set => _currentUserContext.Value = value;
+            get => BuildGlobalUserSettings.instance.CurrentUser ?? DefaultUser;
+            set => BuildGlobalUserSettings.instance.CurrentUser = value;
         }
 
         public IEnumerable<BuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);

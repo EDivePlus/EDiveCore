@@ -1,15 +1,17 @@
+using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     public abstract class ABuildPlatformConfig : ScriptableObject
     {
-        [EnhancedBoxGroup("Build", "@Color.cyan", SpaceBefore = 6)]
+        [EnhancedBoxGroup("Build", "@ColorTools.Cyan", SpaceBefore = 6)]
         [SerializeField]
         private bool _DevelopmentBuild;
 
@@ -17,11 +19,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [EnableIf(nameof(_DevelopmentBuild))]
         [SerializeField]
         private bool _AllowDebugging;
-
-        [EnhancedBoxGroup("Build")]
-        [EnableIf(nameof(_DevelopmentBuild))]
-        [SerializeField]
-        private bool _BuildScriptsOnly;
 
         [EnhancedBoxGroup("Build")]
         [EnableIf(nameof(_DevelopmentBuild))]
@@ -46,7 +43,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeField]
         private bool _DetailedBuildReport;
 
-        [EnhancedBoxGroup("Stripping", "@Color.red", SpaceBefore = 6)]
+        [EnhancedBoxGroup("Stripping", "@ColorTools.Red", SpaceBefore = 6)]
         [SerializeField]
         private bool _StripEngineCode = true;
 
@@ -62,39 +59,39 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeField]
         private bool _UseIncrementalGC = true;
 
-        [EnhancedBoxGroup("Logging","@Color.yellow", SpaceBefore = 6)]
+        [EnhancedBoxGroup("Logging","@ColorTools.Yellow", SpaceBefore = 6)]
         [SerializeField]
         [HideLabel]
         [InlineProperty]
         private LoggingSetup _LoggingSetup;
 
-        [EnhancedBoxGroup("Path", "@Color.green", SpaceBefore = 6)]
+        [EnhancedBoxGroup("Path", "@ColorTools.Green", SpaceBefore = 6)]
         [SerializeField]
         private string _PlatformName;
 
         [EnhancedBoxGroup("Path")]
         [SerializeField]
-        private string _ConfigID;
+        private string _ConfigType;
 
-        [PropertySpace]
+        [EnhancedBoxGroup("Data", "@ColorTools.Lime", SpaceBefore = 6)]
+        [SerializeField]
+        private SceneListDefinition _SceneList;
+
+        [EnhancedBoxGroup("Data")]
         [HideLabel]
         [InlineProperty]
         [SerializeField]
         private BuildSetupData _BuildSetupData;
 
-        [SerializeField]
-        private SceneListDefinition _SceneList;
-
         public bool DevelopmentBuild => _DevelopmentBuild;
         public bool AllowDebugging => _AllowDebugging;
-        public bool BuildScriptsOnly => _BuildScriptsOnly;
         public bool CleanBuildCache => _CleanBuildCache;
         public bool WaitForManagedDebugger => _WaitForManagedDebugger;
         public bool EnableDeepProfile => _EnableDeepProfile;
         public bool AutoConnectProfiler => _AutoConnectProfiler;
         public bool DetailedBuildReport => _DetailedBuildReport;
         public string PlatformName => _PlatformName;
-        public string ConfigID => _ConfigID;
+        public string ConfigType => _ConfigType;
         public bool StripEngineCode => _StripEngineCode;
         public ManagedStrippingLevel ManagedStrippingLevel => _ManagedStrippingLevel;
         public PlayerCompressionType PlayerCompression => _PlayerCompression;
@@ -107,9 +104,11 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public abstract BuildTarget BuildTarget { get; }
         public abstract string BuildExtension { get; }
 
+        public abstract ABuildPreset CreatePreset(BuildUserConfig userConfig);
+
         [PropertySpace(6)]
         [PropertyOrder(100)]
-        [Button(ButtonStyle.CompactBox, Expanded = true)]
+        [Button]
         private void CopyValuesFrom(ABuildPlatformConfig buildPlatformConfig)
         {
             if (buildPlatformConfig == null)

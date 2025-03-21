@@ -13,9 +13,13 @@ namespace EDIVE.BuildTool
 {
     public class BuildUserConfig : ScriptableObject
     {
+        [BoxGroup("Path Resolver")]
+        [InlineProperty]
+        [HideLabel]
         [SerializeField]
         private BuildPathResolver _PathResolver;
 
+        [PropertySpace]
         [SerializeField]
         [InlineProperty]
         [HideLabel]

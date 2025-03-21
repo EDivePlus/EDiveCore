@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.BuildTool.Actions;
@@ -24,12 +23,6 @@ namespace EDIVE.BuildTool.Runners
 
         [SerializeField]
         protected BuildContext _Context;
-
-        [SerializeField]
-        protected string _BinaryPath;
-
-        [SerializeField]
-        protected string _BinaryFileName;
 
         [SerializeField]
         protected string[] _PrevDefines;
@@ -312,7 +305,6 @@ namespace EDIVE.BuildTool.Runners
 
             if (PlatformConfig.DevelopmentBuild) Context.Options |= BuildOptions.Development;
             if (PlatformConfig.AllowDebugging) Context.Options |= BuildOptions.AllowDebugging;
-            if (PlatformConfig.BuildScriptsOnly) Context.Options |= BuildOptions.BuildScriptsOnly;
             if (PlatformConfig.CleanBuildCache) Context.Options |= BuildOptions.CleanBuildCache;
             if (PlatformConfig.DetailedBuildReport) Context.Options |= BuildOptions.DetailedBuildReport;
             Context.Options |= PlatformConfig.PlayerCompression.ToBuildOptions();

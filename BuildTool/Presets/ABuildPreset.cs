@@ -4,9 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using EDIVE.BuildTool.Actions;
 using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.Runners;
 using EDIVE.BuildTool.Utils;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.Build;
@@ -17,17 +20,27 @@ namespace EDIVE.BuildTool.Presets
     [Serializable]
     public abstract class ABuildPreset
     {
-        [PropertyOrder(10)]
+        [HideInInspector]
         [SerializeField]
         private BuildUserConfig _UserConfig;
 
         public BuildUserConfig UserConfig => _UserConfig;
         public abstract ABuildPlatformConfig BasePlatformConfig { get; }
 
-        protected ABuildPreset(BuildUserConfig userConfig)
-        {
-            _UserConfig = userConfig;
-        }
+        protected ABuildPreset() { }
+        protected ABuildPreset(BuildUserConfig userConfig) { _UserConfig = userConfig; }
+
+        public abstract void Build(BuildOptions options);
+
+        [EnhancedTableColumn(200)]
+        [VerticalGroup("Build")]
+        [HorizontalGroup("Build/Main")]
+        [Button]
+        public void Build() => Build(BuildUtils.BUILD_OPTIONS);
+
+        [HorizontalGroup("Build/Main")]
+        [Button("Build & Run")]
+        public void BuildAndRun() => Build(BuildUtils.BUILD_AND_RUN_OPTIONS);
 
         public virtual void Validate()
         {
@@ -62,10 +75,24 @@ namespace EDIVE.BuildTool.Presets
         public TPlatformConfig PlatformConfig => _PlatformConfig;
         public override ABuildPlatformConfig BasePlatformConfig => _PlatformConfig;
 
-        public ABuildPreset(BuildUserConfig userConfig, TPlatformConfig platformConfig) : base(userConfig)
+        protected ABuildPreset() { }
+        protected ABuildPreset(BuildUserConfig userConfig, TPlatformConfig platformConfig) : base(userConfig)
         {
             _PlatformConfig = platformConfig;
         }
+
+        public override void Build(BuildOptions options)
+        {
+            var buildRunner = CreateBuildRunner(options);
+            if (buildRunner == null)
+            {
+                Debug.LogError("Invalid Build runner!");
+                return;
+            }
+            buildRunner.StartBuild().Forget();
+        }
+
+        protected abstract ABuildRunner CreateBuildRunner(BuildOptions options);
 
         public override void Validate()
         {
@@ -82,7 +109,7 @@ namespace EDIVE.BuildTool.Presets
 
         protected override IEnumerable<BuildSetupData> GetSetupData(NamedBuildTarget namedTarget, BuildTarget target)
         {
-            foreach (var setupData in BuildGlobalConfig.Instance.GetBuildSetupData(namedTarget, target))
+            foreach (var setupData in BuildGlobalSettings.Instance.GetBuildSetupData(namedTarget, target))
                 yield return setupData;
 
             yield return PlatformConfig.BuildSetupData;
