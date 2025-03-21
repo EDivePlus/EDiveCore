@@ -1,0 +1,33 @@
+{
+    "name": "EDIVE.BuildTool",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.Utils",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.Core",
+        "EDIVE.OdinExtensions.Editor",
+        "EDIVE.External.ToolbarExtensions",
+        "EDIVE.EditorUtils",
+        "EDIVE.External.Signals",
+        "UniTask"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.Serialization.dll",
+        "Sirenix.Utilities.dll",
+        "Sirenix.Utilities.Editor.dll",
+        "DOTween.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
