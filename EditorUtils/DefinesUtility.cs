@@ -8,7 +8,7 @@ using UnityEditor.Build;
 
 namespace EDIVE.EditorUtils
 {
-    public static class DefineUtility
+    public static class DefinesUtility
     {
         public static void SetDefines(IEnumerable<string> defines, bool enabled, IEnumerable<BuildTargetGroup> groups = null)
         {
