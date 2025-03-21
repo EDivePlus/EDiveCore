@@ -10,13 +10,13 @@ namespace EDIVE.Tweening.StateHandling
         [SerializeField]
         [HideLabel]
         [ListDrawerSettings(ShowFoldout = false)]
-        [EnhancedBoxGroup("Enabled", "@FancyColors.Green")]
+        [EnhancedBoxGroup("Enabled", "@ColorTools.Green")]
         private TweenAnimationField _EnableAnimation;
 
         [SerializeField]
         [HideLabel]
         [ListDrawerSettings(ShowFoldout = false)]
-        [EnhancedBoxGroup("Disabled", "@FancyColors.Orange")]
+        [EnhancedBoxGroup("Disabled", "@ColorTools.Orange")]
         private TweenAnimationField _DisableAnimation;
         
         public override void UpdateState(bool immediate = false)

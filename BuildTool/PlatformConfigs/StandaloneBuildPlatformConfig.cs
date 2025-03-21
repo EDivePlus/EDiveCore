@@ -9,7 +9,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 {
     public class StandaloneBuildPlatformConfig : ABuildPlatformConfig
     {
-        [EnhancedBoxGroup("Backend", "@FancyColors.Purple", Order = -1)]
+        [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1)]
         [SerializeField]
         private StandalonePlatform _Platform;
 

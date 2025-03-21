@@ -64,7 +64,7 @@ namespace EDIVE.Tweening
             foreach (var sequence in _AdditiveSequences) sequence?.PopulateTargets(targets);
         }
 
-        [EnhancedBoxGroup("BaseSetup", "@FancyColors.Yellow", false, SpaceAfter = 4)]
+        [EnhancedBoxGroup("BaseSetup", "@ColorTools.Yellow", false, SpaceAfter = 4)]
         [PropertySpace(SpaceBefore = 0, SpaceAfter = 4)]
         [PropertyOrder(-100)]
         [OnInspectorGUI]

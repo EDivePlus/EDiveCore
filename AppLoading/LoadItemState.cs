@@ -34,10 +34,10 @@ namespace EDIVE.AppLoading
         {
             return state switch
             {
-                LoadItemState.Undefined => FancyColors.Aqua,
-                LoadItemState.Pending => FancyColors.Orange,
-                LoadItemState.Loading => FancyColors.Yellow,
-                LoadItemState.Completed => FancyColors.Green,
+                LoadItemState.Undefined => ColorTools.Aqua,
+                LoadItemState.Pending => ColorTools.Orange,
+                LoadItemState.Loading => ColorTools.Yellow,
+                LoadItemState.Completed => ColorTools.Green,
                 _ => Color.clear
             };
         }

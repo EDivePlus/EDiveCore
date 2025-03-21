@@ -14,7 +14,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 {
     public class AndroidBuildPlatformConfig : ABuildPlatformConfig
     {
-        [EnhancedBoxGroup("Backend", "@FancyColors.Purple", Order = -1)]
+        [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1)]
         [SerializeField]
         private AndroidArchitecture _TargetArchitectures = AndroidArchitecture.All;
 
