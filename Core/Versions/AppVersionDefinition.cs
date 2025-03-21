@@ -7,6 +7,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using UnityEditor;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 #endif
@@ -16,19 +17,30 @@ namespace EDIVE.Core.Versions
     public class AppVersionDefinition : ScriptableObject
     {
         [SerializeField]
-        private AppVersion _Version;
+        private AppVersion _CurrentVersion;
         
         [SerializeField]
         [OnValueChanged("OnFormatingChanged", true)]
         [ListDrawerSettings(DraggableItems = false, OnTitleBarGUI = "OnTitleBarGUI")]
         private List<FormatingRecord> _Formating = new();
 
-        public AppVersion Version => _Version;
-        public string VersionString => Version.GetFormatedString(CurrentVersionFormat);
-        public int BundleCode => Version.GetBundleCode(CurrentBundleCodeFormat);
+        public AppVersion CurrentVersion
+        {
+            get => _CurrentVersion;
+            set
+            {
+                _CurrentVersion = value;
+#if UNITY_EDITOR
+                EditorUtility.SetDirty(this);
+#endif
+            }
+        }
+
+        public string VersionString => CurrentVersion.GetFormatedString(CurrentVersionFormat);
+        public int BundleCode => CurrentVersion.GetBundleCode(CurrentBundleCodeFormat);
         
-        public AppVersionFormat CurrentVersionFormat => GetVersionFormat(Version);
-        public BundleCodeFormat CurrentBundleCodeFormat => GetBundleCodeFormat(Version);
+        public AppVersionFormat CurrentVersionFormat => GetVersionFormat(CurrentVersion);
+        public BundleCodeFormat CurrentBundleCodeFormat => GetBundleCodeFormat(CurrentVersion);
         
         public AppVersionFormat GetVersionFormat(AppVersion version)
         {
@@ -45,7 +57,7 @@ namespace EDIVE.Core.Versions
             return _Formating.TryGetLast(r => r.FromVersion <= version, out record);
         }
         
-        public static implicit operator AppVersion(AppVersionDefinition versionDefinition) => versionDefinition.Version;
+        public static implicit operator AppVersion(AppVersionDefinition versionDefinition) => versionDefinition.CurrentVersion;
 
         [Serializable]
         public class FormatingRecord : IComparable<FormatingRecord>

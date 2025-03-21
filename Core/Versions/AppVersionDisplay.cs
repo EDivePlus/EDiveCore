@@ -21,7 +21,7 @@ namespace EDIVE.Core.Versions
         {
             if (_VersionText != null)
             {
-                _VersionText.text = _VersionDefinition.Version.GetFormatedString(_VersionFormat); 
+                _VersionText.text = _VersionDefinition.CurrentVersion.GetFormatedString(_VersionFormat); 
             }
         }
     }
