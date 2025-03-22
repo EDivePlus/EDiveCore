@@ -91,7 +91,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 }
                 else
                 {
-                    var types = TypeCache.GetTypesDerivedFrom(baseType);
+                    var types = TypeCacheUtils.GetAssignableTypes(baseType);
                     selector = new GenericSelector<Type>(null, false, x => $"{x.Name} ({x.Namespace})", types);
                 }
                 selector.SetSelection(typeof(T));

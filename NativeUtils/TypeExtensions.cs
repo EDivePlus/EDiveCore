@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 
 namespace EDIVE.NativeUtils
@@ -36,6 +37,12 @@ namespace EDIVE.NativeUtils
             }
 
             return friendlyName;
+        }
+
+        public static bool HasExplicitAttribute(this Type type, Type attributeType)
+        {
+            if (type == null || attributeType == null) return false;
+            return type.CustomAttributes.Any(a => a.AttributeType == attributeType);
         }
     }
 }

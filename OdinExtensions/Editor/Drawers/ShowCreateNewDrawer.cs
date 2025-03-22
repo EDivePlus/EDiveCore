@@ -18,47 +18,6 @@ using UnityEngine.AddressableAssets;
 namespace EDIVE.OdinExtensions.Editor.Drawers
 {
     [DrawerPriority(DrawerPriorityLevel.WrapperPriority)]
-    public class ShowCreateNewDrawerForScriptableObject<T> : ShowCreateNewDrawer<T> where T : ScriptableObject
-    {
-        protected override bool TryCreateInstance(Type type, string defaultPath, string defaultName, out T result)
-        {
-            var path = defaultPath;
-            if (string.IsNullOrEmpty(path)) 
-                path = EditorAssetUtils.GetSelectedAssetsPath();
-
-            result = OdinExtensionUtils.CreateNewInstanceOfType<T>(type, path, defaultName);
-            return result != null;
-        }
-
-        protected override Type GetBaseType() => base.GetBaseType() ?? ValueEntry.BaseValueType;
-    }
-    
-#if ADDRESSABLES
-    [DrawerPriority(0, 200, 0)]
-    public class ShowCreateNewDrawerForAssetReferenceScriptableObject: ShowCreateNewDrawer<AssetReferenceT<ScriptableObject>>
-    {
-        protected override bool TryCreateInstance(Type type, string defaultPath, string defaultName, out AssetReferenceT<ScriptableObject> result)
-        {
-            var path = defaultPath;
-            if (string.IsNullOrEmpty(path)) 
-                path = EditorAssetUtils.GetSelectedAssetsPath();
-
-            var instance = OdinExtensionUtils.CreateNewInstanceOfType(type, path, defaultName);
-            if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(instance, out var guid, out long _))
-            {
-                result = new AssetReferenceT<ScriptableObject>(guid);
-                return true;
-            }
-            
-            result = null;
-            return false;
-        }
-        
-        protected override Type GetBaseType() => base.GetBaseType() ?? ValueEntry.BaseValueType;
-    }
-#endif
-    
-    [DrawerPriority(DrawerPriorityLevel.WrapperPriority)]
     public abstract class ShowCreateNewDrawer<T> : OdinAttributeDrawer<ShowCreateNewAttribute, T>
     {
         private ValueResolver<Type> _overrideTypeResolver;
@@ -83,12 +42,12 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (!string.IsNullOrEmpty(Attribute.OnCreatedNew))
                 _onCreatedNewResolver = ActionResolver.Get(Property, Attribute.OnCreatedNew, new NamedValue[] {new("value", typeof(T))});
         }
-        
+
         protected override void DrawPropertyLayout(GUIContent label)
         {
             ValueResolver.DrawErrors(_overrideTypeResolver, _showIfResolver, _overrideDefaultNameResolver, _defaultPathResolver);
             ActionResolver.DrawErrors(_onCreatedNewResolver);
-            
+
             EditorGUILayout.BeginHorizontal();
             CallNextDrawer(label);
             if (_showIfResolver == null || _showIfResolver.HasError || _showIfResolver.GetValue())
@@ -110,7 +69,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 return _overrideDefaultNameResolver.GetValue();
             if (type != null)
                 return $"New {type.Name}";
-            
+
             return $"New {typeof(T).Name}";
         }
 
@@ -134,4 +93,43 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         protected abstract bool TryCreateInstance(Type type, string defaultPath, string defaultName, out T result);
     }
+
+    [DrawerPriority(DrawerPriorityLevel.WrapperPriority)]
+    public class ShowCreateNewDrawerForScriptableObject<T> : ShowCreateNewDrawer<T> where T : ScriptableObject
+    {
+        protected override bool TryCreateInstance(Type type, string defaultPath, string defaultName, out T result)
+        {
+            var path = defaultPath;
+            if (string.IsNullOrEmpty(path)) 
+                path = EditorAssetUtils.GetSelectedAssetsPath();
+
+            result = OdinExtensionUtils.CreateNewInstanceOfType<T>(type, path, defaultName);
+            return result != null;
+        }
+
+        protected override Type GetBaseType() => base.GetBaseType() ?? ValueEntry.BaseValueType;
+    }
+    
+#if ADDRESSABLES
+    [DrawerPriority(0, 200, 0)]
+    public class ShowCreateNewDrawerForAssetReferenceScriptableObject: ShowCreateNewDrawer<AssetReferenceT<ScriptableObject>>
+    {
+        protected override bool TryCreateInstance(Type type, string defaultPath, string defaultName, out AssetReferenceT<ScriptableObject> result)
+        {
+            result = null;
+            var path = defaultPath;
+            if (string.IsNullOrEmpty(path))
+                path = EditorAssetUtils.GetSelectedAssetsPath();
+
+            var instance = OdinExtensionUtils.CreateNewInstanceOfType(type, path, defaultName);
+            if (instance == null || !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(instance, out var guid, out long _))
+                return false;
+
+            result = new AssetReferenceT<ScriptableObject>(guid);
+            return true;
+        }
+        
+        protected override Type GetBaseType() => base.GetBaseType() ?? ValueEntry.BaseValueType;
+    }
+#endif
 }

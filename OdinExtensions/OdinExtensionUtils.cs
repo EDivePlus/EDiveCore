@@ -28,7 +28,7 @@ namespace EDIVE.OdinExtensions
         {
             if(type == null) onSelectAction?.Invoke(null);
 
-            var assignableTypes = TypeCache.GetTypesDerivedFrom(type);
+            var assignableTypes = TypeCache.GetTypesDerivedFrom(type).Append(type).Where(t => !t.IsAbstract && !t.IsGenericType).ToList();
             if (assignableTypes.Count <= 0) return;
             if (assignableTypes.Count == 1)
             {
@@ -57,7 +57,7 @@ namespace EDIVE.OdinExtensions
 
         public static bool HasParentObject<T>(this InspectorProperty property, Predicate<T> filter = null, bool includeSelf = false)
         {
-            return TryGetParentObject<T>(property, out _, out _, filter, includeSelf);
+            return TryGetParentObject(property, out _, out _, filter, includeSelf);
         }
 
         public static T GetParentObject<T>(this InspectorProperty property, Predicate<T> filter = null, bool includeSelf = false)
