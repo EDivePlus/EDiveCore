@@ -61,7 +61,7 @@ namespace EDIVE.EditorUtils
 
         public static AssetReferenceGameObject ConvertToReference(GameObject originalReference, string label = null)
         {
-            if (originalReference == null || !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(originalReference, out var guid, out  _)) 
+            if (originalReference == null || !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(originalReference, out var guid, out long _))
                 return null;
             
             var assetReference = new AssetReferenceGameObject(guid);
