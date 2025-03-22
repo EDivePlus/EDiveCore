@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.Addressables;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using UnityEditor;
 using EDIVE.EditorUtils;
 using Sirenix.Utilities.Editor;
 #endif
@@ -106,7 +108,7 @@ namespace EDIVE.AppLoading
         }
 
 
-#if USE_ADDRESSABLES
+#if ADDRESSABLES
         [MenuItem("CONTEXT/PrefabLoadItemDefinition/Convert to Addressable", false, 10000)]
         public static void ConvertPrefabLoadItemToAddressable(MenuCommand command)
         {

@@ -1,4 +1,4 @@
-#if ADDRESSABLES
+#if ADDRESSABLES && UNITY_EDITOR
 using System;
 using System.IO;
 using UnityEditor;
@@ -7,7 +7,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
-namespace EDIVE.EditorUtils
+namespace EDIVE.Addressables
 {
     public static class AddressablesEditorUtils
     {

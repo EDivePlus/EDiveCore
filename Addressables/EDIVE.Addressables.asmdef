@@ -1,13 +1,10 @@
 {
-    "name": "EDIVE.EditorUtils",
+    "name": "EDIVE.Addressables",
     "rootNamespace": "",
     "references": [
         "EDIVE.OdinExtensions",
-        "EDIVE.External.ToolbarExtensions",
-        "EDIVE.NativeUtils",
-        "Unity.EditorCoroutines.Editor",
-        "EDIVE.Core",
-        "EDIVE.External.Promises"
+        "Unity.Addressables",
+        "Unity.Addressables.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
