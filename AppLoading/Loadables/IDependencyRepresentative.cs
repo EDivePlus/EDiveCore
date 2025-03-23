@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Loadables
 {
     public interface IDependencyRepresentative : ILoadInterface
     {

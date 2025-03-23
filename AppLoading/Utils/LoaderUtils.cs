@@ -2,15 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Addressables;
-using UnityEngine;
-
-#if UNITY_EDITOR
-using UnityEditor;
+using EDIVE.AppLoading.LoadItems;
 using EDIVE.EditorUtils;
 using Sirenix.Utilities.Editor;
-#endif
+using UnityEditor;
+using UnityEngine;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Utils
 {
     public static class LoaderUtils
     {

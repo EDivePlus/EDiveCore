@@ -3,7 +3,7 @@ using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Utils
 {
     [DisallowMultipleComponent]
     public class PrefabChildLoadableProvider : MonoBehaviour

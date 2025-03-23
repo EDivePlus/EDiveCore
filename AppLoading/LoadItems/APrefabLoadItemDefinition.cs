@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Loadables;
+using EDIVE.AppLoading.Utils;
 using EDIVE.NativeUtils;
 using UnityEngine;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.LoadItems
 {
     public abstract class APrefabLoadItemDefinition : ALoadItemDefinition
     {

@@ -1,12 +1,12 @@
 ﻿#if UNITY_EDITOR
-using EDIVE.AppLoading;
+using EDIVE.AppLoading.Loadables;
+using EDIVE.AppLoading.Utils;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector.Editor.Validation;
 using UnityEngine;
-
 [assembly: RegisterValidator(typeof(LoadablePrefabValidator<>))]
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Utils
 {
     public class LoadablePrefabValidator<TLoadable> : RootObjectValidator<TLoadable> where TLoadable : MonoBehaviour, ILoadInterface
     {

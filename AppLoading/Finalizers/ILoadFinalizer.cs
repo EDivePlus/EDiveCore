@@ -1,6 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Loadables;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Finalizers
 {
     public interface ILoadFinalizer : ILoadInterface
     {

@@ -1,4 +1,4 @@
-﻿namespace EDIVE.AppLoading
+﻿namespace EDIVE.AppLoading.Loadables
 {
     public interface ILoadInterface
     {

@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Finalizers
 {
     [Serializable]
     public class SequentialLoadFinalizer : ILoadFinalizer

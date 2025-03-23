@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
+using EDIVE.AppLoading.Utils;
 using EDIVE.EditorUtils;
 using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
@@ -11,15 +12,12 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.UniqueDefinitions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using UnityEngine;
-
-#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities.Editor;
-#endif
+using UnityEngine;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.LoadItems
 {
     public abstract class ALoadItemDefinition : AUniqueDefinition, IComparable<ALoadItemDefinition>
     {

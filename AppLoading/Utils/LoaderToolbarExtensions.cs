@@ -9,7 +9,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Utils
 {
     public static class LoaderToolbarExtensions
     {

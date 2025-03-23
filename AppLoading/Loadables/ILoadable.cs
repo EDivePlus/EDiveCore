@@ -1,7 +1,7 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 
-namespace EDIVE.AppLoading
+namespace EDIVE.AppLoading.Loadables
 {
     public interface ILoadable : ILoadInterface
     {
