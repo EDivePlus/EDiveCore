@@ -11,11 +11,11 @@ namespace EDIVE.External.ParrelSync
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public struct ParrelSyncArgumentsBundle
+    public class SyncArgumentsBundle
     {
         [JsonProperty("SyncPlaymode")]
         [SerializeField]
-        private bool _SyncPlaymode;
+        private bool _SyncPlaymode = true;
 
         [JsonProperty("MasterPlaying")]
         [HideInInspector]
@@ -24,7 +24,7 @@ namespace EDIVE.External.ParrelSync
         
         [JsonProperty("Actions")]
         [SerializeReference]
-        private List<IParrelSyncAction> _Actions;
+        private List<IParrelSyncAction> _Actions = new();
         
         public IReadOnlyList<IParrelSyncAction> Actions => _Actions;
         public bool IsMasterPlaying

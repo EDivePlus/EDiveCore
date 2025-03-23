@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
+using EDIVE.Utils.Json;
 using Newtonsoft.Json;
 using ParrelSync;
 using UnityEditor;
@@ -18,14 +18,29 @@ namespace EDIVE.External.ParrelSync
 {
     public static class ParrelSyncUtility
     {
+        public static readonly JsonSerializerSettings JSON_SERIALIZER_SETTINGS = new()
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            Formatting = Formatting.Indented,
+            Error = (_, args) =>
+            {
+                args.ErrorContext.Handled = true;
+                Debug.LogException(args.ErrorContext.Error);
+            },
+        };
+
         private static List<ProjectCloneRecord> _cloneRecords = new();
         public static List<ProjectCloneRecord> CloneRecords => _cloneRecords ??= RefreshClones();
 
-        public static ParrelSyncArgumentsBundle SelfArgumentsBundle
+        public static string SelfArgumentBundlePath => Path.Combine(ClonesManager.GetCurrentProjectPath(), ClonesManager.ArgumentFileName);
+
+        public static JsonFileWatchingEditor<SyncArgumentsBundle> SelfArgumentsBundle
         {
-            get => TryGetSelfArgumentsBundle(out var result) ? result : default;
-            set => SetSelfArgumentsBundle(value);
+            get => _selfArgumentsBundleEditor ??= new JsonFileWatchingEditor<SyncArgumentsBundle>(SelfArgumentBundlePath, JSON_SERIALIZER_SETTINGS);
+            set => _selfArgumentsBundleEditor = value;
         }
+        private static JsonFileWatchingEditor<SyncArgumentsBundle> _selfArgumentsBundleEditor;
+
 
         [InitializeOnLoadMethod]
         public static void Initialize()
@@ -48,14 +63,14 @@ namespace EDIVE.External.ParrelSync
             foreach (var cloneRecord in CloneRecords)
             {
                 var argumentsBundle = cloneRecord.ArgumentsBundle;
-                argumentsBundle.IsMasterPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
-                cloneRecord.ArgumentsBundle = argumentsBundle;
+                argumentsBundle.Data.IsMasterPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
+                argumentsBundle.SaveData();
             }
         }
 
         private static void WatchForStateChange()
         {
-            var argumentsBundle = SelfArgumentsBundle;
+            var argumentsBundle = SelfArgumentsBundle.Data;
             if (argumentsBundle.SyncPlaymode)
             {
                 if (argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
@@ -72,7 +87,7 @@ namespace EDIVE.External.ParrelSync
 
         private static void OnClonePlaymodeEntered()
         {
-            var bundle = SelfArgumentsBundle;
+            var bundle = SelfArgumentsBundle.Data;
             foreach (var action in bundle.Actions)
             {
                 action?.OnPlayModeStarted();
@@ -100,46 +115,6 @@ namespace EDIVE.External.ParrelSync
                 _cloneRecords.Add(new ProjectCloneRecord(cloneProjectPath));
             }
             return _cloneRecords;
-        }
-
-        public static bool TryGetSelfArgumentsBundle(out ParrelSyncArgumentsBundle result)
-        {
-            result = default;
-            return ClonesManager.IsClone() && TryGetArgumentsBundle(ClonesManager.GetCurrentProjectPath(), out result);
-        }
-
-        public static void SetSelfArgumentsBundle(ParrelSyncArgumentsBundle argumentsBundle)
-        {
-            if (!ClonesManager.IsClone()) return;
-            SetArgumentsBundle(ClonesManager.GetCurrentProjectPath(), argumentsBundle);
-        }
-
-        public static bool TryGetArgumentsBundle(string projectPath, out ParrelSyncArgumentsBundle result)
-        {
-            result = default;
-            var argumentFilePath = Path.Combine(projectPath, ClonesManager.ArgumentFileName);
-            if (!File.Exists(argumentFilePath))
-                return false;
-
-            var argumentsData = File.ReadAllText(argumentFilePath, Encoding.UTF8);
-            var success = true;
-            var settings = new JsonSerializerSettings
-            {
-                Error = (sender, args) => { success = false; args.ErrorContext.Handled = true; },
-                MissingMemberHandling = MissingMemberHandling.Error
-            };
-            result = JsonConvert.DeserializeObject<ParrelSyncArgumentsBundle>(argumentsData, settings);
-            return success;
-        }
-
-        public static void SetArgumentsBundle(string projectPath, ParrelSyncArgumentsBundle argumentsBundle)
-        {
-            var argumentFilePath = Path.Combine(projectPath, ClonesManager.ArgumentFileName);
-            if (!File.Exists(argumentFilePath))
-                return;
-
-            var argumentsData = JsonConvert.SerializeObject(argumentsBundle);
-            File.WriteAllText(argumentFilePath, argumentsData, Encoding.UTF8);
         }
 
         [DllImport("user32.dll")]
@@ -173,7 +148,7 @@ namespace EDIVE.External.ParrelSync
             var pidFilePath = Path.Combine(projectPath, "Temp", "UnityEditorPID.txt");
             if (!File.Exists(pidFilePath))
             {
-                Debug.LogError("Editor process ID not saved.");
+                Debug.LogError("Editor process ID not saved");
                 return;
             }
 

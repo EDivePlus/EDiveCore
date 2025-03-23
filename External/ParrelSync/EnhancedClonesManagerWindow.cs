@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Utils.Json;
 using ParrelSync;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
@@ -34,13 +35,11 @@ namespace EDIVE.External.ParrelSync
             set { }
         }
 
+        [PropertyOrder(100)]
         [ShowIf(nameof(IsClone))]
-        [ShowInInspector]
-        [HideLabel]
-        [InlineProperty]
-        [EnhancedBoxGroup("Arguments", SpaceBefore = 6, Order = 100)]
         [HideReferenceObjectPicker]
-        private ParrelSyncArgumentsBundle ArgumentsBundle
+        [ShowInInspector]
+        private JsonFileWatchingEditor<SyncArgumentsBundle> ArgumentsBundle
         {
             get => ParrelSyncUtility.SelfArgumentsBundle;
             set => ParrelSyncUtility.SelfArgumentsBundle = value;
@@ -111,6 +110,7 @@ namespace EDIVE.External.ParrelSync
             }
         }
 
+        [ShowIf(nameof(IsClone))]
         [OnInspectorGUI]
         private void DrawMasterEditorRunning()
         {

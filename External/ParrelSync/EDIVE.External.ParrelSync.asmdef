@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "ParrelSync",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.Utils"
     ],
     "includePlatforms": [
         "Editor"
