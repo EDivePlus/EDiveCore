@@ -129,7 +129,6 @@ namespace EDIVE.External.ToolbarExtensions
 #else
             // Standard height is 20, but unity is using 18, morons
             const int height = 18;
-            GUILayout.Space(1);
 #endif
             GUILayout.Space(1);
             GUILayout.BeginHorizontal(GUILayout.Height(height));
