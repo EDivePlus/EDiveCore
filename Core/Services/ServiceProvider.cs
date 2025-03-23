@@ -45,7 +45,7 @@ namespace EDIVE.Core
             return result;
         }
 
-        public bool TryUnregister<T>(object service) where T : class, IService
+        public bool Unregister<T>(T service) where T : class, IService
         {
             if (TryGet<T>(out var registeredService) && ReferenceEquals(registeredService, service))
                 return Unregister<T>();
