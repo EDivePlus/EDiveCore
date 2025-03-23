@@ -36,7 +36,11 @@ namespace EDIVE.External.ParrelSync
 
         public static JsonFileWatchingEditor<SyncArgumentsBundle> SelfArgumentsBundle
         {
-            get => _selfArgumentsBundleEditor ??= new JsonFileWatchingEditor<SyncArgumentsBundle>(SelfArgumentBundlePath, JSON_SERIALIZER_SETTINGS);
+            get
+            {
+                if (!ClonesManager.IsClone()) return null;
+                return _selfArgumentsBundleEditor ??= new JsonFileWatchingEditor<SyncArgumentsBundle>(SelfArgumentBundlePath, JSON_SERIALIZER_SETTINGS);
+            }
             set => _selfArgumentsBundleEditor = value;
         }
         private static JsonFileWatchingEditor<SyncArgumentsBundle> _selfArgumentsBundleEditor;
