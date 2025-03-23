@@ -17,14 +17,16 @@ namespace EDIVE.External.ParrelSync
     [Serializable]
     public class ProjectCloneRecord
     {
-        [ShowOpenInExplorer]
+        [HideInInspector]
         [SerializeField]
-        [EnableGUI]
-        [ReadOnly]
         private string _ProjectPath;
 
-        public string ArgumentBundlePath => Path.Combine(_ProjectPath, ClonesManager.ArgumentFileName);
+        [EnableGUI]
+        [ShowOpenInExplorer]
+        [ShowInInspector]
         public string ProjectPath => _ProjectPath;
+
+        public string ArgumentBundlePath => Path.Combine(_ProjectPath, ClonesManager.ArgumentFileName);
 
         [ShowInInspector]
         [HideReferenceObjectPicker]
