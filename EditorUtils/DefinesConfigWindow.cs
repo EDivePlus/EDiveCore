@@ -19,7 +19,7 @@ namespace EDIVE.EditorUtils
     public class DefinesConfigWindow : OdinEditorWindow
     {
         [Searchable(FilterOptions = SearchFilterOptions.ValueToString)]
-        [EnhancedTableList(AlwaysExpanded = true, ShowPaging = false, OnTitleBarGUI = nameof(OnRecordsToolbarGUI))]
+        [EnhancedTableList(ShowFoldout = false, ShowPaging = false, OnTitleBarGUI = nameof(OnRecordsToolbarGUI))]
         [SerializeField]
         private List<DefineRecord> _Records;
 

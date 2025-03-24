@@ -84,10 +84,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             Property.ValueEntry.OnChildValueChanged += OnChildValueChanged;
             _filter = new MultiCollectionFilter<IOrderedCollectionResolver>(Property, Property.ChildResolver as IOrderedCollectionResolver);
 
-            if (Attribute.AlwaysExpanded)
-            {
-                Property.State.Expanded = true;
-            }
+            if (Attribute.DefaultExpandedStateHasValue)
+                Property.State.Expanded = Attribute.DefaultExpandedState;
 
             if (Attribute.CustomAddFunction != null)
             {
@@ -181,10 +179,14 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     DrawToolbar(label);
                 }
 
-                if (Attribute.AlwaysExpanded)
+                var drawFoldout = Attribute.ShowFoldout;
+
+                if (_filter.GetCount() == 0)
+                    drawFoldout = false;
+
+                if (!drawFoldout)
                 {
                     Property.State.Expanded = true;
-
                     DrawColumnHeaders();
                     DrawTable();
                 }
@@ -427,7 +429,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             label ??= GUIHelper.TempContent("");
             
             GUIHelper.PushHierarchyMode(false);
-            if (Attribute.AlwaysExpanded || _filter.GetCount() == 0)
+            if (!Attribute.ShowFoldout || _filter.GetCount() == 0)
             {
                 EditorGUILayout.LabelField(label);
             }

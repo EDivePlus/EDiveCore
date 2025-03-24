@@ -86,7 +86,7 @@ namespace EDIVE.BuildTool
         public class BuildPanel
         {
             [SerializeReference]
-            [EnhancedTableList(AlwaysExpanded = true, IsReadOnly = true, OnTitleBarGUI = nameof(OnPresetListTitleBarGUI))]
+            [EnhancedTableList(ShowFoldout = false, IsReadOnly = true, OnTitleBarGUI = nameof(OnPresetListTitleBarGUI))]
             public List<ABuildPreset> _Presets;
 
             [OnInspectorInit]

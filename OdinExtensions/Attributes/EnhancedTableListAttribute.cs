@@ -20,8 +20,15 @@ namespace EDIVE.OdinExtensions.Attributes
         public int MinScrollViewHeight = 350;
     
         public int MaxScrollViewHeight;
-    
-        public bool AlwaysExpanded;
+
+        public bool ShowFoldout = true;
+
+        [Obsolete("Use ShowFoldout instead", false)]
+        public bool Expanded
+        {
+            get => !ShowFoldout;
+            set => ShowFoldout = !value;
+        }
     
         public bool HideToolbar = false;
     
@@ -63,6 +70,19 @@ namespace EDIVE.OdinExtensions.Attributes
         {
             get => Math.Min(MinScrollViewHeight, MaxScrollViewHeight);
             set => MinScrollViewHeight = MaxScrollViewHeight = value;
+        }
+
+        public bool DefaultExpandedStateHasValue { get; private set; }
+
+        private bool _defaultExpandedState;
+        public bool DefaultExpandedState
+        {
+            get => _defaultExpandedState;
+            set
+            {
+                DefaultExpandedStateHasValue = true;
+                _defaultExpandedState = value;
+            }
         }
 
     }

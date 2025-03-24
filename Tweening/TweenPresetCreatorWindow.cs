@@ -19,7 +19,7 @@ namespace EDIVE.Tweening
     public class TweenPresetCreatorWindow : OdinEditorWindow
     {
         [SerializeField]
-        [EnhancedTableList(AlwaysExpanded = true)]
+        [EnhancedTableList(ShowFoldout = false)]
         private List<ComponentReference> _References;
 
         [InlineProperty]
