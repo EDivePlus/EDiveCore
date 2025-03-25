@@ -427,8 +427,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         {
             SirenixEditorGUI.BeginHorizontalToolbar();
             label ??= GUIHelper.TempContent("");
-            
-            GUIHelper.PushHierarchyMode(false);
+
             if (!Attribute.ShowFoldout || _filter.GetCount() == 0)
             {
                 EditorGUILayout.LabelField(label);
@@ -437,7 +436,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             {
                 Property.State.Expanded = SirenixEditorGUI.Foldout(Property.State.Expanded, label);
             }
-            GUIHelper.PushHierarchyMode(true);
 
             GUILayout.FlexibleSpace();
 
@@ -546,7 +544,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private void DrawTable()
         {
-            GUIHelper.PushHierarchyMode(false);
             _table.DrawScrollView = Attribute.DrawScrollView && (_paging.IsExpanded || !_paging.IsEnabled);
             _table.ScrollPos = _scrollPos.Value;
             _table.BeginTable(_paging.EndIndex - _paging.StartIndex);
@@ -583,8 +580,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             _table.EndTable();
             _scrollPos.Value = _table.ScrollPos;
             DrawColumnSeperators();
-
-            GUIHelper.PopHierarchyMode();
 
             if (_columns.Count > 0 && _columns[0].ColumnType == ColumnType.Index)
             {
