@@ -155,7 +155,7 @@ namespace EDIVE.Utils.Json
             if (writer.Token is JObject jObject)
                 return jObject;
 
-            //DefinitionsConverterUtility.DisableOnce();
+            UnityAssetConverterUtility.DisableOnce();
             writer.Flush();
             serializer.Serialize(writer, asset, baseType);
             return (JObject) writer.Token;

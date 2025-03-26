@@ -1,5 +1,6 @@
 ﻿#if UNITY_EDITOR
 using System;
+using System.IO;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
@@ -51,7 +52,7 @@ namespace EDIVE.Utils.Json
         }
 
         [OnInspectorGUI]
-        private void DrawButtons()
+        private void DrawButtons(InspectorProperty property)
         {
             if (!AccessorsAssigned)
             {
@@ -67,6 +68,15 @@ namespace EDIVE.Utils.Json
                 _textSetter?.Invoke(_json);
             }
             GUIHelper.PopGUIEnabled();
+
+            if (ToolbarButton(FontAwesomeEditorIcons.FloppyDiskCircleArrowRightSolid, "Save As"))
+            {
+                var path = EditorUtility.SaveFilePanel("Save JSON as", Application.dataPath, "file", "json");
+                if (!string.IsNullOrEmpty(path))
+                {
+                    property.Tree.DelayAction(() => File.WriteAllText(path, _json));
+                }
+            }
             
             if (ToolbarButton(FontAwesomeEditorIcons.RotateLeftRegular, "Reload"))
             {
