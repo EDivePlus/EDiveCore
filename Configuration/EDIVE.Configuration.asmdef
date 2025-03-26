@@ -1,0 +1,21 @@
+{
+    "name": "EDIVE.Configuration",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils",
+        "EDIVE.Utils",
+        "EDIVE.AppLoading",
+        "UniTask",
+        "Newtonsoft.Json.UnityConverters"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
