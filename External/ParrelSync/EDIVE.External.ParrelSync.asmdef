@@ -4,7 +4,8 @@
     "references": [
         "ParrelSync",
         "EDIVE.OdinExtensions",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "Newtonsoft.Json.UnityConverters"
     ],
     "includePlatforms": [
         "Editor"

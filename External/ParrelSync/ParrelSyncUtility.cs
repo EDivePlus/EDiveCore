@@ -9,6 +9,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using EDIVE.Utils.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.UnityConverters;
 using ParrelSync;
 using UnityEditor;
 using UnityEngine;
@@ -18,7 +19,7 @@ namespace EDIVE.External.ParrelSync
 {
     public static class ParrelSyncUtility
     {
-        public static readonly JsonSerializerSettings JSON_SERIALIZER_SETTINGS = new()
+        public static readonly JsonSerializerSettings JSON_SERIALIZER_SETTINGS = new(UnityConverterInitializer.defaultUnityConvertersSettings)
         {
             TypeNameHandling = TypeNameHandling.Auto,
             Formatting = Formatting.Indented,
