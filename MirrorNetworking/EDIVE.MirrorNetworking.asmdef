@@ -6,7 +6,8 @@
         "UniTask",
         "Mirror",
         "EDIVE.Core",
-        "EDIVE.External.ParrelSync"
+        "EDIVE.External.ParrelSync",
+        "EDIVE.External.Signals"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

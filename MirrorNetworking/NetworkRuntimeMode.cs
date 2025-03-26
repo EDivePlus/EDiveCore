@@ -6,6 +6,7 @@ namespace EDIVE.MirrorNetworking
     public enum NetworkRuntimeMode
     {
         Client = 0,
-        Server = 1
+        Server = 1,
+        Host = 1
     }
 }
