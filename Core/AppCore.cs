@@ -8,6 +8,10 @@ using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace EDIVE.Core
 {
     public class AppCore : MonoBehaviour
@@ -20,13 +24,10 @@ namespace EDIVE.Core
         private static AppCore _instance;
         
         private static int _mainThreadId;
-
-        [ClearOnReload]
-        private static bool _applicationIsQuitting;
         
         public static ServiceProvider Services => Instance._services ??= new ServiceProvider();
         public static bool IsLoaded => HasInstance && Instance._isLoaded;
-        public static bool HasInstance => Application.isPlaying && !_applicationIsQuitting && _instance != null;
+        public static bool HasInstance => Application.isPlaying && _instance != null;
         public static bool IsMainThread => Equals(_mainThreadId, Thread.CurrentThread.ManagedThreadId);
         
         public static AppCore Instance
@@ -36,12 +37,6 @@ namespace EDIVE.Core
                 if (_instance != null || !Application.isPlaying)
                     return _instance;
 
-                if (_applicationIsQuitting)
-                {
-                    Debug.LogWarning("[AppCore] Application is quitting, instance will be destroyed.");
-                    return null;
-                }
-
                 Debug.LogError("[AppCore] Core not initialized, make sure core is loaded first!");
                 return null;
             }
@@ -50,7 +45,6 @@ namespace EDIVE.Core
         private void Awake()
         {
             _mainThreadId = Thread.CurrentThread.ManagedThreadId;
-            _applicationIsQuitting = false;
             
             if (_instance != null && !ReferenceEquals(this, _instance))
             {
@@ -59,12 +53,6 @@ namespace EDIVE.Core
             }
             _instance = this;
             DebugLite.Log("[AppCore] Initializing");
-        }
-
-        private void OnDestroy()
-        {
-            DebugLite.LogWarning("[AppCore] Application is quitting!");
-            _instance = null;
         }
 
         public static void SetLoadCompleted()
@@ -76,23 +64,41 @@ namespace EDIVE.Core
             Instance._loadedPromise?.Dispatch();
         }
         
-        public void WhenLoaded(Action action)
+        public static void WhenLoaded(Action action)
         {
+            if (!HasInstance)
+                return;
+            
             if (IsLoaded)
             {
                 action?.Invoke();
                 return;
             }
 
-            _loadedPromise ??= new Promise();
-            _loadedPromise.Then(action);
+            Instance._loadedPromise ??= new Promise();
+            Instance._loadedPromise.Then(action);
         }
 
-        public UniTask AwaitLoaded()
+        public static UniTask AwaitLoaded()
         {
             var source = new UniTaskCompletionSource();
             WhenLoaded(() => source.TrySetResult());
             return source.Task;
         }
+
+#if UNITY_EDITOR
+        [InitializeOnLoadMethod]
+        public static void InitializeEditor()
+        {
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+        
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.EnteredEditMode)
+                _instance = null;
+        }
+#endif
     }
 }
