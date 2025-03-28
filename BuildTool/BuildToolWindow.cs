@@ -46,7 +46,6 @@ namespace EDIVE.BuildTool
         public static void OpenWindow()
         {
             var window = GetWindow<BuildToolWindow>();
-            window.position = GUIHelper.GetEditorWindowRect().AlignCenter(600, 800);
             window.SetupWindowStyle();
             window.TrySelectMenuItemWithObject(BUILD_PANEL);
         }

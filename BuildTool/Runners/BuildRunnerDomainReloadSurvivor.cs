@@ -1,6 +1,6 @@
 using System;
-using Cysharp.Threading.Tasks;
 using EDIVE.EditorUtils.DomainReload;
+using Unity.EditorCoroutines.Editor;
 using UnityEngine;
 
 namespace EDIVE.BuildTool.Runners
@@ -19,7 +19,7 @@ namespace EDIVE.BuildTool.Runners
         public void OnAfterDomainReload()
         {
             DebugLite.Log("[BuildRunner] Survived Domain Reload...");
-            _Runner.StartBuild().Forget();
+            EditorCoroutineUtility.StartCoroutineOwnerless(_Runner.StartBuild());
         }
     }
 }

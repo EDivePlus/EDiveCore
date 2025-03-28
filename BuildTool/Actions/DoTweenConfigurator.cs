@@ -1,4 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.Collections;
 using DG.Tweening;
 
 namespace EDIVE.BuildTool.Actions
@@ -6,14 +6,14 @@ namespace EDIVE.BuildTool.Actions
     [System.Serializable]
     public class DoTweenConfigurator : ABuildAction
     {
-        public override UniTask OnPreBuildAfterDefines(BuildContext buildContext)
+        public override IEnumerator OnPreBuildAfterDefines(BuildContext buildContext)
         {
 #if DEBUG
             DOTween.logBehaviour = LogBehaviour.Verbose;
 #else
             DOTween.logBehaviour = LogBehaviour.ErrorsOnly;
 #endif
-            return UniTask.CompletedTask;
+            yield break;
         }
     }
 }

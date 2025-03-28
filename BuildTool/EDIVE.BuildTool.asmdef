@@ -10,7 +10,7 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.EditorUtils",
         "EDIVE.External.Signals",
-        "UniTask"
+        "Unity.EditorCoroutines.Editor"
     ],
     "includePlatforms": [
         "Editor"

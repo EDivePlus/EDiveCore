@@ -6,11 +6,13 @@ namespace EDIVE.BuildTool.Utils
     public enum BuildStateType
     {
         NotStarted = 0,
-        Preprocessing = 1,
-        PipelinePreparation = 2,
-        PipelineInProgress = 3,
-        PipelineFinalization = 4,
-        Postprocessing = 5,
-        Completed = 6,
+        PreprocessPreDefines = 1,
+        PreprocessPostDefines = 2,
+        PipelinePreparation = 3,
+        PipelineInProgress = 4,
+        PipelineFinalization = 5,
+        PostprocessPreDefines = 6,
+        PostprocessPostDefines = 7,
+        Completed = 8,
     }
 }

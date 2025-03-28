@@ -1,18 +1,20 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
 using EDIVE.BuildTool.Actions;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.EditorUtils.DomainReload;
 using EDIVE.NativeUtils;
-using EDIVE.Utils;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Compilation;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace EDIVE.BuildTool.Runners
 {
@@ -50,7 +52,7 @@ namespace EDIVE.BuildTool.Runners
 
         public BuildContext Context => _Context;
 
-        public abstract UniTask StartBuild();
+        public abstract IEnumerator StartBuild();
     }
 
     [Serializable]
@@ -72,64 +74,86 @@ namespace EDIVE.BuildTool.Runners
             _Context = new BuildContext(options);
         }
 
-        public override async UniTask StartBuild()
+        public override IEnumerator StartBuild()
         {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                yield break;
+            
+            var activeScene = SceneManager.GetActiveScene();
+            EditorSceneManager.OpenScene(activeScene.path, OpenSceneMode.Single);
+
+            if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
+            {
+                Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
+                yield break;
+            }
+                
+            EditorUtility.DisplayProgressBar("Build", "Build initializing", 0f);
             DebugLite.Log("[BuildRunner] Build prepared for start or resume...");
 
-            await UniTask.Yield();
-            await UniTask.WaitWhile(() => EditorApplication.isCompiling);
-
+            yield return null;
+            while (EditorApplication.isCompiling)
+                yield return null;
+            
             if (Context.State != BuildStateType.NotStarted)
             {
                 DebugLite.Log($"[BuildRunner] Resuming build from state {Context.State}");
             }
 
-            try
+            if (Context.State < BuildStateType.PreprocessPreDefines)
             {
-                if (Context.State == BuildStateType.NotStarted)
-                {
-                    await ExecuteBuildSegment(BuildPreprocess);
-                }
-
-                if (Context.State < BuildStateType.PipelinePreparation)
-                {
-                    await ExecuteBuildSegment(BuildBinary);
-                }
-
-                if (Context.State < BuildStateType.Postprocessing)
-                {
-                    await ExecuteBuildSegment(BuildPostprocess);
-                }
+                EditorUtility.DisplayProgressBar("Build", "Build preprocess pre defines", 0.1f);
+                yield return ExecuteBuildSegment(BuildPreprocessPreDefines);
             }
-            catch (Exception e)
+                
+            if (Context.State <  BuildStateType.PreprocessPostDefines)
             {
-                Debug.LogException(e);
-                TeamCityServiceMessages.MessageBuildProblem("Build failed with exception");
-                _Context.Result = BuildResult.Failed;
-                RestoreSettingsAfterBuild();
+                EditorUtility.DisplayProgressBar("Build", "Build preprocess post defines", 0.1f);
+                yield return  ExecuteBuildSegment(BuildPreprocessPostDefines);
             }
+
+            if (Context.State < BuildStateType.PipelinePreparation)
+            {
+                EditorUtility.DisplayProgressBar("Build", "Build binary", 0.2f);
+                yield return  ExecuteBuildSegment(BuildBinary);
+            }
+
+            if (Context.State < BuildStateType.PostprocessPreDefines)
+            {
+                EditorUtility.DisplayProgressBar("Build", "Build postprocess pre defines", 0.9f);
+                yield return  ExecuteBuildSegment(BuildPostprocessPreDefines);
+            }
+                
+            if (Context.State < BuildStateType.PostprocessPostDefines)
+            {
+                EditorUtility.DisplayProgressBar("Build", "Build postprocess post defines", 0.9f);
+                yield return  ExecuteBuildSegment(BuildPostprocessPostDefines);
+            }
+            
+            RestoreSettingsAfterBuild();
+            EditorUtility.ClearProgressBar();
         }
 
-        private async UniTask ExecuteBuildSegment(Func<UniTask> segmentFunction)
+        private IEnumerator ExecuteBuildSegment(Func<IEnumerator> segmentFunction)
         {
-            DebugLite.Log($"[BuildRunner] Processing state {Context.State}");
+            DebugLite.Log($"[BuildRunner] State started {Context.State}");
             EditorApplication.LockReloadAssemblies();
-            await segmentFunction();
+            yield return segmentFunction();
             DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
             EditorApplication.UnlockReloadAssemblies();
-            await UniTask.Yield();
-            await UniTask.WaitWhile(() => EditorApplication.isCompiling);
+            yield return null;
+            while (EditorApplication.isCompiling)
+                yield return null;
+            DebugLite.Log($"[BuildRunner] State completed {Context.State}");
             DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
         }
-
-        public async UniTask BuildPreprocess()
+        
+        public IEnumerator BuildPreprocessPreDefines()
         {
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Build Preprocess");
-            Context.State = BuildStateType.Preprocessing;
-            Debug.Log("[BuildRunner] Build preprocess started");
+            Context.State = BuildStateType.PreprocessPreDefines;
 
             Preset.Validate();
-            await UniTask.Yield();
+            yield return null;
 
             UserConfig.PathResolver.ResolvePath(Preset);
 
@@ -137,45 +161,39 @@ namespace EDIVE.BuildTool.Runners
                 EditorUserBuildSettings.SwitchActiveBuildTarget(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget);
 
             SetupSettingsBeforeBuild();
-
             _Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
+            
+            DebugLite.Log("[BuildRunner] Actions pre defines executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Build Setup");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Actions Before DEFINES");
-            Debug.Log("[BuildRunner] Executing Build actions before defines ...");
-            await ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreBuildBeforeDefines(_Context));
-            Debug.Log("[BuildRunner] PreBuildCallbacks before defines executed ");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Actions Before DEFINES");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Applying DEFINES");
-            Debug.Log("[BuildRunner] Begin Apply DEFINES");
+            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreBuildBeforeDefines(_Context));
+            DebugLite.Log("[BuildRunner] Actions pre defines completed");
+ 
+            DebugLite.Log("[BuildRunner] Applying defines");
             PlayerSettings.GetScriptingDefineSymbols(PlatformConfig.NamedBuildTarget, out _PrevDefines);
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _Context.Defines);
-            await BuildUtils.RequestAndAwaitCompilation();
-            Debug.Log("[BuildRunner] End apply DEFINES");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Applying DEFINES");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Actions After DEFINES");
-            Debug.Log("[BuildRunner] Begin actions pre-build after defines");
-            await ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreBuildAfterDefines(_Context));
-            Debug.Log("[BuildRunner] End actions pre-build after defines");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Actions After DEFINES");
-
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Build Preprocess");
+            CompilationPipeline.RequestScriptCompilation();
         }
 
-        public async UniTask BuildBinary()
+        public IEnumerator BuildPreprocessPostDefines()
         {
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Build Binary");
+            Context.State = BuildStateType.PreprocessPostDefines;
+
+            DebugLite.Log("[BuildRunner] Actions post defines executing");
+            var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
+            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreBuildAfterDefines(_Context));
+            DebugLite.Log("[BuildRunner] Actions post defines completed");
+            
+            PathUtility.EnsurePathExists(UserConfig.PathResolver.FullPath);
+        }
+
+        public IEnumerator BuildBinary()
+        {
+            yield return null;
+            
             Context.State = BuildStateType.PipelinePreparation;
-            Debug.Log("[BuildRunner] Starting build");
-            await UniTask.Yield();
-
-            await PreprocessBeforeBuildPipeline();
-            Debug.Log($"[BuildRunner] Build path: {UserConfig.PathResolver.FullPath}");
-
+            DebugLite.Log("[BuildRunner] Starting build");
+            DebugLite.Log($"[BuildRunner] Build path: {UserConfig.PathResolver.FullPath}");
+            
             try
             {
                 Context.State = BuildStateType.PipelineInProgress;
@@ -185,7 +203,6 @@ namespace EDIVE.BuildTool.Runners
             catch (Exception e)
             {
                 Debug.LogException(e);
-                TeamCityServiceMessages.MessageBuildProblem("Build pipeline failed with exception");
                 _Context.Result = BuildResult.Failed;
             }
             finally
@@ -193,45 +210,37 @@ namespace EDIVE.BuildTool.Runners
                 Context.State = BuildStateType.PipelineFinalization;
             }
 
-            Debug.Log("[BuildRunner] Build Completed");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Build Binary");
+            DebugLite.Log("[BuildRunner] Build Completed");
         }
 
-        public async UniTask BuildPostprocess()
+        public IEnumerator BuildPostprocessPreDefines()
         {
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Build Postprocess");
-            Context.State = BuildStateType.Postprocessing;
-
+            Context.State = BuildStateType.PostprocessPreDefines;
+            
+            DebugLite.Log("[BuildRunner] Restoring defines");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Restoration After Build");
-            RestoreSettingsAfterBuild();
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Restoration After Build");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Actions Before Reverting DEFINES");
-            Debug.Log("[BuildRunner] Executing PostBuildCallbacks before defines ...");
-            await ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostBuildBeforeDefines(_Context));
-            Debug.Log("[BuildRunner] PostBuildCallbacks before defines executed ");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Actions Before Reverting DEFINES");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Reverting DEFINES");
+            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostBuildBeforeDefines(_Context));
+            
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Reverting DEFINES");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Actions After Reverting DEFINES");
-            Debug.Log("[BuildRunner] Executing PostBuildCallbacks after defines ...");
-            await ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostBuildAfterDefines(_Context));
-            Debug.Log("[BuildRunner] PostBuildCallbacks after defines executed ");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Actions After Reverting DEFINES");
-
-            TeamCityServiceMessages.BeginMessageBlock("[BuildRunner] Finalization");
+            CompilationPipeline.RequestScriptCompilation();
+        }
+        
+        public IEnumerator BuildPostprocessPostDefines()
+        {
+            Context.State = BuildStateType.PostprocessPostDefines;
+            
+            DebugLite.Log("[BuildRunner] Actions pre defines executing");
+            var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
+            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostBuildAfterDefines(_Context));
+            DebugLite.Log("[BuildRunner] Actions pre defines completed");
+            
             if (_Context.Report != null)
             {
                 _Context.Result = _Context.Report.summary.result;
                 if (_Context.Report.summary.result == BuildResult.Succeeded)
                 {
-                    Debug.Log($"[BuildRunner] {PlatformConfig.NamedBuildTarget} build completed");
-                    await ProcessSuccessfulBuild();
+                    DebugLite.Log($"[BuildRunner] {PlatformConfig.NamedBuildTarget} build completed");
+                    yield return ProcessSuccessfulBuild();
                 }
                 else
                 {
@@ -239,10 +248,8 @@ namespace EDIVE.BuildTool.Runners
                 }
             }
 
-            Debug.Log("[BuildRunner] Build Postprocess Completed");
+            DebugLite.Log("[BuildRunner] Build Postprocess Completed");
             Context.State = BuildStateType.Completed;
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Finalization");
-            TeamCityServiceMessages.EndMessageBlock("[BuildRunner] Build Postprocess");
 
             if (Application.isBatchMode)
                 EditorApplication.Exit(_Context.Result == BuildResult.Succeeded ? 0 : 1);
@@ -250,34 +257,28 @@ namespace EDIVE.BuildTool.Runners
 
         public void SetDefineSymbols(NamedBuildTarget namedTarget, IEnumerable<string> defines)
         {
-            Debug.Log($"[BuildHelper] Previous defines: {PlayerSettings.GetScriptingDefineSymbols(namedTarget)}");
+            DebugLite.Log($"[BuildHelper] Previous defines: {PlayerSettings.GetScriptingDefineSymbols(namedTarget)}");
             var definesArray = defines.ToArray();
             PlayerSettings.SetScriptingDefineSymbols(namedTarget, definesArray);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[BuildHelper] New defines: {string.Join(",", definesArray)}");
+            DebugLite.Log($"[BuildHelper] New defines: {string.Join(",", definesArray)}");
         }
 
-        protected virtual UniTask PreprocessBeforeBuildPipeline()
-        {
-            PathUtility.EnsurePathExists(UserConfig.PathResolver.FullPath);
-            return UniTask.CompletedTask;
-        }
-
-        private static async UniTask ExecuteBuildActions(IEnumerable<ABuildAction> buildActions, Func<ABuildAction, UniTask> taskGetter)
+        private static IEnumerator ExecuteBuildActions(IEnumerable<ABuildAction> buildActions, Func<ABuildAction, IEnumerator> function)
         {
             foreach (var buildAction in buildActions)
             {
                 if (buildAction == null)
                     continue;
 
-                Debug.Log($"[BuildRunner] Executing build action {buildAction.Label}");
-                await taskGetter(buildAction);
+                DebugLite.Log($"[BuildRunner] Executing build action {buildAction.Label}");
+                yield return function(buildAction);
             }
         }
 
-        protected virtual UniTask ProcessSuccessfulBuild()
+        protected virtual IEnumerator ProcessSuccessfulBuild()
         {
-            return UniTask.CompletedTask;
+            yield break;
         }
 
         protected virtual void SetupSettingsBeforeBuild()

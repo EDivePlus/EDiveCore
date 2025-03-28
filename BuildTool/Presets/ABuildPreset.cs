@@ -4,13 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
 using EDIVE.BuildTool.Actions;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Runners;
 using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
+using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -89,7 +89,7 @@ namespace EDIVE.BuildTool.Presets
                 Debug.LogError("Invalid Build runner!");
                 return;
             }
-            buildRunner.StartBuild().Forget();
+            EditorCoroutineUtility.StartCoroutineOwnerless(buildRunner.StartBuild());
         }
 
         protected abstract ABuildRunner CreateBuildRunner(BuildOptions options);

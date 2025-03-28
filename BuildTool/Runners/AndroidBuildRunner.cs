@@ -1,5 +1,5 @@
 using System;
-using Cysharp.Threading.Tasks;
+using System.Collections;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
@@ -140,13 +140,13 @@ namespace EDIVE.BuildTool.Runners
             CrashReportingSettings.enabled = _PrevEnableCloudDiagnostics;
         }
 
-        protected override UniTask ProcessSuccessfulBuild()
+        protected override IEnumerator ProcessSuccessfulBuild()
         {
             if (PlatformConfig.BuildAndroidAppBundle && PlatformConfig.ExtractAppBundleApk)
             {
                 BuildUtils.ExtractAAB(UserConfig.PathResolver.FullPath);
             }
-            return UniTask.CompletedTask;
+            yield break;
         }
     }
 }

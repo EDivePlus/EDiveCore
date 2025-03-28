@@ -1,4 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.Collections;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEngine;
@@ -15,11 +15,11 @@ namespace EDIVE.BuildTool.Actions
         public SplashScreenConfigurator() { }
         public SplashScreenConfigurator(bool removeSplashScreen) { _RemoveSplashScreen = removeSplashScreen; }
 
-        public override UniTask OnPreBuildAfterDefines(BuildContext buildContext)
+        public override IEnumerator OnPreBuildAfterDefines(BuildContext buildContext)
         {
             PlayerSettings.SplashScreen.show = !_RemoveSplashScreen;
             PlayerSettings.SplashScreen.showUnityLogo = false;
-            return UniTask.CompletedTask;
+            yield break;
         }
     }
 }

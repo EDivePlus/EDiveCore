@@ -4,9 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using Cysharp.Threading.Tasks;
 using UnityEditor;
-using UnityEditor.Compilation;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -27,20 +25,6 @@ namespace EDIVE.BuildTool.Utils
         public static readonly string JAR_EXECUTABLE_PATH = $"\"{OPEN_JDK_BIN_PATH}/jar.exe\"";
 
         private const string BUNDLE_TOOL_WILD_CARD = "bundletool-all-*.jar";
-
-        public static async UniTask<(string, CompilerMessage[])> RequestAndAwaitCompilation()
-        {
-            var completionSource = new UniTaskCompletionSource<(string, CompilerMessage[])>();
-            CompilationPipeline.assemblyCompilationFinished += OnCompilationFinished;
-            CompilationPipeline.RequestScriptCompilation();
-            return await completionSource.Task;
-
-            void OnCompilationFinished(string assembly, CompilerMessage[] messages)
-            {
-                CompilationPipeline.assemblyCompilationFinished -= OnCompilationFinished;
-                completionSource.TrySetResult((assembly, messages));
-            }
-        }
 
         public static bool IsBuildTargetSupported(BuildTarget target)
         {

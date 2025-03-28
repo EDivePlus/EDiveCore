@@ -1,4 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.Collections;
 using Sirenix.OdinInspector;
 using UnityEditor;
 
@@ -7,11 +7,11 @@ namespace EDIVE.BuildTool.Actions
     [System.Serializable]
     public abstract class ABuildAction : System.IComparable<ABuildAction>
     {
-        public virtual UniTask OnPreBuildBeforeDefines(BuildContext buildContext) => UniTask.CompletedTask;
-        public virtual UniTask OnPreBuildAfterDefines(BuildContext buildContext) => UniTask.CompletedTask;
+        public virtual IEnumerator OnPreBuildBeforeDefines(BuildContext buildContext) { yield break; }
+        public virtual IEnumerator OnPreBuildAfterDefines(BuildContext buildContext) { yield break; }
 
-        public virtual UniTask OnPostBuildBeforeDefines(BuildContext buildContext) => UniTask.CompletedTask;
-        public virtual UniTask OnPostBuildAfterDefines(BuildContext buildContext) => UniTask.CompletedTask;
+        public virtual IEnumerator OnPostBuildBeforeDefines(BuildContext buildContext) { yield break; }
+        public virtual IEnumerator OnPostBuildAfterDefines(BuildContext buildContext) { yield break; }
 
         public virtual int Priority => 0;
 
