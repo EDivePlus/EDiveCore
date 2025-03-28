@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+using System;
 using Sirenix.OdinInspector.Editor.ValueResolvers;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -20,3 +21,4 @@ namespace EDIVE.Addressables
         public override bool ValidateAsset(Object obj) => Type == null || Type.IsInstanceOfType(obj);
     }
 }
+#endif

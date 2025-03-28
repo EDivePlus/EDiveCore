@@ -6,10 +6,13 @@ using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
-using Sirenix.Utilities.Editor;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
+#endif
 
 namespace EDIVE.Tweening
 {

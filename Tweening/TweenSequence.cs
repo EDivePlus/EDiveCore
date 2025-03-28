@@ -4,10 +4,13 @@ using DG.Tweening;
 using EDIVE.Tweening.Segments;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Tweening
 {

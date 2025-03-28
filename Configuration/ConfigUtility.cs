@@ -5,6 +5,7 @@ using System.IO;
 using EDIVE.NativeUtils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.UnityConverters;
+using UnityEngine;
 
 namespace EDIVE.Configuration
 {

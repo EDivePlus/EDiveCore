@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Finalizers;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.AppLoading.Utils;
-using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.UniqueDefinitions;
@@ -14,6 +13,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using EDIVE.EditorUtils;
 using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities.Editor;
 #endif

@@ -4,7 +4,6 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using EDIVE.AppLoading.Utils;
-using EDIVE.EditorUtils;
 using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
@@ -12,10 +11,15 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.UniqueDefinitions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
+using UnityEngine;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities.Editor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.AppLoading.LoadItems
 {

@@ -5,11 +5,14 @@ using EDIVE.OdinExtensions;
 using EDIVE.Utils.ObjectActions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
+using UnityEngine;
+using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
-using UnityEngine;
-using Object = UnityEngine.Object;
+#endif
 
 namespace EDIVE.Tweening
 {

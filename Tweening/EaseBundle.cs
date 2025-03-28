@@ -4,8 +4,11 @@ using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Tweening
 {

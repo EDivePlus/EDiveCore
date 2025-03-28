@@ -9,10 +9,13 @@ using EDIVE.StateHandling.StateValuePresets;
 using EDIVE.Tweening.Segments;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor.Validation;
-using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor.Validation;
+using UnityEditor;
+#endif
 
 namespace EDIVE.Tweening.StateHandling
 {

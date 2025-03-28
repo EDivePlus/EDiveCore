@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 22.03.2025
 
+#if UNITY_EDITOR
 using System;
 using EDIVE.External.ParrelSync;
 using UnityEngine;
@@ -19,3 +20,4 @@ namespace EDIVE.MirrorNetworking
         }
     }
 }
+#endif

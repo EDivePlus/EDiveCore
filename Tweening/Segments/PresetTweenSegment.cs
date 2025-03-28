@@ -6,11 +6,14 @@ using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Validation;
-using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using Sirenix.OdinInspector.Editor;
+using Sirenix.OdinInspector.Editor.Validation;
+#endif
 
 namespace EDIVE.Tweening.Segments
 {

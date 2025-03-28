@@ -4,9 +4,12 @@ using DG.Tweening;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Tweening
 {

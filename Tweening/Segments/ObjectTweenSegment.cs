@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Tweening.ObjectActions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+#endif
 
 namespace EDIVE.Tweening.Segments
 {

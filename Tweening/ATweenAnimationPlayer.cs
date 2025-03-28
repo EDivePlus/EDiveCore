@@ -1,7 +1,10 @@
 ﻿using System;
 using DG.Tweening;
-using EDIVE.EditorUtils;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+#endif
 
 namespace EDIVE.Tweening
 {

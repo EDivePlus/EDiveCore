@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Addressables;
 using EDIVE.AppLoading.LoadItems;
+using UnityEngine;
+
+#if UNITY_EDITOR
 using EDIVE.EditorUtils;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.AppLoading.Utils
 {

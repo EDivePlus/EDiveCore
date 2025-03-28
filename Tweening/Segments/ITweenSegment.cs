@@ -1,8 +1,11 @@
 using DG.Tweening;
 using JetBrains.Annotations;
+using UnityEngine;
+
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.Tweening.Segments
 {
