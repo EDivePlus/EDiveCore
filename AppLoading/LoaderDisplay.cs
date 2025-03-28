@@ -32,7 +32,7 @@ namespace EDIVE.AppLoading
         private List<ALoadItemDefinition> _loadItems;
 
         private bool EnableLoadReportByDefault =>
-#if CHEATS_ENABLED
+#if UNITY_EDITOR
             true;
 #else
             false;

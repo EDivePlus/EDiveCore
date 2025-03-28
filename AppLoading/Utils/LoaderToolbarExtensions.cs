@@ -1,5 +1,6 @@
 ﻿#if UNITY_EDITOR
 using System.IO;
+using EDIVE.EditorUtils;
 using EDIVE.External.ToolbarExtensions;
 using EDIVE.OdinExtensions;
 using Sirenix.Utilities;
@@ -59,36 +60,31 @@ namespace EDIVE.AppLoading.Utils
             }
         }
 
-        public static bool TryPlayRootScene()
+        public static void TryPlayRootScene()
         {
             if (string.IsNullOrEmpty(LoaderSettings.RootScene))
             {
                 SelectRootScene();
-                return false;
+                return;
             }
 
             PreviousScene = SceneManager.GetActiveScene().path;
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            EditorHelper.ExecuteNextFrame(() =>
             {
-                if (!EditorSceneManager.OpenScene(LoaderSettings.RootScene).IsValid())
+                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                    return;
+
+                if (EditorSceneManager.OpenScene(LoaderSettings.RootScene).IsValid())
                 {
-                    if (EditorUtility.DisplayDialog("Root scene not found", $"Scene not found:\n{LoaderSettings.RootScene}\n\nWould you like to choose a different root scene?", "Yes", "No"))
-                    {
-                        SelectRootScene();
-                    }
-
-                    return false;
+                    EditorApplication.isPlaying = true;
+                    return;
                 }
-            }
-            else
-            {
-                // User cancelled the save operation -- cancel play as well.
-                return false;
-            }
 
-            // start play mode
-            EditorApplication.isPlaying = true;
-            return true;
+                if (EditorUtility.DisplayDialog("Root scene not found", $"Scene not found:\n{LoaderSettings.RootScene}\n\nWould you like to choose a different root scene?", "Yes", "No"))
+                {
+                    SelectRootScene();
+                }
+            });
         }
 
         private static void ReloadPreviousSceneOnDelayCall()

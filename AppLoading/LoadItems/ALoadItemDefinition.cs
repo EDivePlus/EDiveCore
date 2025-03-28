@@ -127,7 +127,7 @@ namespace EDIVE.AppLoading.LoadItems
                 var remainingTime = _FakeLoadingTimeDuration - _fakeLoadingTimeTweener.Elapsed();
                 _fakeLoadingTimeTweener.Kill();
                 _currentLoadProgress = Mathf.Max(progress, _currentLoadProgress);
-                _fakeLoadingTimeTweener = DOTween.To(() => _currentLoadProgress, v => _currentLoadProgress = v, MAX_FAKE_PROGRESS, remainingTime);
+                _fakeLoadingTimeTweener = DOTween.To(() => _currentLoadProgress, v => _currentLoadProgress = v, MAX_FAKE_PROGRESS, remainingTime).SetEase(Ease.Linear);
             }
             else
             {
