@@ -46,7 +46,8 @@ namespace EDIVE.External.ParrelSync
         }
         private static JsonFileWatchingEditor<SyncArgumentsBundle> _selfArgumentsBundleEditor;
 
-
+        private static bool _prevMasterPlaying;
+        
         [InitializeOnLoadMethod]
         public static void Initialize()
         {
@@ -68,7 +69,7 @@ namespace EDIVE.External.ParrelSync
             foreach (var cloneRecord in CloneRecords)
             {
                 var argumentsBundle = cloneRecord.ArgumentsBundle;
-                argumentsBundle.Data.IsMasterPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
+                argumentsBundle.Data.IsMasterPlaying = state is PlayModeStateChange.ExitingEditMode or PlayModeStateChange.EnteredPlayMode;
                 argumentsBundle.SaveData();
             }
         }
@@ -76,17 +77,18 @@ namespace EDIVE.External.ParrelSync
         private static void WatchForStateChange()
         {
             var argumentsBundle = SelfArgumentsBundle.Data;
-            if (argumentsBundle.SyncPlaymode)
+            if (!argumentsBundle.SyncPlaymode || _prevMasterPlaying == argumentsBundle.IsMasterPlaying)
+                return;
+
+            _prevMasterPlaying = argumentsBundle.IsMasterPlaying;
+            if (argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                if (argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
-                {
-                    EditorApplication.EnterPlaymode();
-                    OnClonePlaymodeEntered();
-                }
-                if (!argumentsBundle.IsMasterPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
-                {
-                    EditorApplication.ExitPlaymode();
-                }
+                EditorApplication.EnterPlaymode();
+                OnClonePlaymodeEntered();
+            }
+            if (!argumentsBundle.IsMasterPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                EditorApplication.ExitPlaymode();
             }
         }
 
