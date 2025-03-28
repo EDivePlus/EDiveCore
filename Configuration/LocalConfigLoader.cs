@@ -10,15 +10,15 @@ using UnityEngine;
 namespace EDIVE.Configuration
 {
     [Serializable]
-    public class LocalFileConfigLoader : ILoadable
+    public class LocalConfigLoader : ILoadable
     {
         [SerializeField]
         [ShowCreateNew]
-        private LocalFileConfigDefinition _Definition;
+        private LocalConfigSettings _Settings;
 
         public UniTask Load(Action<float> progressCallback)
         {
-            _Definition.LoadConfigs();
+            _Settings.LoadConfigs();
             return UniTask.CompletedTask;
         }
     }

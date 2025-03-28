@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace EDIVE.Configuration
 {
-    public class LocalFileConfigDefinition : ScriptableObject
+    public class LocalConfigSettings : ScriptableObject
     {
         [EnhancedTableList(ShowFoldout = false)]
         [SerializeField]
