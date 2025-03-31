@@ -5,7 +5,6 @@ using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {

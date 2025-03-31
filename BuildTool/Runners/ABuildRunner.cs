@@ -76,11 +76,14 @@ namespace EDIVE.BuildTool.Runners
 
         public override IEnumerator StartBuild()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                yield break;
-            
+            if (Context.State != BuildStateType.NotStarted)
+            {
+                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                    yield break;
+            }
+
             var activeScene = SceneManager.GetActiveScene();
-            EditorSceneManager.OpenScene(activeScene.path, OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(activeScene.path);
 
             if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
             {
@@ -155,10 +158,13 @@ namespace EDIVE.BuildTool.Runners
             Preset.Validate();
             yield return null;
 
+            Context.VersionDefinition = BuildGlobalSettings.Instance.VersionDefinition;
+            Context.VersionDefinition.IncrementCurrentVersion();
+            Context.VersionDefinition.ApplyCurrentVersion();
+
             UserConfig.PathResolver.ResolvePath(Preset);
 
-            if (EditorUserBuildSettings.activeBuildTarget != PlatformConfig.BuildTarget)
-                EditorUserBuildSettings.SwitchActiveBuildTarget(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget);
+            EditorUserBuildSettings.SwitchActiveBuildTarget(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget);
 
             SetupSettingsBeforeBuild();
             _Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
@@ -210,6 +216,11 @@ namespace EDIVE.BuildTool.Runners
                 Context.State = BuildStateType.PipelineFinalization;
             }
 
+            if (_Context.Result == BuildResult.Succeeded)
+            {
+                yield return ProcessSuccessfulBuild();
+            }
+
             DebugLite.Log("[BuildRunner] Build Completed");
         }
 
@@ -240,7 +251,6 @@ namespace EDIVE.BuildTool.Runners
                 if (_Context.Report.summary.result == BuildResult.Succeeded)
                 {
                     DebugLite.Log($"[BuildRunner] {PlatformConfig.NamedBuildTarget} build completed");
-                    yield return ProcessSuccessfulBuild();
                 }
                 else
                 {
@@ -278,6 +288,7 @@ namespace EDIVE.BuildTool.Runners
 
         protected virtual IEnumerator ProcessSuccessfulBuild()
         {
+
             yield break;
         }
 

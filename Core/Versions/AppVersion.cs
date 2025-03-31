@@ -236,13 +236,12 @@ namespace EDIVE.Core.Versions
         }
         
 #if UNITY_EDITOR
-        public void ApplyVersion(AppVersionFormat format, BundleCodeFormat bundleFormat)
+        public void Apply(AppVersionFormat format, BundleCodeFormat bundleFormat)
         {
             PlayerSettings.bundleVersion = GetFormatedString(format);
             PlayerSettings.Android.bundleVersionCode = GetBundleCode(bundleFormat);
             PlayerSettings.iOS.buildNumber = Mathf.Max(0, Build).ToString();
         }
 #endif
-
     }
 }

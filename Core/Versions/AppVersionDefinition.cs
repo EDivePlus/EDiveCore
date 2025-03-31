@@ -84,6 +84,14 @@ namespace EDIVE.Core.Versions
         }
         
 #if UNITY_EDITOR
+        public void IncrementCurrentVersion()
+        {
+            CurrentVersion.Build += 1;
+            EditorUtility.SetDirty(this);
+        }
+
+        public void ApplyCurrentVersion() => CurrentVersion.Apply(CurrentVersionFormat, CurrentBundleCodeFormat);
+
         [UsedImplicitly]
         private void OnTitleBarGUI(InspectorProperty property)
         {

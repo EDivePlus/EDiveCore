@@ -27,13 +27,6 @@ namespace EDIVE.BuildTool
         [SerializeField]
         private BuildUserConfig _DefaultUser;
 
-        [PropertyOrder(10)]
-        [PropertySpace]
-        [EnhancedTableList]
-        [HideReferenceObjectPicker]
-        [SerializeReference]
-        private List<ABuildPreset> _Presets;
-
         [PropertyOrder(100)]
         [PropertySpace]
         [InlineProperty]

@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -25,6 +26,18 @@ namespace EDIVE.BuildTool.Utils
         public static readonly string JAR_EXECUTABLE_PATH = $"\"{OPEN_JDK_BIN_PATH}/jar.exe\"";
 
         private const string BUNDLE_TOOL_WILD_CARD = "bundletool-all-*.jar";
+
+        public static NamedBuildTarget CurrentNamedBuildTarget
+        {
+            get
+            {
+#if UNITY_SERVER
+                return NamedBuildTarget.Server;
+#else
+                return NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+#endif
+            }
+        }
 
         public static bool IsBuildTargetSupported(BuildTarget target)
         {
