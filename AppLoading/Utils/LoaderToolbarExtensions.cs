@@ -130,7 +130,7 @@ namespace EDIVE.AppLoading.Utils
         private static void PlayRootSceneToolbarGUI()
         {
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
-            if (GUILayout.Button(GUIHelper.TempContent(FontAwesomeEditorIcons.RocketSolid.Highlighted, "Play Root scene"), ToolbarStyles.ToolbarButtonBiggerIcon, GUILayout.Width(30)))
+            if (GUILayout.Button(GUIHelper.TempContent(FontAwesomeEditorIcons.RocketSolid.Highlighted, "Play Root scene"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
             {
                 TryPlayRootScene();
             }

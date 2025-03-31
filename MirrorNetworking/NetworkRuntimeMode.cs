@@ -7,6 +7,6 @@ namespace EDIVE.MirrorNetworking
     {
         Client = 0,
         Server = 1,
-        Host = 1
+        Host = 2
     }
 }

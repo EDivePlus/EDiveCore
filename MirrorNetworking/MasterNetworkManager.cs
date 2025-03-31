@@ -8,6 +8,7 @@ using EDIVE.Core;
 using EDIVE.External.Signals;
 using Mirror;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace EDIVE.MirrorNetworking
 {
@@ -151,5 +152,69 @@ namespace EDIVE.MirrorNetworking
                 StopClient();
             }
         }
+
+
+        //TODO better additive scene fix
+
+        public override void ServerChangeScene(string newSceneName)
+        {
+            UniTask.Void(async () =>
+            {
+                if (string.IsNullOrWhiteSpace(newSceneName))
+                {
+                    Debug.LogError("ServerChangeScene empty scene name");
+                    return;
+                }
+
+                if (NetworkServer.isLoadingScene && newSceneName == networkSceneName)
+                {
+                    Debug.LogError($"Scene change is already in progress for {newSceneName}");
+                    return;
+                }
+
+                // Throw error if called from client
+                // Allow changing scene while stopping the server
+                if (!NetworkServer.active && newSceneName != offlineScene)
+                {
+                    Debug.LogError("ServerChangeScene can only be called on an active server.");
+                    return;
+                }
+
+                // Debug.Log($"ServerChangeScene {newSceneName}");
+                NetworkServer.SetAllClientsNotReady();
+                networkSceneName = newSceneName;
+
+                // Let server prepare for scene change
+                OnServerChangeScene(newSceneName);
+
+                // set server flag to stop processing messages while changing scenes
+                // it will be re-enabled in FinishLoadScene.
+                NetworkServer.isLoadingScene = true;
+
+                if (!string.IsNullOrWhiteSpace(networkSceneName))
+                {
+                    var currentScene = SceneManager.GetSceneByName(networkSceneName);
+                    if (currentScene.IsValid())
+                        await SceneManager.UnloadSceneAsync(currentScene);
+                }
+
+                loadingSceneAsync = SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
+                await loadingSceneAsync;
+                // ServerChangeScene can be called when stopping the server
+                // when this happens the server is not active so does not need to tell clients about the change
+                if (NetworkServer.active)
+                {
+                    // notify all clients about the new scene
+                    NetworkServer.SendToAll(new SceneMessage
+                    {
+                        sceneName = newSceneName
+                    });
+                }
+
+                startPositionIndex = 0;
+                startPositions.Clear();
+            });
+        }
+
     }
 }
