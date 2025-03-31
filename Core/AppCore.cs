@@ -14,6 +14,7 @@ using UnityEditor;
 
 namespace EDIVE.Core
 {
+    [DefaultExecutionOrder(1000)]
     public class AppCore : MonoBehaviour
     { 
         private bool _isLoaded;
@@ -55,6 +56,14 @@ namespace EDIVE.Core
             DebugLite.Log("[AppCore] Initializing");
         }
 
+        private void OnDestroy()
+        {
+            if (_instance == this)
+                _instance = null;
+
+            _services = null;
+        }
+
         public static void SetLoadCompleted()
         {
             if (!HasInstance)
@@ -85,20 +94,5 @@ namespace EDIVE.Core
             WhenLoaded(() => source.TrySetResult());
             return source.Task;
         }
-
-#if UNITY_EDITOR
-        [InitializeOnLoadMethod]
-        public static void InitializeEditor()
-        {
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-        }
-        
-        private static void OnPlayModeStateChanged(PlayModeStateChange state)
-        {
-            if (state == PlayModeStateChange.EnteredEditMode)
-                _instance = null;
-        }
-#endif
     }
 }
