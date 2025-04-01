@@ -153,9 +153,6 @@ namespace EDIVE.MirrorNetworking
             }
         }
 
-
-        //TODO better additive scene fix
-
         public override void ServerChangeScene(string newSceneName)
         {
             UniTask.Void(async () =>
@@ -193,18 +190,16 @@ namespace EDIVE.MirrorNetworking
 
                 if (!string.IsNullOrWhiteSpace(networkSceneName))
                 {
-                    var currentScene = SceneManager.GetSceneByName(networkSceneName);
+                    var currentScene = SceneManager.GetSceneByPath(networkSceneName);
                     if (currentScene.IsValid())
                         await SceneManager.UnloadSceneAsync(currentScene);
                 }
-
                 loadingSceneAsync = SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
-                await loadingSceneAsync;
-                // ServerChangeScene can be called when stopping the server
-                // when this happens the server is not active so does not need to tell clients about the change
+                if (loadingSceneAsync == null)
+                    return;
+
                 if (NetworkServer.active)
                 {
-                    // notify all clients about the new scene
                     NetworkServer.SendToAll(new SceneMessage
                     {
                         sceneName = newSceneName
@@ -213,8 +208,13 @@ namespace EDIVE.MirrorNetworking
 
                 startPositionIndex = 0;
                 startPositions.Clear();
+
+                loadingSceneAsync.allowSceneActivation = true;
+                await loadingSceneAsync;
+
+                var nextScene = SceneManager.GetSceneByPath(newSceneName);
+                if (nextScene.IsValid()) SceneManager.SetActiveScene(nextScene);
             });
         }
-
     }
 }
