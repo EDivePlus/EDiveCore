@@ -21,7 +21,7 @@ namespace EDIVE.External.DomainReloadHelper
 
         private static void HandlePlayModeStateChanged(PlayModeStateChange state)
         {
-            if (state == PlayModeStateChange.ExitingPlayMode) 
+            if (state == PlayModeStateChange.EnteredEditMode)
                 ReloadDomain();
         }
         
