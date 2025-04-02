@@ -7,9 +7,9 @@ using Cysharp.Threading.Tasks;
 using EDIVE.External.Promises;
 using UnityEngine;
 
-namespace EDIVE.Core
+namespace EDIVE.Core.Services
 {
-    public class ServiceProvider
+    public class ServiceProvider : IServiceProvider
     {
         private readonly Dictionary<Type, IService> _services = new();
         private readonly Dictionary<Type, PromiseCaster> _promises = new();
@@ -115,7 +115,7 @@ namespace EDIVE.Core
             promiseCaster.TargetPromise.Then(action);
         }
         
-        public UniTask<T> Await<T>() where T : class, IService
+        public UniTask<T> AwaitRegistered<T>() where T : class, IService
         {
             var source = new UniTaskCompletionSource<T>();
             WhenRegistered<T>(service => source.TrySetResult(service));

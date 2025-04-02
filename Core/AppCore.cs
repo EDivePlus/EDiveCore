@@ -4,9 +4,11 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core.Services;
 using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
 using UnityEngine;
+using IServiceProvider = EDIVE.Core.Services.IServiceProvider;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -19,14 +21,15 @@ namespace EDIVE.Core
     { 
         private bool _isLoaded;
         private Promise _loadedPromise;
-        private ServiceProvider _services;
+        private ServiceProvider _services = new();
         
         [ClearOnReload]
         private static AppCore _instance;
         
         private static int _mainThreadId;
-        
-        public static ServiceProvider Services => Instance._services ??= new ServiceProvider();
+
+        // Create fake instance when needed
+        public static IServiceProvider Services => HasInstance ? Instance._services : MockServiceProvider.INSTANCE;
         public static bool IsLoaded => HasInstance && Instance._isLoaded;
         public static bool HasInstance => Application.isPlaying && _instance != null;
         public static bool IsMainThread => Equals(_mainThreadId, Thread.CurrentThread.ManagedThreadId);

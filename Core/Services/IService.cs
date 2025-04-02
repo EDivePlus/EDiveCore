@@ -1,4 +1,4 @@
-namespace EDIVE.Core
+namespace EDIVE.Core.Services
 {
     public interface IService
     {

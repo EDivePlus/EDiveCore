@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace EDIVE.Core
+namespace EDIVE.Core.Services
 {
     public abstract class AServiceBehaviour<T> : MonoBehaviour, IService 
         where T : class, IService
