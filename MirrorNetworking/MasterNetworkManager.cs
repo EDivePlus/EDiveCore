@@ -29,6 +29,10 @@ namespace EDIVE.MirrorNetworking
         public Signal ClientStarted { get; } = new();
         public Signal ClientStopped { get; } = new();
         public Signal ClientConnected { get; } = new();
+        public Signal ClientDisconnected { get; } = new();
+
+        public Signal ClientSceneChangeBegin { get; } = new();
+        public Signal ClientSceneChanged { get; } = new();
         public Signal<TransportError, string> ClientError { get; } = new();
 
         public int ConnectionCount => NetworkServer.connections.Count;
@@ -141,7 +145,7 @@ namespace EDIVE.MirrorNetworking
         public override void OnClientDisconnect()
         {
             Debug.Log("Disconnected from server");
-            ClientConnected.Dispatch();
+            ClientDisconnected.Dispatch();
         }
 
         [Client]
@@ -152,6 +156,17 @@ namespace EDIVE.MirrorNetworking
                 Debug.Log("Disconnecting...");
                 StopClient();
             }
+        }
+
+        public override void OnClientChangeScene(string newSceneName, SceneOperation sceneOperation, bool customHandling)
+        {
+            ClientSceneChangeBegin.Dispatch();
+        }
+
+        public override void OnClientSceneChanged()
+        {
+            base.OnClientSceneChanged();
+            ClientSceneChanged.Dispatch();
         }
 
         public override void ServerChangeScene(string newSceneName)

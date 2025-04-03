@@ -50,7 +50,7 @@ namespace EDIVE.MirrorNetworking
 
         [JsonProperty]
         [SerializeField]
-        private List<NetworkRoleRecord> _Roles;
+        private List<NetworkRoleRecord> _Roles = new();
 
         public string ServerManagerUrl => _ServerManagerUrl;
         public string ServerListingManagerSecret => _ServerListingManagerSecret;
