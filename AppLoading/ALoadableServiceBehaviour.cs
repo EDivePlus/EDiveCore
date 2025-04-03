@@ -2,20 +2,19 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
-using EDIVE.Core;
 using EDIVE.Core.Services;
 
 namespace EDIVE.AppLoading
 {
-    public abstract class ALoadableServiceBehaviour<T> : AServiceBehaviour<T>, ILoadable, IDependencyOwner
+    public abstract class ALoadableServiceBehaviour<T> : ABaseServiceBehaviour<T>, ILoadable, IDependencyOwner
         where T : class, IService
     {
-        protected virtual bool OnLoadedCalledManually => false;
+        protected virtual bool RegisterServiceOnLoad => true;
         
         public async UniTask Load(Action<float> progressCallback)
         {
             await LoadRoutine(progressCallback);
-            if (!OnLoadedCalledManually)
+            if (RegisterServiceOnLoad)
             {
                 RegisterService();
             }

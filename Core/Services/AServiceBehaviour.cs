@@ -1,31 +1,16 @@
-﻿using UnityEngine;
-
-namespace EDIVE.Core.Services
+﻿namespace EDIVE.Core.Services
 {
-    public abstract class AServiceBehaviour<T> : MonoBehaviour, IService 
+    public abstract class AServiceBehaviour<T> : ABaseServiceBehaviour<T>
         where T : class, IService
     {
-        protected void RegisterService<TService>() where TService : class, IService
+        protected virtual void Awake()
         {
-            if (this is not TService targetType)
-            {
-                Debug.LogError($"Service '{GetType()}' cannot be registered as '{typeof(TService)}'", this);
-                return;
-            }
-            AppCore.Services.Register(targetType);
+            RegisterService();
         }
 
-        protected void UnregisterService<TService>() where TService : class, IService
+        protected virtual void OnDestroy()
         {
-            if (this is not TService)
-            {
-                Debug.LogError($"Service '{GetType()}' cannot be unregistered as '{typeof(TService)}'", this);
-                return;
-            }
-            AppCore.Services.Unregister<TService>();
+            UnregisterService();
         }
-
-        protected void RegisterService() => RegisterService<T>();
-        protected void UnregisterService() => UnregisterService<T>();
     }
 }
