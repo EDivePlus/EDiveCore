@@ -1,8 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 22.03.2025
 
-using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using Sirenix.Utilities;
@@ -48,9 +46,6 @@ namespace EDIVE.MirrorNetworking
         [SerializeField]
         private int _UpdateFrequency;
 
-        [JsonProperty]
-        [SerializeField]
-        private List<NetworkRoleRecord> _Roles = new();
 
         public string ServerManagerUrl => _ServerManagerUrl;
         public string ServerListingManagerSecret => _ServerListingManagerSecret;
@@ -61,19 +56,5 @@ namespace EDIVE.MirrorNetworking
         public string ServerCode => _ServerCode;
         public int Port => _Port;
         public int UpdateFrequency => _UpdateFrequency;
-        public List<NetworkRoleRecord> Roles => _Roles;
-    }
-
-    [Serializable]
-    public class NetworkRoleRecord
-    {
-        [SerializeField]
-        private string _Role;
-
-        [SerializeField]
-        private string _Password;
-
-        public string Role => _Role;
-        public string Password => _Password;
     }
 }
