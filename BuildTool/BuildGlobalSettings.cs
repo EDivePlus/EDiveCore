@@ -2,16 +2,13 @@
 // Created: 17.03.2025
 
 using System.Collections.Generic;
-using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
-using EDIVE.OdinExtensions;
-using EDIVE.OdinExtensions.Attributes;
+using EDIVE.OdinExtensions.Editor;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.Internal;
 using Sirenix.Utilities;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -37,12 +34,11 @@ namespace EDIVE.BuildTool
         public AppVersionDefinition VersionDefinition => _VersionDefinition;
         public BuildUserConfig DefaultUser => _DefaultUser;
 
-        [PropertySpace]
-        [ShowInInspector]
+        private AssetPersistentContext<BuildUserConfig> _defaultUserContext;
         public BuildUserConfig CurrentUser
         {
-            get => BuildGlobalUserSettings.instance.CurrentUser ?? DefaultUser;
-            set => BuildGlobalUserSettings.instance.CurrentUser = value;
+            get => _defaultUserContext.Value != null ? _defaultUserContext.Value : DefaultUser;
+            set => _defaultUserContext.Value = value;
         }
 
         public IEnumerable<BuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);
@@ -54,6 +50,12 @@ namespace EDIVE.BuildTool
         {
             return Instance == null ? null : AssetSettingsProvider.CreateProviderFromObject(
                 SETTINGS_PATH, Instance, new[] {"Build"});
+        }
+
+        [OnInspectorInit]
+        private void OnInspectorInit()
+        {
+            _defaultUserContext = new AssetPersistentContext<BuildUserConfig>(PersistentContext.Get("BuildTool", "CurrentUser", ""));
         }
     }
 }

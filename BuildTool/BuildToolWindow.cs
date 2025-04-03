@@ -84,6 +84,14 @@ namespace EDIVE.BuildTool
         [Serializable]
         public class BuildPanel
         {
+            [ShowInInspector]
+            public BuildUserConfig CurrentUser
+            {
+                get => BuildGlobalSettings.Instance.CurrentUser;
+                set => BuildGlobalSettings.Instance.CurrentUser = value;
+            }
+
+            [PropertyOrder(10)]
             [SerializeReference]
             [EnhancedTableList(ShowFoldout = false, IsReadOnly = true, OnTitleBarGUI = nameof(OnPresetListTitleBarGUI))]
             public List<ABuildPreset> _Presets;
@@ -100,6 +108,7 @@ namespace EDIVE.BuildTool
             }
 
             [PropertyOrder(-1)]
+            [PropertySpace(0, 8)]
             [Button("Player Settings")]
             private void OpenPlayerSettings()
             {
