@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Core.Services;
 using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using IServiceProvider = EDIVE.Core.Services.IServiceProvider;
 
@@ -21,6 +22,11 @@ namespace EDIVE.Core
     { 
         private bool _isLoaded;
         private Promise _loadedPromise;
+
+        [HideLabel]
+        [InlineProperty]
+        [HideReferenceObjectPicker]
+        [ShowInInspector]
         private ServiceProvider _services = new();
         
         [ClearOnReload]

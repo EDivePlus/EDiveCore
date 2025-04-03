@@ -5,12 +5,14 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.Promises;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Core.Services
 {
     public class ServiceProvider : IServiceProvider
     {
+        [ShowInInspector]
         private readonly Dictionary<Type, IService> _services = new();
         private readonly Dictionary<Type, PromiseCaster> _promises = new();
         
