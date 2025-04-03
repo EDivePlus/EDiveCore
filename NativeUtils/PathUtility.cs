@@ -7,13 +7,28 @@ namespace EDIVE.NativeUtils
     {
         public static string GetAbsolutePath(string projectPath)
         {
-            return $"{Application.dataPath[..(Application.dataPath.LastIndexOf('/') + 1)]}{projectPath}";
+            if (Path.IsPathRooted(projectPath))
+                return projectPath;
+
+            return Path.Combine(Application.dataPath[..(Application.dataPath.LastIndexOf('/') + 1)], projectPath);
         }
-        
+
         public static string GetProjectRelativePath(string absolutePath)
         {
-            if (absolutePath.Replace("\\","/").StartsWith(Application.dataPath))
+            if (string.IsNullOrEmpty(absolutePath)) return string.Empty;
+
+            absolutePath = absolutePath.Replace("\\", "/");
+
+            if (!Path.IsPathRooted(absolutePath) || absolutePath.StartsWith("Assets"))
+            {
+                return absolutePath;
+            }
+
+            if (absolutePath.StartsWith(Application.dataPath))
+            {
                 return "Assets" + absolutePath[Application.dataPath.Length..];
+            }
+
             return string.Empty;
         }
         
