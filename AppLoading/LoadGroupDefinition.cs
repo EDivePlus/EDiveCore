@@ -35,16 +35,12 @@ namespace EDIVE.AppLoading
         [SerializeField]
         private bool _Disabled;
 
-        [ReadOnly]
-        [SerializeField]
-        private bool _IsCurrentlyDisabledByDefines;
-
         public UniTaskCompletionSource CompletionSource { get; private set; }
 
         public List<ALoadItemDefinition> LoadItems => _LoadItems;
         public List<LoadGroupDefinition> Dependencies => _Dependencies;
 
-        public bool IsAvailable => !_Disabled && !_IsCurrentlyDisabledByDefines;
+        public bool IsAvailable => !_Disabled;
 
         public void Initialize()
         {
