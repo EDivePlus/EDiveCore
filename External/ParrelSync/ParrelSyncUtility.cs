@@ -27,10 +27,10 @@ namespace EDIVE.External.ParrelSync
             {
                 args.ErrorContext.Handled = true;
                 Debug.LogException(args.ErrorContext.Error);
-            },
+            }
         };
 
-        private static List<ProjectCloneRecord> _cloneRecords = new();
+        private static List<ProjectCloneRecord> _cloneRecords;
         public static List<ProjectCloneRecord> CloneRecords => _cloneRecords ??= RefreshClones();
 
         public static string SelfArgumentBundlePath => Path.Combine(ClonesManager.GetCurrentProjectPath(), ClonesManager.ArgumentFileName);
@@ -66,6 +66,7 @@ namespace EDIVE.External.ParrelSync
 
         private static void OnMasterPlayModeStateChanged(PlayModeStateChange state)
         {
+            RefreshClones();
             foreach (var cloneRecord in CloneRecords)
             {
                 var argumentsBundle = cloneRecord.ArgumentsBundle;
@@ -115,6 +116,7 @@ namespace EDIVE.External.ParrelSync
 
         public static List<ProjectCloneRecord> RefreshClones()
         {
+            _cloneRecords ??= new List<ProjectCloneRecord>();
             _cloneRecords.Clear();
             var cloneProjectsPath = ClonesManager.GetCloneProjectsPath();
             foreach (var cloneProjectPath in cloneProjectsPath)
