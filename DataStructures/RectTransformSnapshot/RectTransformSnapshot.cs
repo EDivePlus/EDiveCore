@@ -1,31 +1,40 @@
 ﻿using System;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.RectTransformPreset
+namespace EDIVE.DataStructures.RectTransformSnapshot
 {
     [Serializable]
     [InlineProperty]
+    [JsonObject(MemberSerialization.OptIn)]
     public class RectTransformSnapshot
     {
+        [JsonProperty]
         [SerializeField]
         private Vector3 _AnchoredPosition;
 
+        [JsonProperty]
         [SerializeField]
         private Vector2 _SizeDelta;
 
+        [JsonProperty]
         [SerializeField]
         private Vector2 _AnchorMin;
 
+        [JsonProperty]
         [SerializeField]
         private Vector2 _AnchorMax;
-        
+
+        [JsonProperty]
         [SerializeField]
         private Vector2 _Pivot;
 
+        [JsonProperty]
         [SerializeField]
         private Quaternion _Rotation = Quaternion.identity;
-        
+
+        [JsonProperty]
         [SerializeField]
         private Vector3 _LocalScale = Vector3.one;
 
