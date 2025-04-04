@@ -8,9 +8,9 @@ namespace EDIVE.NativeUtils
         public static string Color(this string text, string color) => $"<color={color}>{text}</color>";
         public static string Color(this string text, Color color) => Color(text, $"#{ColorUtility.ToHtmlStringRGBA(color)}");
         public static string Bold(this string text) => $"$<b>{text}</b>";
-        public static string Italic(this string text) => "<i>{text}</i>";
-        public static string Underline(this string text) =>  "<u>{text}</u>";
-        public static string StrikeThrough(this string text) => "<s>{text}</s>";
+        public static string Italic(this string text) => $"<i>{text}</i>";
+        public static string Underline(this string text) =>  $"<u>{text}</u>";
+        public static string StrikeThrough(this string text) => $"<s>{text}</s>";
         
         public static string TMPSprite(string spriteName, string color) => $"<sprite name=\"{spriteName}\" color={color}>";
         
@@ -19,11 +19,11 @@ namespace EDIVE.NativeUtils
         public static string Blue(this string text) => Color(text, "#0000ffff");
         public static string Brown(this string text) => Color(text, "#a52a2aff");
         public static string Cyan(this string text) => Color(text, "#00ffffff");
-        public static string Darkblue(this string text) => Color(text, "#0000a0ff");
+        public static string DarkBlue(this string text) => Color(text, "#0000a0ff");
         public static string Fuchsia(this string text) => Color(text, "#ff00ffff");
         public static string Green(this string text) => Color(text, "#008000ff");
         public static string Grey(this string text) => Color(text, "#808080ff");
-        public static string Lightblue(this string text) => Color(text, "#add8e6ff");
+        public static string LightBlue(this string text) => Color(text, "#add8e6ff");
         public static string Lime(this string text) => Color(text, "#00ff00ff");
         public static string Magenta(this string text) => Color(text, "#ff00ffff");
         public static string Maroon(this string text) => Color(text, "#800000ff");
