@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using EDIVE.DataStructures;
+using EDIVE.DataStructures.TypeStructures;
 using EDIVE.OdinExtensions;
 using EDIVE.Utils.ObjectActions;
 using JetBrains.Annotations;
@@ -25,7 +26,7 @@ namespace EDIVE.Tweening
 
         public Type ValueType
         {
-            get => _ValueType.Type;
+            get => _ValueType.Value;
             internal set
             {
                 _ValueType = value;
@@ -35,7 +36,7 @@ namespace EDIVE.Tweening
             }
         }
 
-        public bool IsValueTypeDefined => _ValueType.Type != null;
+        public bool IsValueTypeDefined => _ValueType.Value != null;
 
         private Object _tempValue;
         private bool _hasTempValue;
@@ -50,7 +51,7 @@ namespace EDIVE.Tweening
                 return;
             }
 
-            if (!_ValueType.Type.IsInstanceOfType(value))
+            if (!_ValueType.Value.IsInstanceOfType(value))
             {
                 Debug.LogError($"[{nameof(TweenObjectReference)}] {value.GetType().Name} is not compatible with the defined value type {ValueType.Name}");
                 _tempValue = null;
@@ -79,15 +80,15 @@ namespace EDIVE.Tweening
         private UType CustomValueTypeDrawer(UType value, GUIContent label, Func<GUIContent, bool> callNextDrawer, InspectorProperty property)
         {
             value ??= new UType(null);
-            Texture icon = GUIHelper.GetAssetThumbnail(null, value.Type, false);
-            TypeSelector.DrawSelectorDropdown(label, GUIHelper.TempContent($" {value.Type?.Name ?? "Undefined"}", icon, value.Type?.FullName), rect =>
+            Texture icon = GUIHelper.GetAssetThumbnail(null, value.Value, false);
+            TypeSelector.DrawSelectorDropdown(label, GUIHelper.TempContent($" {value.Value?.Name ?? "Undefined"}", icon, value.Value?.FullName), rect =>
             {
                 var types = ObjectActionUtils.GetSupportedTargetTypes<IObjectAction>();
                 var selector = new TypeSelector(types, false);
                 selector.SelectionConfirmed += t =>
                 {
                     var type = t.FirstOrDefault();
-                    value.Type = type;
+                    value.Value = type;
                     property.ForceMarkDirty();
                 };
                 selector.ShowInPopup(rect);

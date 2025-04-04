@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.DataStructures;
+using EDIVE.DataStructures.TypeStructures;
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
@@ -76,7 +77,7 @@ namespace EDIVE.Tweening
 
             public Object Value => _Value;
             public TweenObjectReference Reference => _Reference;
-            public Type RequiredType => _RequiredType?.Type ?? _Value.GetType();
+            public Type RequiredType => _RequiredType?.Value ?? _Value.GetType();
 
             public ComponentReference(Object value, Type requiredType)
             {
