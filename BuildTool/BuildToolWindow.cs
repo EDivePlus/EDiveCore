@@ -85,6 +85,7 @@ namespace EDIVE.BuildTool
         public class BuildPanel
         {
             [ShowInInspector]
+            [InlineIconButton(FontAwesomeEditorIconType.RotateLeftSolid, nameof(ResetUserToDefault))]
             public BuildUserConfig CurrentUser
             {
                 get => BuildGlobalSettings.Instance.CurrentUser;
@@ -121,6 +122,11 @@ namespace EDIVE.BuildTool
                 {
                     RefreshPresets();
                 }
+            }
+
+            private void ResetUserToDefault()
+            {
+                CurrentUser = null;
             }
         }
 

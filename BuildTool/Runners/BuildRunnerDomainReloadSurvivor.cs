@@ -19,7 +19,7 @@ namespace EDIVE.BuildTool.Runners
         public void OnAfterDomainReload()
         {
             DebugLite.Log("[BuildRunner] Survived Domain Reload...");
-            EditorCoroutineUtility.StartCoroutineOwnerless(_Runner.StartBuild());
+            _Runner.StartBuild();
         }
     }
 }

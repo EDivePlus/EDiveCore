@@ -89,7 +89,7 @@ namespace EDIVE.BuildTool.Presets
                 Debug.LogError("Invalid Build runner!");
                 return;
             }
-            EditorCoroutineUtility.StartCoroutineOwnerless(buildRunner.StartBuild());
+            buildRunner.StartBuild();
         }
 
         protected abstract ABuildRunner CreateBuildRunner(BuildOptions options);

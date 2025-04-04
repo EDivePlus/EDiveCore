@@ -63,10 +63,10 @@ namespace EDIVE.OdinExtensions.Editor
         [HideLabel]
         public TValue Value
         {
-            get => AssetDatabase.LoadAssetAtPath<TValue>(AssetDatabase.GUIDToAssetPath(_context?.Value));
+            get => !string.IsNullOrEmpty(_context?.Value) ? AssetDatabase.LoadAssetAtPath<TValue>(AssetDatabase.GUIDToAssetPath(_context?.Value)) : null;
             set
             {
-                if (_context != null) _context.Value = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value));
+                if (_context != null) _context.Value = value != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value)) : null;
             }
         }
     }

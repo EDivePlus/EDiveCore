@@ -15,7 +15,7 @@ namespace EDIVE.BuildTool.Actions
         public SplashScreenConfigurator() { }
         public SplashScreenConfigurator(bool removeSplashScreen) { _RemoveSplashScreen = removeSplashScreen; }
 
-        public override IEnumerator OnPreBuildAfterDefines(BuildContext buildContext)
+        public override IEnumerator OnPreprocess(BuildContext buildContext)
         {
             PlayerSettings.SplashScreen.show = !_RemoveSplashScreen;
             PlayerSettings.SplashScreen.showUnityLogo = false;

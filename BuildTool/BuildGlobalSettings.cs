@@ -34,11 +34,13 @@ namespace EDIVE.BuildTool
         public AppVersionDefinition VersionDefinition => _VersionDefinition;
         public BuildUserConfig DefaultUser => _DefaultUser;
 
-        private AssetPersistentContext<BuildUserConfig> _defaultUserContext;
+        private GlobalPersistentContext<string> _currentUserContext;
+        private GlobalPersistentContext<string> CurrentUserContext => _currentUserContext ??= PersistentContext.Get("BuildTool", "CurrentUser", "");
+
         public BuildUserConfig CurrentUser
         {
-            get => _defaultUserContext.Value != null ? _defaultUserContext.Value : DefaultUser;
-            set => _defaultUserContext.Value = value;
+            get => !string.IsNullOrEmpty(CurrentUserContext.Value) ? AssetDatabase.LoadAssetAtPath<BuildUserConfig>(AssetDatabase.GUIDToAssetPath(CurrentUserContext.Value)) : DefaultUser;
+            set => CurrentUserContext.Value = value != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value)) : null;
         }
 
         public IEnumerable<BuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);
@@ -50,12 +52,6 @@ namespace EDIVE.BuildTool
         {
             return Instance == null ? null : AssetSettingsProvider.CreateProviderFromObject(
                 SETTINGS_PATH, Instance, new[] {"Build"});
-        }
-
-        [OnInspectorInit]
-        private void OnInspectorInit()
-        {
-            _defaultUserContext = new AssetPersistentContext<BuildUserConfig>(PersistentContext.Get("BuildTool", "CurrentUser", ""));
         }
     }
 }

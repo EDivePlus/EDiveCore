@@ -6,7 +6,7 @@ namespace EDIVE.BuildTool.Actions
     [System.Serializable]
     public class DoTweenConfigurator : ABuildAction
     {
-        public override IEnumerator OnPreBuildAfterDefines(BuildContext buildContext)
+        public override IEnumerator OnPreprocess(BuildContext buildContext)
         {
 #if DEBUG
             DOTween.logBehaviour = LogBehaviour.Verbose;

@@ -7,11 +7,11 @@ namespace EDIVE.BuildTool.Actions
     [System.Serializable]
     public abstract class ABuildAction : System.IComparable<ABuildAction>
     {
-        public virtual IEnumerator OnPreBuildBeforeDefines(BuildContext buildContext) { yield break; }
-        public virtual IEnumerator OnPreBuildAfterDefines(BuildContext buildContext) { yield break; }
+        public virtual IEnumerator OnStateCapture(BuildContext buildContext) { yield break; }
+        public virtual IEnumerator OnPreprocess(BuildContext buildContext) { yield break; }
 
-        public virtual IEnumerator OnPostBuildBeforeDefines(BuildContext buildContext) { yield break; }
-        public virtual IEnumerator OnPostBuildAfterDefines(BuildContext buildContext) { yield break; }
+        public virtual IEnumerator OnPostprocess(BuildContext buildContext) { yield break; }
+        public virtual IEnumerator OnStateRestore(BuildContext buildContext) { yield break; }
 
         public virtual int Priority => 0;
 
