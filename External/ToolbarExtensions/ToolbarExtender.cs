@@ -28,7 +28,6 @@ namespace EDIVE.External.ToolbarExtensions
 
         private static ScriptableObject _currentToolbar;
 
-        private static List<PriorityAction> _leftPlayButtonActions = new();
         private static List<PriorityAction> _leftToolbarActions = new();
         private static List<PriorityAction> _rightToolbarActions = new();
 
@@ -38,11 +37,8 @@ namespace EDIVE.External.ToolbarExtensions
                 RepaintMethod?.Invoke(_currentToolbar, null);
         }
 
-        public static void AddToRightToolbar(Action action, int priority) { AddToToolbar(_rightToolbarActions, action, priority); }
-
-        public static void AddToLeftToolbar(Action action, int priority) { AddToToolbar(_leftToolbarActions, action, priority); }
-
-        public static void AddToLeftPlayButtons(Action action, int priority) { AddToToolbar(_leftPlayButtonActions, action, priority); }
+        public static void AddToRightToolbar(Action action, int priority) => AddToToolbar(_rightToolbarActions, action, priority);
+        public static void AddToLeftToolbar(Action action, int priority) => AddToToolbar(_leftToolbarActions, action, priority);
 
         private static void AddToToolbar(List<PriorityAction> toolbarList, Action action, int priority)
         {
@@ -56,11 +52,9 @@ namespace EDIVE.External.ToolbarExtensions
         {
             EditorApplication.update -= OnUpdate;
             EditorApplication.update += OnUpdate;
-            
-            AddToLeftToolbar(() => GUILayout.Space(4), -10000);
+
             AddToLeftToolbar(GUILayout.FlexibleSpace, 0);
             AddToRightToolbar(GUILayout.FlexibleSpace, 0);
-            AddToLeftToolbar(() => GUILayout.Space(4), 10000);
         }
         
         private static void OnUpdate()
@@ -79,7 +73,6 @@ namespace EDIVE.External.ToolbarExtensions
             ToolbarVisualElement = RootField.GetValue(_currentToolbar) as VisualElement;
             RegisterCallback(ToolbarVisualElement, "ToolbarZoneLeftAlign", DrawLeftGUI);
             RegisterCallback(ToolbarVisualElement, "ToolbarZoneRightAlign", DrawRightGUI);
-            RegisterCallback(ToolbarVisualElement, "ToolbarZonePlayMode", DrawLeftPlayButtonsGUI, 0);
             Refreshed?.Invoke();
         }
 
@@ -119,7 +112,6 @@ namespace EDIVE.External.ToolbarExtensions
 
         private static void DrawLeftGUI() => DrawGUI(_leftToolbarActions);
         private static void DrawRightGUI() => DrawGUI(_rightToolbarActions);
-        private static void DrawLeftPlayButtonsGUI() => DrawGUI(_leftPlayButtonActions);
 
         private static void DrawGUI(List<PriorityAction> actions)
         {

@@ -1,5 +1,6 @@
 ﻿#if UNITY_EDITOR
 using System.IO;
+using Cysharp.Threading.Tasks;
 using EDIVE.EditorUtils;
 using EDIVE.External.ToolbarExtensions;
 using EDIVE.OdinExtensions;
@@ -12,16 +13,24 @@ using UnityEngine.SceneManagement;
 
 namespace EDIVE.AppLoading.Utils
 {
-    public static class LoaderToolbarExtensions
+    public static class LoaderEditorUtility
     {
-        private static Scene? _currentManagersScene;
-        
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
-            ToolbarExtender.AddToLeftPlayButtons(PlayRootSceneToolbarGUI, 0);
+            ToolbarExtender.AddToLeftToolbar(PlayRootSceneToolbarGUI, 1000);
             ToolbarExtender.AddToLeftToolbar(ManagersSceneToolbarGUI, -90);
+        }
+
+        private static void PlayRootSceneToolbarGUI()
+        {
+            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
+            if (GUILayout.Button(GUIHelper.TempContent(FontAwesomeEditorIcons.RocketSolid.Highlighted, "Play Root scene"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
+            {
+                EditorHelper.ExecuteNextFrame(() => TryPlayRootScene());
+            }
+            EditorGUI.EndDisabledGroup();
         }
 
         private static void ManagersSceneToolbarGUI()
@@ -60,31 +69,29 @@ namespace EDIVE.AppLoading.Utils
             }
         }
 
-        public static void TryPlayRootScene()
+        public static bool TryPlayRootScene()
         {
             if (string.IsNullOrEmpty(LoaderSettings.RootScene))
             {
                 SelectRootScene();
-                return;
+                return false;
             }
 
             PreviousScene = SceneManager.GetActiveScene().path;
-            EditorHelper.ExecuteNextFrame(() =>
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return false;
+
+            if (EditorSceneManager.OpenScene(LoaderSettings.RootScene).IsValid())
             {
-                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                    return;
+                EditorApplication.isPlaying = true;
+                return true;
+            }
 
-                if (EditorSceneManager.OpenScene(LoaderSettings.RootScene).IsValid())
-                {
-                    EditorApplication.isPlaying = true;
-                    return;
-                }
-
-                if (EditorUtility.DisplayDialog("Root scene not found", $"Scene not found:\n{LoaderSettings.RootScene}\n\nWould you like to choose a different root scene?", "Yes", "No"))
-                {
-                    SelectRootScene();
-                }
-            });
+            if (EditorUtility.DisplayDialog("Root scene not found", $"Scene not found:\n{LoaderSettings.RootScene}\n\nWould you like to choose a different root scene?", "Yes", "No"))
+            {
+                SelectRootScene();
+            }
+            return false;
         }
 
         private static void ReloadPreviousSceneOnDelayCall()
@@ -126,17 +133,6 @@ namespace EDIVE.AppLoading.Utils
         }
 
         private static readonly string PROJECT_PREFIX = $"Proj{Animator.StringToHash(Application.dataPath)}_";
-
-        private static void PlayRootSceneToolbarGUI()
-        {
-            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
-            if (GUILayout.Button(GUIHelper.TempContent(FontAwesomeEditorIcons.RocketSolid.Highlighted, "Play Root scene"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
-            {
-                TryPlayRootScene();
-            }
-            EditorGUI.EndDisabledGroup();
-            GUILayout.Space(2);
-        }
     }
 }
 #endif

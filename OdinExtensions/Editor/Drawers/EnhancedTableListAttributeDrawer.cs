@@ -179,7 +179,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     DrawToolbar(label);
                 }
 
-                var drawFoldout = Attribute.ShowFoldout;
+                var drawFoldout = Attribute.ShowFoldout && !Attribute.HideToolbar;
 
                 if (_filter.GetCount() == 0)
                     drawFoldout = false;

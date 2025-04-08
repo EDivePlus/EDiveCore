@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using EDIVE.AppLoading.Utils;
 using EDIVE.Utils.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.UnityConverters;
@@ -84,8 +85,10 @@ namespace EDIVE.External.ParrelSync
             _prevMasterPlaying = argumentsBundle.IsMasterPlaying;
             if (argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
             {
-                EditorApplication.EnterPlaymode();
-                OnClonePlaymodeEntered();
+                if (LoaderEditorUtility.TryPlayRootScene())
+                {
+                    OnClonePlaymodeEntered();
+                }
             }
             if (!argumentsBundle.IsMasterPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
             {

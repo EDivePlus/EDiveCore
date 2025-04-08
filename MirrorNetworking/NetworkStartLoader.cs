@@ -18,6 +18,10 @@ namespace EDIVE.MirrorNetworking
         [SceneReference(SceneReferenceType.Path, true)]
         private string _OfflineScene;
 
+        [SerializeField]
+        [SceneReference(SceneReferenceType.Path, true)]
+        private string _OnlineScene;
+
         public UniTask Load(Action<float> progressCallback)
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
@@ -25,25 +29,29 @@ namespace EDIVE.MirrorNetworking
             {
                 case NetworkRuntimeMode.Server:
                     networkManager.StartServer();
+                    LoadScene(_OnlineScene).Forget();
                     break;
                 case NetworkRuntimeMode.Client:
                     //networkManager.StartClient();
-                    UniTask.Void(async () =>
-                    {
-                        if (string.IsNullOrWhiteSpace(_OfflineScene))
-                            return;
-                        await SceneManager.LoadSceneAsync(_OfflineScene, LoadSceneMode.Additive);
-                        var scene = SceneManager.GetSceneByPath(_OfflineScene);
-                        if (scene.IsValid())
-                            SceneManager.SetActiveScene(scene);
-                    });
+                    LoadScene(_OfflineScene).Forget();
                     break;
                 case NetworkRuntimeMode.Host:
                     networkManager.StartHost();
+                    LoadScene(_OnlineScene).Forget();
                     break;
                 default: throw new ArgumentOutOfRangeException();
             }
             return UniTask.CompletedTask;
+        }
+
+        private async UniTaskVoid LoadScene(string scenePath)
+        {
+            if (string.IsNullOrWhiteSpace(scenePath))
+                return;
+            await SceneManager.LoadSceneAsync(scenePath, LoadSceneMode.Additive);
+            var scene = SceneManager.GetSceneByPath(scenePath);
+            if (scene.IsValid())
+                SceneManager.SetActiveScene(scene);
         }
     }
 }

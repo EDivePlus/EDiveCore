@@ -5,7 +5,9 @@
         "ParrelSync",
         "EDIVE.OdinExtensions",
         "EDIVE.Utils",
-        "Newtonsoft.Json.UnityConverters"
+        "Newtonsoft.Json.UnityConverters",
+        "EDIVE.AppLoading",
+        "EDIVE.External.ToolbarExtensions"
     ],
     "includePlatforms": [
         "Editor"

@@ -8,6 +8,7 @@ using EDIVE.Core;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
 using Mirror;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -167,70 +168,6 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnClientSceneChanged();
             ClientSceneChanged.Dispatch();
-        }
-
-        public override void ServerChangeScene(string newSceneName)
-        {
-            UniTask.Void(async () =>
-            {
-                if (string.IsNullOrWhiteSpace(newSceneName))
-                {
-                    Debug.LogError("ServerChangeScene empty scene name");
-                    return;
-                }
-
-                if (NetworkServer.isLoadingScene && newSceneName == networkSceneName)
-                {
-                    Debug.LogError($"Scene change is already in progress for {newSceneName}");
-                    return;
-                }
-
-                // Throw error if called from client
-                // Allow changing scene while stopping the server
-                if (!NetworkServer.active && newSceneName != offlineScene)
-                {
-                    Debug.LogError("ServerChangeScene can only be called on an active server.");
-                    return;
-                }
-
-                // Debug.Log($"ServerChangeScene {newSceneName}");
-                NetworkServer.SetAllClientsNotReady();
-                networkSceneName = newSceneName;
-
-                // Let server prepare for scene change
-                OnServerChangeScene(newSceneName);
-
-                // set server flag to stop processing messages while changing scenes
-                // it will be re-enabled in FinishLoadScene.
-                NetworkServer.isLoadingScene = true;
-
-                if (!string.IsNullOrWhiteSpace(networkSceneName))
-                {
-                    var currentScene = SceneManager.GetSceneByPath(networkSceneName);
-                    if (currentScene.IsValid())
-                        await SceneManager.UnloadSceneAsync(currentScene);
-                }
-                loadingSceneAsync = SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
-                if (loadingSceneAsync == null)
-                    return;
-
-                if (NetworkServer.active)
-                {
-                    NetworkServer.SendToAll(new SceneMessage
-                    {
-                        sceneName = newSceneName
-                    });
-                }
-
-                startPositionIndex = 0;
-                startPositions.Clear();
-
-                loadingSceneAsync.allowSceneActivation = true;
-                await loadingSceneAsync;
-
-                var nextScene = SceneManager.GetSceneByPath(newSceneName);
-                if (nextScene.IsValid()) SceneManager.SetActiveScene(nextScene);
-            });
         }
     }
 }

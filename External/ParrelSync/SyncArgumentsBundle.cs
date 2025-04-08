@@ -13,6 +13,10 @@ namespace EDIVE.External.ParrelSync
     [JsonObject(MemberSerialization.OptIn)]
     public class SyncArgumentsBundle
     {
+        [JsonProperty("Name")]
+        [SerializeField]
+        private string _Name = "Clone";
+
         [JsonProperty("SyncPlaymode")]
         [SerializeField]
         private bool _SyncPlaymode = true;
@@ -37,6 +41,12 @@ namespace EDIVE.External.ParrelSync
         {
             get => _SyncPlaymode;
             set => _SyncPlaymode = value;
+        }
+
+        public string Name
+        {
+            get => _Name;
+            set => _Name = value;
         }
     }
 }

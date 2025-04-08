@@ -14,7 +14,7 @@ namespace EDIVE.MirrorNetworking
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
-            ToolbarExtender.AddToLeftPlayButtons(NetworkToolbarGUI, -10);
+            ToolbarExtender.AddToLeftToolbar(NetworkToolbarGUI, 990);
         }
 
         private static void NetworkToolbarGUI()
@@ -27,7 +27,7 @@ namespace EDIVE.MirrorNetworking
                 NetworkUtils.EditorRuntimeMode = newMode;
             }
             EditorGUI.EndDisabledGroup();
-            GUILayout.Space(2);
+            GUILayout.Space(1);
         }
     }
 }
