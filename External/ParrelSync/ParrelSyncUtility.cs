@@ -132,6 +132,12 @@ namespace EDIVE.External.ParrelSync
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
+
         private static void SaveProcessID()
         {
             if (Application.isBatchMode)
@@ -174,6 +180,14 @@ namespace EDIVE.External.ParrelSync
                 }
 
                 var unityProcess = Process.GetProcessById(processId);
+
+                // Restore if minimized
+                if (IsIconic(unityProcess.MainWindowHandle))
+                {
+                    ShowWindow(unityProcess.MainWindowHandle, 9);
+                }
+
+                // Bring to foreground
                 SetForegroundWindow(unityProcess.MainWindowHandle);
             }
             catch (Exception e)
