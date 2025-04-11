@@ -102,8 +102,11 @@ namespace EDIVE.BuildTool.Runners
             }
 
             var activeScene = SceneManager.GetActiveScene();
-            EditorSceneManager.OpenScene(activeScene.path);
-
+            if (!string.IsNullOrEmpty(activeScene.path))
+            {
+                EditorSceneManager.OpenScene(activeScene.path);
+            }
+            
             if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
             {
                 Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
