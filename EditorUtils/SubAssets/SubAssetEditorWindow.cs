@@ -92,7 +92,7 @@ namespace EDIVE.EditorUtils.SubAssets
             AssetDatabase.LoadMainAssetAtPath(assetPath);
             _subAssets.Clear();
             _subAssets.AddRange(AssetDatabase.LoadAllAssetsAtPath(assetPath)
-                .Where(x => x != _currentAsset && 0 == (x.hideFlags & HideFlags.HideInHierarchy))
+                .Where(x => x != _currentAsset &&  x != null && 0 == (x.hideFlags & HideFlags.HideInHierarchy))
                 .Distinct()
                 .ToList());
             _subAssets.CollectionChanged += OnSubAssetsChanged;
