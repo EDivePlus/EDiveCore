@@ -9,7 +9,9 @@
         "EDIVE.External.ParrelSync",
         "EDIVE.External.Signals",
         "EDIVE.External.ToolbarExtensions",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.Addressables",
+        "EDIVE.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -8,9 +8,7 @@ using EDIVE.Core;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
 using Mirror;
-using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace EDIVE.MirrorNetworking
 {
