@@ -10,7 +10,7 @@ namespace EDIVE.BuildTool.Utils
 {
     public class SceneListDefinition : ScriptableObject
     {
-        [SceneReference(SceneReferenceType.Path, true)]
+        [SceneReference(SceneReferenceType.Path)]
         [ListDrawerSettings(ShowFoldout = false)]
         [SerializeField]
         private List<string> _Scenes = new();
