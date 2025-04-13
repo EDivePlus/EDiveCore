@@ -1,0 +1,21 @@
+﻿{
+  "name": "EDIVE.SceneManagement",
+  "rootNamespace": "",
+  "references": [
+    "UniTask",
+    "Unity.Addressables",
+    "Unity.ResourceManager",
+    "EDIVE.OdinExtensions",
+    "EDIVE.AddressableAssets",
+    "EDIVE.Utils"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

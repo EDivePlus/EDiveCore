@@ -10,8 +10,11 @@
         "EDIVE.External.Signals",
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.OdinExtensions",
-        "EDIVE.Addressables",
-        "EDIVE.Utils"
+        "EDIVE.AddressableAssets",
+        "EDIVE.Utils",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "EDIVE.SceneManagement"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
