@@ -1,6 +1,6 @@
 ﻿using UnityEngine.AddressableAssets;
 
-namespace EDIVE.Addressables
+namespace EDIVE.AddressableAssets
 {
     public static class AssetReferenceExtensions
     {

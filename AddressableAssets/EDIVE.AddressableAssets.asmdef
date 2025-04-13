@@ -1,5 +1,5 @@
 {
-    "name": "EDIVE.Addressables",
+    "name": "EDIVE.AddressableAssets",
     "rootNamespace": "",
     "references": [
         "EDIVE.OdinExtensions",

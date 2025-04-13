@@ -5,7 +5,7 @@ using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.ValueResolvers;
 using UnityEngine.AddressableAssets;
 
-namespace EDIVE.Addressables
+namespace EDIVE.AddressableAssets
 {
     public class AssetReferenceTypeConstraintAttributeProcessor<T> : OdinAttributeProcessor<T>
         where T : AssetReference

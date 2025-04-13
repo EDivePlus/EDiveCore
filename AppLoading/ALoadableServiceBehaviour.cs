@@ -20,7 +20,7 @@ namespace EDIVE.AppLoading
             }
         }
 
-        private void OnDestroy()
+        protected virtual void OnDestroy()
         {
             UnregisterService();
         }

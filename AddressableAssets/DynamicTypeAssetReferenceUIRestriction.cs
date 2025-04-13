@@ -4,7 +4,7 @@ using Sirenix.OdinInspector.Editor.ValueResolvers;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace EDIVE.Addressables
+namespace EDIVE.AddressableAssets
 {
     // Dynamically added, use AssetReferenceTypeConstraintAttribute instead
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]

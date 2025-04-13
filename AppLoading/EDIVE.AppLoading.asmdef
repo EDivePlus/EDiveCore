@@ -15,7 +15,7 @@
         "EDIVE.EditorUtils",
         "EDIVE.NativeUtils",
         "EDIVE.External.ToolbarExtensions",
-        "EDIVE.Addressables"
+        "EDIVE.AddressableAssets"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

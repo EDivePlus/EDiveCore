@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EDIVE.Addressables
+namespace EDIVE.AddressableAssets
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class AssetReferenceTypeConstraintAttribute : Attribute

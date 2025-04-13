@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.Addressables;
+using EDIVE.AddressableAssets;
 using EDIVE.AppLoading.LoadItems;
 using UnityEngine;
 
