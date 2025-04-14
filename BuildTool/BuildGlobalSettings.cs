@@ -4,10 +4,8 @@
 using System.Collections.Generic;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
-using EDIVE.OdinExtensions.Editor;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Internal;
 using Sirenix.Utilities;
 using UnityEditor;
 using UnityEditor.Build;
@@ -16,7 +14,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool
 {
     [GlobalConfig("Assets/_Project/Settings/Editor/")]
-    public class BuildGlobalSettings : ProjectSettingsGlobalConfig<BuildGlobalSettings>
+    public class BuildGlobalSettings : GlobalConfig<BuildGlobalSettings>
     {
         [SerializeField]
         private AppVersionDefinition _VersionDefinition;
