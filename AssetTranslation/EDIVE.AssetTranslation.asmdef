@@ -1,0 +1,20 @@
+{
+    "name": "EDIVE.AssetTranslation",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.Utils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils",
+        "EDIVE.EditorUtils",
+        "Mirror"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

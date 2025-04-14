@@ -1,22 +1,30 @@
-﻿using EDIVE.OdinExtensions;
-using EDIVE.OdinExtensions.Attributes;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEngine;
 
-namespace EDIVE.Utils.UniqueDefinitions
+namespace EDIVE.AssetTranslation
 {
     [JsonObject(MemberSerialization.OptIn)]
     public abstract class AUniqueDefinition : ScriptableObject, IUniqueDefinition
     {
         [Required]
         [PropertyOrder(-100)]
-        [InlineIconButton(FontAwesomeEditorIconType.FilePenSolid, "SetFileNameAsID", "Use filename as ID")]
+        [UniqueDefinitionID("FormatFileNameForID")]
         [SerializeField]
         protected string _UniqueID;
 
-        public string UniqueID => _UniqueID;
+        public string UniqueID
+        {
+            get => _UniqueID;
+            set
+            {
+                _UniqueID = value;
+#if UNITY_EDITOR
+                EditorUtility.SetDirty(this);
+#endif
+            }
+        }
 
         protected virtual void Awake()
         {

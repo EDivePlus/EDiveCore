@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEngine.Scripting;
 
 namespace EDIVE.Utils.Json
 {
+    [Preserve]
     public class DictionaryConverter<TKey,TValue> : JsonConverter
     {
         public override bool CanConvert(Type objectType) => true;
