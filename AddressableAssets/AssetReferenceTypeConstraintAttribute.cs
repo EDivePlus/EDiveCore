@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if ADDRESSABLES
+using System;
 
 namespace EDIVE.AddressableAssets
 {
@@ -12,3 +13,4 @@ namespace EDIVE.AddressableAssets
         }
     }
 }
+#endif

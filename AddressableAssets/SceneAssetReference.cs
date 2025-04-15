@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 08.04.2025
 
+#if ADDRESSABLES
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -42,3 +43,4 @@ namespace EDIVE.AddressableAssets
     }
 
 }
+#endif

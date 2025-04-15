@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+﻿#if ADDRESSABLES && UNITY_EDITOR
 using System;
 using Sirenix.OdinInspector.Editor.ValueResolvers;
 using UnityEngine;

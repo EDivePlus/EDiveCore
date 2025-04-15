@@ -1,4 +1,5 @@
-﻿using UnityEngine.AddressableAssets;
+﻿#if ADDRESSABLES
+using UnityEngine.AddressableAssets;
 
 namespace EDIVE.AddressableAssets
 {
@@ -16,3 +17,4 @@ namespace EDIVE.AddressableAssets
         }
     }
 }
+#endif

@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 11.04.2025
 
+#if ADDRESSABLES
 using Cysharp.Threading.Tasks;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -27,3 +28,4 @@ namespace EDIVE.SceneManagement
         }
     }
 }
+#endif

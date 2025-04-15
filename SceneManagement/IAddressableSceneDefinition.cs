@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 13.04.2025
 
+#if ADDRESSABLES
 using EDIVE.AddressableAssets;
 
 namespace EDIVE.SceneManagement
@@ -10,3 +11,4 @@ namespace EDIVE.SceneManagement
         public SceneAssetReference SceneReference { get; }
     }
 }
+#endif

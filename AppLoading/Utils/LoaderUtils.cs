@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.AddressableAssets;
 using EDIVE.AppLoading.LoadItems;
 using UnityEngine;
 
@@ -9,6 +8,10 @@ using UnityEngine;
 using EDIVE.EditorUtils;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
+#endif
+
+#if ADDRESSABLES
+using EDIVE.AddressableAssets;
 #endif
 
 namespace EDIVE.AppLoading.Utils
