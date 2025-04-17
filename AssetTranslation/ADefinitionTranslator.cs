@@ -50,7 +50,7 @@ namespace EDIVE.AssetTranslation
         [SerializeField]
         protected List<TDefinition> _Definitions;
 
-        [EnhancedFoldoutGroup("Migration", "@OdinColors.Orange", SpaceBefore = 6)]
+        [EnhancedFoldoutGroup("Migration", "@ColorTools.Orange", SpaceBefore = 6)]
         [EnhancedTableList(ShowFoldout = false)]
         [SerializeField]
         private List<DefinitionMigrationPreset<TDefinition>> _MigrationPresets = new();

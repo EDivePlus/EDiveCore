@@ -8,6 +8,27 @@ namespace EDIVE.AssetTranslation
 {
     public static class DefinitionTranslationUtils
     {
+        public static bool TryGetDefinition<TDefinition>(string uniqueId, out TDefinition resultDefinition) where TDefinition : ScriptableObject, IUniqueDefinition
+        {
+            resultDefinition = null;
+            if (string.IsNullOrEmpty(uniqueId))
+                return false;
+
+            if (!AssetTranslationConfig.Instance.TryGetTranslator(typeof(TDefinition), out var translator))
+                return false;
+
+            if (!translator.TryGet(uniqueId, out var definition) || definition is not TDefinition tDefinition)
+                return false;
+
+            resultDefinition = tDefinition;
+            return true;
+        }
+
+        public static TDefinition GetDefinition<TDefinition>(string uniqueId) where TDefinition : ScriptableObject, IUniqueDefinition
+        {
+            return TryGetDefinition<TDefinition>(uniqueId, out var resultDefinition) ? resultDefinition : null;
+        }
+
 #if MIRROR
         public static void WriteDefinition<TDefinition>(this NetworkWriter writer, TDefinition value) where TDefinition : ScriptableObject, IUniqueDefinition
         {
