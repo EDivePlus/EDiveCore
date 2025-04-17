@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 namespace EDIVE.SceneManagement
 {
-    public class DirectSceneDefinition : ASceneDefinition, IDirectSceneDefinition
+    public class DirectSceneDefinition : ASceneDefinition
     {
         [SceneReference(SceneReferenceType.Path, true)]
         [SerializeField]
@@ -16,5 +16,6 @@ namespace EDIVE.SceneManagement
         public string SceneAsset => _SceneAsset;
         
         public override bool IsValid() => SceneUtility.GetBuildIndexByScenePath(_SceneAsset) >= 0;
+        public override ASceneInstance CreateInstance() => new DirectSceneInstance(this);
     }
 }

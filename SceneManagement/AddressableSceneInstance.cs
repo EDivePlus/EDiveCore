@@ -9,13 +9,13 @@ using UnityEngine.SceneManagement;
 
 namespace EDIVE.SceneManagement
 {
-    public class AddressableSceneInstance : ASceneInstance<IAddressableSceneDefinition>
+    public class AddressableSceneInstance : ASceneInstance<AddressableSceneDefinition>
     {
         public override Scene Scene => _sceneInstance.Scene;
 
         private SceneInstance _sceneInstance;
       
-        public AddressableSceneInstance(IAddressableSceneDefinition definition) : base(definition) { }
+        public AddressableSceneInstance(AddressableSceneDefinition definition) : base(definition) { }
 
         protected override async UniTask LoadOperation()
         {

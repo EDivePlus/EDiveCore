@@ -5,8 +5,9 @@ using EDIVE.AssetTranslation;
 
 namespace EDIVE.SceneManagement
 {
-    public abstract class ASceneDefinition : AUniqueDefinition, ISceneDefinition
+    public abstract class ASceneDefinition : AUniqueDefinition
     {
         public abstract bool IsValid();
+        public abstract ASceneInstance CreateInstance();
     }
 }

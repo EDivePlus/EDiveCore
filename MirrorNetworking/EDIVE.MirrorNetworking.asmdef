@@ -14,7 +14,8 @@
         "EDIVE.Utils",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "EDIVE.SceneManagement"
+        "EDIVE.SceneManagement",
+        "EDIVE.AssetTranslation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -22,7 +23,9 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "MIRROR"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }

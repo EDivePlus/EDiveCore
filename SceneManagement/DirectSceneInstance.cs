@@ -6,12 +6,12 @@ using UnityEngine.SceneManagement;
 
 namespace EDIVE.SceneManagement
 {
-    public class DirectSceneInstance : ASceneInstance<IDirectSceneDefinition>
+    public class DirectSceneInstance : ASceneInstance<DirectSceneDefinition>
     {
         public override Scene Scene => _scene;
         private Scene _scene;
         
-        public DirectSceneInstance(IDirectSceneDefinition definition) : base(definition) { }
+        public DirectSceneInstance(DirectSceneDefinition definition) : base(definition) { }
         
         protected override async UniTask LoadOperation()
         { 

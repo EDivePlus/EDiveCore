@@ -5,6 +5,7 @@ using UnityEngine.XR;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
+using UnityEngine;
 #endif
 
 namespace EDIVE.MirrorNetworking
@@ -13,7 +14,7 @@ namespace EDIVE.MirrorNetworking
     {
 #if UNITY_EDITOR
         private static GlobalPersistentContext<NetworkRuntimeMode> EditorRuntimeModeContext =>
-            PersistentContext.Get(nameof(MirrorNetworking), nameof(NetworkRuntimeMode), NetworkRuntimeMode.Client);
+            PersistentContext.Get(Application.dataPath, nameof(MirrorNetworking), nameof(NetworkRuntimeMode), NetworkRuntimeMode.Client);
 
         public static NetworkRuntimeMode EditorRuntimeMode
         {

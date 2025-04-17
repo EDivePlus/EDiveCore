@@ -16,8 +16,6 @@ namespace EDIVE.MirrorNetworking
     {
         public Signal ServerStarted { get; } = new();
         public Signal ServerStopped { get; } = new();
-        public Signal<string> ServerSceneChangeBegin { get; } = new();
-        public Signal<string> ServerSceneChanged { get; } = new();
         public Signal<NetworkConnectionToClient> ServerPlayerAdded { get; } = new();
         public Signal<NetworkConnectionToClient> ServerClientConnecting { get; } = new();
         public Signal<NetworkConnectionToClient> ServerClientConnected { get; } = new();
@@ -30,8 +28,6 @@ namespace EDIVE.MirrorNetworking
         public Signal ClientConnected { get; } = new();
         public Signal ClientDisconnected { get; } = new();
 
-        public Signal ClientSceneChangeBegin { get; } = new();
-        public Signal ClientSceneChanged { get; } = new();
         public Signal<TransportError, string> ClientError { get; } = new();
 
         public int ConnectionCount => NetworkServer.connections.Count;
@@ -61,18 +57,6 @@ namespace EDIVE.MirrorNetworking
         public override void OnStopServer()
         {
             ServerStopped.Dispatch();
-        }
-
-        public override void OnServerChangeScene(string newSceneName)
-        {
-            Debug.Log($"Changing scene to {newSceneName}");
-            ServerSceneChangeBegin.Dispatch(newSceneName);
-        }
-
-        public override void OnServerSceneChanged(string sceneName)
-        {
-            Debug.Log($"Server scene changed to {sceneName}");
-            ServerSceneChanged.Dispatch(sceneName);
         }
 
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
@@ -145,27 +129,6 @@ namespace EDIVE.MirrorNetworking
         {
             Debug.Log("Disconnected from server");
             ClientDisconnected.Dispatch();
-        }
-
-        [Client]
-        public void DisconnectClient()
-        {
-            if (NetworkClient.isConnected)
-            {
-                Debug.Log("Disconnecting...");
-                StopClient();
-            }
-        }
-
-        public override void OnClientChangeScene(string newSceneName, SceneOperation sceneOperation, bool customHandling)
-        {
-            ClientSceneChangeBegin.Dispatch();
-        }
-
-        public override void OnClientSceneChanged()
-        {
-            base.OnClientSceneChanged();
-            ClientSceneChanged.Dispatch();
         }
     }
 }

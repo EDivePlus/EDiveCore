@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace EDIVE.SceneManagement
 {
-    public class AddressableSceneDefinition : ASceneDefinition, IAddressableSceneDefinition
+    public class AddressableSceneDefinition : ASceneDefinition
     {
         [SerializeField]
         [Required]
@@ -16,6 +16,7 @@ namespace EDIVE.SceneManagement
         public SceneAssetReference SceneReference => _SceneReference;
         
         public override bool IsValid() => SceneReference.IsValid();
+        public override ASceneInstance CreateInstance() => new AddressableSceneInstance(this);
     }
 }
 #endif

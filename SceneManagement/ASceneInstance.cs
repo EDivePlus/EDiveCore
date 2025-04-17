@@ -10,7 +10,7 @@ namespace EDIVE.SceneManagement
 {
     public abstract class ASceneInstance
     {
-        public abstract ISceneDefinition BaseDefinition { get; }
+        public abstract ASceneDefinition BaseDefinition { get; }
 
         public SceneLoadState LoadState { get; private set; } = SceneLoadState.NotLoaded;
         public abstract Scene Scene { get; }
@@ -90,10 +90,10 @@ namespace EDIVE.SceneManagement
         protected abstract UniTask UnloadOperation();
     }
     
-    public abstract class ASceneInstance<TDefinition> : ASceneInstance where TDefinition : ISceneDefinition
+    public abstract class ASceneInstance<TDefinition> : ASceneInstance where TDefinition : ASceneDefinition
     {
         public TDefinition Definition { get; }
-        public override ISceneDefinition BaseDefinition => Definition;
+        public override ASceneDefinition BaseDefinition => Definition;
 
         protected ASceneInstance(TDefinition definition)
         {

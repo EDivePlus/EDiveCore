@@ -14,44 +14,27 @@ namespace EDIVE.MirrorNetworking
     [Serializable]
     public class NetworkStartLoader : ILoadable
     {
-        [SerializeField]
-        [SceneReference(SceneReferenceType.Path, true)]
-        private string _OfflineScene;
-
-        [SerializeField]
-        [SceneReference(SceneReferenceType.Path, true)]
-        private string _OnlineScene;
-
         public UniTask Load(Action<float> progressCallback)
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
+            var sceneManager = AppCore.Services.Get<NetSceneManager>();
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:
                     networkManager.StartServer();
-                    LoadScene(_OnlineScene).Forget();
                     break;
-                case NetworkRuntimeMode.Client:
-                    //networkManager.StartClient();
-                    LoadScene(_OfflineScene).Forget();
-                    break;
+
                 case NetworkRuntimeMode.Host:
                     networkManager.StartHost();
-                    LoadScene(_OnlineScene).Forget();
                     break;
+
+                case NetworkRuntimeMode.Client:
+                    sceneManager.LoadOfflineScene();
+                    break;
+
                 default: throw new ArgumentOutOfRangeException();
             }
             return UniTask.CompletedTask;
-        }
-
-        private async UniTaskVoid LoadScene(string scenePath)
-        {
-            if (string.IsNullOrWhiteSpace(scenePath))
-                return;
-            await SceneManager.LoadSceneAsync(scenePath, LoadSceneMode.Additive);
-            var scene = SceneManager.GetSceneByPath(scenePath);
-            if (scene.IsValid())
-                SceneManager.SetActiveScene(scene);
         }
     }
 }
