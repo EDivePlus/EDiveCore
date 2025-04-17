@@ -41,7 +41,7 @@ namespace EDIVE.External.ParrelSync
                 if (GUILayout.Button(buttonLabel, ToolbarStyles.ToolbarDropdown, GUILayout.ExpandWidth(false)))
                 {
                     var dropdown = new ParrelSyncToolbarDropdown();
-                    OdinEditorWindow.InspectObjectInDropDown(dropdown, new Vector2(0, 18), 340);
+                    OdinEditorWindow.InspectObjectInDropDown(dropdown, new Vector2(0, 18), 420);
                 }
             }
 
@@ -51,6 +51,7 @@ namespace EDIVE.External.ParrelSync
         [Serializable]
         private class ParrelSyncToolbarDropdown
         {
+            [InfoBox("No clones found", InfoMessageType.Info, "@$value.Count == 0")]
             [EnhancedTableList(HideToolbar = true, IsReadOnly =  true)]
             [SerializeField]
             private List<DropdownProjectRecord> _ProjectCloneRecords;
@@ -71,7 +72,12 @@ namespace EDIVE.External.ParrelSync
                 [ShowInInspector]
                 [OnValueChanged(nameof(SaveData))]
                 [EnhancedTableColumn(80)]
-                private bool SyncPlay { get => Arguments.SyncPlaymode; set => Arguments.SyncPlaymode = value; }
+                private bool SyncPlay { get => Arguments.SyncPlay; set => Arguments.SyncPlay = value; }
+
+                [ShowInInspector]
+                [OnValueChanged(nameof(SaveData))]
+                [EnhancedTableColumn(80)]
+                private bool SyncStop { get => Arguments.SyncStop; set => Arguments.SyncStop = value; }
 
                 private bool IsRunning => ClonesManager.IsCloneProjectRunning(_projectCloneRecord.ProjectPath);
 

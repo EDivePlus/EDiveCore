@@ -79,18 +79,18 @@ namespace EDIVE.External.ParrelSync
         private static void WatchForStateChange()
         {
             var argumentsBundle = SelfArgumentsBundle.Data;
-            if (!argumentsBundle.SyncPlaymode || _prevMasterPlaying == argumentsBundle.IsMasterPlaying)
+            if (_prevMasterPlaying == argumentsBundle.IsMasterPlaying)
                 return;
 
             _prevMasterPlaying = argumentsBundle.IsMasterPlaying;
-            if (argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
+            if (argumentsBundle.SyncPlay && argumentsBundle.IsMasterPlaying && !EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 if (LoaderEditorUtility.TryPlayRootScene())
                 {
                     OnClonePlaymodeEntered();
                 }
             }
-            if (!argumentsBundle.IsMasterPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
+            if (argumentsBundle.SyncStop && !argumentsBundle.IsMasterPlaying && EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 EditorApplication.ExitPlaymode();
             }

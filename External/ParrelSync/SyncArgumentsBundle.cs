@@ -17,9 +17,13 @@ namespace EDIVE.External.ParrelSync
         [SerializeField]
         private string _Name = "Clone";
 
-        [JsonProperty("SyncPlaymode")]
+        [JsonProperty("SyncPlay")]
         [SerializeField]
-        private bool _SyncPlaymode = true;
+        private bool _SyncPlay= true;
+
+        [JsonProperty("SyncStop")]
+        [SerializeField]
+        private bool _SyncStop = true;
 
         [JsonProperty("MasterPlaying")]
         [HideInInspector]
@@ -37,10 +41,16 @@ namespace EDIVE.External.ParrelSync
             set => _IsMasterPlaying = value;
         }
 
-        public bool SyncPlaymode
+        public bool SyncPlay
         {
-            get => _SyncPlaymode;
-            set => _SyncPlaymode = value;
+            get => _SyncPlay;
+            set => _SyncPlay = value;
+        }
+
+        public bool SyncStop
+        {
+            get => _SyncStop;
+            set => _SyncStop = value;
         }
 
         public string Name
