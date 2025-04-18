@@ -44,9 +44,11 @@ namespace EDIVE.MirrorNetworking
             _networkManager.ServerStarted.AddListener(OnServerStarted);
             _networkManager.ServerStopped.AddListener(OnServerStopped);
             _networkManager.ServerClientConnected.AddListener(OnServerClientConnected);
+
             _networkManager.ClientStarted.AddListener(OnClientStarted);
             return UniTask.CompletedTask;
         }
+
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
@@ -62,6 +64,7 @@ namespace EDIVE.MirrorNetworking
                 _networkManager.ServerStarted.RemoveListener(OnServerStarted);
                 _networkManager.ServerStopped.RemoveListener(OnServerStopped);
                 _networkManager.ServerClientConnected.RemoveListener(OnServerClientConnected);
+
                 _networkManager.ClientStarted.RemoveListener(OnClientStarted);
             }
         }
@@ -133,7 +136,8 @@ namespace EDIVE.MirrorNetworking
                 NetworkManager.startPositions.Clear();
 
                 await newSceneLoadTask;
-                NetworkClient.isLoadingScene = false;
+                await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
+                NetworkServer.isLoadingScene = false;
                 NetworkServer.SpawnObjects();
 
                 ServerSceneChanged.Dispatch();
@@ -182,7 +186,7 @@ namespace EDIVE.MirrorNetworking
                 return;
             }
 
-            if (NetworkServer.isLoadingScene)
+            if (NetworkClient.isLoadingScene)
             {
                 Debug.LogError($"Scene change is already in progress for '{_currentScene.BaseDefinition.UniqueID}'");
                 return;
@@ -207,10 +211,11 @@ namespace EDIVE.MirrorNetworking
                 if (_currentScene != null)
                     await _currentScene.Unload();
 
-                NetworkServer.isLoadingScene = true;
+                NetworkClient.isLoadingScene = true;
                 var newSceneLoadTask = newScene.Load();
 
                 await newSceneLoadTask;
+                await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
                 NetworkClient.isLoadingScene = false;
 
                 if (NetworkClient.isConnected)
