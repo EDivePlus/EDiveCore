@@ -55,6 +55,9 @@ namespace EDIVE.External.ParrelSync
             SaveProcessID();
             if (ClonesManager.IsClone())
             {
+                SelfArgumentsBundle.Data.IsMasterPlaying = false;
+                SelfArgumentsBundle.SaveData();
+
                 EditorApplication.update -= WatchForStateChange;
                 EditorApplication.update += WatchForStateChange;
             }
