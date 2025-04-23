@@ -77,7 +77,7 @@ namespace EDIVE.MirrorNetworking.VoiceChat
                 // Then we create a UniMicInput instance that requires the mic object
                 // For more info on UniMic refer to https://www.github.com/adrenak/unimic
                 var mic = Mic.AvailableDevices[0];
-                mic.StartRecording(48000, 50);
+                mic.StartRecording();
                 Debug.unityLogger.Log(LogType.Log, TAG, "Started recording with Mic device named." +
                                                         mic.Name + $" at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
                 input = new UniMicInput(mic);
