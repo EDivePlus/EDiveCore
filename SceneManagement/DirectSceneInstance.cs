@@ -2,6 +2,7 @@
 // Created: 11.04.2025
 
 using Cysharp.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace EDIVE.SceneManagement

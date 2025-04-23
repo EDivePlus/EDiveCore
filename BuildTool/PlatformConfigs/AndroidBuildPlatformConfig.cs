@@ -5,7 +5,9 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.CrashReporting;
 using UnityEngine;
+
 #if UNITY_6000_0_OR_NEWER
+using System;
 using Unity.Android.Types;
 using AndroidArchitecture = UnityEditor.AndroidArchitecture;
 using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;

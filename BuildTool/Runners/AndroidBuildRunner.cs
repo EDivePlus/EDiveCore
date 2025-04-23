@@ -10,6 +10,7 @@ using UnityEngine;
 
 #if UNITY_6000_0_OR_NEWER
 using Unity.Android.Types;
+using UnityEditor.Android;
 using AndroidArchitecture = UnityEditor.AndroidArchitecture;
 using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;
 #endif
