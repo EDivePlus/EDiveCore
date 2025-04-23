@@ -1,3 +1,4 @@
+#if UNIVOICE
 using System;
 using Adrenak.UniMic;
 using Adrenak.UniVoice;
@@ -33,21 +34,21 @@ namespace EDIVE.VoiceChat
             Debug.unityLogger.Log(LogType.Log, TAG, "Initializing UniVoice");
 
 #if UNITY_SERVER
-        // We create a server. If this code runs in server mode, MirrorServer will take care
-        // or automatically handling all incoming messages.
-        var server = new MirrorServer();
-        Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorServer object");
+            // We create a server. If this code runs in server mode, MirrorServer will take care
+            // or automatically handling all incoming messages.
+            var server = new MirrorServer();
+            Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorServer object");
 
-        // Subscribe to some server events
-        server.OnServerStart += () => {
-            Debug.unityLogger.Log(LogType.Log, TAG, "Server started");
-        };
+            // Subscribe to some server events
+            server.OnServerStart += () => {
+                Debug.unityLogger.Log(LogType.Log, TAG, "Server started");
+            };
 
-        server.OnServerStop += () => {
-            Debug.unityLogger.Log(LogType.Log, TAG, "Server stopped");
-        };
+            server.OnServerStop += () => {
+                Debug.unityLogger.Log(LogType.Log, TAG, "Server stopped");
+            };
 
-        return;
+            return;
 #endif
             // From here on, handle running on a client
 
@@ -68,7 +69,7 @@ namespace EDIVE.VoiceChat
             {
                 Debug.unityLogger.Log(LogType.Log, TAG, "Device has no microphones." +
                                                         "Will only be able to hear other clients, cannot send any audio.");
-                input = new Edive_UnivoiceEmptyAudioInput();
+                input = new UniVoiceEmptyAudioInput();
             }
             else
             {
@@ -166,3 +167,4 @@ namespace EDIVE.VoiceChat
         }
     }
 }
+#endif
