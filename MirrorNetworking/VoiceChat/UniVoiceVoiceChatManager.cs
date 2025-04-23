@@ -50,7 +50,6 @@ namespace EDIVE.MirrorNetworking.VoiceChat
             }
         }
 
-        [Client]
         private void InitializeClient()
         {
             // Create a client for this device
@@ -150,10 +149,8 @@ namespace EDIVE.MirrorNetworking.VoiceChat
             client.OnPeerLeft += id => { Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} left"); };
         }
 
-        [Server]
         private void InitializeServer()
         {
-
             // We create a server. If this code runs in server mode, MirrorServer will take care
             // or automatically handling all incoming messages.
             var server = new MirrorServer();
