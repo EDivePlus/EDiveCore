@@ -5,6 +5,8 @@ using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
+using EDIVE.MirrorNetworking.Scenes;
+using EDIVE.MirrorNetworking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
 using UnityEngine.SceneManagement;

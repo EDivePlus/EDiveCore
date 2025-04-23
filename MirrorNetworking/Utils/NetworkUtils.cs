@@ -1,14 +1,11 @@
 ﻿// Author: František Holubec
 // Created: 22.03.2025
 
-using UnityEngine.XR;
-
-#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using UnityEngine;
-#endif
+using UnityEngine.XR;
 
-namespace EDIVE.MirrorNetworking
+namespace EDIVE.MirrorNetworking.Utils
 {
     public static class NetworkUtils
     {

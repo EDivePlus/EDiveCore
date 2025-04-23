@@ -3,7 +3,7 @@
 
 using Mirror;
 
-namespace EDIVE.MirrorNetworking
+namespace EDIVE.MirrorNetworking.Scenes
 {
     public struct LoadSceneMessage : NetworkMessage
     {

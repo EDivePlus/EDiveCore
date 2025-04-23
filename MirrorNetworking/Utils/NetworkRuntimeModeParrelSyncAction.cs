@@ -6,7 +6,7 @@ using System;
 using EDIVE.External.ParrelSync;
 using UnityEngine;
 
-namespace EDIVE.MirrorNetworking
+namespace EDIVE.MirrorNetworking.Utils
 {
     [Serializable]
     public class NetworkRuntimeModeParrelSyncAction : IParrelSyncAction

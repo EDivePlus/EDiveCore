@@ -13,7 +13,7 @@ using EDIVE.SceneManagement;
 using Mirror;
 using UnityEngine;
 
-namespace EDIVE.MirrorNetworking
+namespace EDIVE.MirrorNetworking.Scenes
 {
     // Simple single scene net manager
     // Todo: Allow multiple scenes, load/unload content based on player state, use some interest management from Mirror 

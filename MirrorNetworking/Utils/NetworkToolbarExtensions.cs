@@ -7,7 +7,7 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
-namespace EDIVE.MirrorNetworking
+namespace EDIVE.MirrorNetworking.Utils
 {
     public static class NetworkToolbarExtensions
     {
