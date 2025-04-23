@@ -1,11 +1,11 @@
 ﻿using System;
-using EDIVE.Core.Services;
+using EDIVE.AppLoading;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace EDIVE.MirrorNetworking.VoiceChat
 {
-    public abstract class AVoiceChatManager : AServiceBehaviour<AVoiceChatManager>
+    public abstract class AVoiceChatManager : ALoadableServiceBehaviour<AVoiceChatManager>
     {
         [Serializable]
         public class UnityEventMute : UnityEvent<string, bool> { }
@@ -21,20 +21,54 @@ namespace EDIVE.MirrorNetworking.VoiceChat
             StopVoiceChat();
         }
 
-        public abstract bool IsMicMuted();
 
-        public abstract void StartVoiceChat(string id);
-        public abstract void StopVoiceChat();
-        public abstract void SetMicMuted(bool value);
+        public virtual void StartVoiceChat(string id)
+        {
 
-        public abstract bool IsSpeaking(string iD);
-        public abstract void ToggleMuteOtherUser(string iD);
-        public abstract void SetWorldPosition(Vector3 position, Vector3 forward, Vector3 up);
+        }
 
-        // TODO normalize between -50 and 50 on a log scale
-        public abstract void SetMicVolume(int value);
+        public virtual void StopVoiceChat()
+        {
 
-        // TODO normalize between -50 and 50 on a log scale
-        public abstract void SetVoiceChatVolume(int value);
+        }
+
+        public virtual bool IsMicMuted()
+        {
+            return true;
+        }
+
+        public virtual void SetMicMuted(bool value)
+        {
+
+        }
+
+        public virtual bool IsSpeaking(string iD)
+        {
+            return false;
+        }
+
+        public virtual void ToggleMuteOtherUser(string iD)
+        {
+
+        }
+
+        public virtual void SetWorldPosition(Vector3 position, Vector3 forward, Vector3 up)
+        {
+
+        }
+
+        // TODO normalize
+        // Between -50 and 50 on a log scale
+        public virtual void SetMicVolume(int value)
+        {
+
+        }
+
+        // TODO normalize
+        // Between -50 and 50 on a log scale
+        public virtual void SetVoiceChatVolume(int value)
+        {
+
+        }
     }
 }

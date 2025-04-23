@@ -1,5 +1,6 @@
 #if UNIVOICE
 using System;
+using System.Collections.Generic;
 using Adrenak.UniMic;
 using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
@@ -7,13 +8,13 @@ using Adrenak.UniVoice.Inputs;
 using Adrenak.UniVoice.Networks;
 using Adrenak.UniVoice.Outputs;
 using Cysharp.Threading.Tasks;
-using EDIVE.AppLoading;
+using EDIVE.MirrorNetworking.Utils;
 using Mirror;
 using UnityEngine;
 
 namespace EDIVE.MirrorNetworking.VoiceChat
 {
-    public class UniVoiceVoiceChatManager : ALoadableServiceBehaviour<UniVoiceVoiceChatManager>
+    public class UniVoiceVoiceChatManager : AVoiceChatManager
     {
         private const string TAG = "[UniVoiceVoiceChatManager]";
         private ClientSession<int> _session;
@@ -31,27 +32,28 @@ namespace EDIVE.MirrorNetworking.VoiceChat
 
         private void InitializeSession()
         {
-            Debug.unityLogger.Log(LogType.Log, TAG, "Initializing UniVoice");
+            switch (NetworkUtils.RuntimeMode)
+            {
+                case NetworkRuntimeMode.Client:
+                    InitializeClient();
+                    break;
 
-#if UNITY_SERVER
-            // We create a server. If this code runs in server mode, MirrorServer will take care
-            // or automatically handling all incoming messages.
-            var server = new MirrorServer();
-            Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorServer object");
+                case NetworkRuntimeMode.Server:
+                    InitializeServer();
+                    break;
 
-            // Subscribe to some server events
-            server.OnServerStart += () => {
-                Debug.unityLogger.Log(LogType.Log, TAG, "Server started");
-            };
+                case NetworkRuntimeMode.Host:
+                    InitializeServer();
+                    InitializeClient();
+                    break;
 
-            server.OnServerStop += () => {
-                Debug.unityLogger.Log(LogType.Log, TAG, "Server stopped");
-            };
+                default: throw new ArgumentOutOfRangeException();
+            }
+        }
 
-            return;
-#endif
-            // From here on, handle running on a client
-
+        [Client]
+        private void InitializeClient()
+        {
             // Create a client for this device
             var client = new MirrorClient();
             Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorClient object");
@@ -77,7 +79,7 @@ namespace EDIVE.MirrorNetworking.VoiceChat
                 // Then we create a UniMicInput instance that requires the mic object
                 // For more info on UniMic refer to https://www.github.com/adrenak/unimic
                 var mic = Mic.AvailableDevices[0];
-                mic.StartRecording(16000, 50);
+                mic.StartRecording(48000, 50);
                 Debug.unityLogger.Log(LogType.Log, TAG, "Started recording with Mic device named." +
                                                         mic.Name + $" at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
                 input = new UniMicInput(mic);
@@ -147,6 +149,25 @@ namespace EDIVE.MirrorNetworking.VoiceChat
 
             // When a peer leaves, destroy the UI representing them
             client.OnPeerLeft += id => { Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} left"); };
+        }
+
+        [Server]
+        private void InitializeServer()
+        {
+
+            // We create a server. If this code runs in server mode, MirrorServer will take care
+            // or automatically handling all incoming messages.
+            var server = new MirrorServer();
+            Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorServer object");
+
+            // Subscribe to some server events
+            server.OnServerStart += () => {
+                Debug.unityLogger.Log(LogType.Log, TAG, "Server started");
+            };
+
+            server.OnServerStop += () => {
+                Debug.unityLogger.Log(LogType.Log, TAG, "Server stopped");
+            };
         }
 
         // Todo probably ask PlayerManager for the avatar when its moved to the sumbodule
