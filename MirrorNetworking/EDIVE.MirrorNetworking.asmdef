@@ -2,20 +2,22 @@
     "name": "EDIVE.MirrorNetworking",
     "rootNamespace": "",
     "references": [
-        "EDIVE.AppLoading",
-        "UniTask",
-        "Mirror",
         "EDIVE.Core",
+        "EDIVE.AppLoading",
         "EDIVE.External.ParrelSync",
         "EDIVE.External.Signals",
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.OdinExtensions",
         "EDIVE.AddressableAssets",
         "EDIVE.Utils",
+        "EDIVE.SceneManagement",
+        "EDIVE.AssetTranslation",
         "Unity.Addressables",
         "Unity.ResourceManager",
-        "EDIVE.SceneManagement",
-        "EDIVE.AssetTranslation"
+        "UniTask",
+        "Mirror",
+        "Adrenak.UniMic.Runtime",
+        "Adrenak.UniVoice.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -26,6 +28,12 @@
     "defineConstraints": [
         "MIRROR"
     ],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.adrenak.univoice",
+            "expression": "",
+            "define": "UNIVOICE"
+        }
+    ],
     "noEngineReferences": false
 }
