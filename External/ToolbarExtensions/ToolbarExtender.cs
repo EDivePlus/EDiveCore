@@ -115,13 +115,10 @@ namespace EDIVE.External.ToolbarExtensions
 
         private static void DrawGUI(List<PriorityAction> actions)
         {
-#if UNITY_6000_0_OR_NEWER
-            const int height = 20;
-#else
-            // Standard height is 20, but unity is using 18, morons
             const int height = 18;
-#endif
+#if !UNITY_6000_0_OR_NEWER
             GUILayout.Space(1);
+#endif
             GUILayout.BeginHorizontal(GUILayout.Height(height));
             foreach (var priorityAction in actions)
             {
