@@ -4,7 +4,7 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine.Android;
 
-namespace EDIVE.VoiceChat
+namespace EDIVE.MirrorNetworking.VoiceChat
 {
     public static class VoiceChatUtils
     {

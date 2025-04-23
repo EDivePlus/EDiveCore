@@ -1,14 +1,9 @@
 ﻿using System;
-using Cysharp.Threading.Tasks;
 using EDIVE.Core.Services;
 using UnityEngine;
 using UnityEngine.Events;
 
-#if UNITY_ANDROID
-using UnityEngine.Android;
-#endif
-
-namespace EDIVE.VoiceChat
+namespace EDIVE.MirrorNetworking.VoiceChat
 {
     public abstract class AVoiceChatManager : AServiceBehaviour<AVoiceChatManager>
     {
@@ -24,23 +19,6 @@ namespace EDIVE.VoiceChat
         public void OnApplicationQuit()
         {
             StopVoiceChat();
-        }
-
-        public async UniTask<bool> AwaitVoicePermission()
-        {
-#if UNITY_ANDROID// && !UNITY_EDITOR
-            if (Permission.HasUserAuthorizedPermission(Permission.Microphone))
-                return true;
-
-            var callbacks = new PermissionCallbacks();
-            Permission.RequestUserPermission(Permission.Microphone, callbacks);
-            var completionSource = new UniTaskCompletionSource<bool>();
-            callbacks.PermissionGranted += _ => completionSource.TrySetResult(true);
-            callbacks.PermissionDenied += _ => completionSource.TrySetResult(false);
-            callbacks.PermissionDeniedAndDontAskAgain += _ => completionSource.TrySetResult(false);
-
-            return await completionSource.Task;
-#endif
         }
 
         public abstract bool IsMicMuted();

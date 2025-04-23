@@ -11,7 +11,7 @@ using EDIVE.AppLoading;
 using Mirror;
 using UnityEngine;
 
-namespace EDIVE.VoiceChat
+namespace EDIVE.MirrorNetworking.VoiceChat
 {
     public class UniVoiceVoiceChatManager : ALoadableServiceBehaviour<UniVoiceVoiceChatManager>
     {

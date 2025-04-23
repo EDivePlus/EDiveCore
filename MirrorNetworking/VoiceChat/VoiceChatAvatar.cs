@@ -4,7 +4,7 @@
 using Mirror;
 using UnityEngine;
 
-namespace EDIVE.VoiceChat
+namespace EDIVE.MirrorNetworking.VoiceChat
 {
     //TODO merge with PlayerController once its moved to submodule
     public class VoiceChatAvatar : MonoBehaviour
