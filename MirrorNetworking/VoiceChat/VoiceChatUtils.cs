@@ -23,6 +23,7 @@ namespace EDIVE.MirrorNetworking.VoiceChat
 
             return await completionSource.Task;
 #endif
+            return true;
         }
     }
 }

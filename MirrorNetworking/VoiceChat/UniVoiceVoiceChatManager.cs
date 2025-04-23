@@ -1,6 +1,5 @@
 #if UNIVOICE
 using System;
-using System.Collections.Generic;
 using Adrenak.UniMic;
 using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
