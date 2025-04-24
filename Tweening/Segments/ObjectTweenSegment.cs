@@ -31,7 +31,7 @@ namespace EDIVE.Tweening.Segments
 
         public ObjectTweenSegment() { }
 
-        public ObjectTweenSegment(Object target, ATweenObjectAction objectAction) : base(objectAction)
+        public ObjectTweenSegment(Object target, ATweenObjectAction objectAction, TweenAdditionType operation, float insertionPosition = 0f) : base(objectAction, operation, insertionPosition)
         {
             _Target = target;
         }
@@ -39,7 +39,7 @@ namespace EDIVE.Tweening.Segments
 #if UNITY_EDITOR
         public bool TryConvertToPresetSegment(out IPresetTweenSegment result, IDictionary<Object, TweenObjectReference> references)
         {
-            result = new ObjectReferenceTweenSegment(references.TryGetValue(_Target, out var reference) ? reference : null, _ObjectAction.GetCopy());
+            result = new ObjectReferenceTweenSegment(references.TryGetValue(_Target, out var reference) ? reference : null, _ObjectAction.GetCopy(), _Operation, _InsertionPosition);
             return true;
         }
 

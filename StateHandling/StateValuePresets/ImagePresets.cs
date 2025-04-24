@@ -1,5 +1,4 @@
 using System;
-using EDIVE.StateHandling.MultiStates;
 using UnityEngine;
 using UnityEngine.Scripting;
 using UnityEngine.UI;
@@ -18,5 +17,12 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Fill Amount";
         public override void ApplyTo(Image targetObject) => targetObject.fillAmount = Value;
+    }
+
+    [Serializable, Preserve]
+    public class ImageFillClockwisePreset : AStateValuePreset<Image, bool>
+    {
+        public override string Title => "Fill Clockwise";
+        public override void ApplyTo(Image targetObject) => targetObject.fillClockwise = Value;
     }
 }

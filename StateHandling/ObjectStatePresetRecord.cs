@@ -80,6 +80,9 @@ namespace EDIVE.StateHandling
         [UsedImplicitly]
         private void ValidateValuePresets(List<AStateValuePreset> value, ValidationResult result)
         {
+            if (Target == null)
+                return;
+
             StateControlEditorUtils.ValidateStateValuePresets(Target.GetType(), value, result);
         }
 #endif

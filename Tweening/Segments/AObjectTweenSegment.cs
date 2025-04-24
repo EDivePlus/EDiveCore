@@ -45,7 +45,7 @@ namespace EDIVE.Tweening.Segments
         protected virtual void OnInvalidObjectAction(Sequence sequence) { }
 
         protected AObjectTweenSegment() { }
-        protected AObjectTweenSegment(ATweenObjectAction objectAction)
+        protected AObjectTweenSegment(ATweenObjectAction objectAction, TweenAdditionType operation, float insertionPosition = 0f) : base(operation, insertionPosition)
         {
             _ObjectAction = objectAction;
         }

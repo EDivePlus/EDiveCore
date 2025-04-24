@@ -69,7 +69,7 @@ namespace EDIVE.Tweening.Segments
         }
 
         public ObjectReferenceTweenSegment() { }
-        public ObjectReferenceTweenSegment( TweenObjectReference target, ATweenObjectAction objectAction) : base(objectAction)
+        public ObjectReferenceTweenSegment(TweenObjectReference target, ATweenObjectAction objectAction, TweenAdditionType operation, float insertionPosition = 0f) : base(objectAction, operation, insertionPosition)
         {
             _Target = target;
         }
@@ -91,7 +91,7 @@ namespace EDIVE.Tweening.Segments
 
         public bool TryConvertToDirectSegment(out IDirectTweenSegment result, IDictionary<TweenObjectReference, Object> targets)
         {
-            result = new ObjectTweenSegment(targets.TryGetValue(_Target, out var target) ? target : null, _ObjectAction.GetCopy());
+            result = new ObjectTweenSegment(targets.TryGetValue(_Target, out var target) ? target : null, _ObjectAction.GetCopy(), _Operation, _InsertionPosition);
             return true;
         }
 
