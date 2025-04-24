@@ -17,7 +17,7 @@ namespace EDIVE.MirrorNetworking.Scenes
 {
     // Simple single scene net manager
     // Todo: Allow multiple scenes, load/unload content based on player state, use some interest management from Mirror 
-    public class NetSceneManager : ALoadableServiceBehaviour<NetSceneManager>
+    public class NetworkSceneManager : ALoadableServiceBehaviour<NetworkSceneManager>
     {
         [ShowCreateNew]
         [EnhancedInlineEditor]

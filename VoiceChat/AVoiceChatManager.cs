@@ -3,7 +3,7 @@ using EDIVE.AppLoading;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace EDIVE.MirrorNetworking.VoiceChat
+namespace EDIVE.VoiceChat
 {
     public abstract class AVoiceChatManager : ALoadableServiceBehaviour<AVoiceChatManager>
     {

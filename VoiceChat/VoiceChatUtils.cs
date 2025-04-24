@@ -2,9 +2,8 @@
 // Created: 23.04.2025
 
 using Cysharp.Threading.Tasks;
-using UnityEngine.Android;
 
-namespace EDIVE.MirrorNetworking.VoiceChat
+namespace EDIVE.VoiceChat
 {
     public static class VoiceChatUtils
     {

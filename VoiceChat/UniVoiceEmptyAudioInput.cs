@@ -2,7 +2,7 @@
 using System;
 using Adrenak.UniVoice;
 
-namespace EDIVE.MirrorNetworking.VoiceChat
+namespace EDIVE.VoiceChat
 {
     public class UniVoiceEmptyAudioInput : IAudioInput
     {

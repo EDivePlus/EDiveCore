@@ -1,0 +1,28 @@
+{
+    "name": "EDIVE.VoiceChat",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.MirrorNetworking",
+        "EDIVE.AppLoading",
+        "EDIVE.Core",
+        "Mirror",
+        "UniTask",
+        "Adrenak.UniMic.Runtime",
+        "Adrenak.UniVoice.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.adrenak.univoice",
+            "expression": "",
+            "define": "UNIVOICE"
+        }
+    ],
+    "noEngineReferences": false
+}

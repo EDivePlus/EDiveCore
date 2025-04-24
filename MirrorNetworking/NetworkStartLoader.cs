@@ -19,7 +19,7 @@ namespace EDIVE.MirrorNetworking
         public UniTask Load(Action<float> progressCallback)
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            var sceneManager = AppCore.Services.Get<NetSceneManager>();
+            var sceneManager = AppCore.Services.Get<NetworkSceneManager>();
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:

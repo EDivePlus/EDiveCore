@@ -16,8 +16,7 @@
         "Unity.ResourceManager",
         "UniTask",
         "Mirror",
-        "Adrenak.UniMic.Runtime",
-        "Adrenak.UniVoice.Runtime"
+        "EDIVE.StateHandling"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -28,12 +27,6 @@
     "defineConstraints": [
         "MIRROR"
     ],
-    "versionDefines": [
-        {
-            "name": "com.adrenak.univoice",
-            "expression": "",
-            "define": "UNIVOICE"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }
