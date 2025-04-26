@@ -5,14 +5,27 @@ namespace EDIVE.StateHandling.ToggleStates
 {
     public abstract class AToggleState : MonoBehaviour
     {
+        [PropertyOrder(-10)]
         [SerializeField]
         private string _Description;
 
         protected bool _state;
 
+        [PropertyOrder(-10)]
         [ShowInInspector]
-        [InlineButton("UpdateState", "Update State")]
-        public bool State => _state;
+        public bool State
+        {
+            get => _state;
+            set => SetState(value);
+        }
+
+        [PropertyOrder(-10)]
+        [ShowInInspector]
+        public bool StateImmediate
+        {
+            get => _state;
+            set => SetState(value, true);
+        }
 
         public void SetState(bool state, bool immediate = false)
         {

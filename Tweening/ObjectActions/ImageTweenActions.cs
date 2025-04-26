@@ -7,15 +7,6 @@ using UnityEngine.UI;
 namespace EDIVE.Tweening.ObjectActions
 {
     [Serializable]
-    public class ImageFadeTweenAction : ATweenObjectAction<Image>
-    {
-        [SerializeField]
-        private float _EndValue;
-
-        protected override Tween GetTween(Image target) => target.DOFade(_EndValue, _Duration);
-    }
-    
-    [Serializable]
     public class ImageFillAmountTweenAction : ATweenObjectAction<Image>
     {
         [SerializeField]
@@ -31,24 +22,6 @@ namespace EDIVE.Tweening.ObjectActions
         private Gradient _Gradient;
 
         protected override Tween GetTween(Image target) => target.DOGradientColor(_Gradient, _Duration);
-    }
-    
-    [Serializable]
-    public class ImageColorTweenAction : ATweenObjectAction<Image>
-    {
-        [SerializeField]
-        private Color _EndColor;
-
-        protected override Tween GetTween(Image target) => target.DOColor(_EndColor, _Duration);
-    }
-    
-    [Serializable]
-    public class ImageBlendableColorTweenAction : ATweenObjectAction<Image>
-    {
-        [SerializeField]
-        private Color _EndColor;
-        
-        protected override Tween GetTween(Image target) => target.DOBlendableColor(_EndColor, _Duration);
     }
 
     [Serializable]
