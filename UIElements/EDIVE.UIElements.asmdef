@@ -1,0 +1,20 @@
+{
+    "name": "EDIVE.UIElements",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.EditorUtils",
+        "EDIVE.Tweening",
+        "EDIVE.StateHandling"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
