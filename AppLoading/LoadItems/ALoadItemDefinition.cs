@@ -56,7 +56,7 @@ namespace EDIVE.AppLoading.LoadItems
         [ReadOnly]
         public LoadItemState CurrentState { get; private set; } = LoadItemState.Undefined;
 
-        public bool IsLoaded => CompletionSource?.UnsafeGetStatus() == UniTaskStatus.Succeeded;
+        public bool IsLoaded => CurrentState == LoadItemState.Completed;
         public List<ALoadItemDefinition> Dependencies => _Dependencies;
 
         public float LoadTime { get; private set; }
@@ -150,11 +150,11 @@ namespace EDIVE.AppLoading.LoadItems
         public string GetLoadingDetail()
         {
             if (!IsValid)
-                return $"{"Invalid".Red()} - {UniqueID.Yellow()}";
+                return $"{"Invalid".Color(ColorTools.Red)} - {UniqueID}";
 
             var progress = GetLoadingProgress();
-            var progressText = $"{progress * 100:00}%";
-            return $"{CurrentState.GetColoredShortString()} {(IsLoaded ? progressText.Lime().ToString() : progressText)} - {UniqueID.Yellow()}";
+            var progressText = $"{progress * 100:00}%".PadLeft(4);
+            return $"{CurrentState.GetStateRichSprite()} {(IsLoaded ? progressText.Color(ColorTools.Lime) : progressText)} - {UniqueID}";
         }
 
         internal IEnumerable<ALoadItemDefinition> GetSortingDependencies()

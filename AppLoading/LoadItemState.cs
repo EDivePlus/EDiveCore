@@ -18,15 +18,15 @@ namespace EDIVE.AppLoading
 
     public static class LoadItemStateExtensions
     {
-        public static string GetColoredShortString(this LoadItemState state)
+        public static string GetStateRichSprite(this LoadItemState state)
         {
             return state switch
             {
-                LoadItemState.Undefined => "U".Blue(),
-                LoadItemState.Pending => "P".Red(),
-                LoadItemState.Loading => "L".Yellow(),
-                LoadItemState.Completed => "C".Lime(),
-                _ => "X"
+                LoadItemState.Undefined => RichText.Sprite("circle_help", ColorTools.Red),
+                LoadItemState.Pending => RichText.Sprite("circle_schedule", ColorTools.Aqua),
+                LoadItemState.Loading => RichText.Sprite("circle_pending", ColorTools.Yellow),
+                LoadItemState.Completed => RichText.Sprite("circle_check", ColorTools.Lime),
+                _ => RichText.Sprite("circle_radio", ColorTools.Pink),
             };
         }
 
@@ -34,10 +34,10 @@ namespace EDIVE.AppLoading
         {
             return state switch
             {
-                LoadItemState.Undefined => ColorTools.Aqua,
-                LoadItemState.Pending => ColorTools.Orange,
+                LoadItemState.Undefined => ColorTools.Red,
+                LoadItemState.Pending => ColorTools.Aqua,
                 LoadItemState.Loading => ColorTools.Yellow,
-                LoadItemState.Completed => ColorTools.Green,
+                LoadItemState.Completed => ColorTools.Lime,
                 _ => Color.clear
             };
         }
@@ -47,11 +47,11 @@ namespace EDIVE.AppLoading
         {
             return state switch
             {
-                LoadItemState.Undefined => FontAwesomeEditorIcons.BlockQuestionSolid,
-                LoadItemState.Pending => FontAwesomeEditorIcons.HourglassHalfSolid,
-                LoadItemState.Loading => FontAwesomeEditorIcons.LoaderSolid,
-                LoadItemState.Completed => FontAwesomeEditorIcons.SquareCheckSolid,
-                _ => FontAwesomeEditorIcons.SquareSolid
+                LoadItemState.Undefined => FontAwesomeEditorIcons.CircleQuestionSolid,
+                LoadItemState.Pending => FontAwesomeEditorIcons.ClockSolid,
+                LoadItemState.Loading => FontAwesomeEditorIcons.CircleEllipsisSolid,
+                LoadItemState.Completed => FontAwesomeEditorIcons.CircleCheckSolid,
+                _ => FontAwesomeEditorIcons.CircleDotSolid
             };
         }
 #endif
