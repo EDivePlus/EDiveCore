@@ -42,6 +42,11 @@ namespace EDIVE.NativeUtils
             return path.Replace('\\', '/');
         }
 
+        public static void EnsureAssetsPathExists(string path)
+        {
+            EnsurePathExists(GetAbsolutePath(path));
+        }
+
         public static void EnsurePathExists(string filePath)
         {
             var dirPath = Path.GetDirectoryName(filePath);

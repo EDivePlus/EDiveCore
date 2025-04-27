@@ -4,10 +4,72 @@ namespace EDIVE.NativeUtils
 {
     public static class MathExtensions
     {
+        public static float Remap(float input, float inputMin, float inputMax, float targetMin, float targetMax)
+        {
+            return targetMin + (input - inputMin) * (targetMax - targetMin) / (inputMax - inputMin);
+        }
+
+        public static double Remap(double input, double inputMin, double inputMax, double targetMin, double targetMax)
+        {
+            return targetMin + (input - inputMin) * (targetMax - targetMin) / (inputMax - inputMin);
+        }
+
+        public static bool IsPowerOfTwo(int value)
+        {
+            return (value & (value - 1)) == 0;
+        }
+
+        public static bool FastApproximately(float a, float b)
+        {
+            return FastApproximately(a, b, Mathf.Epsilon);
+        }
+
+        public static bool FastApproximately(float a, float b, float threshold)
+        {
+            return ((a - b) < 0 ? ((a - b) * -1) : (a - b)) <= threshold;
+        }
+
+        public static int CeilToPowerOfTwo(this float x)
+        {
+            return Mathf.CeilToInt(x).CeilToPowerOfTwo();
+        }
+
+        public static int FloorToPowerOfTwo(this float x)
+        {
+            return Mathf.FloorToInt(x).FloorToPowerOfTwo();
+        }
+
+        public static int CeilToPowerOfTwo(this int x)
+        {
+            x--;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            x++;
+
+            return x;
+        }
+
+        public static int FloorToPowerOfTwo(this int x)
+        {
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+
+            return x ^ (x >> 1);
+        }
+
         public static bool Approximately(this float a, float b) => Mathf.Approximately(a, b);
         public static bool IsInRange(this int i, int min, int max) => i >= min && i <= max;
-        public static bool IsInRange(this float i, float min, float max) => i >= min && i <= max;
-        
+        public static bool IsInRange(this float input, float a, float b, float bias = 0)
+        {
+            return a < b ? input >= a - bias && input <= b + bias : input >= b - bias && input <= a + bias;
+        }
+
         public static int PositiveModulo(this int x, int m)
         {
             var r = x % m;
