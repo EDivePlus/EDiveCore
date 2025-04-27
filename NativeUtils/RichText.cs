@@ -11,8 +11,16 @@ namespace EDIVE.NativeUtils
         public static string Italic(this string text) => $"<i>{text}</i>";
         public static string Underline(this string text) =>  $"<u>{text}</u>";
         public static string StrikeThrough(this string text) => $"<s>{text}</s>";
-        
-        public static string TMPSprite(string spriteName, string color) => $"<sprite name=\"{spriteName}\" color={color}>";
+        public static string Superscript(this string text) => $"<sup>{text}</sup>";
+        public static string Subscript(this string text) => $"<sub>{text}</sub>";
+        public static string NoParse(this string text) => $"<noparse>{text}</noparse>";
+
+        public static string Lowercase(this string text) => $"<lowercase>{text}</lowercase>";
+        public static string Uppercase(this string text) => $"<uppercase>{text}</uppercase>";
+        public static string Smallcaps(this string text) => $"<smallcaps>{text}</smallcaps>";
+
+        public static string Sprite(string spriteName) => $"<sprite name=\"{spriteName}\">";
+        public static string Sprite(string spriteName, Color color) => $"<sprite name=\"{spriteName}\" color=#{ColorUtility.ToHtmlStringRGBA(color)}>";
         
         public static string Aqua(this string text) => Color(text, "#00ffffff");
         public static string Black(this string text) => Color(text, "#000000ff");
