@@ -243,7 +243,7 @@ namespace EDIVE.BuildTool.Runners
                 yield return ProcessSuccessfulBuild();
             }
 
-            DebugLite.Log("[BuildRunner] Build Completed");
+            DebugLite.Log($"[BuildRunner] Build Completed with result: {_Context.Result}");
         }
 
         private IEnumerator PostProcessAndChangeEditor()

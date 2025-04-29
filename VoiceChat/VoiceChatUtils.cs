@@ -3,6 +3,10 @@
 
 using Cysharp.Threading.Tasks;
 
+#if UNITY_ANDROID
+using UnityEngine.Android;
+#endif
+
 namespace EDIVE.VoiceChat
 {
     public static class VoiceChatUtils
