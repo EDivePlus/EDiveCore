@@ -10,16 +10,15 @@ using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor.Validation;
 using UnityEditor;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace EDIVE.StateHandling
 {
     public static class StateControlEditorUtils
     {
-            [MenuItem("CONTEXT/MultiStateGameObjectBehaviour/Convert to Presets", false, 10000)]
+        [MenuItem("CONTEXT/MultiStateObjects/Convert to Presets", false, 10000)]
         public static void ConvertToPresets(MenuCommand command)
         {
-            if (command.context is not MultiStateActiveObjects behaviour) 
+            if (command.context is not MultiStateObjects behaviour)
                 return;
 
             var newStatePresets = new List<MultiStateRecord>();
@@ -45,7 +44,7 @@ namespace EDIVE.StateHandling
             EditorUtility.SetDirty(newBehaviour);
         }
 
-        [MenuItem("CONTEXT/MultiStatePresetBehaviour/Convert to GameObjects", false, 10000)]
+        [MenuItem("CONTEXT/MultiState/Convert to Objects", false, 10000)]
         public static void ConvertToGameObjects(MenuCommand command)
         {
             if (command.context is not MultiState behaviour)
@@ -73,15 +72,15 @@ namespace EDIVE.StateHandling
                 newPresets.Add(new GameObjectRecord(statePreset.StateID, enabledObjects));
             }
             
-            var newBehaviour = behaviour.ChangeScriptType<MultiStateActiveObjects>();
+            var newBehaviour = behaviour.ChangeScriptType<MultiStateObjects>();
             newBehaviour._StatePresets = newPresets;
             EditorUtility.SetDirty(newBehaviour);
         }
 
-        [MenuItem("CONTEXT/ToggleActiveObjects/Convert to Presets", false, 10000)]
+        [MenuItem("CONTEXT/ToggleStateObjects/Convert to Presets", false, 10000)]
         public static void ConvertToggleToPresets(MenuCommand command)
         {
-            if (command.context is not ToggleActiveObjects behaviour)
+            if (command.context is not ToggleStateObjects behaviour)
                 return;
 
             var newStatePresets = new List<ToggleStateRecord>();
@@ -109,7 +108,7 @@ namespace EDIVE.StateHandling
             EditorUtility.SetDirty(newBehaviour);
         }
 
-        [MenuItem("CONTEXT/ToggleState/Convert to Active Objects", false, 10000)]
+        [MenuItem("CONTEXT/ToggleState/Convert to Objects", false, 10000)]
         public static void ConvertToggleToActiveObjects(MenuCommand command)
         {
             if (command.context is not ToggleState behaviour)
@@ -139,7 +138,7 @@ namespace EDIVE.StateHandling
                     return;
                 }
             }
-            var newBehaviour = behaviour.ChangeScriptType<ToggleActiveObjects>();
+            var newBehaviour = behaviour.ChangeScriptType<ToggleStateObjects>();
             newBehaviour._OnTargets = onObjects;
             newBehaviour._OffTargets = offObjects;
             EditorUtility.SetDirty(newBehaviour);

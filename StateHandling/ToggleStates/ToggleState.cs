@@ -9,14 +9,15 @@ namespace EDIVE.StateHandling.ToggleStates
         [SerializeField]
         [HideReferenceObjectPicker]
         internal List<ToggleStateRecord> _ObjectToggleStatePreset = new List<ToggleStateRecord>();
-        
-        public override void UpdateState(bool immediate = false)
+
+        protected override void SetStateInternal(bool state, bool immediate = false)
         {
-            if (_ObjectToggleStatePreset == null) return;
+            if (_ObjectToggleStatePreset == null)
+                return;
 
             foreach (var statePreset in _ObjectToggleStatePreset)
             {
-                statePreset?.SetState(_state);
+                statePreset?.SetState(state);
             }
         }
     }

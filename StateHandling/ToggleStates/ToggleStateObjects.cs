@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace EDIVE.StateHandling.ToggleStates
 {
-    public class ToggleActiveObjects : AToggleState
+    public class ToggleStateObjects : AToggleState
     {
         [PropertySpace(4)]
         [SerializeField]
@@ -15,7 +15,7 @@ namespace EDIVE.StateHandling.ToggleStates
         [ListDrawerSettings(ShowFoldout = false)]
         internal List<GameObject> _OffTargets = new();
 
-        public override void UpdateState(bool immediate = false)
+        protected override void SetStateInternal(bool state, bool immediate = false)
         {
             SetTargetsActive(!State, false);
             SetTargetsActive(State, true);

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.NativeUtils;
-using EDIVE.OdinExtensions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -17,26 +16,24 @@ namespace EDIVE.StateHandling.MultiStates
         [CustomValueDrawer("CustomStatePresetDrawer")]
         internal List<MultiStateRecord> _StatePresets = new();
 
-        public override bool SetState(string stateID)
+        protected override bool TrySetStateInternal(string stateID, bool immediate = false)
         {
-            base.SetState(stateID);
-            if (_StatePresets == null) 
+            if (_StatePresets == null)
                 return false;
- 
-            foreach (var statePreset in _StatePresets)
+
+            if (!_StatePresets.TryGetFirst(s => s.StateID == stateID, out var statePreset))
             {
-                if (statePreset.StateID != stateID) continue;
-                statePreset.Apply();
-                return true;
+                Debug.LogError($"[MultiState] No state with ID '{stateID}'", this);
+                return false;
             }
 
-            Debug.LogError($"[MultiState] No state with ID '{stateID}'", this);
-            return false;
+            statePreset.Apply();
+            return true;
         }
 
-        public override IEnumerable<string> GetAvailableStates()
+        public override IEnumerable<string> GetAllStates()
         {
-            return _StatePresets.Select(s => s.StateID);
+            return _StatePresets.Select(statePreset => statePreset.StateID);
         }
 
 #if UNITY_EDITOR
@@ -50,11 +47,6 @@ namespace EDIVE.StateHandling.MultiStates
             callNextDrawer(label);
             Sirenix.Utilities.Editor.SirenixEditorGUI.EndBox();
             return value;
-        }
-
-        public override IEnumerable<string> GetAllStates()
-        {
-            return _StatePresets.Select(statePreset => statePreset.StateID);
         }
 
         public override void AddState(string id)

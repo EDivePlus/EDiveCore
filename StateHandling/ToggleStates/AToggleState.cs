@@ -13,6 +13,7 @@ namespace EDIVE.StateHandling.ToggleStates
 
         [PropertyOrder(-10)]
         [ShowInInspector]
+        [InlineButton("RefreshState", "Refresh")]
         public bool State
         {
             get => _state;
@@ -30,9 +31,16 @@ namespace EDIVE.StateHandling.ToggleStates
         public void SetState(bool state, bool immediate = false)
         {
             _state = state;
-            UpdateState(immediate);
+            SetStateInternal(immediate);
         }
 
-        public abstract void UpdateState(bool immediate = false);
+        protected abstract void SetStateInternal(bool state, bool immediate = false);
+
+        public void RefreshState() => SetStateInternal(State);
+
+        private void Awake()
+        {
+            SetState(State);
+        }
     }
 }

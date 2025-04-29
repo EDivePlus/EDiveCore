@@ -18,11 +18,11 @@ namespace EDIVE.Tweening.StateHandling
         [ListDrawerSettings(ShowFoldout = false)]
         [EnhancedBoxGroup("Disabled", "@ColorTools.Orange")]
         private TweenAnimationField _DisableAnimation;
-        
-        public override void UpdateState(bool immediate = false)
+
+        protected override void SetStateInternal(bool state, bool immediate = false)
         {
-            GetAnim(!_state)?.Kill();
-            var anim = GetAnim(_state);
+            GetAnim(!state)?.Kill();
+            var anim = GetAnim(state);
             anim?.Play();
             if(immediate) anim?.Kill(true);
         }

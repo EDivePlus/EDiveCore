@@ -9,46 +9,48 @@ namespace EDIVE.StateHandling.MultiStates
 {
     public abstract class AMultiState : MonoBehaviour
     {
+        [PropertyOrder(-10)]
         [SerializeField]
-        [HideInInspector]
-        private string _CurrentState;
+        private string _Description;
 
-        [PropertyOrder(-1)]
-        [PropertySpace(SpaceBefore = 0, SpaceAfter = 8)]
+        protected string _state;
+
+        [PropertyOrder(-10)]
         [ShowInInspector]
+        [InlineButton("RefreshState", "Refresh")]
         [ValueDropdown("GetAllStates")]
         [ValidateInput("ValidateCurrentState")]
-        [HorizontalGroup("State")]
-        public string CurrentState
+        public string State
         {
-            get => _CurrentState;
-            private set
-            {
-                _CurrentState = value;
-                SetState(_CurrentState);
-            }
+            get => _state;
+            set => SetState(value);
         }
+
+        public bool SetState(string state, bool immediate = false)
+        {
+            if (!TrySetStateInternal(state, immediate))
+                return true;
+            _state = state;
+            return false;
+        }
+
+        public bool SetState(Enum stateID, bool immediate = false)
+        {
+            return SetState(stateID.ToString(), immediate);
+        }
+
+        protected abstract bool TrySetStateInternal(string state, bool immediate = false);
+
+        private void RefreshState() => TrySetStateInternal(State);
 
         private void Awake()
         {
-            SetState(_CurrentState);
+            SetState(State);
         }
 
-        public virtual bool SetState(string stateID)
-        {
-            _CurrentState = stateID;
-            return true;
-        }
-
-        public bool SetState(Enum stateID)
-        {
-            return SetState(stateID.ToString());
-        }
-
-        public abstract IEnumerable<string> GetAvailableStates();
+        public abstract IEnumerable<string> GetAllStates();
 
 #if UNITY_EDITOR
-        public abstract IEnumerable<string> GetAllStates();
         public abstract void AddState(string id);
         public abstract bool RemoveState(string id);
         
@@ -63,13 +65,6 @@ namespace EDIVE.StateHandling.MultiStates
             }
 
             return true;
-        }
-        
-        [Button("Refresh")]
-        [HorizontalGroup("State", 60)]
-        private void RefreshCurrentState()
-        {
-            SetState(_CurrentState);
         }
 #endif
     }

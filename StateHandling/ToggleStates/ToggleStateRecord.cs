@@ -87,12 +87,14 @@ namespace EDIVE.StateHandling.ToggleStates
         [UsedImplicitly]
         private IEnumerable GetValuePresetDropdown()
         {
+            if (Target == null) return null;
             return StateControlEditorUtils.GetValuePresetDropdown(Target.GetType());
         }
         
         [UsedImplicitly]
         private void ValidateValuePresets(List<AStateValuePreset> value, ValidationResult result)
         {
+            if (Target == null) return;
             StateControlEditorUtils.ValidateStateValuePresets(Target.GetType(), value, result); 
         }
 #endif
