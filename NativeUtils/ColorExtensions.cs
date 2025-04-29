@@ -95,5 +95,15 @@ namespace EDIVE.NativeUtils
             c.a = Mathf.Clamp01(c.a);
             return c;
         }
+
+        public static Vector3 ToVector3(this Color c)
+        {
+            return new Vector3(c.r, c.g, c.b);
+        }
+
+        public static Vector4 ToVector4(this Color c)
+        {
+            return new Vector4(c.r, c.g, c.b, c.a);
+        }
     }
 }
