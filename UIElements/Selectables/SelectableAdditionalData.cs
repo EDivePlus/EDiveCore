@@ -6,11 +6,14 @@ using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
+using UnityEngine;
+using UnityEngine.UI;
+
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.Validation;
 using UnityEditor;
-using UnityEngine;
-using UnityEngine.UI;
+#endif
 
 namespace EDIVE.UIElements.Selectables
 {

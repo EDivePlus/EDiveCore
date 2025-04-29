@@ -4,11 +4,14 @@
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
-using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Tweening;
 using UnityEngine;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+#endif
 
 namespace EDIVE.UIElements.Selectables
 {

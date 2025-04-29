@@ -2,20 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.Json;
 using JetBrains.Annotations;
-using Mirror;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Validation;
 using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+using Sirenix.OdinInspector.Editor;
+using Sirenix.OdinInspector.Editor.Validation;
+#endif
 
 namespace EDIVE.AssetTranslation
 {
