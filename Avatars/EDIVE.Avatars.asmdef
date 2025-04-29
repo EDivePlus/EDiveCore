@@ -1,0 +1,6 @@
+{
+  "name": "EDIVE.Avatars",
+  "references": [
+    "EDIVE.AssetTranslation"
+  ]
+}

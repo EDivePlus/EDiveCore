@@ -225,6 +225,7 @@ namespace UVRN.Player
             role = "default",
             color = Color.HSVToRGB(Random.Range(0f, 1f), .75f, .75f),
             visibleAvatar = true,
+            avatarId = "AvatarPrefab",
         };
 
         public static string GetRandomName()

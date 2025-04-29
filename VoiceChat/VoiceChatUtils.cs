@@ -2,6 +2,7 @@
 // Created: 23.04.2025
 
 using Cysharp.Threading.Tasks;
+using UnityEngine.Android;
 
 #if UNITY_ANDROID
 using UnityEngine.Android;

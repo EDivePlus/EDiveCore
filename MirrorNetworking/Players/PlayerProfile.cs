@@ -14,5 +14,6 @@ namespace UVRN.Player
         public bool visibleAvatar;
         public string role;
         public string password;
+        public string avatarId;
     }
 }
