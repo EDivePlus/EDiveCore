@@ -98,9 +98,9 @@ namespace EDIVE.VoiceChat
             // We add some filters to the input audio
             // - The first is audio blur, so that the audio that's been captured by this client
             // has lesser noise
-            // TODO: Replace this with RNNoise for better noise removal
-            _session.InputFilters.Add(new GaussianAudioBlur()); // Note: Once using RNNoiseFilter, this is obsolete
-            // session.InputFilters.Add(new RNNoiseFilter()); // Note: To be made available in Univoice later
+
+            //_session.InputFilters.Add(new GaussianAudioBlur());
+            _session.InputFilters.Add(new RNNoiseFilter()); // Note: To be made available in Univoice later
             Debug.unityLogger.Log(LogType.Log, TAG, "Registered GaussianAudioBlur as an input filter");
 
             // - The next one is the Opus encoder filter. This is VERY important. Without this the
