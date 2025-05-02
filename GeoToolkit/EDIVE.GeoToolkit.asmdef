@@ -1,0 +1,20 @@
+{
+    "name": "EDIVE.GeoToolkit",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.DataStructures",
+        "EDIVE.External.CoordinateSharp",
+        "EDIVE.External.ProjNet",
+        "Gdal for Unity",
+        "GeoJSON.NET"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

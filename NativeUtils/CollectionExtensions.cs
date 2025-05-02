@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace EDIVE.NativeUtils
 {
@@ -348,6 +349,171 @@ namespace EDIVE.NativeUtils
             list.AddRange(listA.Select((t, i) => Tuple.Create(t, listB[i])));
 
             return list;
+        }
+
+                public static void Normalize(this float[,] array)
+        {
+            var min = float.PositiveInfinity;
+            var max = float.NegativeInfinity;
+
+            var width = array.GetLength(0);
+            var height = array.GetLength(1);
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    if (array[x, y] > max) max = array[x, y];
+                    if (array[x, y] < min) min = array[x, y];
+                }
+            }
+            array.Remap(min, max, 0, 1);
+        }
+
+        public static void Normalize(this double[,] array)
+        {
+            var min = double.PositiveInfinity;
+            var max = double.NegativeInfinity;
+
+            var width = array.GetLength(0);
+            var height = array.GetLength(1);
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    if (array[x, y] > max) max = array[x, y];
+                    if (array[x, y] < min) min = array[x, y];
+                }
+            }
+            array.Remap(min, max, 0, 1);
+        }
+
+        public static void Remap(this double[,] array, double inputMin, double inputMax, double targetMin, double targetMax)
+        {
+            var width = array.GetLength(0);
+            var height = array.GetLength(1);
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    array[x, y] = MathExtensions.Remap(array[x, y], inputMin, inputMax, targetMin, targetMax);
+                }
+            }
+        }
+
+        public static void Remap(this float[,] array, float inputMin, float inputMax, float targetMin, float targetMax)
+        {
+            var width = array.GetLength(0);
+            var height = array.GetLength(1);
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    if (float.IsNaN(array[x, y]))
+                    {
+                        array[x, y] = 0;
+                    }
+                    array[x, y] = MathExtensions.Remap(array[x, y], inputMin, inputMax, targetMin, targetMax);
+                }
+            }
+        }
+
+        public static void Clamp(this float[,] array, float min, float max)
+        {
+            var width = array.GetLength(0);
+            var height = array.GetLength(1);
+
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    if (float.IsNaN(array[x, y]))
+                    {
+                        array[x, y] = 0;
+                    }
+                    array[x, y] = Mathf.Clamp(array[x, y], min, max);
+                }
+            }
+        }
+
+        public static float[,] ToFloat(this double[,] inputArray)
+        {
+            return inputArray.Convert(value => (float) value);
+        }
+
+        public static TResult[,] Apply<TSource, TResult>(this TSource[,] inputArray, Func<TSource[,], int, int, TResult> function)
+        {
+            if (inputArray == null)
+                return null;
+
+            var width = inputArray.GetLength(0);
+            var height = inputArray.GetLength(1);
+
+            var output = new TResult[width, height];
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    output[x, y] = function(inputArray, x, y);
+                }
+            }
+
+            return output;
+        }
+
+        public static TResult[,] Convert<TSource, TResult>(this TSource[,] inputArray, Func<TSource, TResult> convertFunction)
+        {
+            if (inputArray == null)
+                return null;
+
+            var width = inputArray.GetLength(0);
+            var height = inputArray.GetLength(1);
+
+            var output = new TResult[width, height];
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    output[x, y] = convertFunction(inputArray[x, y]);
+                }
+            }
+
+            return output;
+        }
+
+        public static T[,] Resize2D<T>(this T[,] original, int rows, int cols)
+        {
+            var newArray = new T[rows, cols];
+            var minRows = Math.Min(rows, original.GetLength(0));
+            var minCols = Math.Min(cols, original.GetLength(1));
+            for(var i = 0; i < minRows; i++)
+            for(var j = 0; j < minCols; j++)
+                newArray[i, j] = original[i, j];
+            return newArray;
+        }
+
+        public static bool IsValid2DCoordinate<T>(this T[,] array, int x, int y)
+        {
+            return x >= 0 && x < array.GetLength(0) && y >= 0 && y < array.GetLength(1);
+        }
+
+        public static T[] To1DArray<T>(this T[,] input)
+        {
+            var width = input.GetLength(0);
+            var height = input.GetLength(1);
+
+            var result = new T[input.Length];
+            for (var x = 0; x < width; x++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    result[y + x * height] = input[x, y];
+                }
+            }
+            return result;
         }
     }
 }

@@ -1,5 +1,9 @@
 ﻿using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace EDIVE.NativeUtils
 {
     public static class TextureExtensions
@@ -65,5 +69,42 @@ namespace EDIVE.NativeUtils
             var texture = sprite.texture;
             return texture != null && (sprite.packed || (rect.width != texture.width || rect.height != texture.height));
         }
+
+        public static Color[,] Get2DPixels(this Texture2D texture)
+        {
+            var result = new Color[texture.width, texture.height];
+            for (var x = 0; x < texture.width; x++)
+            {
+                for (var y = 0; y < texture.height; y++)
+                {
+                    result[x, y] = texture.GetPixel(x, y);
+                }
+            }
+            return result;
+        }
+
+#if UNITY_EDITOR
+        public static void SetTextureReadable(this Texture2D texture, bool isReadable)
+        {
+            if ( null == texture ) return;
+
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (tImporter == null) return;
+
+            tImporter.isReadable = isReadable;
+            AssetDatabase.ImportAsset(assetPath);
+            AssetDatabase.Refresh();
+        }
+
+        public static bool IsTextureReadable(this Texture2D texture)
+        {
+            if ( null == texture ) return false;
+
+            var assetPath = AssetDatabase.GetAssetPath(texture);
+            var tImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            return tImporter != null && tImporter.isReadable;
+        }
+#endif
     }
 }
