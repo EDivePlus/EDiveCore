@@ -1,40 +1,35 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2006 - Morten Nielsen (www.iter.dk)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
-using System.Collections.Generic;
 
 namespace ProjNet.CoordinateSystems.Transformations
 {
 	/// <summary>
 	/// Transformation for applying 
-	/// </summary>
-	internal class DatumTransform : MathTransform
+    /// </summary>
+    [Serializable] 
+    internal class DatumTransform : MathTransform
 	{
-		protected IMathTransform? _inverse;
-		private Wgs84ConversionInfo _ToWgs94;
-		double[] v;
+        private MathTransform _inverse;
+		private readonly Wgs84ConversionInfo _toWgs94;
+        readonly double[] _v;
 
-		private bool _isInverse = false;
+		private bool _isInverse;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatumTransform"/> class.
@@ -46,8 +41,8 @@ namespace ProjNet.CoordinateSystems.Transformations
 
 		private DatumTransform(Wgs84ConversionInfo towgs84, bool isInverse)
 		{
-			_ToWgs94 = towgs84;
-			v = _ToWgs94.GetAffineTransform();
+			_toWgs94 = towgs84;
+			_v = _toWgs94.GetAffineTransform();
 			_isInverse = isInverse;
 		}
         /// <summary>
@@ -68,70 +63,57 @@ namespace ProjNet.CoordinateSystems.Transformations
 			get { throw new NotImplementedException(); }
 		}
 
+        public override int DimSource
+        {
+            get {  return 3; }
+        }
+
+        public override int DimTarget
+        {
+            get { return 3; }
+        }
+
         /// <summary>
         /// Creates the inverse transform of this object.
         /// </summary>
         /// <returns></returns>
         /// <remarks>This method may fail if the transform is not one to one. However, all cartographic projections should succeed.</remarks>
-		public override IMathTransform Inverse()
+		public override MathTransform Inverse()
 		{
 			if (_inverse == null)
-				_inverse = new DatumTransform(_ToWgs94,!_isInverse);
+				_inverse = new DatumTransform(_toWgs94,!_isInverse);
 			return _inverse;
 		}
 
-        private double[] Apply(double[] p)
-		{
-            return new double[] {
-				v[0] * p[0] - v[3] * p[1] + v[2] * p[2] + v[4],
-				v[3] * p[0] + v[0] * p[1] - v[1] * p[2] + v[5],
-			   -v[2] * p[0] + v[1] * p[1] + v[0] * p[2] + v[6], };			
-		}
 
-        private double[] ApplyInverted(double[] p)
-		{
-            return new double[] {
-				v[0] * p[0] + v[3] * p[1] - v[2] * p[2] - v[4],
-			   -v[3] * p[0] + v[0] * p[1] + v[1] * p[2] - v[5],
-			    v[2] * p[0] - v[1] * p[1] + v[0] * p[2] - v[6], };
-		}
+        /// <inheritdoc />
+        public sealed override void Transform(ref double x, ref double y, ref double z)
+        {
+            if (_isInverse)
+            {
+                (x, y, z) = ApplyInverted(x, y, z);
+            }
+            else
+            {
+                (x, y, z) = Apply(x, y, z);
+            }
+        }
 
-        /// <summary>
-        /// Transforms a coordinate point. The passed parameter point should not be modified.
-        /// </summary>
-        /// <param name="point"></param>
-        /// <returns></returns>
-        public override double[] Transform(double[] point)
-		{
-            if (!_isInverse)
-                 return Apply(point);
-            else return ApplyInverted(point);
-		}
+        private (double x, double y, double z) Apply(double x, double y, double z)
+        {
+            return (
+                x: _v[0] * (x - _v[3] * y + _v[2] * z) + _v[4],
+                y: _v[0] * (_v[3] * x + y - _v[1] * z) + _v[5],
+                z: _v[0] * (-_v[2] * x + _v[1] * y + z) + _v[6]);
+        }
 
-        /// <summary>
-        /// Transforms a list of coordinate point ordinal values.
-        /// </summary>
-        /// <param name="points"></param>
-        /// <returns></returns>
-        /// <remarks>
-        /// This method is provided for efficiently transforming many points. The supplied array
-        /// of ordinal values will contain packed ordinal values. For example, if the source
-        /// dimension is 3, then the ordinals will be packed in this order (x0,y0,z0,x1,y1,z1 ...).
-        /// The size of the passed array must be an integer multiple of DimSource. The returned
-        /// ordinal values are packed in a similar way. In some DCPs. the ordinals may be
-        /// transformed in-place, and the returned array may be the same as the passed array.
-        /// So any client code should not attempt to reuse the passed ordinal values (although
-        /// they can certainly reuse the passed array). If there is any problem then the server
-        /// implementation will throw an exception. If this happens then the client should not
-        /// make any assumptions about the state of the ordinal values.
-        /// </remarks>
-        public override List<double[]> TransformList(List<double[]> points)
-		{
-            List<double[]> pnts = new List<double[]>(points.Count);
-            foreach (double[] p in points)
-				pnts.Add(Transform(p));
-			return pnts;
-		}
+        private (double x, double y, double z) ApplyInverted(double x, double y, double z)
+        {
+            return (
+                x: (1 - (_v[0] - 1)) * (x + _v[3] * y - _v[2] * z) - _v[4],
+                y: (1 - (_v[0] - 1)) * (-_v[3] * x + y + _v[1] * z) - _v[5],
+                z: (1 - (_v[0] - 1)) * (_v[2] * x - _v[1] * y + z) - _v[6]);
+        }
 
         /// <summary>
         /// Reverses the transformation

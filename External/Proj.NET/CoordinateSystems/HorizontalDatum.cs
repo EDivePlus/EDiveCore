@@ -1,24 +1,19 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2005 - 2009 - Morten Nielsen (www.sharpgis.net)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
 using System.Globalization;
@@ -28,8 +23,9 @@ namespace ProjNet.CoordinateSystems
 {
 	/// <summary>
 	/// Horizontal datum defining the standard datum information.
-	/// </summary>
-	public class HorizontalDatum : Datum, IHorizontalDatum
+    /// </summary>
+    [Serializable] 
+    public class HorizontalDatum : Datum
 	{
 		/// <summary>
 		/// Initializes a new instance of a horizontal datum
@@ -44,12 +40,12 @@ namespace ProjNet.CoordinateSystems
 		/// <param name="abbreviation">Abbreviation</param>
 		/// <param name="remarks">Provider-supplied remarks</param>
 		internal HorizontalDatum(
-			IEllipsoid ellipsoid, Wgs84ConversionInfo? toWgs84, DatumType type,
+			Ellipsoid ellipsoid, Wgs84ConversionInfo toWgs84, DatumType type,
 			string name, string authority, long code, string alias, string remarks, string abbreviation)
 			: base(type, name, authority, code, alias, remarks, abbreviation)
 		{
-			_Ellipsoid = ellipsoid;
-			_Wgs84ConversionInfo = toWgs84;
+			Ellipsoid = ellipsoid;
+			Wgs84Parameters = toWgs84;
 		}
 
 		#region Predefined datums
@@ -68,10 +64,10 @@ namespace ProjNet.CoordinateSystems
 		{
 			get
 			{
-				return new HorizontalDatum(CoordinateSystems.Ellipsoid.WGS84,
-					null, DatumType.HD_Geocentric, "World Geodetic System 1984", "EPSG", 6326, String.Empty,
-					"EPSG's WGS 84 datum has been the then current realisation. No distinction is made between the original WGS 84 frame, WGS 84 (G730), WGS 84 (G873) and WGS 84 (G1150). Since 1997, WGS 84 has been maintained within 10cm of the then current ITRF.", String.Empty);
-			}
+                return new HorizontalDatum(CoordinateSystems.Ellipsoid.WGS84,
+                    null, DatumType.HD_Geocentric, "World Geodetic System 1984", "EPSG", 6326, string.Empty,
+                    "EPSG's WGS 84 datum has been the then current realisation. No distinction is made between the original WGS 84 frame, WGS 84 (G730), WGS 84 (G873) and WGS 84 (G1150). Since 1997, WGS 84 has been maintained within 10cm of the then current ITRF.", string.Empty);
+            }
 		}
 
 		/// <summary>
@@ -87,10 +83,10 @@ namespace ProjNet.CoordinateSystems
 		{
 			get
 			{
-				HorizontalDatum datum =
+				var datum =
 					new HorizontalDatum(CoordinateSystems.Ellipsoid.WGS72,
-					null, DatumType.HD_Geocentric, "World Geodetic System 1972", "EPSG", 6322, String.Empty,
-					"Used by GPS before 1987. For Transit satellite positioning see also WGS 72BE. Datum code 6323 reserved for southern hemisphere ProjCS's.", String.Empty);
+					null, DatumType.HD_Geocentric, "World Geodetic System 1972", "EPSG", 6322, string.Empty,
+					"Used by GPS before 1987. For Transit satellite positioning see also WGS 72BE. Datum code 6323 reserved for southern hemisphere ProjCS's.", string.Empty);
 				datum.Wgs84Parameters = new Wgs84ConversionInfo(0, 0, 4.5, 0, 0, 0.554, 0.219);
 				return datum;
 			}
@@ -115,8 +111,8 @@ namespace ProjNet.CoordinateSystems
 		{
 			get
 			{
-				HorizontalDatum datum = new HorizontalDatum(CoordinateSystems.Ellipsoid.GRS80, null, DatumType.HD_Geocentric,
-					"European Terrestrial Reference System 1989", "EPSG", 6258, "ETRF89", "The distinction in usage between ETRF89 and ETRS89 is confused: although in principle conceptually different in practice both are used for the realisation.", String.Empty);
+				var datum = new HorizontalDatum(CoordinateSystems.Ellipsoid.GRS80, null, DatumType.HD_Geocentric,
+					"European Terrestrial Reference System 1989", "EPSG", 6258, "ETRF89", "The distinction in usage between ETRF89 and ETRS89 is confused: although in principle conceptually different in practice both are used for the realisation.", string.Empty);
 				datum.Wgs84Parameters = new Wgs84ConversionInfo();
 				return datum;
 			}
@@ -139,48 +135,38 @@ namespace ProjNet.CoordinateSystems
 			get
 			{
 				return new HorizontalDatum(CoordinateSystems.Ellipsoid.International1924, new Wgs84ConversionInfo(-87, -98, -121, 0, 0, 0, 0), DatumType.HD_Geocentric,
-				"European Datum 1950", "EPSG", 6230, "ED50", String.Empty, String.Empty);
+				"European Datum 1950", "EPSG", 6230, "ED50", string.Empty, string.Empty);
 			}
 		}
-		#endregion
+        #endregion
 
-		#region IHorizontalDatum Members
-
-		IEllipsoid _Ellipsoid;
-
-		/// <summary>
-		/// Gets or sets the ellipsoid of the datum
-		/// </summary>
-		public IEllipsoid Ellipsoid
-		{
-			get { return _Ellipsoid; }
-			set { _Ellipsoid = value; }
-		}
-
-		Wgs84ConversionInfo? _Wgs84ConversionInfo;
-		/// <summary>
-		/// Gets preferred parameters for a Bursa Wolf transformation into WGS84
-		/// </summary>
-		public Wgs84ConversionInfo? Wgs84Parameters
-		{
-			get { return _Wgs84ConversionInfo; }
-			set { _Wgs84ConversionInfo = value; }
-		}
+        #region IHorizontalDatum Members
 
 
-		/// <summary>
-		/// Returns the Well-known text for this object
-		/// as defined in the simple features specification.
-		/// </summary>
-		public override string WKT
+        /// <summary>
+        /// Gets or sets the ellipsoid of the datum
+        /// </summary>
+        public Ellipsoid Ellipsoid { get; set; }
+
+        /// <summary>
+        /// Gets preferred parameters for a Bursa Wolf transformation into WGS84
+        /// </summary>
+        public Wgs84ConversionInfo Wgs84Parameters { get; set; }
+
+
+        /// <summary>
+        /// Returns the Well-known text for this object
+        /// as defined in the simple features specification.
+        /// </summary>
+        public override string WKT
 		{
 			get
 			{
-				StringBuilder sb = new StringBuilder();
-				sb.AppendFormat("DATUM[\"{0}\", {1}", Name, _Ellipsoid.WKT);
-				if (_Wgs84ConversionInfo != null)
-					sb.AppendFormat(", {0}", _Wgs84ConversionInfo.WKT);
-				if (!String.IsNullOrEmpty(Authority) && AuthorityCode > 0)
+				var sb = new StringBuilder();
+				sb.AppendFormat("DATUM[\"{0}\", {1}", Name, Ellipsoid.WKT);
+				if (Wgs84Parameters != null)
+					sb.AppendFormat(", {0}", Wgs84Parameters.WKT);
+				if (!string.IsNullOrWhiteSpace(Authority) && AuthorityCode > 0)
 					sb.AppendFormat(", AUTHORITY[\"{0}\", \"{1}\"]", Authority, AuthorityCode);
 				sb.Append("]");
 				return sb.ToString();
@@ -194,9 +180,9 @@ namespace ProjNet.CoordinateSystems
 		{
 			get
 			{
-				return String.Format(CultureInfo.InvariantCulture.NumberFormat,
+				return string.Format(CultureInfo.InvariantCulture.NumberFormat,
 					"<CS_HorizontalDatum DatumType=\"{0}\">{1}{2}{3}</CS_HorizontalDatum>",
-					(int)DatumType, InfoXml, Ellipsoid.XML, (Wgs84Parameters == null ? String.Empty : Wgs84Parameters.XML));
+					(int)DatumType, InfoXml, Ellipsoid.XML, (Wgs84Parameters == null ? string.Empty : Wgs84Parameters.XML));
 			}
 		}
 
@@ -211,12 +197,14 @@ namespace ProjNet.CoordinateSystems
 		/// <returns>True if equal</returns>
 		public override bool EqualParams(object obj)
 		{
-			if (!(obj is HorizontalDatum datum))
+			if (!(obj is HorizontalDatum))
 				return false;
+			var datum = obj as HorizontalDatum;
 			if (datum.Wgs84Parameters == null && this.Wgs84Parameters != null) return false;
 			if (datum.Wgs84Parameters != null && !datum.Wgs84Parameters.Equals(this.Wgs84Parameters))
 				return false;
-			return (this.Ellipsoid != null && datum.Ellipsoid.EqualParams(this.Ellipsoid) || this.Ellipsoid == null) && this.DatumType == datum.DatumType;
+			return (datum != null && this.Ellipsoid != null &&
+				datum.Ellipsoid.EqualParams(this.Ellipsoid) || datum == null && this.Ellipsoid == null) && this.DatumType == datum.DatumType;
 		}
 	}
 }

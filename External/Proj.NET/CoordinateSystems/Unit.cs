@@ -1,24 +1,19 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2005 - 2009 - Morten Nielsen (www.sharpgis.net)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
 using System.Globalization;
@@ -28,7 +23,8 @@ namespace ProjNet.CoordinateSystems
 {
 	/// <summary>
 	/// Class for defining units
-	/// </summary>
+    /// </summary>
+    [Serializable] 
     public class Unit : Info, IUnit
     {
 		/// <summary>
@@ -45,7 +41,7 @@ namespace ProjNet.CoordinateSystems
 			:
 			base(name, authority, authorityCode, alias, abbreviation, remarks)
 		{
-			_ConversionFactor = conversionFactor;
+			ConversionFactor = conversionFactor;
 		}
 
 		/// <summary>
@@ -54,32 +50,26 @@ namespace ProjNet.CoordinateSystems
 		/// <param name="name">Name of unit</param>
 		/// <param name="conversionFactor">Conversion factor to base unit</param>
 		internal Unit(string name, double conversionFactor)
-			: this(conversionFactor, name, String.Empty, -1, String.Empty, String.Empty, String.Empty)
+			: this(conversionFactor, name, string.Empty, -1, string.Empty, string.Empty, string.Empty)
 		{
 		}
 
-		private double _ConversionFactor;
+        /// <summary>
+        /// Gets or sets the number of units per base-unit.
+        /// </summary>
+        public double ConversionFactor { get; set; }
 
-		/// <summary>
-		/// Gets or sets the number of units per base-unit.
-		/// </summary>
-		public double ConversionFactor
-		{
-			get { return _ConversionFactor; }
-			set { _ConversionFactor = value; }
-		}
-
-		/// <summary>
-		/// Returns the Well-known text for this object
-		/// as defined in the simple features specification.
-		/// </summary>
-		public override string WKT
+        /// <summary>
+        /// Returns the Well-known text for this object
+        /// as defined in the simple features specification.
+        /// </summary>
+        public override string WKT
 		{
 			get
 			{
-				StringBuilder sb = new StringBuilder();
-				sb.AppendFormat(CultureInfo.InvariantCulture.NumberFormat, "UNIT[\"{0}\", {1}", Name, _ConversionFactor);
-				if (!String.IsNullOrEmpty(Authority) && AuthorityCode > 0)
+				var sb = new StringBuilder();
+				sb.AppendFormat(CultureInfo.InvariantCulture.NumberFormat, "UNIT[\"{0}\", {1}", Name, ConversionFactor);
+				if (!string.IsNullOrWhiteSpace(Authority) && AuthorityCode > 0)
 					sb.AppendFormat(", AUTHORITY[\"{0}\", \"{1}\"]", Authority, AuthorityCode);
 				sb.Append("]");
 				return sb.ToString();
@@ -106,9 +96,9 @@ namespace ProjNet.CoordinateSystems
 		/// <returns>True if equal</returns>
 		public override bool EqualParams(object obj)
 		{
-			if (!(obj is Unit u))
+			if (!(obj is Unit))
 				return false;
-			return u.ConversionFactor == this.ConversionFactor;
+			return (obj as Unit).ConversionFactor == ConversionFactor;
 		}
     }
 }

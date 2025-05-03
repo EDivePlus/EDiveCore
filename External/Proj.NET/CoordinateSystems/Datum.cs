@@ -1,24 +1,21 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2005 - 2009 - Morten Nielsen (www.sharpgis.net)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+
+using System;
 
 namespace ProjNet.CoordinateSystems
 {
@@ -34,8 +31,9 @@ namespace ProjNet.CoordinateSystems
 	/// as center of mass) and physical directions (such as axis of spin). The definition 
 	/// of the datum may also include the temporal behavior (such as the rate of change of
 	/// the orientation of the coordinate axes).
-	/// </remarks>
-	public abstract class Datum : Info, IDatum
+    /// </remarks>
+    [Serializable] 
+    public abstract class Datum : Info
 	{
 		/// <summary>
 		/// Initializes a new instance of a Datum object
@@ -52,35 +50,30 @@ namespace ProjNet.CoordinateSystems
 			string remarks, string abbreviation)
 			: base(name, authority, code, alias, abbreviation, remarks)
 		{
-			_DatumType = type;
+			DatumType = type;
 		}
-		#region IDatum Members
+        #region IDatum Members
 
-		private DatumType _DatumType;
 
-		/// <summary>
-		/// Gets or sets the type of the datum as an enumerated code.
-		/// </summary>
-		public DatumType DatumType
+        /// <summary>
+        /// Gets or sets the type of the datum as an enumerated code.
+        /// </summary>
+        public DatumType DatumType { get; set; }
+
+        #endregion
+
+        /// <summary>
+        /// Checks whether the values of this instance is equal to the values of another instance.
+        /// Only parameters used for coordinate system are used for comparison.
+        /// Name, abbreviation, authority, alias and remarks are ignored in the comparison.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>True if equal</returns>
+        public override bool EqualParams(object obj)
 		{
-			get { return _DatumType; }
-			set { _DatumType = value; }
-		}
-
-		#endregion
-
-		/// <summary>
-		/// Checks whether the values of this instance is equal to the values of another instance.
-		/// Only parameters used for coordinate system are used for comparison.
-		/// Name, abbreviation, authority, alias and remarks are ignored in the comparison.
-		/// </summary>
-		/// <param name="obj"></param>
-		/// <returns>True if equal</returns>
-		public override bool EqualParams(object obj)
-		{
-			if (!(obj is Datum d))
+			if (!(obj is Ellipsoid))
 				return false;
-			return d.DatumType == this.DatumType;
+			return (obj as Datum).DatumType == this.DatumType;
 		}
 	}
 }

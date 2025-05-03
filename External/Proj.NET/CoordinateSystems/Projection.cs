@@ -1,24 +1,19 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2005 - 2009 - Morten Nielsen (www.sharpgis.net)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
 using System.Collections.Generic;
@@ -34,15 +29,16 @@ namespace ProjNet.CoordinateSystems
 	/// geographic coordinate system. It is expected that each coordinate transformation of
 	/// interest, e.g., Transverse Mercator, Lambert, will be implemented as a class of
 	/// type Projection, supporting the IProjection interface.
-	/// </summary>
-	public class Projection : Info, IProjection
+    /// </summary>
+    [Serializable] 
+    public class Projection : Info, IProjection
 	{
 		internal Projection(string className, List<ProjectionParameter> parameters,
 			string name, string authority, long code, string alias, 
 			string remarks, string abbreviation)
 			: base(name, authority, code, alias, abbreviation, remarks)
 		{
-			_Parameters = parameters;
+			_parameters = parameters;
 			_ClassName = className;
 		}
 
@@ -56,39 +52,39 @@ namespace ProjNet.CoordinateSystems
 		/// </summary>
 		public int NumParameters
 		{
-			get { return _Parameters.Count; }
+			get { return _parameters.Count; }
 		}
 
-		private List<ProjectionParameter> _Parameters;
+		private List<ProjectionParameter> _parameters;
 
 		/// <summary>
 		/// Gets or sets the parameters of the projection
 		/// </summary>
 		internal List<ProjectionParameter> Parameters
 		{
-			get { return _Parameters; }
-			set { _Parameters = value; }
+			get { return _parameters; }
+			set { _parameters = value; }
 		}
 
 		/// <summary>
 		/// Gets an indexed parameter of the projection.
 		/// </summary>
-		/// <param name="n">Index of parameter</param>
+		/// <param name="index">Index of parameter</param>
 		/// <returns>n'th parameter</returns>
-		public ProjectionParameter GetParameter(int n)
+		public ProjectionParameter GetParameter(int index)
 		{
-			return _Parameters[n];
+			return _parameters[index];
 		}
 
 		/// <summary>
-		/// Gets a named parameter of the projection.
+		/// Gets an named parameter of the projection.
 		/// </summary>
 		/// <remarks>The parameter name is case insensitive</remarks>
 		/// <param name="name">Name of parameter</param>
 		/// <returns>parameter or null if not found</returns>
-		public ProjectionParameter? GetParameter(string name)
+		public ProjectionParameter GetParameter(string name)
 		{
-			foreach (ProjectionParameter par in _Parameters)
+			foreach (ProjectionParameter par in _parameters)
 				if (par.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
 					return par;
 			return null;
@@ -113,8 +109,8 @@ namespace ProjNet.CoordinateSystems
 			get
 			{
 				StringBuilder sb = new StringBuilder();
-				sb.AppendFormat("PROJECTION[\"{0}\"", Name);
-				if (!String.IsNullOrEmpty(Authority) && AuthorityCode > 0)
+				sb.AppendFormat("PROJECTION[\"{0}\"", ClassName);
+				if (!string.IsNullOrWhiteSpace(Authority) && AuthorityCode > 0)
 					sb.AppendFormat(", AUTHORITY[\"{0}\", \"{1}\"]", Authority, AuthorityCode);
 				sb.Append("]");
 				return sb.ToString();
@@ -146,13 +142,14 @@ namespace ProjNet.CoordinateSystems
 		/// <returns>True if equal</returns>
 		public override bool EqualParams(object obj)
 		{
-			if (!(obj is Projection proj))
+			if (!(obj is Projection))
 				return false;
+			Projection proj = obj as Projection;
 			if (proj.NumParameters != this.NumParameters)
 				return false;
-			for (int i = 0; i < _Parameters.Count; i++)
+			for (int i = 0; i < _parameters.Count; i++)
 			{
-				ProjectionParameter? param = GetParameter(proj.GetParameter(i).Name);
+				ProjectionParameter param = GetParameter(proj.GetParameter(i).Name);
 				if (param == null)
 					return false;
 				if (param.Value != proj.GetParameter(i).Value)

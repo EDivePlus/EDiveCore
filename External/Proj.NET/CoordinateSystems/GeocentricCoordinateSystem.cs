@@ -1,47 +1,45 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2005 - 2009 - Morten Nielsen (www.sharpgis.net)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ProjNet.CoordinateSystems
 {
 	/// <summary>
 	/// A 3D coordinate system, with its origin at the center of the Earth.
-	/// </summary>
-	public class GeocentricCoordinateSystem : CoordinateSystem, IGeocentricCoordinateSystem
+    /// </summary>
+    [Serializable] 
+    public class GeocentricCoordinateSystem : CoordinateSystem
 	{
-		internal GeocentricCoordinateSystem(IHorizontalDatum datum, ILinearUnit linearUnit, IPrimeMeridian primeMeridian, List<AxisInfo> axisinfo,
+		internal GeocentricCoordinateSystem(HorizontalDatum datum, LinearUnit linearUnit, PrimeMeridian primeMeridian, List<AxisInfo> axisInfo,
 			string name, string authority, long code, string alias, 
 			string remarks, string abbreviation)
-			: base(name, authority, code, alias, abbreviation, remarks, axisinfo)
+			: base(name, authority, code, alias, abbreviation, remarks)
 		{
-			_HorizontalDatum = datum;
-			_LinearUnit = linearUnit;
-			_Primemeridan = primeMeridian;
-			if (axisinfo.Count != 3)
+			HorizontalDatum = datum;
+			LinearUnit = linearUnit;
+			PrimeMeridian = primeMeridian;
+			if (axisInfo.Count != 3)
 				throw new ArgumentException("Axis info should contain three axes for geocentric coordinate systems");
+			base.AxisInfo = axisInfo;
 		}
 
 		#region Predefined geographic coordinate systems
@@ -49,75 +47,57 @@ namespace ProjNet.CoordinateSystems
 		/// <summary>
 		/// Creates a geocentric coordinate system based on the WGS84 ellipsoid, suitable for GPS measurements
 		/// </summary>
-		public static IGeocentricCoordinateSystem WGS84
+		public static GeocentricCoordinateSystem WGS84
 		{
 			get
 			{
 				return new CoordinateSystemFactory().CreateGeocentricCoordinateSystem("WGS84 Geocentric",
-					CoordinateSystems.HorizontalDatum.WGS84, CoordinateSystems.LinearUnit.Metre, 
-					CoordinateSystems.PrimeMeridian.Greenwich);
+					HorizontalDatum.WGS84, LinearUnit.Metre, PrimeMeridian.Greenwich);
 			}
 		}
 
-		#endregion
+        #endregion
 
-		#region IGeocentricCoordinateSystem Members
+        #region GeocentricCoordinateSystem Members
 
-		private IHorizontalDatum _HorizontalDatum;
 
-		/// <summary>
-		/// Returns the HorizontalDatum. The horizontal datum is used to determine where
-		/// the centre of the Earth is considered to be. All coordinate points will be 
-		/// measured from the centre of the Earth, and not the surface.
-		/// </summary>
-		public IHorizontalDatum HorizontalDatum
+        /// <summary>
+        /// Returns the HorizontalDatum. The horizontal datum is used to determine where
+        /// the centre of the Earth is considered to be. All coordinate points will be 
+        /// measured from the centre of the Earth, and not the surface.
+        /// </summary>
+        public HorizontalDatum HorizontalDatum { get; set; }
+
+        /// <summary>
+        /// Gets the units used along all the axes.
+        /// </summary>
+        public LinearUnit LinearUnit { get; set; }
+
+        /// <summary>
+        /// Gets units for dimension within coordinate system. Each dimension in 
+        /// the coordinate system has corresponding units.
+        /// </summary>
+        /// <param name="dimension">Dimension</param>
+        /// <returns>Unit</returns>
+        public override IUnit GetUnits(int dimension)
 		{
-			get { return _HorizontalDatum; }
-			set { _HorizontalDatum = value; }
+			return LinearUnit;
 		}
 
-		private ILinearUnit _LinearUnit;
+        /// <summary>
+        /// Returns the PrimeMeridian.
+        /// </summary>
+        public PrimeMeridian PrimeMeridian { get; set; }
 
-		/// <summary>
-		/// Gets the units used along all the axes.
-		/// </summary>
-		public ILinearUnit LinearUnit
-		{
-			get { return _LinearUnit; }
-			set { _LinearUnit = value; }
-		}
-
-		/// <summary>
-		/// Gets units for dimension within coordinate system. Each dimension in 
-		/// the coordinate system has corresponding units.
-		/// </summary>
-		/// <param name="dimension">Dimension</param>
-		/// <returns>Unit</returns>
-		public override IUnit GetUnits(int dimension)
-		{
-			return _LinearUnit;
-		}
-
-		private IPrimeMeridian _Primemeridan;
-
-		/// <summary>
-		/// Returns the PrimeMeridian.
-		/// </summary>
-		public IPrimeMeridian PrimeMeridian
-		{
-			get { return _Primemeridan; }
-			set { _Primemeridan = value; }
-		}
-
-		/// <summary>
-		/// Returns the Well-known text for this object
-		/// as defined in the simple features specification.
-		/// </summary>
-		public override string WKT
+        /// <summary>
+        /// Returns the Well-known text for this object
+        /// as defined in the simple features specification.
+        /// </summary>
+        public override string WKT
 		{
 			get
 			{
-				StringBuilder sb = new StringBuilder();
+				var sb = new StringBuilder();
 				sb.AppendFormat("GEOCCS[\"{0}\", {1}, {2}, {3}", Name, HorizontalDatum.WKT, PrimeMeridian.WKT, LinearUnit.WKT);
 				//Skip axis info if they contain default values				
 				if (AxisInfo.Count != 3 ||
@@ -126,7 +106,7 @@ namespace ProjNet.CoordinateSystems
 					AxisInfo[2].Name != "Z" || AxisInfo[2].Orientation != AxisOrientationEnum.North)
 					for (int i = 0; i < AxisInfo.Count; i++)
 						sb.AppendFormat(", {0}", GetAxis(i).WKT);
-				if (!String.IsNullOrEmpty(Authority) && AuthorityCode>0)
+				if (!string.IsNullOrWhiteSpace(Authority) && AuthorityCode>0)
 					sb.AppendFormat(", AUTHORITY[\"{0}\", \"{1}\"]", Authority, AuthorityCode);
 				sb.Append("]");
 				return sb.ToString();
@@ -140,11 +120,11 @@ namespace ProjNet.CoordinateSystems
 		{
 			get
 			{
-				StringBuilder sb = new StringBuilder();
+				var sb = new StringBuilder();
                 sb.AppendFormat(CultureInfo.InvariantCulture.NumberFormat,
 					"<CS_CoordinateSystem Dimension=\"{0}\"><CS_GeocentricCoordinateSystem>{1}",
-					this.Dimension, InfoXml);				
-				foreach (AxisInfo ai in this.AxisInfo)
+					Dimension, InfoXml);				
+				foreach (var ai in AxisInfo)
 					sb.Append(ai.XML);
 				sb.AppendFormat("{0}{1}{2}</CS_GeocentricCoordinateSystem></CS_CoordinateSystem>",
 					HorizontalDatum.XML, LinearUnit.XML, PrimeMeridian.XML);
@@ -163,9 +143,9 @@ namespace ProjNet.CoordinateSystems
 		{
 			if (!(obj is GeocentricCoordinateSystem gcc))
 				return false;
-			return gcc.HorizontalDatum.EqualParams(this.HorizontalDatum) &&
-				gcc.LinearUnit.EqualParams(this.LinearUnit) &&
-				gcc.PrimeMeridian.EqualParams(this.PrimeMeridian);
+			return gcc.HorizontalDatum.EqualParams(HorizontalDatum) &&
+				gcc.LinearUnit.EqualParams(LinearUnit) &&
+				gcc.PrimeMeridian.EqualParams(PrimeMeridian);
 		}
 
 		#endregion

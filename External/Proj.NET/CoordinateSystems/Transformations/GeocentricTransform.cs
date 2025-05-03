@@ -1,24 +1,19 @@
-// Copyright 2005 - 2020 - Morten Nielsen (www.xaml.dev)
+// Copyright 2005 - 2009 - Morten Nielsen (www.sharpgis.net)
 //
 // This file is part of ProjNet.
-//
-// MIT License  
-//  
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this  
-// software and associated documentation files (the "Software"), to deal in the Software  
-// without restriction, including without limitation the rights to use, copy, modify, merge,  
-// publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons  
-// to whom the Software is furnished to do so, subject to the following conditions:  
-//  
-// The above copyright notice and this permission notice shall be included in all copies or  
-// substantial portions of the Software.  
-//  
-// THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,  
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR  
-// PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE  
-// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR  
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER  
-// DEALINGS IN THE SOFTWARE.  
+// ProjNet is free software; you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// ProjNet is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with ProjNet; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
 using System;
 using System.Collections.Generic;
@@ -42,8 +37,9 @@ namespace ProjNet.CoordinateSystems.Transformations
 	/// the units of the ellipsoid axes (a and b). As it is conventional for X, Y and Z to be in metres,
 	/// if the ellipsoid axis dimensions are given in another linear unit they should first be converted
 	/// to metres.</para>
-	/// </remarks>
-	internal class GeocentricTransform : MathTransform
+    /// </remarks>
+    [Serializable] 
+    internal class GeocentricTransform : MathTransform
 	{
 		private const double COS_67P5 = 0.38268343236508977;    /* cosine of 67.5 degrees */
 		private const double AD_C = 1.0026000;                  /* Toms region 1 constant */
@@ -51,24 +47,37 @@ namespace ProjNet.CoordinateSystems.Transformations
         /// <summary>
         /// 
         /// </summary>
-		protected bool _isInverse = false;
+        private bool _isInverse;
+        /// <summary>
+        /// 
+        /// </summary>
+        private MathTransform _inverse;
 
-        private double es;              // Eccentricity squared : (a^2 - b^2)/a^2
-		private double semiMajor;		// major axis
-		private double semiMinor;		// minor axis
-		private double ab;				// Semi_major / semi_minor
+        /// <summary>
+        /// Eccentricity squared : (a^2 - b^2)/a^2
+        /// </summary>
+        private readonly double _es;
+
+        /// <summary>
+        /// major axis
+        /// </summary>
+		private readonly double _semiMajor;
+
+        /// <summary>
+        /// Minor axis
+        /// </summary>
+		private readonly double _semiMinor;
+        /*
+        private double ab;				// Semi_major / semi_minor
 		private double ba;				// Semi_minor / semi_major
-        private double ses;             // Second eccentricity squared : (a^2 - b^2)/b^2    
+         */
+        private readonly double _ses;             // Second eccentricity squared : (a^2 - b^2)/b^2    
 
         /// <summary>
         /// 
         /// </summary>
-		protected List<ProjectionParameter> _Parameters;
+        private List<ProjectionParameter> _parameters;
 
-        /// <summary>
-        /// 
-        /// </summary>
-		protected MathTransform? _inverse;
 
 		/// <summary>
 		/// Initializes a geocentric projection object
@@ -86,8 +95,8 @@ namespace ProjNet.CoordinateSystems.Transformations
 		/// <param name="parameters">List of parameters to initialize the projection.</param>
 		internal GeocentricTransform(List<ProjectionParameter> parameters)
 		{
-			_Parameters = parameters;
-			semiMajor = _Parameters.Find(delegate(ProjectionParameter par)
+			_parameters = parameters;
+			_semiMajor = _parameters.Find(delegate(ProjectionParameter par)
 			{
 				// Do not remove the following lines containing "_Parameters = _Parameters;"
 				// There is an issue deploying code with anonymous delegates to 
@@ -99,158 +108,151 @@ namespace ProjNet.CoordinateSystems.Transformations
 				// that is used as the delegate.
 				// For details, see http://www.hedgate.net/articles/2006/01/27/troubles-with-shared-state-and-anonymous-delegates-in-sqlclr
 #pragma warning disable 1717
-				_Parameters = _Parameters;
+				_parameters = _parameters;
 #pragma warning restore 1717
 
 				return par.Name.Equals("semi_major", StringComparison.OrdinalIgnoreCase);
 			}).Value;
 
-			semiMinor = _Parameters.Find(delegate(ProjectionParameter par)
+			_semiMinor = _parameters.Find(delegate(ProjectionParameter par)
 			{
 #pragma warning disable 1717
-				_Parameters = _Parameters; // See explanation above.
+				_parameters = _parameters; // See explanation above.
 #pragma warning restore 1717
 				return par.Name.Equals("semi_minor", StringComparison.OrdinalIgnoreCase);
 			}).Value;
 
-			es = 1.0 - (semiMinor * semiMinor) / (semiMajor * semiMajor); //e^2
-			ses = (Math.Pow(semiMajor, 2) - Math.Pow(semiMinor, 2)) / Math.Pow(semiMinor, 2);
-			ba = semiMinor / semiMajor;
-			ab = semiMajor / semiMinor;
+			_es = 1.0 - (_semiMinor * _semiMinor) / (_semiMajor * _semiMajor); //e^2
+			_ses = (Math.Pow(_semiMajor, 2) - Math.Pow(_semiMinor, 2)) / Math.Pow(_semiMinor, 2);
+			//ba = _semiMinor / _semiMajor;
+			//ab = _semiMajor / _semiMinor;
 		}
 
+        public override int DimSource
+        {
+            get { return 3; }
+        }
 
-		/// <summary>
+        public override int DimTarget
+        {
+            get { return 3; }
+        }
+
+        /// <summary>
 		/// Returns the inverse of this conversion.
 		/// </summary>
 		/// <returns>IMathTransform that is the reverse of the current conversion.</returns>
-		public override IMathTransform Inverse()
+		public override MathTransform Inverse()
 		{
 			if (_inverse == null)
-				_inverse = new GeocentricTransform(this._Parameters, !_isInverse);
+				_inverse = new GeocentricTransform(this._parameters, !_isInverse);
 			return _inverse;
 		}
 
-		/// <summary>
-		/// Converts coordinates in decimal degrees to projected meters.
-		/// </summary>
-		/// <param name="lonlat">The point in decimal degrees.</param>
-		/// <returns>Point in projected meters</returns>
-        private double[] DegreesToMeters(double[] lonlat)
-		{
-			double lon = Degrees2Radians(lonlat[0]);
-            double lat = Degrees2Radians(lonlat[1]);
-			double h = lonlat.Length < 3 ? 0 : lonlat[2].Equals(Double.NaN) ? 0 : lonlat[2];
-			double v = semiMajor / Math.Sqrt(1 - es * Math.Pow(Math.Sin(lat), 2));
-			double x = (v + h) * Math.Cos(lat) * Math.Cos(lon);
-			double y = (v + h) * Math.Cos(lat) * Math.Sin(lon);
-			double z = ((1 - es) * v + h) * Math.Sin(lat);
-            return new double[] { x, y, z, };
-		}
+        /// <summary>
+        /// Converts a point (lon, lat, z) in degrees to (x, y, z) in meters
+        /// </summary>
+        /// <param name="lon">The longitude in degree</param>
+        /// <param name="lat">The latitude in degree</param>
+        /// <param name="z">The z-ordinate value</param>
+        private void DegreesToMeters(ref double lon, ref double lat, ref double z)
+        {
+            lon = DegreesToRadians(lon);
+            lat = DegreesToRadians(lat);
+            z = double.IsNaN(z) ? 0 : z;
 
-		/// <summary>
-		/// Converts coordinates in projected meters to decimal degrees.
-		/// </summary>
-		/// <param name="pnt">Point in meters</param>
-		/// <returns>Transformed point in decimal degrees</returns>		
-        private double[] MetersToDegrees(double[] pnt)
-		{
-			bool At_Pole = false; // indicates whether location is in polar region */
-			double Z = pnt.Length < 3 ? 0 : pnt[2].Equals(Double.NaN) ? 0 : pnt[2];
+            double v = _semiMajor / Math.Sqrt(1 - _es * Math.Pow(Math.Sin(lat), 2));
+            double x = (v + z) * Math.Cos(lat) * Math.Cos(lon);
+            double y = (v + z) * Math.Cos(lat) * Math.Sin(lon);
+            z = ((1 - _es) * v + z) * Math.Sin(lat);
 
-			double lon = 0;
-			double lat = 0;
-			double Height = 0;
-			if (pnt[0] != 0.0)
-				lon = Math.Atan2(pnt[1], pnt[0]);
-			else
-			{
-				if (pnt[1] > 0)
-					lon = Math.PI/2;
-                else if (pnt[1] < 0)
-					lon = -Math.PI * 0.5;
-				else
-				{
-					At_Pole = true;
-					lon = 0.0;
-					if (Z > 0.0)
-					{   /* north pole */
-						lat = Math.PI * 0.5;
-					}
-					else if (Z < 0.0)
-					{   /* south pole */
-						lat = -Math.PI * 0.5;
-					}
-					else
-					{   /* center of earth */
-                        return new double[] { Radians2Degrees(lon), Radians2Degrees(Math.PI * 0.5), -semiMinor, };
-					}
-				}
-			}
-			double W2 = pnt[0] * pnt[0] + pnt[1] * pnt[1]; // Square of distance from Z axis
-			double W = Math.Sqrt(W2); // distance from Z axis
-			double T0 = Z * AD_C; // initial estimate of vertical component
-			double S0 = Math.Sqrt(T0 * T0 + W2); //initial estimate of horizontal component
-			double Sin_B0 = T0 / S0; //sin(B0), B0 is estimate of Bowring aux variable
-			double Cos_B0 = W / S0; //cos(B0)
-			double Sin3_B0 = Math.Pow(Sin_B0, 3);
-			double T1 = Z + semiMinor * ses * Sin3_B0; //corrected estimate of vertical component
-			double Sum = W - semiMajor * es * Cos_B0 * Cos_B0 * Cos_B0; //numerator of cos(phi1)
-			double S1 = Math.Sqrt(T1 * T1 + Sum * Sum); //corrected estimate of horizontal component
-			double Sin_p1 = T1 / S1; //sin(phi1), phi1 is estimated latitude
-			double Cos_p1 = Sum / S1; //cos(phi1)
-			double Rn = semiMajor / Math.Sqrt(1.0 - es * Sin_p1 * Sin_p1); //Earth radius at location
-			if (Cos_p1 >= COS_67P5)
-				Height = W / Cos_p1 - Rn;
-			else if (Cos_p1 <= -COS_67P5)
-				 Height = W / -Cos_p1 - Rn;
-			else Height = Z / Sin_p1 + Rn * (es - 1.0);
-			if(!At_Pole)
-				lat = Math.Atan(Sin_p1 / Cos_p1);
-            return new double[] { Radians2Degrees(lon), Radians2Degrees(lat), Height, };
-		}
+            lon = x;
+            lat = y;
+        }
 
         /// <summary>
-        /// Transforms a coordinate point. The passed parameter point should not be modified.
+        /// Converts coordinates in projected meters to decimal degrees.
         /// </summary>
-        /// <param name="point"></param>
-        /// <returns></returns>
-        public override double[] Transform(double[] point)
-		{
-			if (!_isInverse)
-				 return this.DegreesToMeters(point);
-			else return this.MetersToDegrees(point);
-		}
+        /// <param name="x">The x-ordinate when entering, the longitude value upon exit.</param>
+        /// <param name="y">The y-ordinate when entering, the latitude value upon exit.</param>
+        /// <param name="z">The z-ordinate value</param>
+        private void MetersToDegrees(ref double x, ref double y, ref double z)
+        {
+            bool At_Pole = false; // indicates whether location is in polar region */
+
+            double lon;
+            double lat = 0;
+            double Height;
+            if (x != 0.0)
+                lon = Math.Atan2(y, x);
+            else
+            {
+                if (y > 0)
+                    lon = Math.PI / 2;
+                else if (y < 0)
+                    lon = -Math.PI * 0.5;
+                else
+                {
+                    At_Pole = true;
+                    lon = 0.0;
+                    if (z > 0.0)
+                    {
+                        /* north pole */
+                        lat = Math.PI * 0.5;
+                    }
+                    else if (z < 0.0)
+                    {
+                        /* south pole */
+                        lat = -Math.PI * 0.5;
+                    }
+                    else
+                    {
+                        /* center of earth */
+                        lon = RadiansToDegrees(lon);
+                        lat = RadiansToDegrees(Math.PI * 0.5);
+                        x = lon;
+                        y = lat;
+                        z = -_semiMinor;
+                        return;
+                    }
+                }
+            }
+
+            double W2 = x * x + y * y; // Square of distance from Z axis
+            double W = Math.Sqrt(W2); // distance from Z axis
+            double T0 = z * AD_C; // initial estimate of vertical component
+            double S0 = Math.Sqrt(T0 * T0 + W2); //initial estimate of horizontal component
+            double Sin_B0 = T0 / S0; //sin(B0), B0 is estimate of Bowring aux variable
+            double Cos_B0 = W / S0; //cos(B0)
+            double Sin3_B0 = Math.Pow(Sin_B0, 3);
+            double T1 = z + _semiMinor * _ses * Sin3_B0; //corrected estimate of vertical component
+            double Sum = W - _semiMajor * _es * Cos_B0 * Cos_B0 * Cos_B0; //numerator of cos(phi1)
+            double S1 = Math.Sqrt(T1 * T1 + Sum * Sum); //corrected estimate of horizontal component
+            double Sin_p1 = T1 / S1; //sin(phi1), phi1 is estimated latitude
+            double Cos_p1 = Sum / S1; //cos(phi1)
+            double Rn = _semiMajor / Math.Sqrt(1.0 - _es * Sin_p1 * Sin_p1); //Earth radius at location
+            if (Cos_p1 >= COS_67P5)
+                Height = W / Cos_p1 - Rn;
+            else if (Cos_p1 <= -COS_67P5)
+                Height = W / -Cos_p1 - Rn;
+            else Height = z / Sin_p1 + Rn * (_es - 1.0);
+            if (!At_Pole)
+                lat = Math.Atan(Sin_p1 / Cos_p1);
+
+            x = RadiansToDegrees(lon);
+            y = RadiansToDegrees(lat);
+            z = Height;
+        }
+
+        public sealed override void Transform(ref double x, ref double y, ref double z)
+        {
+            if (_isInverse)
+                MetersToDegrees(ref x, ref y, ref z);
+            else
+                DegreesToMeters(ref x, ref y, ref z);
+        }
 
         /// <summary>
-        /// Transforms a list of coordinate point ordinal values.
-        /// </summary>
-        /// <param name="points"></param>
-        /// <returns></returns>
-        /// <remarks>
-        /// This method is provided for efficiently transforming many points. The supplied array
-        /// of ordinal values will contain packed ordinal values. For example, if the source
-        /// dimension is 3, then the ordinals will be packed in this order (x0,y0,z0,x1,y1,z1 ...).
-        /// The size of the passed array must be an integer multiple of DimSource. The returned
-        /// ordinal values are packed in a similar way. In some DCPs. the ordinals may be
-        /// transformed in-place, and the returned array may be the same as the passed array.
-        /// So any client code should not attempt to reuse the passed ordinal values (although
-        /// they can certainly reuse the passed array). If there is any problem then the server
-        /// implementation will throw an exception. If this happens then the client should not
-        /// make any assumptions about the state of the ordinal values.
-        /// </remarks>
-        public override List<double[]> TransformList(List<double[]> points)
-		{
-            List<double[]> result = new List<double[]>(points.Count);
-			for (int i = 0; i < points.Count; i++)
-			{
-                double[] point = points[i];
-				result.Add(Transform(point));
-			}
-			return result;
-		}
-
-		/// <summary>
 		/// Reverses the transformation
 		/// </summary>
 		public override void Invert()
