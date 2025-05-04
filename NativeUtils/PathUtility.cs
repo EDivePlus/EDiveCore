@@ -47,9 +47,9 @@ namespace EDIVE.NativeUtils
             EnsurePathExists(GetAbsolutePath(path));
         }
 
-        public static void EnsurePathExists(string filePath)
+        public static void EnsurePathExists(string path)
         {
-            var dirPath = Path.GetDirectoryName(filePath);
+            var dirPath = Path.HasExtension(path) ? Path.GetDirectoryName(path) : path;
             if (!string.IsNullOrEmpty(dirPath))
                 Directory.CreateDirectory(dirPath);
         }

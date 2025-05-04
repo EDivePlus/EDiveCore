@@ -4,27 +4,32 @@ namespace EDIVE.NativeUtils
 {
     public static class MathExtensions
     {
-        public static float Remap(float input, float inputMin, float inputMax, float targetMin, float targetMax)
+        public static float Remap(this int input, float inputMin, float inputMax, float targetMin, float targetMax)
+        {
+            return targetMin + (input - inputMin) * (targetMax - targetMin) / (inputMax - inputMin);
+
+        }
+        public static float Remap(this float input, float inputMin, float inputMax, float targetMin, float targetMax)
         {
             return targetMin + (input - inputMin) * (targetMax - targetMin) / (inputMax - inputMin);
         }
 
-        public static double Remap(double input, double inputMin, double inputMax, double targetMin, double targetMax)
+        public static double Remap(this double input, double inputMin, double inputMax, double targetMin, double targetMax)
         {
             return targetMin + (input - inputMin) * (targetMax - targetMin) / (inputMax - inputMin);
         }
 
-        public static bool IsPowerOfTwo(int value)
+        public static bool IsPowerOfTwo(this int value)
         {
             return (value & (value - 1)) == 0;
         }
 
-        public static bool FastApproximately(float a, float b)
+        public static bool FastApproximately(this float a, float b)
         {
             return FastApproximately(a, b, Mathf.Epsilon);
         }
 
-        public static bool FastApproximately(float a, float b, float threshold)
+        public static bool FastApproximately(this float a, float b, float threshold)
         {
             return ((a - b) < 0 ? ((a - b) * -1) : (a - b)) <= threshold;
         }

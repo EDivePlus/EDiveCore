@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using OSGeo.GDAL;
+using UnityEngine;
 
-namespace EDIVE.GeoToolkit
+namespace EDIVE.GeoToolkit.Utils
 {
     public static class GeoImageUtility
     {
@@ -12,6 +13,42 @@ namespace EDIVE.GeoToolkit
             Gdal.AllRegister();
             using var dataset = Gdal.Open(filePath, Access.GA_ReadOnly);
             return LoadGrayScale(dataset);
+        }
+
+        public static float[,] LoadGrayScale(this Texture2D texture)
+        {
+            var width = texture.width;
+            var height = texture.height;
+            var heights = new float[width, height];
+            var pixels = texture.GetPixels();
+
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var pixel = pixels[y * width + x];
+                    heights[x, y] = pixel.r;
+                }
+            }
+            return heights;
+        }
+
+        public static double[,] LoadGrayScaleDouble(this Texture2D texture)
+        {
+            var width = texture.width;
+            var height = texture.height;
+            var heights = new double[width, height];
+            var pixels = texture.GetPixels();
+
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var pixel = pixels[y * width + x];
+                    heights[x, y] = pixel.r;
+                }
+            }
+            return heights;
         }
         
         public static double[,] LoadGrayScale(byte[] data)

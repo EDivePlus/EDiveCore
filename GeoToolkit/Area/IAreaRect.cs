@@ -1,4 +1,5 @@
-﻿using ProtoGIS.Scripts.Utils;
+﻿using EDIVE.GeoToolkit.Coordinates;
+using ProtoGIS.Scripts.Utils;
 
 namespace EDIVE.GeoToolkit.Area
 {
@@ -13,8 +14,8 @@ namespace EDIVE.GeoToolkit.Area
         double MaxX { get; }
         double MaxY { get; }
 
-        CoordRefSystem CoordRefSystem { get; }
-        DVector2 RealSize { get; }
+        CoordinateSystemType CoordinateSystem { get; }
+        DVector2 AreaSize { get; }
 
         string ToCommaSeparatedString();
     }

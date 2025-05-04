@@ -34,7 +34,7 @@ namespace EDIVE.GeoToolkit.Area
                     var newMinY = box.MinY + y * yTileSize;
                     var newMaxY = y == gridSize.y - 1 ? box.MaxY : box.MinY + (y + 1) * yTileSize;
 
-                    result[x, y] = new AreaRect(new DVector2(newMinX, newMinY), new DVector2(newMaxX, newMaxY), box.CoordRefSystem);
+                    result[x, y] = new AreaRect(new DVector2(newMinX, newMinY), new DVector2(newMaxX, newMaxY), box.CoordinateSystem);
                 }  
             }
 

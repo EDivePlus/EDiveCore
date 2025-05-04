@@ -5,8 +5,8 @@
         "EDIVE.DataStructures",
         "EDIVE.External.CoordinateSharp",
         "EDIVE.External.ProjNet",
-        "Gdal for Unity",
-        "GeoJSON.NET"
+        "GeoJSON.NET",
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

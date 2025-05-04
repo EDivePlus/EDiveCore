@@ -7,7 +7,7 @@ using GeoJSON.Net.Geometry;
 using ProtoGIS.Scripts.Utils;
 using UnityEngine;
 
-namespace EDIVE.GeoToolkit
+namespace EDIVE.GeoToolkit.Utils
 {
     public static class GeoJsonExtensions
     {

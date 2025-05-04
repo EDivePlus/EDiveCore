@@ -52,7 +52,7 @@ namespace ProtoGIS.Scripts.Utils
         /// <returns>Unity's Vector2.</returns>
         public Vector2 ToVector2() => new((float)X, (float)Y);
 
-        public static readonly DVector2 zero = new(0, 0);
+        public static readonly DVector2 Zero = new(0, 0);
 
         public double Size()
         {
@@ -91,6 +91,11 @@ namespace ProtoGIS.Scripts.Utils
                 hashCode = (hashCode * 397) ^ _Y.GetHashCode();
                 return hashCode;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"({X}, {Y})";
         }
     }
 }

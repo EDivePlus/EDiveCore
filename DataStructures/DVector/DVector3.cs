@@ -47,6 +47,8 @@ namespace ProtoGIS.Scripts.Utils
             set => _Z = value;
         }
 
+        public static readonly DVector3 Zero = new(0, 0, 0);
+
         public DVector3(double x, double y, double z)
         {
             _X = x;
@@ -97,7 +99,10 @@ namespace ProtoGIS.Scripts.Utils
         {
             return HashCode.Combine(_X, _Y, _Z);
         }
+
+        public override string ToString()
+        {
+            return $"({X}, {Y}, {Z})";
+        }
     }
-    
-    
 }

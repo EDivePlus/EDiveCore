@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Globalization;
+using CoordinateSharp;
+using EDIVE.GeoToolkit.Coordinates;
+using EDIVE.OdinExtensions.Attributes;
+using JetBrains.Annotations;
 using ProtoGIS.Scripts.Utils;
 using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -11,13 +16,13 @@ namespace EDIVE.GeoToolkit.Area
     [InlineProperty]
     public class AreaRect : IAreaRect
     {
-        [LabelWidth(150)]
+        [FormerlySerializedAs("_CoordRefSystem")]
         [SerializeField]
-        private CoordRefSystem _CoordRefSystem;
+        private CoordinateSystemType _CoordinateSystem;
 
         [SerializeField]
-        [LabelWidth(150)]
-        private DVector2 _RealSize;
+        [InlineIconButton("Refresh", "RecalculateAreaSize")]
+        private DVector2 _AreaSize;
 
         [PropertySpace]
         [SerializeField]
@@ -26,15 +31,15 @@ namespace EDIVE.GeoToolkit.Area
         [SerializeField]
         private DVector2 _Max;
 
-        public AreaRect(DVector2 min, DVector2 max, CoordRefSystem coordRefSystem)
+        public AreaRect(DVector2 min, DVector2 max, CoordinateSystemType coordinateSystem)
         {
             _Min = min;
             _Max = max;
-            _CoordRefSystem = coordRefSystem;
+            _CoordinateSystem = coordinateSystem;
         }
 
-        public CoordRefSystem CoordRefSystem => _CoordRefSystem;
-        public DVector2 RealSize => _RealSize;
+        public CoordinateSystemType CoordinateSystem => _CoordinateSystem;
+        public DVector2 AreaSize => _AreaSize;
 
         public DVector2 Min => _Min;
         public DVector2 Max => _Max;
@@ -52,5 +57,16 @@ namespace EDIVE.GeoToolkit.Area
                    $"{MaxX.ToString(CultureInfo.InvariantCulture)}," +
                    $"{MaxY.ToString(CultureInfo.InvariantCulture)}";
         }
+
+#if UNITY_EDITOR
+        [UsedImplicitly]
+        public void RecalculateAreaSize(InspectorProperty property)
+        {
+            var xSize = GeoCoordinateUtility.Distance(new DVector2(MinX, MinY), new DVector2(MaxX, MinY), CoordinateSystem, Shape.Ellipsoid);
+            var ySize = GeoCoordinateUtility.Distance(new DVector2(MinX, MinY), new DVector2(MinX, MaxY), CoordinateSystem, Shape.Ellipsoid);
+            _AreaSize = new DVector2(xSize, ySize);
+            property.MarkSerializationRootDirty();
+        }
+#endif
     }
 }
