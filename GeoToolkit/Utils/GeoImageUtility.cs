@@ -1,20 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using OSGeo.GDAL;
 using UnityEngine;
 
 namespace EDIVE.GeoToolkit.Utils
 {
     public static class GeoImageUtility
     {
-        public static double[,] LoadGrayScale(string filePath)
-        {
-            Gdal.AllRegister();
-            using var dataset = Gdal.Open(filePath, Access.GA_ReadOnly);
-            return LoadGrayScale(dataset);
-        }
-
         public static float[,] LoadGrayScale(this Texture2D texture)
         {
             var width = texture.width;
@@ -50,7 +41,17 @@ namespace EDIVE.GeoToolkit.Utils
             }
             return heights;
         }
-        
+
+        // Not tested yet so there might be some issues
+        public static double[,] LoadGrayScale(byte[] data)
+        {
+            var tex = new Texture2D(2, 2, TextureFormat.RFloat, false);
+            tex.LoadImage(data);
+            return tex.LoadGrayScaleDouble();
+        }
+
+        // Hopefully we wont need GDAL as its only used for this single function
+        /*
         public static double[,] LoadGrayScale(byte[] data)
         {
             // TODO find a better way than saving and loading again? is it even possible (in mind with 32bit TIFF)
@@ -63,6 +64,7 @@ namespace EDIVE.GeoToolkit.Utils
             var dataset = Gdal.Open(tmpPath, Access.GA_ReadOnly);
             return LoadGrayScale(dataset);
         }
+
 
         public static double[,] LoadGrayScale(Dataset dataset)
         {
@@ -93,6 +95,7 @@ namespace EDIVE.GeoToolkit.Utils
             }
             return output;
         }
+        */
 
         public static string GetImageFormat(this byte[] imageBytes)
         {
