@@ -3,7 +3,9 @@
     "rootNamespace": "",
     "references": [
         "EDIVE.OdinExtensions",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "Whinarn.UnityMeshSimplifier.Runtime",
+        "Unity.Formats.Fbx.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -12,6 +14,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.whinarn.unitymeshsimplifier",
+            "expression": "",
+            "define": "MESH_SIMPLIFIER"
+        }
+    ],
     "noEngineReferences": false
 }
