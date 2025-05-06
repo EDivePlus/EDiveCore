@@ -3,9 +3,13 @@
     "rootNamespace": "",
     "references": [
         "DOTween.Modules",
+        "UniTask",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "EDIVE.External.DomainReloadHelper",
+        "EDIVE.EditorUtils",
+        "EDIVE.External.Signals"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
