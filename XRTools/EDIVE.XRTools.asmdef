@@ -1,0 +1,17 @@
+{
+    "name": "EDIVE.XRTools",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.StateHandling",
+        "EDIVE.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
