@@ -32,18 +32,19 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         {
             ValueResolver.DrawErrors(_elementConditionResolver, _preferredTypeResolver);
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.BeginHorizontal();
+            var fieldRect = EditorGUILayout.BeginHorizontal();
             Object prevValue = ValueEntry.SmartValue != null ? ValueEntry.SmartValue : null;
             var fieldType = ValueEntry.BaseValueType;
             var newValue = SirenixEditorFields.UnityObjectField(label, prevValue, fieldType, true);
-            var fieldRect = GUIHelper.GetCurrentLayoutRect();
             var targetGameObject = newValue is Component cmp ? cmp.gameObject : newValue as GameObject;
 
             var rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+            GUIHelper.PushGUIEnabled(prevValue != null);
             if (SirenixEditorGUI.IconButton(rect, FontAwesomeEditorIcons.SquareCaretDownSolid, "Select object"))
             {
-                Property.Tree.DelayActionUntilRepaint(() => ShowSelector(fieldRect, targetGameObject));
+                ShowSelector(fieldRect, targetGameObject);
             }
+            GUIHelper.PopGUIEnabled();
 
             EditorGUILayout.EndHorizontal();
             if (EditorGUI.EndChangeCheck())
