@@ -8,23 +8,23 @@ using UnityEngine.Serialization;
 
 namespace EDIVE.Utils.SerializableDictionary
 {
-    public abstract class SerializableDictionary
+    public interface ISerializableDictionary
     {
-        public abstract IDictionary GetBackingDictionary();
+        IDictionary GetBackingDictionary();
     }
 
     [Serializable]
-    public class SerializableDictionary<TKey, TValue> : SerializableDictionary, IDictionary<TKey, TValue>, ISerializationCallbackReceiver
+    public class SerializableDictionary<TKey, TValue> : IDictionary<TKey, TValue>, ISerializableDictionary, ISerializationCallbackReceiver
     {
         [FormerlySerializedAs("list")]
         [FormerlySerializedAs("_list")]
         [FormerlySerializedAs("backingList")]
         [FormerlySerializedAs("backingDictionary")]
         [SerializeField]
-        private List<SerializableKeyValuePair> _List = new List<SerializableKeyValuePair>();
+        private List<SerializableKeyValuePair> _List = new();
         
-        private Dictionary<TKey, int> _keyIndexes = new Dictionary<TKey, int>();
-        private Dictionary<TKey, TValue> _dict = new Dictionary<TKey, TValue>();
+        private Dictionary<TKey, int> _keyIndexes = new();
+        private Dictionary<TKey, TValue> _dict = new();
         
         [ReadOnly]
         [UsedImplicitly]
@@ -67,7 +67,7 @@ namespace EDIVE.Utils.SerializableDictionary
             CopyValuesFrom(dictionary);
         }
         
-        public SerializableDictionary<TKey, TValue> GetCopy() => new SerializableDictionary<TKey, TValue>(this);
+        public SerializableDictionary<TKey, TValue> GetCopy() => new(this);
         
         public static implicit operator SerializableDictionary<TKey, TValue> (Dictionary<TKey, TValue> dictionary)
         {
@@ -248,7 +248,7 @@ namespace EDIVE.Utils.SerializableDictionary
             return false;
         }
         
-        public SerializableDictionary CopyValuesFrom(IDictionary<TKey, TValue> dictionary)
+        public ISerializableDictionary CopyValuesFrom(IDictionary<TKey, TValue> dictionary)
         {
             _List ??= new List<SerializableKeyValuePair>();
             _dict ??= new Dictionary<TKey, TValue>(dictionary);
@@ -268,7 +268,7 @@ namespace EDIVE.Utils.SerializableDictionary
             return this;
         }
 
-        public override IDictionary GetBackingDictionary() => _dict;
+        public IDictionary GetBackingDictionary() => _dict;
 
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _dict.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => _dict.GetEnumerator();

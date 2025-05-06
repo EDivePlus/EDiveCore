@@ -9,7 +9,7 @@ namespace EDIVE.Utils.SerializableDictionary
         public override bool CanConvert(Type objectType)
         {
             if (!objectType.IsGenericType) return false;
-            return typeof(SerializableDictionary).IsAssignableFrom(objectType);
+            return typeof(ISerializableDictionary).IsAssignableFrom(objectType);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -27,7 +27,7 @@ namespace EDIVE.Utils.SerializableDictionary
                 writer.WriteNull();
                 return;
             }
-            serializer.Serialize(writer, ((SerializableDictionary) value).GetBackingDictionary());
+            serializer.Serialize(writer, ((ISerializableDictionary) value).GetBackingDictionary());
         }
     }
 }
