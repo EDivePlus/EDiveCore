@@ -1,4 +1,8 @@
 using DG.Tweening;
+using DG.Tweening.Core;
+using DG.Tweening.Plugins.Options;
+using EDIVE.NativeUtils;
+using UnityEngine;
 
 namespace EDIVE.Tweening
 {
@@ -26,6 +30,30 @@ namespace EDIVE.Tweening
                 
                 alreadyTriggered = true;
             }
+        }
+
+        public static TweenerCore<Vector3, Vector3, VectorOptions> DOMoveXY(
+            this Transform target,
+            Vector3 endValue,
+            float duration)
+        {
+            return DOTween.To(() => target.position, x => target.position = target.position.WithXY(x.x, x.y), endValue, duration);
+        }
+
+        public static TweenerCore<Vector3, Vector3, VectorOptions> DOMoveXZ(
+            this Transform target,
+            Vector3 endValue,
+            float duration)
+        {
+            return DOTween.To(() => target.position, x => target.position = target.position.WithXZ(x.x, x.z), endValue, duration);
+        }
+
+        public static TweenerCore<Vector3, Vector3, VectorOptions> DOMoveYZ(
+            this Transform target,
+            Vector3 endValue,
+            float duration)
+        {
+            return DOTween.To(() => target.position, x => target.position = target.position.WithYZ(x.y, x.z), endValue, duration);
         }
     }
 }
