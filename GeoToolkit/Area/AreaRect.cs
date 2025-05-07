@@ -6,9 +6,12 @@ using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using ProtoGIS.Scripts.Utils;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
 using UnityEngine.Serialization;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.GeoToolkit.Area
 {
