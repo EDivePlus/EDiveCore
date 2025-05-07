@@ -45,9 +45,7 @@ namespace UVRN.Player
             _networkManager = AppCore.Services.Get<MasterNetworkManager>();
             _networkSceneManager = AppCore.Services.Get<NetworkSceneManager>();
 
-
             _networkManager.ServerStarted.AddListener(Server_OnStart);
-            _networkManager.ServerClientDisconnecting.AddListener(Server_RemovePlayer);
 
             _networkManager.ClientStarted.AddListener(Client_OnStart);
             _networkSceneManager.ClientSceneChanged.AddListener(Client_OnSceneChanged);
@@ -69,7 +67,6 @@ namespace UVRN.Player
             if (AppCore.Services.TryGet(out _networkManager))
             {
                 _networkManager.ServerStarted.RemoveListener(Server_OnStart);
-                _networkManager.ServerClientDisconnecting.RemoveListener(Server_RemovePlayer);
                 _networkManager.ClientStarted.RemoveListener(Client_OnStart);
                 _networkManager.ClientStopped.RemoveListener(Client_OnStop);
             }
@@ -85,18 +82,6 @@ namespace UVRN.Player
         {
             Client_ConnectedPlayers.TryGetValue(id, out player);
             return player != null;
-        }
-
-
-        private void Server_RemovePlayer(NetworkConnection conn)
-        {
-            // conn.identity should be the player object
-            var player = conn.identity?.GetComponent<NetworkPlayerController>();
-            if (player != null)
-            {
-                Debug.LogError("Non-critical: Could not remove null player");
-                return;
-            }
         }
 
         public void Server_OnStart()
