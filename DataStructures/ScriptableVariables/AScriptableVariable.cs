@@ -2,14 +2,9 @@
 // Created: 06.05.2025
 
 using System;
-using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Signals;
 using Sirenix.OdinInspector;
 using UnityEngine;
-
-#if UNITY_EDITOR
-using EDIVE.EditorUtils;
-#endif
 
 namespace EDIVE.DataStructures.ScriptableVariables
 {
@@ -22,18 +17,6 @@ namespace EDIVE.DataStructures.ScriptableVariables
 
         public abstract bool TrySetObjectValue(object value);
         public abstract object GetObjectValue();
-
-#if UNITY_EDITOR
-        [ExecuteOnReload(-1000)]
-        private static void OnReload()
-        {
-            var variables = EditorAssetUtils.FindAllAssetsOfType<AScriptableVariable>();
-            foreach (var variable in variables)
-            {
-                variable.Clear();
-            }
-        }
-#endif
     }
 
     public abstract class AScriptableVariable<T> : AScriptableVariable
@@ -95,17 +78,5 @@ namespace EDIVE.DataStructures.ScriptableVariables
         {
             return Value.ToString();
         }
-
-#if UNITY_EDITOR
-        [ExecuteOnReload(-1000)]
-        private static void OnReload()
-        {
-            var variables = EditorAssetUtils.FindAllAssetsOfType<AScriptableVariable>();
-            foreach (var variable in variables)
-            {
-                variable.Clear();
-            }
-        }
-#endif
     }
 }
