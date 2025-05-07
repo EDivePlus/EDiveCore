@@ -26,10 +26,11 @@ namespace EDIVE.XRTools
         public Transform LeftController => _LeftController;
         public Transform RightController => _RightController;
 
-        protected override void Awake()
+         protected override void Awake()
         {
             base.Awake();
-            _XREnabledToggle.SetState(UnityEngine.XR.XRSettings.enabled);
+            if (_XREnabledToggle)
+                _XREnabledToggle.SetState(UnityEngine.XR.XRSettings.enabled);
         }
     }
 }
