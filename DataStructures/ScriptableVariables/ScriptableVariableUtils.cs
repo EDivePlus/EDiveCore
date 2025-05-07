@@ -1,8 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 07.05.2025
 
-using EDIVE.EditorUtils;
+#if UNITY_EDITOR
 using EDIVE.External.DomainReloadHelper;
+using EDIVE.EditorUtils;
+#endif
 
 namespace EDIVE.DataStructures.ScriptableVariables
 {
