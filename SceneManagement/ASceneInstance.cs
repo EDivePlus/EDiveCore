@@ -3,6 +3,7 @@
 
 using System;
 using Cysharp.Threading.Tasks;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,11 +11,14 @@ namespace EDIVE.SceneManagement
 {
     public abstract class ASceneInstance
     {
+        [ShowInInspector]
         public abstract ASceneDefinition BaseDefinition { get; }
 
+        [ShowInInspector]
         public SceneLoadState LoadState { get; private set; } = SceneLoadState.NotLoaded;
         public abstract Scene Scene { get; }
 
+        [Button]
         public async UniTask Load(bool setActive = true)
         {
             if (!BaseDefinition.IsValid())
@@ -47,6 +51,7 @@ namespace EDIVE.SceneManagement
             if (setActive) SetActive();
         }
 
+        [Button]
         public async UniTask Unload()
         {
             if (LoadState != SceneLoadState.Loaded)
@@ -74,7 +79,8 @@ namespace EDIVE.SceneManagement
             
             LoadState = SceneLoadState.NotLoaded;
         }
-        
+
+        [Button]
         public void SetActive()
         {
             if (LoadState != SceneLoadState.Loaded)

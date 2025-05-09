@@ -2,6 +2,7 @@
 // Created: 11.04.2025
 
 using EDIVE.OdinExtensions.Attributes;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,7 +10,8 @@ namespace EDIVE.SceneManagement
 {
     public class DirectSceneDefinition : ASceneDefinition
     {
-        [SceneReference(SceneReferenceType.Path, true)]
+        [ValidateInput(nameof(IsValid), "Scene not in build settings!", InfoMessageType.Warning)]
+        [SceneReference(SceneReferenceType.Path)]
         [SerializeField]
         private string _SceneAsset;
         
