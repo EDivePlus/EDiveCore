@@ -3,7 +3,12 @@
     "rootNamespace": "",
     "references": [
         "EDIVE.StateHandling",
-        "EDIVE.Core"
+        "EDIVE.NativeUtils",
+        "EDIVE.Core",
+        "EDIVE.OdinExtensions",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.Interaction.Toolkit.Editor",
+        "EDIVE.OdinExtensions.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

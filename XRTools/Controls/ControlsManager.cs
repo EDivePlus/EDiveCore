@@ -1,6 +1,8 @@
 using EDIVE.Core.Services;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 namespace EDIVE.XRTools.Controls
 {
@@ -12,8 +14,18 @@ namespace EDIVE.XRTools.Controls
         [SerializeField]
         private ControlsHandler _HeadsetControls;
 
+        [PropertySpace]
+        [SerializeField]
+        private XRInteractionManager _InteractionManager;
+
+        [SerializeField]
+        private TeleportationProvider _TeleportationProvider;
+
         [ShowInInspector]
         public bool XREnabled => UnityEngine.XR.XRSettings.enabled;
+
+        public XRInteractionManager InteractionManager => _InteractionManager;
+        public TeleportationProvider TeleportationProvider => _TeleportationProvider;
 
         public ControlsHandler Controls => XREnabled ? _HeadsetControls : _DesktopControls;
 
