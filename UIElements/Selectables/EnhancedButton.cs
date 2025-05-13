@@ -5,6 +5,10 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
+#if UNITY_EDITOR
+using EDIVE.OdinExtensions.Editor;
+#endif
+
 namespace EDIVE.UIElements.Selectables
 {
     public class EnhancedButton : Button
@@ -24,6 +28,6 @@ namespace EDIVE.UIElements.Selectables
 #if UNITY_EDITOR
     [UnityEditor.CustomEditor(typeof(EnhancedButton))]
     [UnityEditor.CanEditMultipleObjects]
-    public class EnhancedButtonEditor : EnhancedSelectableEditor<Button, UnityEditor.UI.ButtonEditor> { }
+    public class EnhancedButtonEditor : NativeWrapperOdinEditor<Button, UnityEditor.UI.ButtonEditor> { }
 #endif
 }

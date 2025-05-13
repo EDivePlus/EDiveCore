@@ -6,6 +6,10 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
+#if UNITY_EDITOR
+using EDIVE.OdinExtensions.Editor;
+#endif
+
 namespace EDIVE.UIElements.Selectables
 {
     public class EnhancedToggle : Toggle
@@ -49,6 +53,6 @@ namespace EDIVE.UIElements.Selectables
 #if UNITY_EDITOR
     [UnityEditor.CustomEditor(typeof(EnhancedToggle))]
     [UnityEditor.CanEditMultipleObjects]
-    public class EnhancedToggleEditor : EnhancedSelectableEditor<Toggle, UnityEditor.UI.ToggleEditor> { }
+    public class EnhancedToggleEditor : NativeWrapperOdinEditor<Toggle, UnityEditor.UI.ToggleEditor> { }
 #endif
 }

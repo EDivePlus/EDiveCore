@@ -1,20 +1,17 @@
 ﻿// Author: František Holubec
-// Created: 25.04.2025
+// Created: 13.05.2025
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
-using UnityEditor;
-using UnityEditor.UI;
 using UnityEngine;
-using UnityEngine.UI;
 
-namespace EDIVE.UIElements.Selectables
+namespace EDIVE.OdinExtensions.Editor
 {
-    public class EnhancedSelectableEditor<T, TEditor> : OdinEditor
-        where T : Selectable
-        where TEditor : SelectableEditor
+    public class NativeWrapperOdinEditor<T, TEditor> : OdinEditor
+        where T : Object
+        where TEditor : UnityEditor.Editor
     {
-        private Editor _unityEditor;
+        private UnityEditor.Editor _unityEditor;
 
         protected override void OnEnable()
         {
