@@ -33,15 +33,15 @@ namespace EDIVE.UIElements.Selectables
 
             _tweener?.Kill();
 #if UNITY_EDITOR
-            if (!Application.isPlaying) DOTweenEditorPreview.RemoveTweenFromPreview(_tweener);
+            if (!Application.isPlaying) DoTweenEditorPreview.RemoveTweenFromPreview(_tweener);
 #endif
             _tweener = _Preset.CreateSequence(state, _References, instant);
             _tweener.Play();
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
-                DOTweenEditorPreview.PrepareTweenForPreview(_tweener);
-                DOTweenEditorPreview.Start();
+                DoTweenEditorPreview.PrepareTweenForPreview(_tweener);
+                DoTweenEditorPreview.Start();
             }
 #endif
             if (instant)
@@ -49,7 +49,7 @@ namespace EDIVE.UIElements.Selectables
                 _tweener?.Complete(true);
                 _tweener?.Kill();
 #if UNITY_EDITOR
-                if (!Application.isPlaying) DOTweenEditorPreview.RemoveTweenFromPreview(_tweener);
+                if (!Application.isPlaying) DoTweenEditorPreview.RemoveTweenFromPreview(_tweener);
 #endif
                 _tweener = null;
             }

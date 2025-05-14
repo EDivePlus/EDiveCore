@@ -284,8 +284,8 @@ namespace EDIVE.Tweening
             Rewind();
             KillEditorPreview();
             var tweener = PlayInternal();
-            DOTweenEditorPreview.PrepareTweenForPreview(_tweener);
-            DOTweenEditorPreview.Start();
+            DoTweenEditorPreview.PrepareTweenForPreview(_tweener);
+            DoTweenEditorPreview.Start();
             return tweener;
         }
 
@@ -294,7 +294,7 @@ namespace EDIVE.Tweening
             // Complete called manually to invoke callbacks!
             if (complete) _tweener?.Complete(true);
             _tweener?.Kill();
-            DOTweenEditorPreview.RemoveTweenFromPreview(_tweener);
+            DoTweenEditorPreview.RemoveTweenFromPreview(_tweener);
             _tweener = null;
         }
 #endif
