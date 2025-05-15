@@ -88,5 +88,25 @@ namespace EDIVE.NativeUtils
         {
             return new Vector3(1 / vector.x, 1 / vector.y, 1 / vector.z);
         }
+
+        public static Vector3 Clamp(this Vector3 value, Vector3 min, Vector3 max)
+        {
+            return new Vector3(Mathf.Clamp(value.x, min.x, max.x), Mathf.Clamp(value.y, min.y, max.y), Mathf.Clamp(value.z, min.z, max.z));
+        }
+
+        public static Vector3 ClampRange(this Vector3 value, Vector2 xRange, Vector2 yRange, Vector2 zRange)
+        {
+            return new Vector3(Mathf.Clamp(value.x, xRange.x, xRange.y), Mathf.Clamp(value.y, yRange.x, yRange.y), Mathf.Clamp(value.z, zRange.x, zRange.y));
+        }
+
+        public static Vector2 Clamp(this Vector2 value, Vector2 min, Vector2 max)
+        {
+            return new Vector3(Mathf.Clamp(value.x, min.x, max.x), Mathf.Clamp(value.y, min.y, max.y));
+        }
+
+        public static Vector2 ClampRange(this Vector2 value, Vector2 xRange, Vector2 yRange)
+        {
+            return new Vector3(Mathf.Clamp(value.x, xRange.x, xRange.y), Mathf.Clamp(value.y, yRange.x, yRange.y));
+        }
     }
 }
