@@ -11,7 +11,8 @@
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.AppLoading",
         "UniTask",
-        "Unity.XR.CoreUtils"
+        "Unity.XR.CoreUtils",
+        "EDIVE.External.ToolbarExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
