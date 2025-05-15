@@ -8,7 +8,9 @@
         "EDIVE.OdinExtensions",
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.Interaction.Toolkit.Editor",
-        "EDIVE.OdinExtensions.Editor"
+        "EDIVE.OdinExtensions.Editor",
+        "EDIVE.AppLoading",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
