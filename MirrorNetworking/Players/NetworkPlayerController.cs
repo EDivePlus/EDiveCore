@@ -1,10 +1,13 @@
 ﻿// Author: František Holubec
 // Created: 23.04.2025
-
+using EDIVE.AssetTranslation;
+using EDIVE.Avatars.Scripts;
+using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
 using Mirror;
 using UnityEngine;
 using UVRN.Player;
+using EDIVE.XRTools.Controls;
 
 namespace EDIVE.MirrorNetworking.Players
 {
@@ -15,6 +18,11 @@ namespace EDIVE.MirrorNetworking.Players
     {
         [SerializeField]
         private AToggleState _LocalPlayerToggle;
+        
+        [SerializeField]
+        private Transform _AvatarRoot;
+
+        private GameObject _avatarInstance;
 
         [SyncVar(hook = nameof(HandleColorChanged))]
         private Color _color = Color.white;
@@ -85,6 +93,67 @@ namespace EDIVE.MirrorNetworking.Players
             HandleRoleChanged(_role, profile.role);
             HandleVisibleChanged(_modelVisible, profile.visibleAvatar);
             HandleConnectionIDChanged(_connectionID, connectionId);
+        }
+                public override void OnStartLocalPlayer()
+        {
+            if (_LocalPlayerToggle)
+                _LocalPlayerToggle.SetState(true);
+
+            SpawnAvatarFromProfile();
+        }
+
+        private void SpawnAvatarFromProfile()
+        {
+            var profile = PlayerProfileManager.LOCAL_PROFILE;
+
+            if (string.IsNullOrEmpty(profile.avatarId))
+            {
+                Debug.LogError("Avatar ID is missing in profile.");
+                return;
+            }
+
+            if (_AvatarRoot == null)
+            {
+                Debug.LogError("AvatarRoot is not set on NetworkPlayerController.");
+                return;
+            }
+
+            if (DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(profile.avatarId, out var def) && def.IsValid())
+            {
+                if (_avatarInstance != null)
+                    Destroy(_avatarInstance);
+
+                _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
+                _avatarInstance.name = def.AvatarPrefab.name;
+
+                Debug.Log($"[Avatar] '{_avatarInstance.name}' instantiated successfully under AvatarRoot.");
+
+                if (isLocalPlayer)
+                    TryAssignIKTargets(_avatarInstance);
+            }
+            else
+            {
+                Debug.LogError($"AvatarDefinition not found or invalid for ID: {profile.avatarId}");
+            }
+        }
+
+
+        private void TryAssignIKTargets(GameObject avatarInstance)
+        {
+            var ikRig = avatarInstance.GetComponentInChildren<IKTargetFollowVRRig>();
+            if (ikRig == null)
+            {
+                Debug.LogWarning("IKTargetFollowVRRig not found in avatar prefab.");
+                return;
+            }
+
+            var controls = AppCore.Services.Get<ControlsManager>().Controls;
+            ikRig.head.vrTarget = controls.HeadTargetIK;
+            ikRig.leftHand.vrTarget = controls.LeftHandTargetIK;
+            ikRig.rightHand.vrTarget = controls.RightHandTargetIK;
+
+
+            Debug.Log("IK rig successfully assigned to XR targets.");
         }
     }
 }

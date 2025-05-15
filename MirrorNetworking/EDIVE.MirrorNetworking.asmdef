@@ -16,7 +16,9 @@
         "Unity.ResourceManager",
         "UniTask",
         "Mirror",
-        "EDIVE.StateHandling"
+        "EDIVE.StateHandling",
+        "EDIVE.Avatars",
+        "EDIVE.XRTools"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
