@@ -70,13 +70,4 @@ namespace EDIVE.UIElements.Selectables
         }
 #endif
     }
-
-    public enum SelectionState
-    {
-        Normal,
-        Highlighted,
-        Pressed,
-        Selected,
-        Disabled,
-    }
 }
