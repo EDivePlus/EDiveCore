@@ -7,7 +7,6 @@ using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.StateValuePresets;
 using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor.Validation;
 using UnityEditor;
 using UnityEngine;
 
@@ -151,7 +150,7 @@ namespace EDIVE.StateHandling
                 .Select(p => new ValueDropdownItem<AStateValuePreset>(p.Title, p));
         }
         
-        public static void ValidateStateValuePresets(Type targetType, List<AStateValuePreset> value, ValidationResult result)
+        public static void ValidateStateValuePresets(Type targetType, List<AStateValuePreset> value, SelfValidationResult result)
         {
             foreach (var valuePreset in value)
             {

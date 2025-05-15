@@ -16,7 +16,6 @@ using UnityEngine;
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
 using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Validation;
 #endif
 
 namespace EDIVE.AssetTranslation
@@ -236,7 +235,7 @@ namespace EDIVE.AssetTranslation
         public string FolderPathFilter => _FilterFolders != null ? string.Join(";", _FilterFolders) : null;
 
         [UsedImplicitly]
-        protected virtual void ValidateDefinitions(List<TDefinition> definitions, ValidationResult result, InspectorProperty property)
+        protected virtual void ValidateDefinitions(List<TDefinition> definitions, SelfValidationResult result, InspectorProperty property)
         {
             if (definitions == null)
                 return;

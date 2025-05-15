@@ -8,13 +8,13 @@ using System.Text;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
+using Sirenix.OdinInspector;
 using Sirenix.Utilities;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Validation;
 #endif
 
 namespace EDIVE.AssetTranslation
@@ -38,7 +38,7 @@ namespace EDIVE.AssetTranslation
         private static void Initialize() => _ = Instance.name;
 
         [UsedImplicitly]
-        private void ValidateTranslators(List<ADefinitionTranslator> translators, ValidationResult result, InspectorProperty property)
+        private void ValidateTranslators(List<ADefinitionTranslator> translators, SelfValidationResult result, InspectorProperty property)
         {
             if (translators == null)
                 return;

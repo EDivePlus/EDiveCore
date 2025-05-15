@@ -1,14 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using EDIVE.OdinExtensions.Attributes;
-using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.StateValuePresets;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
-using Sirenix.OdinInspector.Editor.Validation;
 using UnityEditor;
 #endif
 
@@ -78,7 +76,7 @@ namespace EDIVE.StateHandling
         }
 
         [UsedImplicitly]
-        private void ValidateValuePresets(List<AStateValuePreset> value, ValidationResult result)
+        private void ValidateValuePresets(List<AStateValuePreset> value, SelfValidationResult result)
         {
             if (Target == null)
                 return;

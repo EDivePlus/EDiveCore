@@ -253,7 +253,7 @@ namespace EDIVE.AppLoading.LoadItems
         }
 
         [UsedImplicitly]
-        private void ValidateDependencies(ValidationResult result, InspectorProperty property)
+        private void ValidateDependencies(SelfValidationResult result, InspectorProperty property)
         {
             var visited = new HashSet<ALoadItemDefinition>();
             var path = new List<ALoadItemDefinition>();
@@ -291,7 +291,7 @@ namespace EDIVE.AppLoading.LoadItems
         }
 
         [UsedImplicitly]
-        private void ValidateDefinition(ValidationResult result, InspectorProperty property)
+        private void ValidateDefinition(SelfValidationResult result, InspectorProperty property)
         {
             if (!IsValid)
             {

@@ -8,10 +8,6 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-#if UNITY_EDITOR
-using Sirenix.OdinInspector.Editor.Validation;
-#endif
-
 namespace EDIVE.DataStructures.ScriptableVariables
 {
     public class ObjectVariableAssigner : MonoBehaviour
@@ -58,7 +54,7 @@ namespace EDIVE.DataStructures.ScriptableVariables
                 _Variable.TrySetObjectValue(_Value);
             }
 #if UNITY_EDITOR
-            private void ValidateValue(ValidationResult result)
+            private void ValidateValue(SelfValidationResult result)
             {
                 if (_Variable == null)
                     return;

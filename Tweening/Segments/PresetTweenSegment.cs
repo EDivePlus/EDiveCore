@@ -12,7 +12,6 @@ using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Validation;
 #endif
 
 namespace EDIVE.Tweening.Segments
@@ -47,7 +46,7 @@ namespace EDIVE.Tweening.Segments
         }
 
         [UsedImplicitly]
-        private void ValidatePreset(ValidationResult result, InspectorProperty property)
+        private void ValidatePreset(SelfValidationResult result, InspectorProperty property)
         {
             if (_Preset == null)
                 return;

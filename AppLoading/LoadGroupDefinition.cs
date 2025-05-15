@@ -10,7 +10,6 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
-using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities.Editor;
 #endif
 
@@ -180,7 +179,7 @@ namespace EDIVE.AppLoading
         }
 
         [UsedImplicitly]
-        private void ValidateDependencies(ValidationResult result)
+        private void ValidateDependencies(SelfValidationResult result)
         {
             var visited = new HashSet<LoadGroupDefinition>();
             var path = new List<LoadGroupDefinition>();
@@ -219,7 +218,7 @@ namespace EDIVE.AppLoading
         }
 
         [UsedImplicitly]
-        private void ValidateLoadItems(ValidationResult result)
+        private void ValidateLoadItems(SelfValidationResult result)
         {
             var duplicateItems = _LoadItems.GroupBy(i => i)
                 .Where(g => g.Count() > 1)

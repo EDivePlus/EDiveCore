@@ -14,7 +14,6 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
-using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities.Editor;
 #endif
 
@@ -173,7 +172,7 @@ namespace EDIVE.AppLoading
         }
 
         [UsedImplicitly]
-        private void ValidateGroups(ValidationResult result)
+        private void ValidateGroups(SelfValidationResult result)
         {
             var missingGroupTexts = new List<string>();
             foreach (var group in _Groups)

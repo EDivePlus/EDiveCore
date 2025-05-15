@@ -13,7 +13,6 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
-using Sirenix.OdinInspector.Editor.Validation;
 using UnityEditor;
 #endif
 
@@ -134,7 +133,7 @@ namespace EDIVE.Tweening.StateHandling
         }
 
         [UsedImplicitly]
-        private void ValidateValuePresets(List<AStateValuePreset> value, ValidationResult result)
+        private void ValidateValuePresets(List<AStateValuePreset> value, SelfValidationResult result)
         {
             if (_Target == null) return;
             StateControlEditorUtils.ValidateStateValuePresets(_Target.ValueType, value, result);
