@@ -2,6 +2,7 @@ using EDIVE.Core.Services;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 namespace EDIVE.XRTools.Controls
@@ -22,7 +23,7 @@ namespace EDIVE.XRTools.Controls
         private TeleportationProvider _TeleportationProvider;
 
         [ShowInInspector]
-        public bool XREnabled => UnityEngine.XR.XRSettings.enabled;
+        public bool XREnabled => UnityEngine.XR.XRSettings.enabled || XRInteractionSimulator.instance;
 
         public XRInteractionManager InteractionManager => _InteractionManager;
         public TeleportationProvider TeleportationProvider => _TeleportationProvider;
