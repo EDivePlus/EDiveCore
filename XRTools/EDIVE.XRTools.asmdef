@@ -10,7 +10,8 @@
         "Unity.XR.Interaction.Toolkit.Editor",
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.AppLoading",
-        "UniTask"
+        "UniTask",
+        "Unity.XR.CoreUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
