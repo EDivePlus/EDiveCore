@@ -85,10 +85,10 @@ namespace EDIVE.MirrorNetworking
 
         public override void OnServerDisconnect(NetworkConnectionToClient conn)
         {
-            Debug.Log($"Client disconnecting {conn.connectionId}");
+            Debug.Log($"Client disconnecting {conn?.connectionId}");
             ServerClientDisconnecting.Dispatch(conn);
             base.OnServerDisconnect(conn);
-            Debug.Log($"Client disconnected {conn.connectionId}");
+            Debug.Log($"Client disconnected {conn?.connectionId}");
             ServerClientDisconnected.Dispatch(conn);
         }
 
