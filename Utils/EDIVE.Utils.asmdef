@@ -5,7 +5,11 @@
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "Whinarn.UnityMeshSimplifier.Runtime",
-        "Unity.Formats.Fbx.Editor"
+        "Unity.Formats.Fbx.Editor",
+        "StompyRobot.SRDebugger",
+        "StompyRobot.SRF",
+        "Unity.XR.Interaction.Toolkit",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -19,6 +23,11 @@
             "name": "com.whinarn.unitymeshsimplifier",
             "expression": "",
             "define": "MESH_SIMPLIFIER"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "",
+            "define": "XR_INTERACTION_TOOLKIT"
         }
     ],
     "noEngineReferences": false
