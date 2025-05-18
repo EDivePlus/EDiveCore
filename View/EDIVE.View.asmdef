@@ -1,0 +1,17 @@
+{
+    "name": "EDIVE.View",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.Core",
+        "EDIVE.NativeUtils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
