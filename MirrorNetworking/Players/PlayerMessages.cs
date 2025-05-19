@@ -40,12 +40,4 @@ namespace UVRN.Player
     {
         public int playerID;
     }
-
-    public enum Role
-    {
-        None,
-        Host,
-        Cohost,
-        Participant
-    }
 }

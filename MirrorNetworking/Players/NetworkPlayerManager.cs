@@ -77,7 +77,6 @@ namespace UVRN.Player
             }
         }
 
-
         public static bool TryGetPlayer(uint id, out NetworkPlayerController player)
         {
             Client_ConnectedPlayers.TryGetValue(id, out player);
@@ -104,7 +103,7 @@ namespace UVRN.Player
         {
             if (!ValidateProfile(request.profile))
             {
-                Debug.Log("Player does not have permission to join.");
+                Debug.LogError("Player does not have permission to join.");
                 var invalidLoginResponse = new PlayerCreationFailedResponseMessage()
                 {
                     errorText = "Invalid login credentials"

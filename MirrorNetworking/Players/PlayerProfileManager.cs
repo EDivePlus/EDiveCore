@@ -222,7 +222,7 @@ namespace UVRN.Player
         {
             username = GetRandomName(),
             password = "",
-            role = "default",
+            role = "guest",
             color = Color.HSVToRGB(Random.Range(0f, 1f), .75f, .75f),
             visibleAvatar = true,
             avatarId = "AvatarPrefab",

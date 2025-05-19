@@ -115,8 +115,13 @@ namespace EDIVE.MirrorNetworking.Scenes
             UniTask.Void(async () =>
             {
                 ServerBeforeSceneChange.Dispatch();
-
                 NetworkServer.isLoadingScene = true;
+
+                if (_networkManager.mode == NetworkManagerMode.Host)
+                {
+                    ClientBeforeSceneChange.Dispatch();
+                    NetworkClient.isLoadingScene = true;
+                }
 
                 if (_currentScene != null)
                     await _currentScene.Unload();
@@ -141,6 +146,13 @@ namespace EDIVE.MirrorNetworking.Scenes
                 NetworkServer.SpawnObjects();
 
                 ServerSceneChanged.Dispatch();
+
+                if (_networkManager.mode == NetworkManagerMode.Host)
+                {
+                    NetworkClient.isLoadingScene = false;
+                    FinalizeClientSceneLoad();
+                    ClientSceneChanged.Dispatch();
+                }
             });
         }
 
@@ -180,6 +192,9 @@ namespace EDIVE.MirrorNetworking.Scenes
 
         private void ClientChangeScene(ASceneDefinition newSceneDef)
         {
+            if (NetworkServer.active)
+                return;
+
             if (!newSceneDef.IsValid())
             {
                 Debug.LogError($"Cannot change to invalid scene '{newSceneDef.UniqueID}'");
@@ -218,22 +233,27 @@ namespace EDIVE.MirrorNetworking.Scenes
                 await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
                 NetworkClient.isLoadingScene = false;
 
-                if (NetworkClient.isConnected)
-                {
-                    // always become ready.
-                    if (NetworkClient.connection.isAuthenticated && !NetworkClient.ready)
-                        NetworkClient.Ready();
-
-                    // Only call AddPlayer for normal scene changes, not additive load/unload
-                    if (NetworkClient.connection.isAuthenticated && _networkManager.autoCreatePlayer && NetworkClient.localPlayer == null)
-                    {
-                        // add player if existing one is null
-                        NetworkClient.AddPlayer();
-                    }
-                }
-
+                FinalizeClientSceneLoad();
                 ClientSceneChanged.Dispatch();
             });
         }
+
+        public virtual void FinalizeClientSceneLoad()
+        {
+            if (NetworkClient.isConnected)
+            {
+                // always become ready.
+                if (NetworkClient.connection.isAuthenticated && !NetworkClient.ready)
+                    NetworkClient.Ready();
+
+                // Only call AddPlayer for normal scene changes, not additive load/unload
+                if (NetworkClient.connection.isAuthenticated && _networkManager.autoCreatePlayer && NetworkClient.localPlayer == null)
+                {
+                    // add player if existing one is null
+                    NetworkClient.AddPlayer();
+                }
+            }
+        }
+
     }
 }
