@@ -1,7 +1,9 @@
 {
     "name": "EDIVE.External.Signals",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "UniTask"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
