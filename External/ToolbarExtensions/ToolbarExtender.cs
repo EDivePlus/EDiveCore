@@ -20,22 +20,12 @@ namespace EDIVE.External.ToolbarExtensions
         private static FieldInfo _rootField;
         private static FieldInfo RootField => _rootField ??= ToolbarType.GetField("m_Root", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        private static MethodInfo _repaintMethod;
-        private static MethodInfo RepaintMethod => _repaintMethod ??= ToolbarType.GetMethod("Repaint", BindingFlags.Instance | BindingFlags.Public);
-
-        private static int _lastRebuildHash;
-        private static int _newRebuildHash;
-
         private static ScriptableObject _currentToolbar;
 
         private static List<PriorityAction> _leftToolbarActions = new();
         private static List<PriorityAction> _rightToolbarActions = new();
 
-        public static void RepaintToolbar()
-        {
-            if (_currentToolbar != null)
-                RepaintMethod?.Invoke(_currentToolbar, null);
-        }
+        private static List<VisualElement> _currentVisualElements = new();
 
         public static void AddToRightToolbar(Action action, int priority) => AddToToolbar(_rightToolbarActions, action, priority);
         public static void AddToLeftToolbar(Action action, int priority) => AddToToolbar(_leftToolbarActions, action, priority);
@@ -48,23 +38,29 @@ namespace EDIVE.External.ToolbarExtensions
 
         [DidReloadScripts]
         [InitializeOnLoadMethod]
-        public static void Reload()
+        [MenuItem("Tools/Reload Toolbar Extender", priority = 200)]
+        private static void Reload()
         {
+            _currentToolbar = null;
+            foreach (var currentVisualElement in _currentVisualElements)
+                currentVisualElement.RemoveFromHierarchy();
+            _currentVisualElements.Clear();
+
             EditorApplication.update -= OnUpdate;
             EditorApplication.update += OnUpdate;
 
             AddToLeftToolbar(GUILayout.FlexibleSpace, 0);
             AddToRightToolbar(GUILayout.FlexibleSpace, 0);
         }
-        
+
         private static void OnUpdate()
         {
-            if (_currentToolbar != null)
+            if (_currentToolbar)
                 return;
 
             var toolbars = Resources.FindObjectsOfTypeAll(ToolbarType);
             _currentToolbar = toolbars.Length > 0 ? (ScriptableObject) toolbars[0] : null;
-            if (_currentToolbar == null)
+            if (!_currentToolbar)
                 return;
 
             if (RootField == null)
@@ -78,12 +74,18 @@ namespace EDIVE.External.ToolbarExtensions
 
         private static void RegisterCallback(VisualElement root, string rootElement, Action callback)
         {
-            RegisterCallback(root, rootElement, callback, (toolbar, container) => { toolbar.Add(container); });
+            RegisterCallback(root, rootElement, callback, (toolbar, container) =>
+            {
+                toolbar.Add(container);
+            });
         }
 
         private static void RegisterCallback(VisualElement root, string rootElement, Action callback, int index)
         {
-            RegisterCallback(root, rootElement, callback, (toolbar, container) => { toolbar.Insert(index, container); });
+            RegisterCallback(root, rootElement, callback, (toolbar, container) =>
+            {
+                toolbar.Insert(index, container);
+            });
         }
 
         private static void RegisterCallback(VisualElement root, string rootElement, Action callback, Action<VisualElement, VisualElement> registerAction)
@@ -108,6 +110,7 @@ namespace EDIVE.External.ToolbarExtensions
             container.onGUIHandler += () => { callback?.Invoke(); };
             parent.Add(container);
             registerAction?.Invoke(toolbarZone, parent);
+            _currentVisualElements.Add(parent);
         }
 
         private static void DrawLeftGUI() => DrawGUI(_leftToolbarActions);
