@@ -7,16 +7,13 @@ using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
 using EDIVE.MirrorNetworking.Scenes;
 using EDIVE.MirrorNetworking.Utils;
-using EDIVE.OdinExtensions.Attributes;
-using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace EDIVE.MirrorNetworking
 {
     [Serializable]
     public class NetworkStartLoader : ILoadable
     {
-        public UniTask Load(Action<float> progressCallback)
+        public async UniTask Load(Action<float> progressCallback)
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
             var sceneManager = AppCore.Services.Get<NetworkSceneManager>();
@@ -24,19 +21,20 @@ namespace EDIVE.MirrorNetworking
             {
                 case NetworkRuntimeMode.Server:
                     networkManager.StartServer();
+                    await sceneManager.ClientSceneChanged.Await();
                     break;
 
                 case NetworkRuntimeMode.Host:
                     networkManager.StartHost();
+                    await sceneManager.ClientSceneChanged.Await();
                     break;
 
                 case NetworkRuntimeMode.Client:
-                    sceneManager.LoadOfflineScene();
+                    await sceneManager.LoadOfflineScene();
                     break;
 
                 default: throw new ArgumentOutOfRangeException();
             }
-            return UniTask.CompletedTask;
         }
     }
 }

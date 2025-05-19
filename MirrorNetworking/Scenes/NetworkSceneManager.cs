@@ -49,7 +49,6 @@ namespace EDIVE.MirrorNetworking.Scenes
             return UniTask.CompletedTask;
         }
 
-
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
@@ -178,16 +177,13 @@ namespace EDIVE.MirrorNetworking.Scenes
             }
         }
 
-        public void LoadOfflineScene()
+        public async UniTask LoadOfflineScene()
         {
-            UniTask.Void(async () =>
-            {
-                if (_currentScene != null)
-                    await _currentScene.Unload();
+            if (_currentScene != null)
+                await _currentScene.Unload();
 
-                _currentScene = _OfflineScene.CreateInstance();
-                await _currentScene.Load();
-            });
+            _currentScene = _OfflineScene.CreateInstance();
+            await _currentScene.Load();
         }
 
         private void ClientChangeScene(ASceneDefinition newSceneDef)
