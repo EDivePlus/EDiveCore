@@ -26,6 +26,8 @@ namespace UVRN.Player
         [SerializeField]
         private NetworkPlayerConfig _PlayerConfig;
 
+
+        public NetworkPlayerConfig PlayerConfig => _PlayerConfig;
         private NetworkSceneManager _networkSceneManager;
         private MasterNetworkManager _networkManager;
 
