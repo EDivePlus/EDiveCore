@@ -16,8 +16,6 @@ namespace EDIVE.AppLoading
 {
     public class AppLoaderController : MonoBehaviour, IService
     {
-        public const string PERSISTENT_SCENE_NAME = "PersistentStage";
-
         [SerializeField]
         [ShowCreateNew]
         private LoadSetupDefinition _Setup;
@@ -48,13 +46,6 @@ namespace EDIVE.AppLoading
 
             var validLoadItems = Setup.GetValidLoadItems().ToList();
             _totalLoadWeight = CalculateTotalLoadWeight();
-
-            var persistentScene = SceneManager.CreateScene(PERSISTENT_SCENE_NAME);
-            SceneManager.SetActiveScene(persistentScene);
-
-            var gameInstance = AppCore.Instance.gameObject;
-            SceneManager.MoveGameObjectToScene(gameInstance, persistentScene);
-            gameInstance.transform.SetAsFirstSibling();
 
             await OnLoadStarting();
 
@@ -89,12 +80,12 @@ namespace EDIVE.AppLoading
             Application.runInBackground = prevRunInBackground;
             AppCore.SetLoadCompleted();
 
-            DebugLite.Log("[AppLoader] Unloading scene");
-            await SceneManager.UnloadSceneAsync(gameObject.scene);
-
             AppCore.Services.Unregister<AppLoaderController>();
             GC.Collect();
             DebugLite.Log("[AppLoader] Load completed");
+
+            await UniTask.Yield();
+            Destroy(gameObject);
         }
 
         protected virtual UniTask OnLoadStarting()
