@@ -1,14 +1,16 @@
 ﻿// Author: František Holubec
 // Created: 15.05.2025
 
-using EDIVE.External.ToolbarExtensions;
-using EDIVE.OdinExtensions;
-using Sirenix.Utilities;
-using Sirenix.Utilities.Editor;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Scripting;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
+using EDIVE.OdinExtensions;
+
+#if UNITY_EDITOR
+using EDIVE.External.ToolbarExtensions;
+using UnityEditor;
+using Sirenix.Utilities.Editor;
+#endif
 
 namespace EDIVE.XRTools.DeviceSimulator
 {
@@ -36,6 +38,7 @@ namespace EDIVE.XRTools.DeviceSimulator
             Object.DontDestroyOnLoad(simulatorInstance);
         }
 
+#if UNITY_EDITOR
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
@@ -55,5 +58,7 @@ namespace EDIVE.XRTools.DeviceSimulator
             }
             GUILayout.Space(2);
         }
+#endif
+
     }
 }
