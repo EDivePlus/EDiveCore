@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
-using UnityEditor.Callbacks;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Debug = UnityEngine.Debug;
@@ -36,7 +35,6 @@ namespace EDIVE.External.ToolbarExtensions
             toolbarList.Sort();
         }
 
-        [DidReloadScripts]
         [InitializeOnLoadMethod]
         [MenuItem("Tools/Reload Toolbar Extender", priority = 200)]
         private static void Reload()
@@ -55,6 +53,11 @@ namespace EDIVE.External.ToolbarExtensions
 
         private static void OnUpdate()
         {
+            CheckToolbarHooked();
+        }
+
+        private static void CheckToolbarHooked()
+        {
             if (_currentToolbar)
                 return;
 
@@ -66,9 +69,11 @@ namespace EDIVE.External.ToolbarExtensions
             if (RootField == null)
                 return;
 
-            ToolbarVisualElement = RootField.GetValue(_currentToolbar) as VisualElement;
+            ToolbarVisualElement = (VisualElement) RootField.GetValue(_currentToolbar);
             RegisterCallback(ToolbarVisualElement, "ToolbarZoneLeftAlign", DrawLeftGUI);
             RegisterCallback(ToolbarVisualElement, "ToolbarZoneRightAlign", DrawRightGUI);
+
+            ToolbarVisualElement.RegisterCallback<DetachFromPanelEvent>(_ => _currentToolbar = null);
             Refreshed?.Invoke();
         }
 
