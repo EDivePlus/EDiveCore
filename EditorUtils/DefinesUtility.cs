@@ -22,7 +22,6 @@ namespace EDIVE.EditorUtils
             NamedBuildTarget.tvOS,
             NamedBuildTarget.VisionOS,
             NamedBuildTarget.NintendoSwitch,
-            NamedBuildTarget.Stadia,
             NamedBuildTarget.LinuxHeadlessSimulation,
             NamedBuildTarget.EmbeddedLinux,
             NamedBuildTarget.QNX,

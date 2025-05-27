@@ -2,7 +2,6 @@
 // Created: 23.04.2025
 
 using Cysharp.Threading.Tasks;
-using UnityEngine.Android;
 
 #if UNITY_ANDROID
 using UnityEngine.Android;
@@ -23,11 +22,12 @@ namespace EDIVE.VoiceChat
             var completionSource = new UniTaskCompletionSource<bool>();
             callbacks.PermissionGranted += _ => completionSource.TrySetResult(true);
             callbacks.PermissionDenied += _ => completionSource.TrySetResult(false);
-            callbacks.PermissionDeniedAndDontAskAgain += _ => completionSource.TrySetResult(false);
 
             return await completionSource.Task;
-#endif
+#else
             return true;
+#endif
+
         }
     }
 }
