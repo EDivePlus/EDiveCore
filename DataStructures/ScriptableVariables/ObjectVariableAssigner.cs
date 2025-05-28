@@ -15,10 +15,19 @@ namespace EDIVE.DataStructures.ScriptableVariables
         [SerializeField]
         [EnhancedTableList(ShowFoldout = false)]
         private List<ObjectVariableRecord> _Records;
+        
+        [SerializeField]
+        private VariableAssignLifetime _Lifetime;
+            
 
         private void Awake()
         {
-            AssignReferences();
+            if (_Lifetime == VariableAssignLifetime.Full) AssignReferences();
+        }
+
+        private void OnEnable()
+        {
+            if (_Lifetime == VariableAssignLifetime.Enabled) AssignReferences();
         }
 
         private void AssignReferences()
@@ -31,6 +40,7 @@ namespace EDIVE.DataStructures.ScriptableVariables
                 record.Assign();
             }
         }
+        
 
         [Serializable]
         public class ObjectVariableRecord
