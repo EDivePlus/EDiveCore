@@ -18,7 +18,8 @@
         "Mirror",
         "EDIVE.StateHandling",
         "EDIVE.Avatars",
-        "EDIVE.XRTools"
+        "EDIVE.XRTools",
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

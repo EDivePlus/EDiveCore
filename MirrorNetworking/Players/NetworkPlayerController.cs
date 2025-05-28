@@ -1,8 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 23.04.2025
+
 using EDIVE.AssetTranslation;
 using EDIVE.Avatars.Scripts;
 using EDIVE.Core;
+using EDIVE.DataStructures.ScriptableVariables;
 using EDIVE.StateHandling.ToggleStates;
 using Mirror;
 using UnityEngine;
@@ -18,9 +20,19 @@ namespace EDIVE.MirrorNetworking.Players
     {
         [SerializeField]
         private AToggleState _LocalPlayerToggle;
-        
+
         [SerializeField]
         private Transform _AvatarRoot;
+
+        [SerializeField]
+        private TransformScriptableVariable _Head;
+
+        [SerializeField]
+        private TransformScriptableVariable _LeftHand;
+
+        [SerializeField]
+        private TransformScriptableVariable _RightHand;
+
 
         private GameObject _avatarInstance;
 
@@ -39,34 +51,60 @@ namespace EDIVE.MirrorNetworking.Players
         [SyncVar(hook = nameof(HandleConnectionIDChanged))]
         private int _connectionID = -1;
 
+        [SyncVar(hook = nameof(HandleAvatarChanged))]
+        private string _avatarID;
+
         public string Username => _username;
         public string Role => _role;
         public Color Color => _color;
         public int ConnectionID => _connectionID;
+        public string AvatarID => _avatarID;
 
-        public void HandleUsernameChanged(string oldValue, string newValue)
-        {
-            _username = newValue;
-        }
+        public void HandleUsernameChanged(string oldValue, string newValue) { _username = newValue; }
 
-        public void HandleRoleChanged(string oldValue, string newValue)
-        {
-            _role = newValue;
-        }
+        public void HandleRoleChanged(string oldValue, string newValue) { _role = newValue; }
 
-        public void HandleVisibleChanged(bool oldValue, bool newValue)
-        {
-            _modelVisible = newValue;
-        }
+        public void HandleVisibleChanged(bool oldValue, bool newValue) { _modelVisible = newValue; }
 
-        public void HandleColorChanged(Color oldValue, Color newValue)
-        {
-            _color = newValue;
-        }
+        public void HandleColorChanged(Color oldValue, Color newValue) { _color = newValue; }
 
-        public void HandleConnectionIDChanged(int oldValue, int newValue)
+        public void HandleConnectionIDChanged(int oldValue, int newValue) { _connectionID = newValue; }
+
+        public void HandleAvatarChanged(string oldValue, string newValue)
         {
-            _connectionID = newValue;
+            _avatarID = newValue; 
+
+            if (string.IsNullOrEmpty(_avatarID))
+            {
+                Debug.LogError("Avatar ID is missing in profile.");
+                return;
+            }
+
+            if (_AvatarRoot == null)
+            {
+                Debug.LogError("AvatarRoot is not set on NetworkPlayerController.");
+                return;
+            }
+
+            if (DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(_avatarID, out var def) && def.IsValid())
+            {
+                if (_avatarInstance != null)
+                    Destroy(_avatarInstance);
+
+                _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
+                _avatarInstance.name = def.AvatarPrefab.name;
+
+                Debug.Log($"[Avatar] '{_avatarInstance.name}' instantiated successfully under AvatarRoot.");
+
+                if (isLocalPlayer)
+                    TryAssignIKTargets(_avatarInstance);
+                var vis = _avatarInstance.AddComponent<SelfVisibility>();
+            }
+            else
+            {
+                Debug.LogError($"AvatarDefinition not found or invalid for ID: {_avatarID}");
+            }
+            
         }
 
         public override void OnStartClient()
@@ -80,7 +118,7 @@ namespace EDIVE.MirrorNetworking.Players
         public override void OnStopClient()
         {
             //Client_ConnectedPlayers.Remove(id);
-           // Client_OnPlayerLeft.Invoke(id);
+            // Client_OnPlayerLeft.Invoke(id);
         }
 
         // Done according to https://mirror-networking.gitbook.io/docs/guides/gameobjects/custom-character-spawning
@@ -93,51 +131,16 @@ namespace EDIVE.MirrorNetworking.Players
             HandleRoleChanged(_role, profile.role);
             HandleVisibleChanged(_modelVisible, profile.visibleAvatar);
             HandleConnectionIDChanged(_connectionID, connectionId);
+            
+            HandleAvatarChanged(_avatarID, profile.avatarId);
         }
-                public override void OnStartLocalPlayer()
+
+        public override void OnStartLocalPlayer()
         {
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(true);
-
-            SpawnAvatarFromProfile();
         }
-
-        private void SpawnAvatarFromProfile()
-        {
-            var profile = PlayerProfileManager.LOCAL_PROFILE;
-
-            if (string.IsNullOrEmpty(profile.avatarId))
-            {
-                Debug.LogError("Avatar ID is missing in profile.");
-                return;
-            }
-
-            if (_AvatarRoot == null)
-            {
-                Debug.LogError("AvatarRoot is not set on NetworkPlayerController.");
-                return;
-            }
-
-            if (DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(profile.avatarId, out var def) && def.IsValid())
-            {
-                if (_avatarInstance != null)
-                    Destroy(_avatarInstance);
-
-                _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
-                _avatarInstance.name = def.AvatarPrefab.name;
-
-                Debug.Log($"[Avatar] '{_avatarInstance.name}' instantiated successfully under AvatarRoot.");
-
-                if (isLocalPlayer)
-                    TryAssignIKTargets(_avatarInstance);
-            }
-            else
-            {
-                Debug.LogError($"AvatarDefinition not found or invalid for ID: {profile.avatarId}");
-            }
-        }
-
-
+        
         private void TryAssignIKTargets(GameObject avatarInstance)
         {
             var ikRig = avatarInstance.GetComponentInChildren<IKTargetFollowVRRig>();
@@ -147,10 +150,13 @@ namespace EDIVE.MirrorNetworking.Players
                 return;
             }
 
-            var controls = AppCore.Services.Get<ControlsManager>().Controls;
-            ikRig.head.vrTarget = controls.HeadTargetIK;
-            ikRig.leftHand.vrTarget = controls.LeftHandTargetIK;
-            ikRig.rightHand.vrTarget = controls.RightHandTargetIK;
+            ikRig.head.vrTarget = _Head;
+            ikRig.leftHand.vrTarget = _LeftHand;
+            ikRig.rightHand.vrTarget = _RightHand;
+
+            _Head.ValueChanged.AddListener(() => ikRig.head.vrTarget = _Head);
+            _LeftHand.ValueChanged.AddListener(() => ikRig.leftHand.vrTarget = _LeftHand);
+            _RightHand.ValueChanged.AddListener(() => ikRig.rightHand.vrTarget = _RightHand);
 
 
             Debug.Log("IK rig successfully assigned to XR targets.");
