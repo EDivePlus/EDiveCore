@@ -133,6 +133,27 @@ namespace EDIVE.NativeUtils
             resultValue = default;
             return false;
         }
+        
+        public static bool TryGetFirstT<TResult, TSource>(this IEnumerable<TSource> source, out TResult resultValue) where TResult : TSource
+        {
+            if (source == null)
+            {
+                resultValue = default;
+                return false;
+            }
+
+            foreach (var element in source)
+            {
+                if (element is not TResult tElement)
+                    continue;
+
+                resultValue = tElement;
+                return true;
+            }
+
+            resultValue = default;
+            return false;
+        }
 
         public static bool TryGetFirstT<TResult, TSource>(this IEnumerable<TSource> source, Predicate<TResult> predicate, out TResult resultValue) where TResult : TSource
         {
