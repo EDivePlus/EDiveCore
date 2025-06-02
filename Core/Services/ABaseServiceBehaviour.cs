@@ -25,7 +25,7 @@ namespace EDIVE.Core.Services
             AppCore.Services.Unregister<TService>();
         }
 
-        protected void RegisterService() => RegisterService<T>();
-        protected void UnregisterService() => UnregisterService<T>();
+        protected virtual void RegisterService() => RegisterService<T>();
+        protected virtual void UnregisterService() => UnregisterService<T>();
     }
 }

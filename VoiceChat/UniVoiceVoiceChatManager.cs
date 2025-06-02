@@ -18,7 +18,31 @@ namespace EDIVE.VoiceChat
         private const string TAG = "[UniVoiceVoiceChatManager]";
         private ClientSession<int> _session;
 
-        private const int MIC_FRAME_DURATION_MS = 60; // Duration of each audio frame in milliseconds
+        public enum InputFilterType
+        {
+            GaussianBlur = 0,
+            RNNoise = 1
+        }
+
+        public InputFilterType InputFilter
+        {
+            get => (InputFilterType) PlayerPrefs.GetInt("UniVoice_InputFilter", 1);
+            set
+            {
+                PlayerPrefs.SetInt("UniVoice_InputFilter", (int) value);
+                RefreshFilters();
+            }
+        }
+
+        public int MicFrameDurationMS
+        {
+            get => PlayerPrefs.GetInt("UniVoice_FrameDuration", 60);
+            set
+            {
+                PlayerPrefs.SetInt("UniVoice_FrameDuration", value);
+                ReloadMic();
+            }
+        }
 
         public bool AllowMic
         {
@@ -53,6 +77,18 @@ namespace EDIVE.VoiceChat
             {
                 InitializeSession();
             }
+        }
+
+        protected override void RegisterService()
+        {
+            base.RegisterService();
+            RegisterService<UniVoiceVoiceChatManager>();
+        }
+
+        protected override void UnregisterService()
+        {
+            base.UnregisterService();
+            UnregisterService<UniVoiceVoiceChatManager>();
         }
 
         private void InitializeSession()
@@ -106,7 +142,7 @@ namespace EDIVE.VoiceChat
                 // For more info on UniMic refer to https://www.github.com/adrenak/unimic
                 CurrentMicIndex = Mathf.Clamp(CurrentMicIndex, 0, Mic.AvailableDevices.Count - 1);
                 var mic = Mic.AvailableDevices[CurrentMicIndex];
-                mic.StartRecording(MIC_FRAME_DURATION_MS);
+                mic.StartRecording(MicFrameDurationMS);
                 Debug.unityLogger.Log(LogType.Log, TAG, $"Started recording with Mic device named.{mic.Name} at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
                 input = new UniMicInput(mic);
                 Debug.unityLogger.Log(LogType.Log, TAG, "Created UniMicInput");
@@ -187,6 +223,37 @@ namespace EDIVE.VoiceChat
             client.OnPeerLeft += id => { Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} left"); };
         }
 
+        private void RefreshFilters()
+        {
+            // This method is called when the user changes the filters in the settings
+            // We can use this to refresh the filters in the session
+            if (_session == null)
+                return;
+
+            _session.InputFilters.Clear();
+            _session.OutputFilters.Clear();
+
+            switch (InputFilter)
+            {
+                case InputFilterType.GaussianBlur:
+                    _session.InputFilters.Add(new GaussianAudioBlur());
+                    break;
+                case InputFilterType.RNNoise:
+                    _session.InputFilters.Add(new RNNoiseFilter());
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            // The next one is the Opus encoder filter. This is VERY important. Without this the
+            // outgoing data would be very large, usually by a factor of 10 or more.
+            _session.InputFilters.Add(new ConcentusEncodeFilter());
+
+            // Next, for incoming audio we register the Concentus decode filter as the audio we'd
+            // receive from other clients would be encoded and not readily playable
+            _session.OutputFilters.Add(new ConcentusDecodeFilter());
+        }
+
         private void InitializeServer()
         {
             // We create a server. If this code runs in server mode, MirrorServer will take care
@@ -233,7 +300,7 @@ namespace EDIVE.VoiceChat
             }
 
             var mic = Mic.AvailableDevices[CurrentMicIndex];
-            mic.StartRecording(MIC_FRAME_DURATION_MS);
+            mic.StartRecording(MicFrameDurationMS);
             Debug.unityLogger.Log(LogType.Log, TAG, $"Started recording with Mic device named.{mic.Name} at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
             _session.Input = new UniMicInput(mic);
         }

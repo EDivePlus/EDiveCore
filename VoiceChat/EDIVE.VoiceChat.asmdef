@@ -10,7 +10,8 @@
         "Adrenak.UniMic.Runtime",
         "Adrenak.UniVoice.Runtime",
         "Unity.TextMeshPro",
-        "EDIVE.StateHandling"
+        "EDIVE.StateHandling",
+        "EDIVE.NativeUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
