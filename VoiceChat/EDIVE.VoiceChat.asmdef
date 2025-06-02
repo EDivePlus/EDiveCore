@@ -8,7 +8,9 @@
         "Mirror",
         "UniTask",
         "Adrenak.UniMic.Runtime",
-        "Adrenak.UniVoice.Runtime"
+        "Adrenak.UniVoice.Runtime",
+        "Unity.TextMeshPro",
+        "EDIVE.StateHandling"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -7,12 +7,9 @@ using Adrenak.UniVoice.Inputs;
 using Adrenak.UniVoice.Networks;
 using Adrenak.UniVoice.Outputs;
 using Cysharp.Threading.Tasks;
-using EDIVE.Core;
 using EDIVE.MirrorNetworking;
 using EDIVE.MirrorNetworking.Utils;
-using Mirror;
 using UnityEngine;
-using UVRN.Player;
 
 namespace EDIVE.VoiceChat
 {
@@ -20,6 +17,32 @@ namespace EDIVE.VoiceChat
     {
         private const string TAG = "[UniVoiceVoiceChatManager]";
         private ClientSession<int> _session;
+
+        private const int MIC_FRAME_DURATION_MS = 60; // Duration of each audio frame in milliseconds
+
+        public bool AllowMic
+        {
+            get => PlayerPrefs.GetInt("UniVoice_AllowMic", 1) > 0;
+            set
+            {
+                PlayerPrefs.SetInt("UniVoice_AllowMic", value ? 1 : 0);
+                ReloadMic();
+            }
+        }
+
+        public int CurrentMicIndex
+        {
+            get => PlayerPrefs.GetInt("UniVoice_CurrentMicIndex", 0);
+            set
+            {
+                if (value == CurrentMicIndex)
+                    return;
+
+                value = Mathf.Clamp(value, 0, Mic.AvailableDevices.Count - 1);
+                PlayerPrefs.SetInt("UniVoice_CurrentMicIndex", value);
+                ReloadMic();
+            }
+        }
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -69,8 +92,11 @@ namespace EDIVE.VoiceChat
             Mic.Init(); // Must do this to use the Mic class
             if (Mic.AvailableDevices.Count == 0)
             {
-                Debug.unityLogger.Log(LogType.Log, TAG, "Device has no microphones." +
-                                                        "Will only be able to hear other clients, cannot send any audio.");
+                Debug.unityLogger.Log(LogType.Log, TAG, "Device has no microphones");
+                input = new UniVoiceEmptyAudioInput();
+            }
+            else if (!AllowMic)
+            {
                 input = new UniVoiceEmptyAudioInput();
             }
             else
@@ -78,10 +104,10 @@ namespace EDIVE.VoiceChat
                 // Get the first recording device that we have available and start it.
                 // Then we create a UniMicInput instance that requires the mic object
                 // For more info on UniMic refer to https://www.github.com/adrenak/unimic
-                var mic = Mic.AvailableDevices[0];
-                mic.StartRecording();
-                Debug.unityLogger.Log(LogType.Log, TAG, "Started recording with Mic device named." +
-                                                        mic.Name + $" at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
+                CurrentMicIndex = Mathf.Clamp(CurrentMicIndex, 0, Mic.AvailableDevices.Count - 1);
+                var mic = Mic.AvailableDevices[CurrentMicIndex];
+                mic.StartRecording(MIC_FRAME_DURATION_MS);
+                Debug.unityLogger.Log(LogType.Log, TAG, $"Started recording with Mic device named.{mic.Name} at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
                 input = new UniMicInput(mic);
                 Debug.unityLogger.Log(LogType.Log, TAG, "Created UniMicInput");
             }
@@ -191,6 +217,27 @@ namespace EDIVE.VoiceChat
 
             return null;
         }
+
+        private void ReloadMic()
+        {
+            if (_session == null)
+                return;
+
+            if (_session.Input is UniMicInput micInput)
+                micInput.Device.StopRecording();
+
+            if (Mic.AvailableDevices.Count == 0 || !AllowMic)
+            {
+                _session.Input = new UniVoiceEmptyAudioInput();
+                return;
+            }
+
+            var mic = Mic.AvailableDevices[CurrentMicIndex];
+            mic.StartRecording(MIC_FRAME_DURATION_MS);
+            Debug.unityLogger.Log(LogType.Log, TAG, $"Started recording with Mic device named.{mic.Name} at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
+            _session.Input = new UniMicInput(mic);
+        }
+
     }
 }
 #endif
