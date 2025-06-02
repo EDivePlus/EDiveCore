@@ -31,6 +31,11 @@ namespace EDIVE.AssetTranslation
         {
             return _Translators.TryGetFirst(t => t.DefinitionType.IsAssignableFrom(type), out result);
         }
+        
+        public bool TryGetTranslator<TTranslator>(out TTranslator result) where TTranslator : ADefinitionTranslator
+        {
+            return _Translators.TryGetFirstT(out result);
+        }
 
 #if UNITY_EDITOR
         // Force instance creation in editor
