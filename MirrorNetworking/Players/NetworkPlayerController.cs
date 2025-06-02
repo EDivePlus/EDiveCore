@@ -24,16 +24,6 @@ namespace EDIVE.MirrorNetworking.Players
         [SerializeField]
         private Transform _AvatarRoot;
 
-        [SerializeField]
-        private TransformScriptableVariable _Head;
-
-        [SerializeField]
-        private TransformScriptableVariable _LeftHand;
-
-        [SerializeField]
-        private TransformScriptableVariable _RightHand;
-
-
         private GameObject _avatarInstance;
 
         [SyncVar(hook = nameof(HandleColorChanged))]
@@ -95,9 +85,7 @@ namespace EDIVE.MirrorNetworking.Players
                 _avatarInstance.name = def.AvatarPrefab.name;
 
                 Debug.Log($"[Avatar] '{_avatarInstance.name}' instantiated successfully under AvatarRoot.");
-
-                if (isLocalPlayer)
-                    TryAssignIKTargets(_avatarInstance);
+                
                 var vis = _avatarInstance.AddComponent<SelfVisibility>();
             }
             else
@@ -139,27 +127,6 @@ namespace EDIVE.MirrorNetworking.Players
         {
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(true);
-        }
-        
-        private void TryAssignIKTargets(GameObject avatarInstance)
-        {
-            var ikRig = avatarInstance.GetComponentInChildren<IKTargetFollowVRRig>();
-            if (ikRig == null)
-            {
-                Debug.LogWarning("IKTargetFollowVRRig not found in avatar prefab.");
-                return;
-            }
-
-            ikRig.head.vrTarget = _Head;
-            ikRig.leftHand.vrTarget = _LeftHand;
-            ikRig.rightHand.vrTarget = _RightHand;
-
-            _Head.ValueChanged.AddListener(() => ikRig.head.vrTarget = _Head);
-            _LeftHand.ValueChanged.AddListener(() => ikRig.leftHand.vrTarget = _LeftHand);
-            _RightHand.ValueChanged.AddListener(() => ikRig.rightHand.vrTarget = _RightHand);
-
-
-            Debug.Log("IK rig successfully assigned to XR targets.");
         }
     }
 }

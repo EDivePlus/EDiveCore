@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.AssetTranslation;
+using EDIVE.Avatars.Scripts;
 using EDIVE.Core;
 using EDIVE.External.Signals;
 using EDIVE.MirrorNetworking;
@@ -44,6 +46,7 @@ namespace UVRN.Player
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
+            
             _networkManager = AppCore.Services.Get<MasterNetworkManager>();
             _networkSceneManager = AppCore.Services.Get<NetworkSceneManager>();
 
@@ -99,6 +102,19 @@ namespace UVRN.Player
             NetworkClient.RegisterHandler<PlayerLeftMessage>(Client_OnPlayerLeftMessage);
             // clear the message when connecting again
             failedAuthMessage = "";
+            
+            if (AssetTranslationConfig.Instance.TryGetTranslator<AvatarDefinitionTranslator>(out var translator))
+            {
+                foreach (var definition in translator.Definitions)
+                {
+                    if (definition == null || definition.AvatarPrefab == null )
+                        continue;
+                    NetworkClient.RegisterPrefab(definition.AvatarPrefab);
+                    
+                }
+                
+            }
+
         }
 
         private void Server_OnPlayerCreationRequest(NetworkConnectionToClient conn, PlayerCreationRequestMessage request)
@@ -142,6 +158,7 @@ namespace UVRN.Player
         private void InstantiatePlayer(NetworkConnectionToClient conn, PlayerProfile profile)
         {
             var go = Instantiate(_networkManager.playerPrefab);
+            go.name = $"Player_{conn.connectionId}";
             var player = go.GetComponent<NetworkPlayerController>();
 
             player.ApplyProfile(profile, conn.connectionId);
