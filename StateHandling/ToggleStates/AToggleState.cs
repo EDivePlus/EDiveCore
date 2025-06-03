@@ -31,7 +31,7 @@ namespace EDIVE.StateHandling.ToggleStates
         public void SetState(bool state, bool immediate = false)
         {
             _state = state;
-            SetStateInternal(immediate);
+            SetStateInternal(state, immediate);
         }
 
         protected abstract void SetStateInternal(bool state, bool immediate = false);
