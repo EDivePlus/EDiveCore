@@ -95,7 +95,7 @@ namespace EDIVE.BuildTool.Runners
 
         protected override IEnumerator StartBuildRoutine()
         {
-            if (Context.State != BuildStateType.NotStarted)
+            if (Context.State == BuildStateType.NotStarted)
             {
                 if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                     yield break;
