@@ -20,8 +20,9 @@ namespace EDIVE.VoiceChat
 
         public enum InputFilterType
         {
-            GaussianBlur = 0,
-            RNNoise = 1
+            None = 0,
+            GaussianBlur = 1,
+            RNNoise = 2,
         }
 
         public InputFilterType InputFilter
@@ -235,6 +236,8 @@ namespace EDIVE.VoiceChat
 
             switch (InputFilter)
             {
+                case InputFilterType.None:
+                    break;
                 case InputFilterType.GaussianBlur:
                     _session.InputFilters.Add(new GaussianAudioBlur());
                     break;

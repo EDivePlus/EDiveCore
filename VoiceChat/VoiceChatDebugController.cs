@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 02.06.2025
 
-using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
@@ -20,6 +19,8 @@ namespace EDIVE.VoiceChat
 
         private UniVoiceVoiceChatManager _voiceChatManager;
 
+        private static readonly int[] FRAME_DURATIONS = {20, 40, 60};
+
         private void Awake()
         {
             AppCore.Services.WhenRegistered<UniVoiceVoiceChatManager>(Initialize);
@@ -32,8 +33,8 @@ namespace EDIVE.VoiceChat
             if (_FrameDurationDropdown)
             {
                 _FrameDurationDropdown.ClearOptions();
-                _FrameDurationDropdown.AddOptions(new List<string> {"20ms", "40ms", "60ms"});
-                _FrameDurationDropdown.value = _voiceChatManager.MicFrameDurationMS / 20 - 1;
+                _FrameDurationDropdown.AddOptions(FRAME_DURATIONS.Select(d => $"{d}ms").ToList());
+                _FrameDurationDropdown.value = FRAME_DURATIONS.IndexOf(_voiceChatManager.MicFrameDurationMS);
                 _FrameDurationDropdown.onValueChanged.AddListener(OnFrameDurationChanged);
             }
 
@@ -53,7 +54,7 @@ namespace EDIVE.VoiceChat
 
         private void OnFrameDurationChanged(int value)
         {
-            _voiceChatManager.MicFrameDurationMS = (value + 1) * 20;
+            _voiceChatManager.MicFrameDurationMS = FRAME_DURATIONS[value];
         }
     }
 }
