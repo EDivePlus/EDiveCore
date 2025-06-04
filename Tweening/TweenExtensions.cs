@@ -99,5 +99,29 @@ namespace EDIVE.Tweening
         {
             return DOTween.To(() => target.position, x => target.position = target.position.WithYZ(x.y, x.z), endValue, duration);
         }
+
+        public static TweenerCore<Vector3, Vector3, VectorOptions> DOLocalMoveXY(
+            this Transform target,
+            Vector3 endValue,
+            float duration)
+        {
+            return DOTween.To(() => target.localPosition, x => target.localPosition = target.localPosition.WithXY(x.x, x.y), endValue, duration);
+        }
+
+        public static TweenerCore<Vector3, Vector3, VectorOptions> DOLocalMoveXZ(
+            this Transform target,
+            Vector3 endValue,
+            float duration)
+        {
+            return DOTween.To(() => target.localPosition, x => target.localPosition = target.localPosition.WithXZ(x.x, x.z), endValue, duration);
+        }
+
+        public static TweenerCore<Vector3, Vector3, VectorOptions> DOLocalMoveYZ(
+            this Transform target,
+            Vector3 endValue,
+            float duration)
+        {
+            return DOTween.To(() => target.localPosition, x => target.localPosition = target.localPosition.WithYZ(x.y, x.z), endValue, duration);
+        }
     }
 }
