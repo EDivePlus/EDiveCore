@@ -4,6 +4,7 @@
 #if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.UI;
@@ -20,17 +21,11 @@ namespace EDIVE.Utils
 
         private RectTransform _panelRect;
 
-        private void Awake()
+        private void Start()
         {
             _panelRect = SRDebug.Instance.EnableWorldSpaceMode();
             _panelRect.SetParent(_ParentRect, false);
             _panelRect.SetToFillParent();
-        }
-
-        // ReSharper disable once Unity.IncorrectMethodSignature
-        private async UniTaskVoid Start()
-        {
-            await UniTask.WaitForEndOfFrame();
             if (_XRRaycaster)
             {
                 foreach (var raycaster in _panelRect.GetComponentsInChildren<GraphicRaycaster>(true))
@@ -39,15 +34,6 @@ namespace EDIVE.Utils
                     CopyTrackedDeviceGraphicRaycasterData(xrRaycaster, _XRRaycaster);
                 }
             }
-        }
-
-        private void OnEnable()
-        {
-            SRDebug.Instance?.ShowDebugPanel();
-        }
-
-        private void OnDisable()
-        {
             SRDebug.Instance?.HideDebugPanel();
         }
 
