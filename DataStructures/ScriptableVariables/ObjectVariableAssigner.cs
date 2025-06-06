@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using EDIVE.DataStructures.ScriptableVariables.Variables;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -10,27 +11,13 @@ using Object = UnityEngine.Object;
 
 namespace EDIVE.DataStructures.ScriptableVariables
 {
-    public class ObjectVariableAssigner : MonoBehaviour
+    public class ObjectVariableAssigner : AVariableAssigner
     {
         [SerializeField]
         [EnhancedTableList(ShowFoldout = false)]
         private List<ObjectVariableRecord> _Records;
-        
-        [SerializeField]
-        private VariableAssignLifetime _Lifetime;
-            
 
-        private void Awake()
-        {
-            if (_Lifetime == VariableAssignLifetime.Full) AssignReferences();
-        }
-
-        private void OnEnable()
-        {
-            if (_Lifetime == VariableAssignLifetime.Enabled) AssignReferences();
-        }
-
-        private void AssignReferences()
+        protected override void AssignReferences()
         {
             if (_Records == null)
                 return;
@@ -40,7 +27,6 @@ namespace EDIVE.DataStructures.ScriptableVariables
                 record.Assign();
             }
         }
-        
 
         [Serializable]
         public class ObjectVariableRecord

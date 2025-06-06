@@ -2,6 +2,7 @@
 // Created: 02.06.2025
 
 using System;
+using EDIVE.DataStructures.ScriptableVariables.Variables;
 using Sirenix.OdinInspector;
 using UnityEngine;
 

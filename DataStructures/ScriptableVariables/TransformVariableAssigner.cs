@@ -1,32 +1,19 @@
 ﻿// Author: František Holubec
 // Created: 27.05.2025
 
+using EDIVE.DataStructures.ScriptableVariables.Variables;
 using UnityEngine;
 
 namespace EDIVE.DataStructures.ScriptableVariables
 {
-    public class TransformVariableAssigner : MonoBehaviour
+    public class TransformVariableAssigner : AVariableAssigner
     {
         [SerializeField]
-        private VariableAssignLifetime _Lifetime;
+        private AScriptableVariable<Transform> _Variable;
 
-        [SerializeField]
-        private TransformScriptableVariable _Variable;
-
-        private void Awake()
-        {
-            if (_Lifetime == VariableAssignLifetime.Full) AssignReferences();
-        }
-
-        private void OnEnable()
-        {
-            if (_Lifetime == VariableAssignLifetime.Enabled) AssignReferences();
-        }
-
-        private void AssignReferences()
+        protected override void AssignReferences()
         {
             _Variable.SetValue(transform);
-            
         }
     }
 }

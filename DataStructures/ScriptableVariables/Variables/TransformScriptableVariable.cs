@@ -3,7 +3,7 @@
 
 using UnityEngine;
 
-namespace EDIVE.DataStructures.ScriptableVariables
+namespace EDIVE.DataStructures.ScriptableVariables.Variables
 {
     public class TransformScriptableVariable : AScriptableVariable<Transform>
     {

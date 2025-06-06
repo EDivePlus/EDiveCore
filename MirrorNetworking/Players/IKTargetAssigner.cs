@@ -1,4 +1,5 @@
 using EDIVE.DataStructures.ScriptableVariables;
+using EDIVE.DataStructures.ScriptableVariables.Variables;
 using Mirror;
 using UnityEngine;
 

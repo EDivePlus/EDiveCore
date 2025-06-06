@@ -6,7 +6,7 @@ using EDIVE.External.Signals;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.ScriptableVariables
+namespace EDIVE.DataStructures.ScriptableVariables.Variables
 {
     public abstract class AScriptableVariable : ScriptableObject
     {
