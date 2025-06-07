@@ -49,12 +49,14 @@ namespace EDIVE.Tweening.ObjectActions
 
         public override bool TryGetTween(Object target, out Tween tween)
         {
-            if (!(target is T tTarget))
-            {
-                tween = null;
+            tween = null;
+            if (target is not T tTarget)
                 return false;
-            }
+
             tween = GetTween(tTarget);
+            if (tween == null)
+                return false;
+
             if (!Mathf.Approximately(_Duration, 0))
             {
                 tween.SetEase(_Ease);

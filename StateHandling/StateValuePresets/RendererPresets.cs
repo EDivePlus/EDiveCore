@@ -1,5 +1,6 @@
 using System;
-using EDIVE.StateHandling.MultiStates;
+using EDIVE.NativeUtils;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -11,14 +12,33 @@ namespace EDIVE.StateHandling.StateValuePresets
         public override string Title => "Enabled";
         public override void ApplyTo(Renderer targetObject) => targetObject.enabled = Value;
     }
-    
-    [Serializable, Preserve] 
+
+    [Serializable, Preserve]
     public class RendererMaterialPreset : AStateValuePreset<Renderer, Material>
     {
+        [MinValue(0)]
+        [SerializeField]
+        private int _MaterialIndex;
+
+        [SerializeField]
+        private bool _UseSharedMaterial;
+
         public override string Title => "Material";
-        public override void ApplyTo(Renderer targetObject) => targetObject.material = Value;
+
+        public override void ApplyTo(Renderer targetObject)
+        {
+            var materials = _UseSharedMaterial ? targetObject.sharedMaterials : targetObject.materials;
+            if (_MaterialIndex >= materials.Length)
+                return;
+            materials[_MaterialIndex] = Value;
+
+            if (_UseSharedMaterial)
+                targetObject.sharedMaterials = materials;
+            else
+                targetObject.materials = materials;
+        }
     }
-    
+
     [Serializable, Preserve] 
     public class RendererSortingLayerPreset : AStateValuePreset<Renderer, string>
     {
@@ -31,5 +51,50 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Sorting Order";
         public override void ApplyTo(Renderer targetObject) => targetObject.sortingOrder = Value;
+    }
+
+    [Serializable, Preserve]
+    public abstract class ARendererMaterialPreset<TRenderer, TValue> : AStateValuePreset<TRenderer, TValue> where TRenderer : Renderer
+    {
+        [SerializeField]
+        private bool _UseSharedMaterial;
+
+        [MinValue(0)]
+        [SerializeField]
+        private int _MaterialIndex;
+
+        private bool TryGetMaterial(TRenderer target, out Material material)
+        {
+            var materials = _UseSharedMaterial ? target.sharedMaterials : target.materials;
+            material = null;
+
+            if (materials.Length == 0 || _MaterialIndex >= materials.Length)
+                return false;
+
+            material = materials[_MaterialIndex];
+            return true;
+        }
+
+        public override void ApplyTo(TRenderer targetObject)
+        {
+            if (TryGetMaterial(targetObject, out var material))
+                ApplyTo(material);
+        }
+
+        public abstract void ApplyTo(Material targetMaterial);
+    }
+
+    [Preserve]
+    public class RendererMaterialAlphaPreset : ARendererMaterialPreset<Renderer, float>
+    {
+        public override string Title => "Alpha";
+        public override void ApplyTo(Material targetObject) => targetObject.color = targetObject.color.WithA(Value);
+    }
+
+    [Preserve]
+    public class RendererMaterialColorPreset : ARendererMaterialPreset<Renderer, Color>
+    {
+        public override string Title => "Color";
+        public override void ApplyTo(Material targetObject) => targetObject.color = Value;
     }
 }
