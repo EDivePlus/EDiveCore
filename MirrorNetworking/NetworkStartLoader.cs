@@ -21,7 +21,7 @@ namespace EDIVE.MirrorNetworking
             {
                 case NetworkRuntimeMode.Server:
                     networkManager.StartServer();
-                    await sceneManager.ClientSceneChanged.Await();
+                    await sceneManager.ServerSceneChanged.Await();
                     break;
 
                 case NetworkRuntimeMode.Host:
