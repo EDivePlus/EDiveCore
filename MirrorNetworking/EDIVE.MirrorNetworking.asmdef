@@ -14,6 +14,8 @@
         "EDIVE.AssetTranslation",
         "Unity.Addressables",
         "Unity.ResourceManager",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.Interaction.Toolkit.Editor",
         "UniTask",
         "Mirror",
         "EDIVE.StateHandling",
