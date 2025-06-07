@@ -13,7 +13,7 @@ namespace EDIVE.NativeUtils
             if (actList == null)
                 return;
 
-            foreach (var action in actList) 
+            foreach (var action in actList)
                 action?.Invoke();
         }
 
@@ -24,19 +24,19 @@ namespace EDIVE.NativeUtils
             while (list.Count < count)
                 list.Add(default);
         }
-        
+
         public static bool IsIndexInRange<T>(this IReadOnlyList<T> list, int index)
         {
             if (list == null) return false;
             return 0 <= index && index < list.Count;
         }
-        
+
         public static bool IsIndexInRange<T>(this T[] array, int index)
         {
             if (array == null) return false;
             return 0 <= index && index < array.Length;
         }
-        
+
         public static bool IsNullOrEmpty<T>(this IEnumerable<T> source)
         {
             if (source == null) return true;
@@ -133,7 +133,7 @@ namespace EDIVE.NativeUtils
             resultValue = default;
             return false;
         }
-        
+
         public static bool TryGetFirstT<TResult, TSource>(this IEnumerable<TSource> source, out TResult resultValue) where TResult : TSource
         {
             if (source == null)
@@ -278,7 +278,7 @@ namespace EDIVE.NativeUtils
         }
 
         public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> source) { return source ?? Enumerable.Empty<T>(); }
-        
+
         public static IList<T> Pad<T>(this IList<T> source, int count, T value = default)
         {
             if (source == null)
@@ -337,7 +337,7 @@ namespace EDIVE.NativeUtils
             value = readOnlyList.GetClamp(index);
             return true;
         }
-        
+
         public static Tuple<List<T1>, List<T2>> Unpack<T1, T2>(this List<Tuple<T1, T2>> list)
         {
             var listA = new List<T1>(list.Count);
@@ -350,7 +350,7 @@ namespace EDIVE.NativeUtils
 
             return Tuple.Create(listA, listB);
         }
-        
+
         public static (List<T1>, List<T2>) Unpack<T1, T2>(this List<(T1, T2)> list)
         {
             var listA = new List<T1>(list.Count);
@@ -363,7 +363,7 @@ namespace EDIVE.NativeUtils
 
             return (listA, listB);
         }
-        
+
         public static List<Tuple<T1, T2>> Pack<T1, T2>(this List<T1> listA, List<T2> listB)
         {
             var list = new List<Tuple<T1, T2>>(listA.Count);
@@ -372,7 +372,7 @@ namespace EDIVE.NativeUtils
             return list;
         }
 
-                public static void Normalize(this float[,] array)
+        public static void Normalize(this float[,] array)
         {
             var min = float.PositiveInfinity;
             var max = float.NegativeInfinity;
@@ -388,6 +388,7 @@ namespace EDIVE.NativeUtils
                     if (array[x, y] < min) min = array[x, y];
                 }
             }
+
             array.Remap(min, max, 0, 1);
         }
 
@@ -407,7 +408,46 @@ namespace EDIVE.NativeUtils
                     if (array[x, y] < min) min = array[x, y];
                 }
             }
+
             array.Remap(min, max, 0, 1);
+        }
+
+        public static float[,] Transpose(this float[,] matrix)
+        {
+            var rows = matrix.GetLength(0);
+            var cols = matrix.GetLength(1);
+            var result = new float[cols, rows];
+
+            for (var i = 0; i < rows; i++)
+            {
+                for (var j = 0; j < cols; j++)
+                {
+                    result[j, i] = matrix[i, j];
+                }
+            }
+
+            return result;
+        }
+
+        public static float[,] ExtendByOne(this float[,] matrix)
+        {
+            var rows = matrix.GetLength(0);
+            var cols = matrix.GetLength(1);
+
+            var extended = new float[rows + 1, cols + 1];
+
+            for (var i = 0; i < rows; i++)
+            for (var j = 0; j < cols; j++)
+                extended[i, j] = matrix[i, j];
+
+            for (var j = 0; j < cols; j++)
+                extended[rows, j] = matrix[rows - 1, j];
+
+            for (var i = 0; i < rows; i++)
+                extended[i, cols] = matrix[i, cols - 1];
+
+            extended[rows, cols] = matrix[rows - 1, cols - 1];
+            return extended;
         }
 
         public static void Remap(this double[,] array, double inputMin, double inputMax, double targetMin, double targetMax)
