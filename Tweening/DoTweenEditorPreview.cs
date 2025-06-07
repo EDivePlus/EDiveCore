@@ -55,6 +55,12 @@ namespace EDIVE.Tweening
             ValidateTweens();
         }
 
+        [MenuItem("Tools/Stop All Tweens", priority = 200)]
+        public static void StopAndClear()
+        {
+            Stop();
+        }
+
         /// <summary>
         ///     Readies the tween for editor preview by setting its UpdateType to Manual plus eventual extra settings.
         /// </summary>
@@ -75,16 +81,17 @@ namespace EDIVE.Tweening
             if (clearCallbacks)
                 tween.OnComplete(null).OnStart(null).OnPlay(null).OnPause(null).OnUpdate(null)
                     .OnWaypointChange(null).OnStepComplete(null).OnRewind(null).OnKill(null);
-            if (!andPlay)
-                return;
+            tween.OnComplete(() => RemoveTweenFromPreview(tween));
+            if (!andPlay) return;
             tween.Play();
         }
-        
+
         public static void RemoveTweenFromPreview(Tween tween)
         {
-            if(tween == null) return;
+            if (tween == null) return;
             CurrentTweens.Remove(tween);
             tween.SetUpdate(UpdateType.Normal);
+            if (CurrentTweens.Count == 0) Stop();
         }
 
         private static void PreviewUpdate()
