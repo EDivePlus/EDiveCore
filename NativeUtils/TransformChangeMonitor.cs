@@ -1,4 +1,6 @@
 ﻿using System;
+using Sirenix.OdinInspector;
+using Sirenix.Utilities.Editor;
 using UnityEngine;
 
 namespace EDIVE.NativeUtils
@@ -15,9 +17,18 @@ namespace EDIVE.NativeUtils
             TransformChanged?.Invoke(transform);
             transform.hasChanged = false;
         }
+
+        [OnInspectorGUI]
+        private void DrawInfo()
+        {
+            if (hideFlags.HasFlag(HideFlags.NotEditable))
+            {
+                SirenixEditorGUI.InfoMessageBox("Component added dynamically with 'RegisterChangeSignalListener' to monitor Transform changes");
+            }
+        }
     }
 
-    public static class TransformChangeMonitorExtension
+    public static class TransformChangeMonitorExtensions
     {
         public static void RegisterChangeSignalListener(this Transform tr, Action<Transform> listenerMethod)
         {
