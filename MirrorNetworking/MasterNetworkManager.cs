@@ -28,6 +28,7 @@ namespace EDIVE.MirrorNetworking
         public Signal ClientConnected { get; } = new();
         public Signal ClientDisconnected { get; } = new();
 
+        public Signal<bool, NetworkRuntimeMode> RuntimeStateChanged { get; } = new();
         public Signal<TransportError, string> ClientError { get; } = new();
 
         public int ConnectionCount => NetworkServer.connections.Count;
@@ -52,11 +53,13 @@ namespace EDIVE.MirrorNetworking
         public override void OnStartServer()
         {
             ServerStarted.Dispatch();
+            RuntimeStateChanged.Dispatch(true, mode == NetworkManagerMode.Host ? NetworkRuntimeMode.Host : NetworkRuntimeMode.Server);
         }
 
         public override void OnStopServer()
         {
             ServerStopped.Dispatch();
+            RuntimeStateChanged.Dispatch(false, mode == NetworkManagerMode.Host ? NetworkRuntimeMode.Host : NetworkRuntimeMode.Server);
         }
 
         public override void OnServerAddPlayer(NetworkConnectionToClient conn)
@@ -104,12 +107,16 @@ namespace EDIVE.MirrorNetworking
         {
             Debug.Log($"Connecting to: {networkAddress}");
             ClientStarted.Dispatch();
+            if (mode == NetworkManagerMode.ClientOnly)
+                RuntimeStateChanged.Dispatch(true, NetworkRuntimeMode.Client);
         }
 
         public override void OnStopClient()
         {
             Debug.Log("Client stopped");
             ClientStopped.Dispatch();
+            if (mode == NetworkManagerMode.ClientOnly)
+                RuntimeStateChanged.Dispatch(false, NetworkRuntimeMode.Client);
         }
 
         public override void OnClientConnect()
@@ -130,6 +137,44 @@ namespace EDIVE.MirrorNetworking
         {
             Debug.Log("Disconnected from server");
             ClientDisconnected.Dispatch();
+        }
+
+        public void StartRuntime(NetworkRuntimeMode runtimeMode)
+        {
+            switch (runtimeMode)
+            {
+                case NetworkRuntimeMode.Client:
+                    StartClient();
+                    break;
+                case NetworkRuntimeMode.Server:
+                    StartServer();
+                    break;
+                case NetworkRuntimeMode.Host:
+                    StartHost();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(runtimeMode), runtimeMode, null);
+            }
+        }
+
+        public void StopRuntime()
+        {
+            switch (mode)
+            {
+                case NetworkManagerMode.Offline:
+                    break;
+                case NetworkManagerMode.ServerOnly:
+                    StopServer();
+                    break;
+                case NetworkManagerMode.ClientOnly:
+                    StopClient();
+                    break;
+                case NetworkManagerMode.Host:
+                    StopHost();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }
