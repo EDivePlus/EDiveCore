@@ -26,22 +26,19 @@ namespace EDIVE.MirrorNetworking.Players
 
         private GameObject _avatarInstance;
 
-        [SyncVar(hook = nameof(HandleColorChanged))]
+        [SyncVar]
         private Color _color = Color.white;
 
-        [SyncVar(hook = nameof(HandleUsernameChanged))]
+        [SyncVar]
         private string _username;
 
-        [SyncVar(hook = nameof(HandleRoleChanged))]
+        [SyncVar]
         private string _role;
 
-        [SyncVar(hook = nameof(HandleVisibleChanged))]
-        private bool _modelVisible = true;
-
-        [SyncVar(hook = nameof(HandleConnectionIDChanged))]
+        [SyncVar]
         private int _connectionID = -1;
 
-        [SyncVar(hook = nameof(HandleAvatarChanged))]
+        [SyncVar]
         private string _avatarID;
 
         public string Username => _username;
@@ -49,51 +46,6 @@ namespace EDIVE.MirrorNetworking.Players
         public Color Color => _color;
         public int ConnectionID => _connectionID;
         public string AvatarID => _avatarID;
-
-        public void HandleUsernameChanged(string oldValue, string newValue) { _username = newValue; }
-
-        public void HandleRoleChanged(string oldValue, string newValue) { _role = newValue; }
-
-        public void HandleVisibleChanged(bool oldValue, bool newValue) { _modelVisible = newValue; }
-
-        public void HandleColorChanged(Color oldValue, Color newValue) { _color = newValue; }
-
-        public void HandleConnectionIDChanged(int oldValue, int newValue) { _connectionID = newValue; }
-
-        public void HandleAvatarChanged(string oldValue, string newValue)
-        {
-            _avatarID = newValue; 
-
-            if (string.IsNullOrEmpty(_avatarID))
-            {
-                Debug.LogError("Avatar ID is missing in profile.");
-                return;
-            }
-
-            if (_AvatarRoot == null)
-            {
-                Debug.LogError("AvatarRoot is not set on NetworkPlayerController.");
-                return;
-            }
-
-            if (DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(_avatarID, out var def) && def.IsValid())
-            {
-                if (_avatarInstance != null)
-                    Destroy(_avatarInstance);
-
-                _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
-                _avatarInstance.name = def.AvatarPrefab.name;
-
-                Debug.Log($"[Avatar] '{_avatarInstance.name}' instantiated successfully under AvatarRoot.");
-                
-                var vis = _avatarInstance.AddComponent<SelfVisibility>();
-            }
-            else
-            {
-                Debug.LogError($"AvatarDefinition not found or invalid for ID: {_avatarID}");
-            }
-            
-        }
 
         public override void OnStartClient()
         {
@@ -114,13 +66,44 @@ namespace EDIVE.MirrorNetworking.Players
         [Server]
         public void ApplyProfile(PlayerProfile profile, int connectionId)
         {
-            HandleColorChanged(_color, profile.color);
-            HandleUsernameChanged(_username, profile.username);
-            HandleRoleChanged(_role, profile.role);
-            HandleVisibleChanged(_modelVisible, profile.visibleAvatar);
-            HandleConnectionIDChanged(_connectionID, connectionId);
-            
-            HandleAvatarChanged(_avatarID, profile.avatarId);
+            _username = profile.username;
+            _role = profile.role;
+            _color = profile.color;
+            _connectionID = connectionId;
+            ApplyAvatar(profile.avatarId);
+        }
+
+        [Server]
+        private void ApplyAvatar(string avatarId)
+        {
+            if (string.IsNullOrEmpty(avatarId))
+                return;
+
+            _avatarID = avatarId;
+
+            if (!_AvatarRoot)
+                return;
+
+            if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(_avatarID, out var def) || !def.IsValid())
+            {
+                Debug.LogError($"AvatarDefinition not found or invalid for ID: {_avatarID}");
+                return;
+            }
+
+            if (_avatarInstance)
+                Destroy(_avatarInstance);
+
+            _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
+            _avatarInstance.name = def.AvatarPrefab.name;
+            Debug.Log($"Avatar {_avatarID} set for player '{_username}'");
+
+            //var vis = _avatarInstance.AddComponent<SelfVisibility>();
+        }
+
+        [Command]
+        public void CmdSetAvatar(string avatarId)
+        {
+            ApplyAvatar(avatarId);
         }
 
         public override void OnStartLocalPlayer()

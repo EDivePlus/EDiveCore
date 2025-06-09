@@ -11,7 +11,6 @@ namespace UVRN.Player
     {
         public string username;
         public Color color;
-        public bool visibleAvatar;
         public string role;
         public string password;
         public string avatarId;
