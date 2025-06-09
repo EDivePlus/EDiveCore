@@ -17,15 +17,14 @@ namespace EDIVE.MirrorNetworking.Players
 
         [SerializeField]
         private TransformScriptableVariable _RightHand;
-        
-        public override void OnStartLocalPlayer()
-        {
-            TryAssignIKTargets();
-        }
 
         public override void OnStartClient()
         {
-            // TODO
+            var identity = transform.parent.GetComponentInParent<NetworkIdentity>();
+            if (identity.isLocalPlayer)
+            {
+                TryAssignIKTargets();
+            }
         }
     
         private void TryAssignIKTargets()
