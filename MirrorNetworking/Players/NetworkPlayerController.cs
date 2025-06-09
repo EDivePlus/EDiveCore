@@ -64,17 +64,17 @@ namespace EDIVE.MirrorNetworking.Players
         // Done according to https://mirror-networking.gitbook.io/docs/guides/gameobjects/custom-character-spawning
         // It would be nicer to use something instead of all the syncvars, but this is the best for now
         [Server]
-        public void ApplyProfile(PlayerProfile profile, int connectionId)
+        public void ApplyProfile(NetworkConnectionToClient conn, PlayerProfile profile, int connectionId)
         {
             _username = profile.username;
             _role = profile.role;
             _color = profile.color;
             _connectionID = connectionId;
-            ApplyAvatar(profile.avatarId);
+            ApplyAvatar(profile.avatarId, conn);
         }
 
         [Server]
-        private void ApplyAvatar(string avatarId)
+        private void ApplyAvatar(string avatarId, NetworkConnectionToClient conn)
         {
             if (string.IsNullOrEmpty(avatarId))
                 return;
@@ -95,15 +95,16 @@ namespace EDIVE.MirrorNetworking.Players
 
             _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
             _avatarInstance.name = def.AvatarPrefab.name;
+            NetworkServer.Spawn(_avatarInstance.gameObject, conn);
             Debug.Log($"Avatar {_avatarID} set for player '{_username}'");
 
             //var vis = _avatarInstance.AddComponent<SelfVisibility>();
         }
 
         [Command]
-        public void CmdSetAvatar(string avatarId)
+        public void CmdSetAvatar(string avatarId, NetworkConnectionToClient sender = null)
         {
-            ApplyAvatar(avatarId);
+            ApplyAvatar(avatarId, sender);
         }
 
         public override void OnStartLocalPlayer()

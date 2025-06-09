@@ -1,4 +1,3 @@
-using EDIVE.DataStructures.ScriptableVariables;
 using EDIVE.DataStructures.ScriptableVariables.Variables;
 using Mirror;
 using UnityEngine;
@@ -23,9 +22,10 @@ namespace EDIVE.MirrorNetworking.Players
         {
             TryAssignIKTargets();
         }
+
         public override void OnStartClient()
         {
-            Debug.LogError("pROSIMM");
+            // TODO
         }
     
         private void TryAssignIKTargets()
