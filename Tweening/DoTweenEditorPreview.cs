@@ -101,8 +101,15 @@ namespace EDIVE.Tweening
             var num = _previewTime - previewTime;
             DOTween.ManualUpdate((float) num, (float) num);
 
+            // Graphis seem to not update properly in the editor, so we need to force a repaint
+            // Try this maybe?
+            // SceneView.RepaintAll();
+
+            //This definitely works, but is a bit its marking stuff dirty, which is not ideal
+            /*
             foreach (var graphic in CurrentTweens.GetAllTargets<Graphic>())
                 EditorUtility.SetDirty(graphic);
+            */
 
             _onPreviewUpdated?.Invoke();
         }
