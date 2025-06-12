@@ -6,10 +6,10 @@
         "UniTask",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "EDIVE.Utils",
         "EDIVE.External.DomainReloadHelper",
         "EDIVE.EditorUtils",
-        "EDIVE.External.Signals"
+        "EDIVE.External.Signals",
+        "EDIVE.Utils.Json"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

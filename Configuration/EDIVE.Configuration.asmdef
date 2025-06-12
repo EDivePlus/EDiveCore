@@ -7,7 +7,8 @@
         "EDIVE.Utils",
         "EDIVE.AppLoading",
         "UniTask",
-        "Newtonsoft.Json.UnityConverters"
+        "Newtonsoft.Json.UnityConverters",
+        "EDIVE.Utils.Json"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,13 +1,9 @@
 {
-    "name": "EDIVE.AssetTranslation",
+    "name": "EDIVE.Utils.Json",
     "rootNamespace": "",
     "references": [
-        "EDIVE.Utils",
         "EDIVE.OdinExtensions",
-        "EDIVE.NativeUtils",
-        "EDIVE.EditorUtils",
-        "Mirror",
-        "EDIVE.Utils.Json"
+        "EDIVE.NativeUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
