@@ -13,7 +13,7 @@ using Sirenix.OdinInspector.Editor;
 
 namespace EDIVE.Utils.FontSymbols
 {
-    [AddComponentMenu("UI/FontSymol (Text)", 11)]
+    [AddComponentMenu("UI/Font Symbol (Text)")]
     public class FontSymbolText : Text
     {
         [SerializeField]

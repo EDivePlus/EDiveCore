@@ -15,7 +15,7 @@ using Sirenix.OdinInspector.Editor;
 
 namespace EDIVE.Utils.FontSymbols
 {
-    [AddComponentMenu("UI/FontSymol (TMP Text UI)", 11)]
+    [AddComponentMenu("UI/Font Symbol (TMP Text UI)")]
     public class FontSymbolTMPTextUI : TextMeshProUGUI
     {
         [SerializeField]
