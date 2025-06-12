@@ -1,0 +1,20 @@
+{
+    "name": "EDIVE.Utils.FontSymbols",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.DataStructures",
+        "EDIVE.NativeUtils",
+        "Unity.TextMeshPro",
+        "EDIVE.OdinExtensions",
+        "EDIVE.Utils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
