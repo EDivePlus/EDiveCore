@@ -106,7 +106,7 @@ namespace EDIVE.Extensions.Random
             return items.Count - 1;
         }
 
-        public static IEnumerable<T> RandomItemEnumerate<T>(IReadOnlyList<T> items, IRandom random = null)
+        public static IEnumerable<T> RandomItemEnumerate<T>(this IReadOnlyList<T> items, IRandom random = null)
         {
             if (items == null || items.Count == 0) 
                 yield break;
