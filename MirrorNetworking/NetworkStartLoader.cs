@@ -25,11 +25,10 @@ namespace EDIVE.MirrorNetworking
             if (Transport.active is LightReflectiveMirrorTransport lrm)
             {
                 var cts = new CancellationTokenSource();
-                cts.CancelAfterSlim(TimeSpan.FromSeconds(10));
-
+                cts.CancelAfterSlim(TimeSpan.FromSeconds(5));
                 try
                 {
-                    await UniTask.WaitUntil(() => lrm.Available(), PlayerLoopTiming.Update, cts.Token);
+                    await UniTask.WaitUntil(() => lrm.IsAuthenticated(), PlayerLoopTiming.Update, cts.Token);
                 }
                 catch (OperationCanceledException)
                 {
