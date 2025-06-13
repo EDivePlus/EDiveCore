@@ -104,6 +104,10 @@ namespace EDIVE.Utils.FontSymbols
                 font = Definition.Font;
             text = $"{Symbol}";
             fontSize = Mathf.FloorToInt(Mathf.Min(rectTransform.rect.width, rectTransform.rect.height) * _Scale);
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(this);
+#endif
         }
 
         protected override void OnRectTransformDimensionsChange()
@@ -117,6 +121,12 @@ namespace EDIVE.Utils.FontSymbols
         {
             base.Reset();
             Symbol = '\uef55';
+            RefreshSymbol();
+        }
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
             RefreshSymbol();
         }
 
