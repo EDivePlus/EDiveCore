@@ -2,11 +2,15 @@
 // Created: 22.03.2025
 
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
 using EDIVE.MirrorNetworking.Scenes;
 using EDIVE.MirrorNetworking.Utils;
+using LightReflectiveMirror;
+using Mirror;
+using UnityEngine;
 
 namespace EDIVE.MirrorNetworking
 {
@@ -17,6 +21,22 @@ namespace EDIVE.MirrorNetworking
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
             var sceneManager = AppCore.Services.Get<NetworkSceneManager>();
+
+            if (Transport.active is LightReflectiveMirrorTransport lrm)
+            {
+                var cts = new CancellationTokenSource();
+                cts.CancelAfterSlim(TimeSpan.FromSeconds(10));
+
+                try
+                {
+                    await UniTask.WaitUntil(() => lrm.Available(), PlayerLoopTiming.Update, cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    Debug.LogError("LRM not available");
+                }
+            }
+
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:

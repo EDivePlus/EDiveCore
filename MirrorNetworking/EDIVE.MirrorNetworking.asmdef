@@ -21,7 +21,8 @@
         "EDIVE.StateHandling",
         "EDIVE.Avatars",
         "EDIVE.XRTools",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "LRM"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
