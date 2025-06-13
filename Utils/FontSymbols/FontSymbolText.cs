@@ -21,6 +21,7 @@ namespace EDIVE.Utils.FontSymbols
         private FontSymbol _FontSymbol;
 
         [SerializeField]
+        [OnValueChanged(nameof(RefreshSymbol))]
         private float _Scale = 1f;
 
         public FontSymbol FontSymbol
@@ -93,7 +94,6 @@ namespace EDIVE.Utils.FontSymbols
 
         private void RefreshSymbol()
         {
-            color = Color.white;
             material = null;
             alignment = TextAnchor.MiddleCenter;
             supportRichText = false;
@@ -117,12 +117,6 @@ namespace EDIVE.Utils.FontSymbols
         {
             base.Reset();
             Symbol = '\uef55';
-            RefreshSymbol();
-        }
-
-        protected override void OnValidate()
-        {
-            base.OnValidate();
             RefreshSymbol();
         }
 

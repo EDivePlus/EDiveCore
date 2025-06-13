@@ -103,14 +103,14 @@ namespace EDIVE.Utils.FontSymbols
 
         private void RefreshSymbol()
         {
-            color = Color.white;
             enableAutoSizing = false;
             material = null;
-            alignment = TextAlignmentOptions.Center;
             richText = false;
-            overflowMode = TextOverflowModes.Overflow;
             textWrappingMode = TextWrappingModes.NoWrap;
+            overflowMode = TextOverflowModes.Overflow;
+            alignment = TextAlignmentOptions.Center;
             emojiFallbackSupport = false;
+            isOrthographic = true;
 
             if (!Definition)
                 return;
@@ -155,12 +155,6 @@ namespace EDIVE.Utils.FontSymbols
         {
             base.Reset();
             Symbol = '\uef55';
-            RefreshSymbol();
-        }
-
-        protected override void OnValidate()
-        {
-            base.OnValidate();
             RefreshSymbol();
         }
 
