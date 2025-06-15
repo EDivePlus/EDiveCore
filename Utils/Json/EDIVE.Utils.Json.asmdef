@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "EDIVE.OdinExtensions",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "Newtonsoft.Json.UnityConverters"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
