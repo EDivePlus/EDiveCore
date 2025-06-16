@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.Json;
 using Newtonsoft.Json;
@@ -29,19 +30,21 @@ namespace EDIVE.Configuration
             var serializer = JsonSerializer.Create(serializerSettings);
             foreach (var record in _Records)
             {
-                var path = ConfigUtility.GetConfigPath(record.FilePath);
-                if (!File.Exists(path))
-                    continue;
+                record.LoadConfig(serializer);
+            }
+        }
 
-                try
-                {
-                    var json = File.ReadAllText(path);
-                    JsonAssetUtils.PopulateAsset(serializer, json, record.Asset);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogException(e);
-                }
+        public void SaveConfigs()
+        {
+            var serializerSettings = new JsonSerializerSettings(JsonConvert.DefaultSettings!.Invoke())
+            {
+                TypeNameHandling = TypeNameHandling.Auto
+            };
+
+            var serializer = JsonSerializer.Create(serializerSettings);
+            foreach (var record in _Records)
+            {
+                record.SaveConfig(serializer);
             }
         }
 
@@ -59,6 +62,38 @@ namespace EDIVE.Configuration
 
             public string FilePath => _FilePath;
             public ScriptableObject Asset => _Asset;
+
+            public void LoadConfig(JsonSerializer serializer)
+            {
+                var path = ConfigUtility.GetConfigPath(FilePath);
+                if (!File.Exists(path))
+                    return;
+
+                try
+                {
+                    var json = File.ReadAllText(path);
+                    JsonAssetUtils.PopulateAsset(serializer, json, Asset);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+
+            public void SaveConfig(JsonSerializer serializer)
+            {
+                var path = ConfigUtility.GetConfigPath(FilePath);
+                try
+                {
+                    var json = JsonAssetUtils.SerializeAsset(serializer, Asset);
+                    PathUtility.EnsurePathExists(path);
+                    File.WriteAllText(path, json.ToString(Formatting.Indented));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
         }
     }
 }
