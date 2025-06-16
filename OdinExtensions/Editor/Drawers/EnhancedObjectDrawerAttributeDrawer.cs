@@ -135,10 +135,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 Property.ValueEntry.WeakSmartValue = selection.FirstOrDefault();
                 Property.MarkSerializationRootDirty();
             };
-            
-            var height = items.Count * 23 + 23;
-            
-            selector.ShowInPopup(rect, new Vector2(rect.width, height));
+            selector.ShowInPopup(rect, rect.width);
         }
     }
 }
