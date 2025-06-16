@@ -13,7 +13,7 @@ namespace EDIVE.Utils.Json.TypeNames
     {
         private readonly Dictionary<string, System.Type> _formerNameToType = new();
         private readonly Dictionary<string, System.Type> _nameToType = new();
-        private readonly Dictionary<System.Type, string> _typeToName;
+        private readonly Dictionary<System.Type, string> _typeToName = new();
 
         public JsonTypeNameSerializationBinder()
         {
