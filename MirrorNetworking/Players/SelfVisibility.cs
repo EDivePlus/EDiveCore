@@ -1,35 +1,34 @@
-using UnityEngine;
+using EDIVE.OdinExtensions.Attributes;
 using Mirror;
+using UnityEngine;
 
-public class SelfVisibility : MonoBehaviour
+namespace EDIVE.MirrorNetworking.Players
 {
-    [SerializeField] private string _LocalOnlyLayer = "Player";
-    
-    private void Start()
+    public class SelfVisibility : MonoBehaviour
     {
-        var net = GetComponentInParent<NetworkIdentity>();
-        if (net == null || !net.isLocalPlayer)
-        {
-            Destroy(this);
-            return;
-        }
+        [SerializeField]
+        [Layer]
+        private int _LocalOnlyLayer;
 
-        int layer = LayerMask.NameToLayer(_LocalOnlyLayer);
-        if (layer == -1)
+        private void Start()
         {
-            Debug.LogError($"Layer '{_LocalOnlyLayer}' does not exist.");
-            return;
-        }
-        
-        SetLayerRecursively(transform, layer);
-    }
+            var net = GetComponentInParent<NetworkIdentity>();
+            if (net == null || !net.isLocalPlayer)
+            {
+                Destroy(this);
+                return;
+            }
 
-    private void SetLayerRecursively(Transform obj, int layer)
-    {
-        obj.gameObject.layer = layer;
-        foreach (Transform child in obj)
-        {
-            SetLayerRecursively(child, layer);
+            if (_LocalOnlyLayer == -1)
+            {
+                Debug.LogError($"Layer '{_LocalOnlyLayer}' does not exist.");
+                return;
+            }
+
+            foreach (var child in GetComponentsInChildren<Transform>())
+            {
+                child.gameObject.layer = _LocalOnlyLayer;
+            }
         }
     }
 }
