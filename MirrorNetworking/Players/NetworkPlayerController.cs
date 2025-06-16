@@ -74,12 +74,18 @@ namespace EDIVE.MirrorNetworking.Players
                 return;
 
             _avatarID = avatarId;
+            CreateLocalAvatar(_avatarID);
         }
 
         [Command]
-        public void CmdSetAvatar(string avatarId, NetworkConnectionToClient sender = null)
+        private void CmdSetAvatar(string avatarId, NetworkConnectionToClient sender = null)
         {
             ApplyAvatar(avatarId, sender);
+        }
+
+        public void SetAvatar(AvatarDefinition avatarDefinition)
+        {
+            CmdSetAvatar(avatarDefinition.UniqueID);
         }
 
         public override void OnStartLocalPlayer()
