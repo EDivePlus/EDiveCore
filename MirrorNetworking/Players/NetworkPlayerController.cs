@@ -3,19 +3,13 @@
 
 using EDIVE.AssetTranslation;
 using EDIVE.Avatars.Scripts;
-using EDIVE.Core;
-using EDIVE.DataStructures.ScriptableVariables;
 using EDIVE.StateHandling.ToggleStates;
 using Mirror;
 using UnityEngine;
 using UVRN.Player;
-using EDIVE.XRTools.Controls;
 
 namespace EDIVE.MirrorNetworking.Players
 {
-    /// <summary>
-    /// Class responsible for the player model networking.
-    /// </summary>
     public class NetworkPlayerController : NetworkBehaviour
     {
         [SerializeField]
@@ -23,10 +17,9 @@ namespace EDIVE.MirrorNetworking.Players
 
         [SerializeField]
         private Transform _AvatarRoot;
-        public Transform AvatarRoot => _AvatarRoot;
 
-
-        private GameObject _avatarInstance;
+        [SerializeField]
+        private IKTargetAssigner _IKAssigner;
 
         [SyncVar]
         private Color _color = Color.white;
@@ -40,11 +33,12 @@ namespace EDIVE.MirrorNetworking.Players
         [SyncVar]
         private int _connectionID = -1;
 
-        [SyncVar (hook = nameof(HandleAvatarChanged))]
+        [SyncVar(hook = nameof(HandleAvatarChanged))]
         private string _avatarID;
-        
-        [SerializeField]
-        private IKTargetAssigner _IKAssigner;
+
+        private GameObject _avatarInstance;
+
+        public Transform AvatarRoot => _AvatarRoot;
 
         public string Username => _username;
         public string Role => _role;
@@ -56,18 +50,8 @@ namespace EDIVE.MirrorNetworking.Players
         {
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(isLocalPlayer);
-            //Client_ConnectedPlayers[id] = this;
-            //Client_OnPlayerJoined.Invoke(id);
         }
 
-        public override void OnStopClient()
-        {
-            //Client_ConnectedPlayers.Remove(id);
-            // Client_OnPlayerLeft.Invoke(id);
-        }
-
-        // Done according to https://mirror-networking.gitbook.io/docs/guides/gameobjects/custom-character-spawning
-        // It would be nicer to use something instead of all the syncvars, but this is the best for now
         [Server]
         public void ApplyProfile(NetworkConnectionToClient conn, PlayerProfile profile, int connectionId)
         {
@@ -85,7 +69,6 @@ namespace EDIVE.MirrorNetworking.Players
                 return;
 
             _avatarID = avatarId;
-            
         }
 
         [Command]
@@ -98,15 +81,19 @@ namespace EDIVE.MirrorNetworking.Players
         {
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(true);
+
+            if (_IKAssigner != null && _avatarInstance != null)
+                _IKAssigner.Assign(_avatarInstance);
         }
-        
+
         public void HandleAvatarChanged(string oldValue, string newValue)
         {
             CreateLocalAvatar(newValue);
         }
+
         private void CreateLocalAvatar(string avatarId)
         {
-            if (_avatarInstance != null || string.IsNullOrEmpty(avatarId))
+            if (_avatarInstance || string.IsNullOrEmpty(avatarId))
                 return;
 
             if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(avatarId, out var def) || !def.IsValid())
@@ -118,15 +105,8 @@ namespace EDIVE.MirrorNetworking.Players
             _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
             _avatarInstance.name = def.AvatarPrefab.name;
 
-            var initializer = _avatarInstance.GetComponent<NetworkAvatarInitializer>();
-            if (initializer != null)
-            {
-                initializer._ParentNetId = netId;
-            }
             if (_IKAssigner != null)
-            {
                 _IKAssigner.Assign(_avatarInstance);
-            }
         }
     }
 }

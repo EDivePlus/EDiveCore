@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
-using EDIVE.AssetTranslation;
-using EDIVE.Avatars.Scripts;
 using EDIVE.Core;
 using EDIVE.External.Signals;
 using EDIVE.MirrorNetworking;
