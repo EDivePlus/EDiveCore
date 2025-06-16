@@ -1,3 +1,4 @@
+using System;
 using EDIVE.DataStructures.ScriptableVariables;
 using EDIVE.DataStructures.ScriptableVariables.Variables;
 using Mirror;
@@ -8,45 +9,51 @@ namespace EDIVE.MirrorNetworking.Players
     public class IKTargetAssigner : NetworkBehaviour
     {
         [SerializeField]
-        private IKTargetFollowVRRig _TargetFollow;
-        
-        [SerializeField]
-        private TransformScriptableVariable _Head;
+        private IKTargetRecord _HeadTarget;
 
         [SerializeField]
-        private TransformScriptableVariable _LeftHand;
+        private IKTargetRecord _LeftHandTarget;
 
         [SerializeField]
-        private TransformScriptableVariable _RightHand;
-        
-        public override void OnStartLocalPlayer()
+        private IKTargetRecord _RightHandTarget;
+
+        [Serializable]
+        private class IKTargetRecord
         {
-            TryAssignIKTargets();
+            [SerializeField]
+            private TransformScriptableVariable _RigTarget;
+
+            [SerializeField]
+            private Transform _SkeletonTarget;
+
+            public TransformScriptableVariable RigTarget => _RigTarget;
+            public Transform SkeletonTarget => _SkeletonTarget;
         }
-        public override void OnStartClient()
+
+        public void Assign(GameObject avatar)
         {
-            Debug.LogError("pROSIMM");
-        }
-    
-        private void TryAssignIKTargets()
-        {
-            if (_TargetFollow == null)
+            if (isLocalPlayer)
             {
-                Debug.LogWarning("IKTargetFollowVRRig not found in avatar prefab.");
+                var headFollow = _HeadTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
+                headFollow.Source = _HeadTarget.RigTarget;
+
+                var leftHandFollow = _RightHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
+                leftHandFollow.Source = _RightHandTarget.RigTarget;
+
+                var rightHandFollow = _RightHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
+                rightHandFollow.Source = _RightHandTarget.RigTarget;
+            }
+
+            var rig = avatar.GetComponentInChildren<IKTargetFollowVRRig>();
+            if (!rig)
+            {
+                Debug.LogError("IKTargetFollowVRRig NOT found in avatar.");
                 return;
             }
 
-            _TargetFollow.head.vrTarget = _Head;
-            _TargetFollow.leftHand.vrTarget = _LeftHand;
-            _TargetFollow.rightHand.vrTarget = _RightHand;
-
-            _Head.ValueChanged.AddListener(() => _TargetFollow.head.vrTarget = _Head);
-            _LeftHand.ValueChanged.AddListener(() => _TargetFollow.leftHand.vrTarget = _LeftHand);
-            _RightHand.ValueChanged.AddListener(() => _TargetFollow.rightHand.vrTarget = _RightHand);
-
-
-            Debug.Log("IK rig successfully assigned to XR targets.");
+            rig.head.vrTarget = _HeadTarget.SkeletonTarget;
+            rig.leftHand.vrTarget = _LeftHandTarget.SkeletonTarget;
+            rig.rightHand.vrTarget = _RightHandTarget.SkeletonTarget;
         }
     }
-    
 }
