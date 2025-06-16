@@ -103,18 +103,6 @@ namespace UVRN.Player
             // clear the message when connecting again
             failedAuthMessage = "";
             
-            if (AssetTranslationConfig.Instance.TryGetTranslator<AvatarDefinitionTranslator>(out var translator))
-            {
-                foreach (var definition in translator.Definitions)
-                {
-                    if (definition == null || definition.AvatarPrefab == null )
-                        continue;
-                    NetworkClient.RegisterPrefab(definition.AvatarPrefab);
-                    
-                }
-                
-            }
-
         }
 
         private void Server_OnPlayerCreationRequest(NetworkConnectionToClient conn, PlayerCreationRequestMessage request)

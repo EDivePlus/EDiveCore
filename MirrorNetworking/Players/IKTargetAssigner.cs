@@ -1,51 +1,28 @@
-using EDIVE.DataStructures.ScriptableVariables.Variables;
-using Mirror;
 using UnityEngine;
 
-namespace EDIVE.MirrorNetworking.Players
+public class IKTargetAssigner : MonoBehaviour
 {
-    public class IKTargetAssigner : NetworkBehaviour
+    [SerializeField] private Transform _head;
+    [SerializeField] private Transform _leftHand;
+    [SerializeField] private Transform _rightHand;
+
+    public void Assign(GameObject avatar)
     {
-        [SerializeField]
-        private IKTargetFollowVRRig _TargetFollow;
-        
-        [SerializeField]
-        private TransformScriptableVariable _Head;
+        Debug.Log("Assign() called!");
 
-        [SerializeField]
-        private TransformScriptableVariable _LeftHand;
-
-        [SerializeField]
-        private TransformScriptableVariable _RightHand;
-
-        public override void OnStartClient()
+        var rig = avatar.GetComponentInChildren<IKTargetFollowVRRig>();
+        if (rig == null)
         {
-            var identity = transform.parent.GetComponentInParent<NetworkIdentity>();
-            if (identity.isLocalPlayer)
-            {
-                TryAssignIKTargets();
-            }
+            Debug.LogError("IKTargetFollowVRRig NOT found in avatar.");
+            return;
         }
-    
-        private void TryAssignIKTargets()
-        {
-            if (_TargetFollow == null)
-            {
-                Debug.LogWarning("IKTargetFollowVRRig not found in avatar prefab.");
-                return;
-            }
 
-            _TargetFollow.head.vrTarget = _Head;
-            _TargetFollow.leftHand.vrTarget = _LeftHand;
-            _TargetFollow.rightHand.vrTarget = _RightHand;
+        Debug.Log("IKTargetFollowVRRig found, assigning...");
 
-            _Head.ValueChanged.AddListener(() => _TargetFollow.head.vrTarget = _Head);
-            _LeftHand.ValueChanged.AddListener(() => _TargetFollow.leftHand.vrTarget = _LeftHand);
-            _RightHand.ValueChanged.AddListener(() => _TargetFollow.rightHand.vrTarget = _RightHand);
+        rig.head.vrTarget = _head;
+        rig.leftHand.vrTarget = _leftHand;
+        rig.rightHand.vrTarget = _rightHand;
 
-
-            Debug.Log("IK rig successfully assigned to XR targets.");
-        }
+        Debug.Log("IKTargetAssigner: Assigned skeleton transforms to avatar rig.");
     }
-    
 }

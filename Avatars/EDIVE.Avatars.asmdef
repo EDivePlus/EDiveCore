@@ -1,6 +1,8 @@
 {
   "name": "EDIVE.Avatars",
   "references": [
-    "EDIVE.AssetTranslation"
+    "EDIVE.AssetTranslation",
+    "EDIVE.DataStructures",
+    "Mirror"
   ]
 }

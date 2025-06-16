@@ -23,6 +23,8 @@ namespace EDIVE.MirrorNetworking.Players
 
         [SerializeField]
         private Transform _AvatarRoot;
+        public Transform AvatarRoot => _AvatarRoot;
+
 
         private GameObject _avatarInstance;
 
@@ -38,8 +40,11 @@ namespace EDIVE.MirrorNetworking.Players
         [SyncVar]
         private int _connectionID = -1;
 
-        [SyncVar]
+        [SyncVar (hook = nameof(HandleAvatarChanged))]
         private string _avatarID;
+        
+        [SerializeField]
+        private IKTargetAssigner _IKAssigner;
 
         public string Username => _username;
         public string Role => _role;
@@ -80,25 +85,7 @@ namespace EDIVE.MirrorNetworking.Players
                 return;
 
             _avatarID = avatarId;
-
-            if (!_AvatarRoot)
-                return;
-
-            if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(_avatarID, out var def) || !def.IsValid())
-            {
-                Debug.LogError($"AvatarDefinition not found or invalid for ID: {_avatarID}");
-                return;
-            }
-
-            if (_avatarInstance)
-                Destroy(_avatarInstance);
-
-            _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
-            _avatarInstance.name = def.AvatarPrefab.name;
-            NetworkServer.Spawn(_avatarInstance.gameObject, conn);
-            Debug.Log($"Avatar {_avatarID} set for player '{_username}'");
-
-            //var vis = _avatarInstance.AddComponent<SelfVisibility>();
+            
         }
 
         [Command]
@@ -111,6 +98,35 @@ namespace EDIVE.MirrorNetworking.Players
         {
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(true);
+        }
+        
+        public void HandleAvatarChanged(string oldValue, string newValue)
+        {
+            CreateLocalAvatar(newValue);
+        }
+        private void CreateLocalAvatar(string avatarId)
+        {
+            if (_avatarInstance != null || string.IsNullOrEmpty(avatarId))
+                return;
+
+            if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(avatarId, out var def) || !def.IsValid())
+            {
+                Debug.LogError($"Invalid avatar ID {avatarId}");
+                return;
+            }
+
+            _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
+            _avatarInstance.name = def.AvatarPrefab.name;
+
+            var initializer = _avatarInstance.GetComponent<NetworkAvatarInitializer>();
+            if (initializer != null)
+            {
+                initializer._ParentNetId = netId;
+            }
+            if (_IKAssigner != null)
+            {
+                _IKAssigner.Assign(_avatarInstance);
+            }
         }
     }
 }
