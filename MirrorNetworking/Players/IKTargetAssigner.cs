@@ -1,4 +1,5 @@
 using System;
+using EDIVE.Avatars;
 using EDIVE.DataStructures.ScriptableVariables;
 using EDIVE.DataStructures.ScriptableVariables.Variables;
 using Mirror;
@@ -30,7 +31,7 @@ namespace EDIVE.MirrorNetworking.Players
             public Transform SkeletonTarget => _SkeletonTarget;
         }
 
-        public void Assign(GameObject avatar)
+        public void Assign(AvatarController avatar)
         {
             if (isLocalPlayer)
             {
@@ -44,16 +45,12 @@ namespace EDIVE.MirrorNetworking.Players
                 rightHandFollow.Source = _RightHandTarget.RigTarget;
             }
 
-            var rig = avatar.GetComponentInChildren<IKTargetFollowVRRig>();
-            if (!rig)
+            if (avatar.RigFollow)
             {
-                Debug.LogError("IKTargetFollowVRRig NOT found in avatar.");
-                return;
+                avatar.RigFollow.HeadSource = _HeadTarget.SkeletonTarget;
+                avatar.RigFollow.LeftHandSource = _LeftHandTarget.SkeletonTarget;
+                avatar.RigFollow.RightHandSource = _RightHandTarget.SkeletonTarget;
             }
-
-            rig.head.vrTarget = _HeadTarget.SkeletonTarget;
-            rig.leftHand.vrTarget = _LeftHandTarget.SkeletonTarget;
-            rig.rightHand.vrTarget = _RightHandTarget.SkeletonTarget;
         }
     }
 }

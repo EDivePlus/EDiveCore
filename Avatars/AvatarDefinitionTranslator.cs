@@ -1,9 +1,8 @@
 using EDIVE.AssetTranslation;
-using Mirror;
 using UnityEngine;
 
-namespace EDIVE.Avatars.Scripts
+namespace EDIVE.Avatars
 {
-    [UnityEngine.CreateAssetMenu(menuName = "EDIVE/Definition Translators/Avatar Translator")]
+    [CreateAssetMenu(menuName = "EDIVE/Definition Translators/Avatar Translator")]
     public class AvatarDefinitionTranslator : ADefinitionTranslator<AvatarDefinition> { }
 }

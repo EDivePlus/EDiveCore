@@ -2,7 +2,7 @@
 // Created: 23.04.2025
 
 using EDIVE.AssetTranslation;
-using EDIVE.Avatars.Scripts;
+using EDIVE.Avatars;
 using EDIVE.StateHandling.ToggleStates;
 using Mirror;
 using UnityEngine;
@@ -21,22 +21,22 @@ namespace EDIVE.MirrorNetworking.Players
         [SerializeField]
         private IKTargetAssigner _IKAssigner;
 
-        [SyncVar]
+        [SyncVar(hook = nameof(HandleColorChanged))]
         private Color _color = Color.white;
 
-        [SyncVar]
+        [SyncVar(hook = nameof(HandleUsernameChanged))]
         private string _username;
 
-        [SyncVar]
+        [SyncVar(hook = nameof(HandleRoleChanged))]
         private string _role;
 
-        [SyncVar]
+        [SyncVar(hook = nameof(HandleConnectionIDChanged))]
         private int _connectionID = -1;
 
         [SyncVar(hook = nameof(HandleAvatarChanged))]
         private string _avatarID;
 
-        private GameObject _avatarInstance;
+        private AvatarController _avatarInstance;
 
         public Transform AvatarRoot => _AvatarRoot;
 
@@ -50,6 +50,11 @@ namespace EDIVE.MirrorNetworking.Players
         {
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(isLocalPlayer);
+
+            if (_avatarInstance != null)
+                _avatarInstance.IsLocalPlayer = isLocalPlayer;
+
+            RefreshGameObjectName();
         }
 
         [Server]
@@ -82,8 +87,39 @@ namespace EDIVE.MirrorNetworking.Players
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(true);
 
-            if (_IKAssigner != null && _avatarInstance != null)
-                _IKAssigner.Assign(_avatarInstance);
+            if (_avatarInstance != null)
+            {
+                _avatarInstance.IsLocalPlayer = true;
+                if (_IKAssigner != null)
+                    _IKAssigner.Assign(_avatarInstance);
+            }
+        }
+
+        private void RefreshGameObjectName()
+        {
+            var objName = $"Player '{Username}' ({_connectionID})";
+            if (isLocalPlayer) objName += " [Local]";
+            gameObject.name = objName;
+        }
+
+        public void HandleConnectionIDChanged(int oldValue, int newValue)
+        {
+            RefreshGameObjectName();
+        }
+
+        public void HandleUsernameChanged(string oldValue, string newValue)
+        {
+            RefreshGameObjectName();
+        }
+
+        public void HandleRoleChanged(string oldValue, string newValue)
+        {
+
+        }
+
+        public void HandleColorChanged(Color oldValue, Color newValue)
+        {
+
         }
 
         public void HandleAvatarChanged(string oldValue, string newValue)
@@ -103,7 +139,8 @@ namespace EDIVE.MirrorNetworking.Players
             }
 
             _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
-            _avatarInstance.name = def.AvatarPrefab.name;
+            _avatarInstance.gameObject.name = def.AvatarPrefab.name;
+            _avatarInstance.IsLocalPlayer = isLocalPlayer;
 
             if (_IKAssigner != null)
                 _IKAssigner.Assign(_avatarInstance);

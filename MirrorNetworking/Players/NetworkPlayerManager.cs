@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.Avatars;
 using EDIVE.Core;
 using EDIVE.External.Signals;
 using EDIVE.MirrorNetworking;
@@ -11,7 +12,9 @@ using EDIVE.MirrorNetworking.Players;
 using EDIVE.MirrorNetworking.Scenes;
 using Edive.Networking;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Utils.WordGenerating;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace UVRN.Player
 {
@@ -26,6 +29,13 @@ namespace UVRN.Player
         [SerializeField]
         private NetworkPlayerConfig _PlayerConfig;
 
+        [ShowCreateNew]
+        [SerializeField]
+        private AvatarDefinition _DefaultAvatar;
+
+        [ShowCreateNew]
+        [SerializeField]
+        private AWordGenerator _PlayerNameGenerator;
 
         public NetworkPlayerConfig PlayerConfig => _PlayerConfig;
         private NetworkSceneManager _networkSceneManager;
@@ -40,11 +50,14 @@ namespace UVRN.Player
         // this class is not destroyed therefore the message gets transfered
         public string failedAuthMessage { get; private set; }
 
+        private PlayerProfile _playerProfile;
+        public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
+
         public static Dictionary<uint, NetworkPlayerController> Client_ConnectedPlayers { get; }
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            
+
             _networkManager = AppCore.Services.Get<MasterNetworkManager>();
             _networkSceneManager = AppCore.Services.Get<NetworkSceneManager>();
 
@@ -78,6 +91,27 @@ namespace UVRN.Player
             {
                 _networkSceneManager.ClientSceneChanged.RemoveListener(Client_OnSceneChanged);
             }
+        }
+
+        private PlayerProfile CreatePlayerProfile()
+        {
+            if (_playerProfile != null)
+                return _playerProfile;
+
+            _playerProfile = new PlayerProfile()
+            {
+                username = GeneratePlayerName(),
+                password = "",
+                role = "guest",
+                color = Color.HSVToRGB(Random.Range(0f, 1f), .75f, .75f),
+                avatarId = _DefaultAvatar.UniqueID,
+            };
+            return _playerProfile;
+        }
+
+        public string GeneratePlayerName()
+        {
+            return _PlayerNameGenerator ? _PlayerNameGenerator.Generate() : $"Player_{Random.Range(1000, 9999)}";
         }
 
         public static bool TryGetPlayer(uint id, out NetworkPlayerController player)
@@ -191,7 +225,7 @@ namespace UVRN.Player
         {
             var playerCreationRequest = new PlayerCreationRequestMessage()
             {
-                profile = PlayerProfileManager.LOCAL_PROFILE
+                profile = PlayerProfile
             };
             NetworkClient.connection.Send(playerCreationRequest);
             Debug.Log("Sending request for player creation.");

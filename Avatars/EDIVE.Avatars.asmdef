@@ -3,6 +3,7 @@
   "references": [
     "EDIVE.AssetTranslation",
     "EDIVE.DataStructures",
-    "Mirror"
+    "Mirror",
+    "EDIVE.StateHandling"
   ]
 }

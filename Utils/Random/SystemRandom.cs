@@ -6,6 +6,7 @@ namespace EDIVE.Extensions.Random
 
         public SystemRandom(System.Random randomInstance) { _randomInstance = randomInstance; }
         public SystemRandom(int seed) { _randomInstance = new System.Random(seed); }
+        public SystemRandom(int? seed = null) { _randomInstance = seed.HasValue ? new System.Random(seed.Value) : new System.Random(); }
         public SystemRandom() { _randomInstance = new System.Random(); }
 
         public float Next() { return NextFloat(); }
