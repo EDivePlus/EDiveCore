@@ -18,6 +18,7 @@ namespace EDIVE.MirrorNetworking.ServerManagement
         public UniTask Load(Action<float> progressCallback)
         {
             var transport = GetComponent<LightReflectiveMirrorTransport>();
+            _Config.ApplyTo(transport);
             transport.ConnectToRelay();
             return UniTask.CompletedTask;
         }
