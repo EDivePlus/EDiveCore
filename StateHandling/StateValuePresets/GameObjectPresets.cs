@@ -1,5 +1,5 @@
 using System;
-using EDIVE.StateHandling.MultiStates;
+using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -10,5 +10,16 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Active";
         public override void ApplyTo(GameObject targetObject) => targetObject.SetActive(Value);
+    }
+
+    [Serializable, Preserve]
+    public class GameObjectLayerPreset : AStateValuePreset<GameObject>
+    {
+        [SerializeField]
+        [Layer]
+        private int _Layer;
+
+        public override string Title => "Layer";
+        public override void ApplyTo(GameObject targetObject) => targetObject.layer = _Layer;
     }
 }

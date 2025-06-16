@@ -72,6 +72,8 @@ namespace EDIVE.StateHandling
         [UsedImplicitly]
         private IEnumerable GetValuePresetDropdown()
         {
+            if (Target == null)
+                return new List<ValueDropdownItem<AStateValuePreset>>();
             return StateControlEditorUtils.GetValuePresetDropdown(Target.GetType());
         }
 
