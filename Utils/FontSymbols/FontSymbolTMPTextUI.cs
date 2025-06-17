@@ -192,17 +192,6 @@ namespace EDIVE.Utils.FontSymbols
 #if UNITY_EDITOR
     [CustomEditor(typeof(FontSymbolTMPTextUI))]
     [CanEditMultipleObjects]
-    public class FontSymbolTMPTextUIEditor : OdinEditor
-    {
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-            foreach (var property in Tree.RootProperty.Children)
-            {
-                if (!typeof(FontSymbolTMPTextUI).IsAssignableFrom(property.Info.TypeOfOwner))
-                    property.State.Visible = false;
-            }
-        }
-    }
+    public class FontSymbolTMPTextUIEditor : ABaseFontSymbolEditor<FontSymbolTMPTextUI> { }
 #endif
 }

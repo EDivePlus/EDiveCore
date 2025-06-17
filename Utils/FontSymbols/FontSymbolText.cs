@@ -154,17 +154,6 @@ namespace EDIVE.Utils.FontSymbols
 #if UNITY_EDITOR
     [CustomEditor(typeof(FontSymbolText))]
     [CanEditMultipleObjects]
-    public class FontSymbolTextEditor : OdinEditor
-    {
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-            foreach (var property in Tree.RootProperty.Children)
-            {
-                if (!typeof(FontSymbolText).IsAssignableFrom(property.Info.TypeOfOwner))
-                    property.State.Visible = false;
-            }
-        }
-    }
+    public class FontSymbolTextEditor : ABaseFontSymbolEditor<FontSymbolText> { }
 #endif
 }
