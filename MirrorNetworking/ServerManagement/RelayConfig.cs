@@ -11,54 +11,57 @@ namespace EDIVE.MirrorNetworking.ServerManagement
     [JsonObject(MemberSerialization.OptIn)]
     public class RelayConfig : ScriptableObject
     {
-        [JsonProperty]
+        [JsonProperty("NodeIP")]
         [SerializeField]
         private string _NodeIP;
 
-        [JsonProperty]
+        [JsonProperty("NodePort")]
         [SerializeField]
         private ushort _NodePort;
 
-        [JsonProperty]
+        [JsonProperty("EndpointPort")]
         [SerializeField]
         private ushort _EndpointPort;
 
-        [JsonProperty]
+        [JsonProperty("AuthKey")]
         [SerializeField]
         private string _AuthKey;
 
-        [JsonProperty]
+        [JsonProperty("HeartbeatInterval")]
         [SerializeField]
         [Range(0.1f, 5f)]
         private float _HeartbeatInterval = 3f;
 
-        [JsonProperty]
+        [PropertySpace]
+        [JsonProperty("UseNATPunch")]
         [SerializeField]
         private bool _UseNATPunch;
 
-        [JsonProperty]
+        [PropertySpace]
+        [JsonProperty("UseLoadBalancer")]
         [SerializeField]
         private bool _UseLoadBalancer;
 
-        [JsonProperty]
+        [JsonProperty("LoadBalancerIP")]
         [SerializeField]
         [EnableIf(nameof(_UseLoadBalancer))]
         private string _LoadBalancerIP;
 
-        [JsonProperty]
+        [JsonProperty("LoadBalancerPort")]
         [SerializeField]
         [EnableIf(nameof(_UseLoadBalancer))]
         private ushort _LoadBalancerPort;
 
-        [JsonProperty]
+        [PropertySpace]
+        [JsonProperty("AppID")]
         [SerializeField]
         private int _AppID = 1;
 
-        [JsonProperty]
+        [JsonProperty("ServerName")]
         [SerializeField]
         private string _ServerName;
 
-        [JsonProperty]
+        [JsonProperty("MaxPlayers")]
         [SerializeField]
         private int _MaxPlayers = 10;
 

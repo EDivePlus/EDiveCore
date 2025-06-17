@@ -10,33 +10,32 @@ namespace EDIVE.MirrorNetworking.ServerCodes
     [JsonObject(MemberSerialization.OptIn)]
     public class ServerCodeConfig : ScriptableObject
     {
-        [JsonProperty]
+        [JsonProperty("ServerManagerUrl")]
         [SerializeField]
         private string _ServerManagerUrl = "";
 
-        [PropertySpace]
-        [JsonProperty]
+        [JsonProperty("ServerTitle")]
         [SerializeField]
         private string _ServerTitle;
 
-        [JsonProperty]
+        [JsonProperty("AutoRegisterServer")]
         [SerializeField]
         private bool _AutoRegisterServer;
 
         [EnableIf(nameof(_AutoRegisterServer))]
-        [JsonProperty]
+        [JsonProperty("RegisterLocalIP")]
         [SerializeField]
         private bool _RegisterLocalIP;
 
-        [JsonProperty]
+        [JsonProperty("ServerCode")]
         [SerializeField]
         private string _ServerCode;
 
-        [JsonProperty]
+        [JsonProperty("Port")]
         [SerializeField]
         private int _Port;
 
-        [JsonProperty]
+        [JsonProperty("UpdateFrequency")]
         [SerializeField]
         private int _UpdateFrequency;
 
