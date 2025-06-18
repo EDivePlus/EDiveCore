@@ -103,6 +103,7 @@ namespace EDIVE.Utils.FontSymbols
 
         private void RefreshSymbol()
         {
+            var changed = false;
             enableAutoSizing = false;
             material = null;
             richText = false;
@@ -117,12 +118,28 @@ namespace EDIVE.Utils.FontSymbols
             if (Definition.TMPFont == null)
                 return;
 
-            font = Definition.TMPFont;
-            text = $"{Symbol}";
-            fontSize = Mathf.FloorToInt(Mathf.Min(rectTransform.rect.width, rectTransform.rect.height) * _Scale);
+            if (font != Definition.TMPFont)
+            {
+                font = Definition.TMPFont;
+                changed = true;
+            }
+
+            var newFontSize = Mathf.FloorToInt(Mathf.Min(rectTransform.rect.width, rectTransform.rect.height) * _Scale);
+            if (newFontSize > 0 && !Mathf.Approximately(fontSize, newFontSize))
+            {
+                fontSize = newFontSize;
+                changed = true;
+            }
+
+            var newText = $"{Symbol}";
+            if (text != newText)
+            {
+                text = newText;
+                changed = true;
+            }
 
 #if UNITY_EDITOR
-            EditorUtility.SetDirty(this);
+            if (changed) EditorUtility.SetDirty(this);
 #endif
         }
 
@@ -166,25 +183,6 @@ namespace EDIVE.Utils.FontSymbols
         {
             base.OnValidate();
             RefreshSymbol();
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            var gui = rectTransform;
-            var space = transform;
-            var rect = gui.rect;
-            var offset = raycastPadding;
-
-            var p0 = space.TransformPoint(new Vector2(rect.x + offset.x, rect.y + offset.y));
-            var p1 = space.TransformPoint(new Vector2(rect.x + offset.x, rect.yMax - offset.w));
-            var p2 = space.TransformPoint(new Vector2(rect.xMax - offset.z, rect.yMax - offset.w));
-            var p3 = space.TransformPoint(new Vector2(rect.xMax - offset.z, rect.y + offset.y));
-
-            Handles.color = Handles.UIColliderHandleColor;
-            Handles.DrawLine(p0, p1);
-            Handles.DrawLine(p1, p2);
-            Handles.DrawLine(p2, p3);
-            Handles.DrawLine(p3, p0);
         }
 #endif
     }
