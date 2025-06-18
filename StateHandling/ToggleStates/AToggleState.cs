@@ -1,6 +1,10 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace EDIVE.StateHandling.ToggleStates
 {
     public abstract class AToggleState : MonoBehaviour
@@ -9,7 +13,14 @@ namespace EDIVE.StateHandling.ToggleStates
         [SerializeField]
         private string _Description;
 
-        protected bool _state;
+        [PropertyOrder(-10)]
+        [SerializeField]
+        private bool _SetDefaultStateOnAwake = true;
+
+        [PropertyOrder(-10)]
+        [SerializeField]
+        [ShowIf(nameof(_SetDefaultStateOnAwake))]
+        private bool _DefaultState;
 
         [PropertyOrder(-10)]
         [ShowInInspector]
@@ -28,6 +39,20 @@ namespace EDIVE.StateHandling.ToggleStates
             set => SetState(value, true);
         }
 
+        public bool DefaultState
+        {
+            get => _DefaultState;
+            set
+            {
+                _DefaultState = value;
+#if UNITY_EDITOR
+                EditorUtility.SetDirty(this);
+#endif
+            }
+        }
+
+        private bool _state;
+
         public void SetState(bool state, bool immediate = false)
         {
             _state = state;
@@ -40,7 +65,8 @@ namespace EDIVE.StateHandling.ToggleStates
 
         private void Awake()
         {
-            SetState(State);
+            if(_SetDefaultStateOnAwake)
+                SetState(DefaultState);
         }
     }
 }
