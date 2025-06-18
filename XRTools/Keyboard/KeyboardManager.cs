@@ -33,36 +33,43 @@ namespace EDIVE.XRTools.Keyboard
             _Keyboard.gameObject.SetActive(false);
         }
 
-        public void ShowKeyboard(TMP_InputField inputField, bool observeCharacterLimit = false)
+        public KeyboardController ShowKeyboard(TMP_InputField inputField, bool observeCharacterLimit = false)
         {
             if (_Keyboard == null)
-                return;
+                return null;
 
             var shouldPositionKeyboard = !_Keyboard.IsOpen || (_RepositionOutOfViewKeyboardOnOpen && IsKeyboardOutOfView());
             _Keyboard.Open(inputField, observeCharacterLimit);
 
             if (shouldPositionKeyboard)
                 PositionKeyboard(CameraTransform);
+
+
+            return Keyboard;
         }
 
-        public void ShowKeyboard(string text)
+        public KeyboardController ShowKeyboard(string text)
         {
             if (_Keyboard == null)
-                return;
+                return null;
 
             var shouldPositionKeyboard = !_Keyboard.IsOpen || (_RepositionOutOfViewKeyboardOnOpen && IsKeyboardOutOfView());
             _Keyboard.Open(text);
 
             if (shouldPositionKeyboard)
                 PositionKeyboard(CameraTransform);
+
+            return Keyboard;
         }
 
-        public void ShowKeyboard(bool clearKeyboardText = false)
+        public KeyboardController ShowKeyboard(bool clearKeyboardText = false)
         {
             if (_Keyboard == null)
-                return;
+                return null;
 
             ShowKeyboard(clearKeyboardText ? string.Empty : _Keyboard.Text);
+
+            return Keyboard;
         }
 
         public virtual void HideKeyboard()
@@ -84,11 +91,15 @@ namespace EDIVE.XRTools.Keyboard
 
         private void PositionKeyboard(Transform target)
         {
+            if (target == null)
+                return;
+
             var position = target.position +
                 target.right * _KeyboardOffset.x +
                 target.forward * _KeyboardOffset.z +
                 Vector3.up * _KeyboardOffset.y;
             _Keyboard.transform.position = position;
+            _Keyboard.transform.localScale = Vector3.one;
             FaceKeyboardAtTarget(CameraTransform);
         }
 

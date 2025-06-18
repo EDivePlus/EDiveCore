@@ -30,6 +30,8 @@ namespace EDIVE.XRTools.Keyboard
                 StopObservingInputField(_currentInputField);
                 _currentInputField = value;
                 StartObservingInputField(_currentInputField);
+
+                FocusChanged.Dispatch();
             }
         }
 
@@ -43,10 +45,22 @@ namespace EDIVE.XRTools.Keyboard
 
                 _text = value;
                 CaretPosition = Math.Clamp(CaretPosition, 0, _text.Length);
+                TextUpdated.Dispatch(_text);
             }
         }
 
-        public int CaretPosition { get; private set; }
+        public int CaretPosition
+        {
+            get => _caretPosition;
+            set
+            {
+                _caretPosition = value;
+                SelectStartIndex = SelectEndIndex = _caretPosition;
+            }
+        }
+        public int SelectStartIndex { get; set; }
+        public int SelectEndIndex { get; set; }
+
         public ShiftState ShiftState { get; private set; }
         public KeyboardLayout CurrentLayout { get; private set; }
         public bool IsShifted => ShiftState != ShiftState.None;
@@ -69,6 +83,7 @@ namespace EDIVE.XRTools.Keyboard
         private bool _isOpen;
         private int _characterLimit;
         private bool _monitorCharacterLimit;
+        private int _caretPosition;
 
         private void Awake()
         {
@@ -78,11 +93,21 @@ namespace EDIVE.XRTools.Keyboard
             SetLayout(KeyboardLayout.Characters);
         }
 
-        private void OnDisable() { _isOpen = false; }
+        private void OnDisable()
+        {
+            _isOpen = false;
+        }
 
         public virtual void InsertText(string newText)
         {
-            var updatedText = Text;
+            var selectionStart = Mathf.Min(SelectStartIndex, SelectEndIndex);
+            var selectionEnd = Mathf.Max(SelectStartIndex, SelectEndIndex);
+            var selectionLength = selectionEnd - selectionStart;
+
+            if (selectionLength > 0)
+                CaretPosition = Mathf.Clamp(selectionStart, 0, Text.Length);
+
+            var updatedText = Text.Remove(selectionStart, selectionLength);
             updatedText = updatedText.Insert(CaretPosition, newText);
 
             var isUpdatedTextWithinLimits = !_monitorCharacterLimit || updatedText.Length <= _characterLimit;
@@ -116,9 +141,18 @@ namespace EDIVE.XRTools.Keyboard
 
         public void Backspace()
         {
-            if (CaretPosition > 0)
+            var selectionStart = Mathf.Min(SelectStartIndex, SelectEndIndex);
+            var selectionEnd = Mathf.Max(SelectStartIndex, SelectEndIndex);
+            var selectionLength = selectionEnd - selectionStart;
+
+            if (selectionLength > 0)
             {
-                --CaretPosition;
+                CaretPosition = selectionStart;
+                Text = Text.Remove(selectionStart, selectionLength);
+            }
+            else if (CaretPosition > 0)
+            {
+                CaretPosition--;
                 Text = Text.Remove(CaretPosition, 1);
             }
         }
@@ -166,9 +200,15 @@ namespace EDIVE.XRTools.Keyboard
             Open(CurrentInputField.text);
         }
 
-        public void Open() { Open(Text); }
+        public void Open()
+        {
+            Open(Text);
+        }
 
-        public void OpenCleared() { Open(string.Empty); }
+        public void OpenCleared()
+        {
+            Open(string.Empty);
+        }
 
         public void Open(string newText)
         {

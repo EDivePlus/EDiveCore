@@ -11,11 +11,14 @@ namespace EDIVE.XRTools.Keyboard
         private TMP_InputField _InputField;
 
         [SerializeField]
-        private bool _UseSceneKeyboard;
+        private bool _ManualKeyboard;
 
-        [EnableIf(nameof(_UseSceneKeyboard))]
+        [EnableIf(nameof(_ManualKeyboard))]
         [SerializeField]
         private KeyboardController _Keyboard;
+
+        [SerializeField]
+        private bool _OpenKeyboardOnFocus = true;
 
         [SerializeField]
         private bool _AlwaysObserveKeyboard;
@@ -34,7 +37,6 @@ namespace EDIVE.XRTools.Keyboard
 
         [SerializeField]
         private bool _ClearTextOnOpen;
-
 
         public TMP_InputField InputField
         {
@@ -63,6 +65,8 @@ namespace EDIVE.XRTools.Keyboard
         private bool _isActivelyObservingKeyboard;
         private KeyboardController _activeKeyboard;
 
+        private int _lastCaretPosition;
+
         private void Awake()
         {
             _activeKeyboard = Keyboard;
@@ -79,7 +83,30 @@ namespace EDIVE.XRTools.Keyboard
         private void OnEnable()
         {
             if (InputField != null)
+            {
                 InputField.onSelect.AddListener(OnInputFieldGainedFocus);
+                InputField.onTextSelection.AddListener(OnTextSelectionChanged);
+                _lastCaretPosition = InputField.caretPosition;
+            }
+        }
+
+        private void Update()
+        {
+            if (InputField != null && _isActivelyObservingKeyboard && _activeKeyboard != null)
+            {
+                var currentCaret = InputField.caretPosition;
+                if (currentCaret != _lastCaretPosition)
+                {
+                    _lastCaretPosition = currentCaret;
+                    _activeKeyboard.CaretPosition = currentCaret;
+                }
+            }
+        }
+
+        private void OnTextSelectionChanged(string selectedText, int startIndex, int endIndex)
+        {
+            _activeKeyboard.SelectStartIndex = startIndex;
+            _activeKeyboard.SelectEndIndex = endIndex;
         }
 
         private void OnDisable()
@@ -99,7 +126,7 @@ namespace EDIVE.XRTools.Keyboard
 
         private void Start()
         {
-            if (_activeKeyboard == null || !_UseSceneKeyboard)
+            if (_activeKeyboard == null || !_ManualKeyboard)
                 _activeKeyboard = AppCore.Services.Get<KeyboardManager>().Keyboard;
 
             var observeOnStart = _AlwaysObserveKeyboard && _activeKeyboard != null && !_isActivelyObservingKeyboard;
@@ -150,34 +177,40 @@ namespace EDIVE.XRTools.Keyboard
 
         private void OnInputFieldGainedFocus(string text)
         {
-            // If this display is already observing keyboard, sync, attempt to reposition, and early out
-            // Displays that are always observing keyboards call open to ensure they sync with the keyboard
             if (_isActivelyObservingKeyboard && !_AlwaysObserveKeyboard)
             {
-                if (!_UseSceneKeyboard || Keyboard == null)
+                if (!_ManualKeyboard || Keyboard == null)
                     AppCore.Services.Get<KeyboardManager>().RepositionKeyboardIfOutOfView();
 
-                if (InputField.stringPosition != _activeKeyboard.CaretPosition)
-                    InputField.stringPosition = _activeKeyboard.CaretPosition;
-
+                InputField.stringPosition = _activeKeyboard.CaretPosition;
                 return;
             }
 
             if (_ClearTextOnOpen)
                 InputField.text = string.Empty;
 
-            // If not using a scene keyboard, use global keyboard.
-            if (!_UseSceneKeyboard || Keyboard == null)
+            if (_OpenKeyboardOnFocus)
             {
-                AppCore.Services.Get<KeyboardManager>().ShowKeyboard(InputField, _MonitorCharacterLimit);
-            }
-            else
-            {
-                _activeKeyboard.Open(InputField, _MonitorCharacterLimit);
+                if (_ManualKeyboard && Keyboard != null)
+                {
+                    _activeKeyboard.Open(InputField, _MonitorCharacterLimit);
+                }
+                else
+                {
+                    var provider = GetComponentInParent<KeyboardProvider>();
+                    if (provider != null && provider.Keyboard != null)
+                    {
+                        provider.Keyboard.Open(InputField, _MonitorCharacterLimit);
+                        _activeKeyboard = provider.Keyboard;
+                    }
+                    else
+                    {
+                        _activeKeyboard = AppCore.Services.Get<KeyboardManager>().ShowKeyboard(InputField, _MonitorCharacterLimit);
+                    }
+                }
             }
 
-            if (_InputField.stringPosition != _activeKeyboard.CaretPosition)
-                _InputField.stringPosition = _activeKeyboard.CaretPosition;
+            InputField.stringPosition = _activeKeyboard.CaretPosition;
 
             StartObservingKeyboard(_activeKeyboard);
         }
@@ -207,8 +240,9 @@ namespace EDIVE.XRTools.Keyboard
                 updatedText = updatedText.Substring(0, InputField.characterLimit);
 
             InputField.text = updatedText;
-            if (InputField.stringPosition != _activeKeyboard.CaretPosition)
-                InputField.stringPosition = _activeKeyboard.CaretPosition;
+            InputField.stringPosition = _activeKeyboard.CaretPosition;
+            InputField.selectionAnchorPosition = _activeKeyboard.SelectStartIndex;
+            InputField.selectionFocusPosition = _activeKeyboard.SelectEndIndex;
         }
 
         private void KeyboardOpening()

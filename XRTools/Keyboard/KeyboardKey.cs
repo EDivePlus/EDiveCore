@@ -13,7 +13,7 @@ using UnityEngine.UI;
 
 namespace EDIVE.XRTools.Keyboard
 {
-    public class KeyboardKey : MonoBehaviour, IPointerClickHandler
+    public class KeyboardKey : MonoBehaviour
     {
         [SerializeField]
         private Button _Button;
@@ -40,6 +40,11 @@ namespace EDIVE.XRTools.Keyboard
 
         private bool _initialized;
         private bool _enabledInternal;
+
+        private float _lastClickTime;
+        private float TimeSinceLastClick => Time.time - _lastClickTime;
+
+        private const float DOUBLE_CLICK_INTERVAL = 0.5f;
 
         public void OnEnable()
         {
@@ -78,7 +83,10 @@ namespace EDIVE.XRTools.Keyboard
             OnKeyboardShiftChanged(Keyboard.ShiftState);
         }
 
-        private void UnregisterListeners() { Keyboard.ShiftChanged.RemoveListener(OnKeyboardShiftChanged); }
+        private void UnregisterListeners()
+        {
+            Keyboard.ShiftChanged.RemoveListener(OnKeyboardShiftChanged);
+        }
 
         private void OnKeyboardShiftChanged(ShiftState shift)
         {
@@ -117,6 +125,11 @@ namespace EDIVE.XRTools.Keyboard
                     Keyboard.Clear();
                     break;
                 case KeyType.Shift:
+                    if (Keyboard.ShiftState != ShiftState.CapsLock && TimeSinceLastClick < DOUBLE_CLICK_INTERVAL)
+                    {
+                        Keyboard.Shift(ShiftState.CapsLock);
+                        break;
+                    }
                     Keyboard.Shift(Keyboard.IsShifted ? ShiftState.None : ShiftState.Shift);
                     break;
                 case KeyType.Layout:
@@ -130,12 +143,7 @@ namespace EDIVE.XRTools.Keyboard
             }
 
             Keyboard.KeyPressed.Dispatch(this);
-        }
-
-        public void OnPointerClick(PointerEventData eventData)
-        {
-            if (_KeyType == KeyType.Shift && eventData.clickCount == 2)
-                Keyboard.Shift(ShiftState.CapsLock);
+            _lastClickTime = Time.time;
         }
 
 #if UNITY_EDITOR
