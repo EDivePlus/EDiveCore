@@ -12,7 +12,11 @@
         "EDIVE.AppLoading",
         "UniTask",
         "Unity.XR.CoreUtils",
-        "EDIVE.External.ToolbarExtensions"
+        "EDIVE.External.ToolbarExtensions",
+        "Unity.TextMeshPro",
+        "EDIVE.External.Signals",
+        "EDIVE.DataStructures",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
