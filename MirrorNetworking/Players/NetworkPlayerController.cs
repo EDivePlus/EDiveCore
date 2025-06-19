@@ -65,6 +65,7 @@ namespace EDIVE.MirrorNetworking.Players
             _color = profile.color;
             _connectionID = connectionId;
             ApplyAvatar(profile.avatarId, conn);
+            RefreshGameObjectName();
         }
 
         [Server]
