@@ -31,7 +31,7 @@ namespace EDIVE.MirrorNetworking.Players
             public Transform SkeletonTarget => _SkeletonTarget;
         }
 
-        public void Assign(AvatarController avatar)
+        public void InitializeFollow()
         {
             if (isLocalPlayer)
             {
@@ -44,7 +44,10 @@ namespace EDIVE.MirrorNetworking.Players
                 var rightHandFollow = _RightHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
                 rightHandFollow.Source = _RightHandTarget.RigTarget;
             }
+        }
 
+        public void Assign(AvatarController avatar)
+        {
             if (avatar.RigFollow)
             {
                 avatar.RigFollow.HeadSource = _HeadTarget.SkeletonTarget;

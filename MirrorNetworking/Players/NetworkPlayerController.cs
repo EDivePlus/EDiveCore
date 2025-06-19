@@ -99,6 +99,9 @@ namespace EDIVE.MirrorNetworking.Players
                 if (_IKAssigner != null)
                     _IKAssigner.Assign(_avatarInstance);
             }
+
+            if (_IKAssigner != null)
+                _IKAssigner.InitializeFollow();
         }
 
         private void RefreshGameObjectName()
