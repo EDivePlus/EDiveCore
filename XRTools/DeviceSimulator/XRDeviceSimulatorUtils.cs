@@ -42,7 +42,7 @@ namespace EDIVE.XRTools.DeviceSimulator
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
-            XRDeviceSimulatorSettings.Instance.hideFlags = HideFlags.DontSave;
+            XRDeviceSimulatorSettings.Instance.hideFlags = HideFlags.DontSaveInEditor;
             ToolbarExtender.AddToRightToolbar(OnToolbarGUI, -90);
         }
 

@@ -5,11 +5,13 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.MultiStates;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.XRTools.Keyboard
 {

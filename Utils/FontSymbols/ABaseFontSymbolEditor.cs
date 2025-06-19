@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 17.06.2025
 
+#if UNITY_EDITOR
 using System.Reflection;
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
@@ -71,3 +72,4 @@ namespace EDIVE.Utils.FontSymbols
 
     }
 }
+#endif
