@@ -25,7 +25,10 @@ namespace EDIVE.XRTools.Keyboard
         private TransformScriptableVariable _CameraTransformVariable;
 
         public KeyboardController Keyboard => _Keyboard;
-        private Transform CameraTransform => _CameraTransformVariable.Value;
+        private Transform CameraTransform =>
+            _CameraTransformVariable != null && _CameraTransformVariable.Value != null
+                ? _CameraTransformVariable.Value
+                : Camera.main?.transform;
 
         protected override void Awake()
         {
