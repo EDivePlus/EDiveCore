@@ -37,6 +37,11 @@ namespace EDIVE.XRTools.Keyboard
         [ValidateMultiStateWithEnum(typeof(ShiftState))]
         private AMultiState _ShiftState;
 
+        [ShowIf(nameof(_KeyType), KeyType.Layout)]
+        [SerializeField]
+        [ValidateMultiStateWithEnum(typeof(KeyboardLayout))]
+        private AMultiState _LayoutState;
+
         public KeyboardController Keyboard { get; private set; }
         public KeyType KeyType => _KeyType;
 
@@ -81,13 +86,24 @@ namespace EDIVE.XRTools.Keyboard
 
         private void RegisterListeners()
         {
-            Keyboard.ShiftChanged.AddListener(OnKeyboardShiftChanged);
-            OnKeyboardShiftChanged(Keyboard.ShiftState);
+            if (_KeyType is KeyType.Text or KeyType.Shift)
+            {
+                Keyboard.ShiftChanged.AddListener(OnKeyboardShiftChanged);
+                OnKeyboardShiftChanged(Keyboard.ShiftState);
+            }
+
+
+            if (_KeyType == KeyType.Layout)
+            {
+                Keyboard.LayoutChanged.AddListener(OnKeyboardLayoutChanged);
+                OnKeyboardLayoutChanged(Keyboard.CurrentLayout);
+            }
         }
 
         private void UnregisterListeners()
         {
             Keyboard.ShiftChanged.RemoveListener(OnKeyboardShiftChanged);
+            Keyboard.LayoutChanged.RemoveListener(OnKeyboardLayoutChanged);
         }
 
         private void OnKeyboardShiftChanged(ShiftState shift)
@@ -97,6 +113,12 @@ namespace EDIVE.XRTools.Keyboard
 
             if (_KeyType == KeyType.Shift && _ShiftState != null)
                 _ShiftState.SetState(Keyboard.ShiftState);
+        }
+
+        private void OnKeyboardLayoutChanged(KeyboardLayout obj)
+        {
+            if (_KeyType == KeyType.Layout && _LayoutState != null)
+                _LayoutState.SetState(Keyboard.CurrentLayout);
         }
 
         private void OnKeyPressed()
