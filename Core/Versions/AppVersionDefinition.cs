@@ -90,7 +90,11 @@ namespace EDIVE.Core.Versions
             EditorUtility.SetDirty(this);
         }
 
-        public void ApplyCurrentVersion() => CurrentVersion.Apply(CurrentVersionFormat, CurrentBundleCodeFormat);
+        [Button("Apply")]
+        public void ApplyCurrentVersion()
+        {
+            CurrentVersion.Apply(CurrentVersionFormat, CurrentBundleCodeFormat);
+        }
 
         [UsedImplicitly]
         private void OnTitleBarGUI(InspectorProperty property)
