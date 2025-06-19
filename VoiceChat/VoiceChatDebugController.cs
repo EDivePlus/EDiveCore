@@ -6,6 +6,7 @@ using EDIVE.Core;
 using EDIVE.NativeUtils;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace EDIVE.VoiceChat
 {
@@ -16,6 +17,9 @@ namespace EDIVE.VoiceChat
 
         [SerializeField]
         private TMP_Dropdown _FrameDurationDropdown;
+
+        [SerializeField]
+        private Toggle _SpatialAudioToggle;
 
         private UniVoiceVoiceChatManager _voiceChatManager;
 
@@ -45,6 +49,17 @@ namespace EDIVE.VoiceChat
                 _InputFilterDropdown.value = (int) _voiceChatManager.InputFilter;
                 _InputFilterDropdown.onValueChanged.AddListener(OnInputFilterChanged);
             }
+
+            if (_SpatialAudioToggle)
+            {
+                _SpatialAudioToggle.onValueChanged.AddListener(OnSpatialAudioToggleChanged);
+                OnSpatialAudioToggleChanged(_voiceChatManager.EnableSpatialAudio);
+            }
+        }
+
+        private void OnSpatialAudioToggleChanged(bool value)
+        {
+            _voiceChatManager.EnableSpatialAudio = value;
         }
 
         private void OnInputFilterChanged(int value)

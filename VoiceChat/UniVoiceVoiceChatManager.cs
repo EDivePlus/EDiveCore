@@ -25,6 +25,12 @@ namespace EDIVE.VoiceChat
             RNNoise = 2,
         }
 
+        public bool EnableSpatialAudio
+        {
+            get => PlayerPrefs.GetInt("UniVoice_EnableSpatialAudio", 1) > 0;
+            set => PlayerPrefs.SetInt("UniVoice_EnableSpatialAudio", value ? 1 : 0);
+        }
+
         public InputFilterType InputFilter
         {
             get => (InputFilterType) PlayerPrefs.GetInt("UniVoice_InputFilter", 1);
@@ -206,11 +212,14 @@ namespace EDIVE.VoiceChat
                     var peerAvatar = GetAvatarFromConnId(id);
                     if (peerAvatar != null)
                     {
-                        audioSource.transform.SetParent(peerAvatar.PeerRoot); // parent the audiosource to the avatar
-                        audioSource.transform.localPosition = Vector3.zero; // set the position to the avatar root
+                        if (EnableSpatialAudio)
+                        {
+                            audioSource.transform.SetParent(peerAvatar.PeerRoot); // parent the audiosource to the avatar
+                            audioSource.transform.localPosition = Vector3.zero; // set the position to the avatar root
 
-                        audioSource.spatialBlend = 1; // We set a spatial blend of 1 so that the audio is positional
-                        audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
+                            audioSource.spatialBlend = 1; // We set a spatial blend of 1 so that the audio is positional
+                            audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
+                        }
                         Debug.unityLogger.Log(LogType.Log, TAG, "Parented audio to avatar gameobject for peer " + id);
                     }
                     else
