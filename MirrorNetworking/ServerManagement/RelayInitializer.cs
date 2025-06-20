@@ -2,6 +2,7 @@
 // Created: 15.06.2025
 
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using LightReflectiveMirror;
@@ -15,12 +16,25 @@ namespace EDIVE.MirrorNetworking.ServerManagement
         [SerializeField]
         private RelayConfig _Config;
 
-        public UniTask Load(Action<float> progressCallback)
+        [SerializeField]
+        private float _ConnectTimeout = 5f;
+
+        public async UniTask Load(Action<float> progressCallback)
         {
             var transport = GetComponent<LightReflectiveMirrorTransport>();
             _Config.ApplyTo(transport);
             transport.ConnectToRelay();
-            return UniTask.CompletedTask;
+
+            var cts = new CancellationTokenSource();
+            cts.CancelAfterSlim(TimeSpan.FromSeconds(_ConnectTimeout));
+            try
+            {
+                await UniTask.WaitUntil(() => transport.IsAuthenticated(), PlayerLoopTiming.Update, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.LogError("LRM not available");
+            }
         }
     }
 }

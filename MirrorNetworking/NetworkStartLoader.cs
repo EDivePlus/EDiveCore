@@ -22,20 +22,6 @@ namespace EDIVE.MirrorNetworking
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
             var sceneManager = AppCore.Services.Get<NetworkSceneManager>();
 
-            if (Transport.active is LightReflectiveMirrorTransport lrm)
-            {
-                var cts = new CancellationTokenSource();
-                cts.CancelAfterSlim(TimeSpan.FromSeconds(5));
-                try
-                {
-                    await UniTask.WaitUntil(() => lrm.IsAuthenticated(), PlayerLoopTiming.Update, cts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    Debug.LogError("LRM not available");
-                }
-            }
-
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:
