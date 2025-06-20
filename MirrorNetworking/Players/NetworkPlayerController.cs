@@ -102,8 +102,11 @@ namespace EDIVE.MirrorNetworking.Players
             if (string.IsNullOrEmpty(avatarId))
                 return;
 
-            _avatarID = avatarId;
-            CreateLocalAvatar(_avatarID);
+            if (_avatarID != avatarId)
+            {
+                _avatarID = avatarId;
+                CreateLocalAvatar(avatarId);
+            }
         }
 
         [Command]
@@ -154,13 +157,19 @@ namespace EDIVE.MirrorNetworking.Players
 
         private void CreateLocalAvatar(string avatarId)
         {
-            if (_avatarInstance || string.IsNullOrEmpty(avatarId))
+            if (string.IsNullOrEmpty(avatarId))
                 return;
 
             if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(avatarId, out var def) || !def.IsValid())
             {
                 Debug.LogError($"Invalid avatar ID {avatarId}");
                 return;
+            }
+
+            if (_avatarInstance != null)
+            {
+                Destroy(_avatarInstance.gameObject);
+                _avatarInstance = null;
             }
 
             _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
