@@ -92,8 +92,11 @@ namespace EDIVE.MirrorNetworking.ServerManagement
             transport.heartBeatInterval = HeartbeatInterval;
             transport.useNATPunch = UseNATPunch;
             transport.useLoadBalancer = UseLoadBalancer;
-            transport.loadBalancerAddress = LoadBalancerIP;
-            transport.loadBalancerPort = _LoadBalancerPort;
+            if (UseLoadBalancer)
+            {
+                transport.loadBalancerAddress = LoadBalancerIP;
+                transport.loadBalancerPort = _LoadBalancerPort;
+            }
             transport.appId = AppID;
             transport.serverName = ServerName;
             transport.maxServerPlayers = MaxPlayers;
