@@ -204,7 +204,7 @@ namespace UVRN.Player
             var player = go.GetComponent<NetworkPlayerController>();
 
             player.ApplyProfile(conn, profile, conn.connectionId);
-            CurrentPlayers.Add(new NetworkPlayerControllerRequest(conn.connectionId, player));
+            CurrentPlayers.Add(player);
 
             NetworkServer.AddPlayerForConnection(conn, go);
             Debug.Log($"Instantiated a new player for connection ID {conn.connectionId} with netID {conn.identity.netId}");

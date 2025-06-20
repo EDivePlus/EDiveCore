@@ -7,9 +7,11 @@ using Adrenak.UniVoice.Inputs;
 using Adrenak.UniVoice.Networks;
 using Adrenak.UniVoice.Outputs;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core;
 using EDIVE.MirrorNetworking;
 using EDIVE.MirrorNetworking.Utils;
 using UnityEngine;
+using UVRN.Player;
 
 namespace EDIVE.VoiceChat
 {
@@ -200,39 +202,42 @@ namespace EDIVE.VoiceChat
             // When a peer joins, we instantiate a new peer view
             client.OnPeerJoined += id =>
             {
+                Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} joined");
+
+                var output = _session.PeerOutputs[id] as StreamedAudioSourceOutput;
+                output.gameObject.name = $"Streamed Audio Output ({id})";
+
+                // Parent the audio source to the player controller
                 UniTask.Void(async () =>
                 {
-                    await UniTask.Delay(TimeSpan.FromSeconds(2));
-                    Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} joined");
+                    var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
+                    var playerController = await playerManager.AwaitPlayerControllerWithConnectionID(id);
 
-                    // Make incoming audio from this peer positional
-                    // Cast the output so that we can access the AudioSource that's playing this newly joined peers audio
-                    var output = _session.PeerOutputs[id] as StreamedAudioSourceOutput;
-                    output.gameObject.name = $"Streamed Audio Output ({id})";
-                    var audioSource = output.Stream.UnityAudioSource;
-
-                    // Question for Oliver:
-                    // Do we have a method like this in the project that allow us to get the avatar gameobject of a client
-                    // using the connection ID?
-                    var peerAvatar = GetAvatarFromConnId(id);
-                    if (peerAvatar != null)
+                    if (playerController.TryGetComponent<VoiceChatPlayerController>(out var peerAvatar))
                     {
-                        audioSource.transform.SetParent(peerAvatar.PeerRoot); // parent the audiosource to the avatar
-                        audioSource.transform.localPosition = Vector3.zero; // set the position to the avatar root
+                        if (peerAvatar != null)
+                        {
+                            var audioSource = output.Stream.UnityAudioSource;
+                            audioSource.transform.SetParent(peerAvatar.PeerRoot); // parent the audiosource to the avatar
+                            audioSource.transform.localPosition = Vector3.zero; // set the position to the avatar root
 
-                        audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; // We set a spatial blend of 1 so that the audio is positional
-                        audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
-                        Debug.unityLogger.Log(LogType.Log, TAG, "Parented audio to avatar gameobject for peer " + id);
-                    }
-                    else
-                    {
-                        Debug.unityLogger.Log(LogType.Log, TAG, "Could not find avatar gameobject for peer " + id);
+                            audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; // We set a spatial blend of 1 so that the audio is positional
+                            audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
+                            Debug.unityLogger.Log(LogType.Log, TAG, "Parented audio to avatar gameobject for peer " + id);
+                        }
+                        else
+                        {
+                            Debug.unityLogger.Log(LogType.Log, TAG, "Could not find avatar gameobject for peer " + id);
+                        }
                     }
                 });
             };
 
             // When a peer leaves, destroy the UI representing them
-            client.OnPeerLeft += id => { Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} left"); };
+            client.OnPeerLeft += id =>
+            {
+                Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} left");
+            };
         }
 
         public void RefreshSpatialAudio()
@@ -299,20 +304,6 @@ namespace EDIVE.VoiceChat
             };
         }
 
-        // Todo probably ask PlayerManager for the avatar when its moved to the sumbodule
-        private VoiceChatPlayerController GetAvatarFromConnId(int id)
-        {
-            foreach (var avatar in FindObjectsByType<VoiceChatPlayerController>(FindObjectsSortMode.None))
-            {
-                var netId = avatar.ConnectionID;
-
-                if (netId == id)
-                    return avatar;
-            }
-
-            return null;
-        }
-
         private void ReloadMic()
         {
             if (_session == null)
@@ -332,7 +323,6 @@ namespace EDIVE.VoiceChat
             Debug.unityLogger.Log(LogType.Log, TAG, $"Started recording with Mic device named.{mic.Name} at frequency {mic.SamplingFrequency} with frame duration {mic.FrameDurationMS} ms.");
             _session.Input = new UniMicInput(mic);
         }
-
     }
 }
 #endif
