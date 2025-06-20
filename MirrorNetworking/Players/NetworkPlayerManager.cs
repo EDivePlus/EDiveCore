@@ -10,6 +10,7 @@ using EDIVE.External.Signals;
 using EDIVE.MirrorNetworking;
 using EDIVE.MirrorNetworking.Players;
 using EDIVE.MirrorNetworking.Scenes;
+using EDIVE.NativeUtils;
 using Edive.Networking;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
@@ -43,21 +44,15 @@ namespace UVRN.Player
 
         public uint LocalPlayerID { get => NetworkClient.localPlayer.netId; }
 
-        public Signal<string> Client_OnInvalidLogin { get; } = new();
-
-        // TODO remove this in the future and use the Mirror auth instead
-        // this is just to be able to show the message in the lobby when disconnected from the server due to invalid login
-        // this class is not destroyed therefore the message gets transfered
-        public string failedAuthMessage { get; private set; }
-
         private PlayerProfile _playerProfile;
         public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
 
-        public static Dictionary<uint, NetworkPlayerController> Client_ConnectedPlayers { get; }
+        public List<NetworkPlayerController> CurrentPlayers { get; } = new();
+
+        private readonly Dictionary<int, UniTaskCompletionSource<NetworkPlayerController>> _controllerRequests = new();
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-
             _networkManager = AppCore.Services.Get<MasterNetworkManager>();
             _networkSceneManager = AppCore.Services.Get<NetworkSceneManager>();
 
@@ -93,6 +88,44 @@ namespace UVRN.Player
             }
         }
 
+        public UniTask<NetworkPlayerController> AwaitPlayerControllerWithConnectionID(int connectionId)
+        {
+            if (CurrentPlayers.TryGetFirst(c => c.ConnectionID == connectionId, out var player))
+            {
+                return UniTask.FromResult(player);
+            }
+
+            if (!_controllerRequests.TryGetValue(connectionId, out var request))
+            {
+                request = new UniTaskCompletionSource<NetworkPlayerController>();
+                _controllerRequests[connectionId] = request;
+            }
+
+            return request.Task;
+        }
+
+        public void RegisterPlayer(NetworkPlayerController player)
+        {
+            if (CurrentPlayers.Contains(player))
+                return;
+
+            player.AwaitConnectionID().ContinueWith(connectionId =>
+            {
+                if (_controllerRequests.TryGetValue(connectionId, out var request))
+                {
+                    request.TrySetResult(player);
+                    _controllerRequests.Remove(connectionId);
+                }
+            }).Forget();
+
+            CurrentPlayers.Add(player);
+        }
+
+        public void UnregisterPlayer(NetworkPlayerController player)
+        {
+            CurrentPlayers.Remove(player);
+        }
+
         private PlayerProfile CreatePlayerProfile()
         {
             if (_playerProfile != null)
@@ -114,17 +147,9 @@ namespace UVRN.Player
             return _PlayerNameGenerator ? _PlayerNameGenerator.Generate() : $"Player_{Random.Range(1000, 9999)}";
         }
 
-        public static bool TryGetPlayer(uint id, out NetworkPlayerController player)
-        {
-            Client_ConnectedPlayers.TryGetValue(id, out player);
-            return player != null;
-        }
-
         public void Server_OnStart()
         {
             NetworkServer.RegisterHandler<PlayerCreationRequestMessage>(Server_OnPlayerCreationRequest);
-            NetworkServer.RegisterHandler<PlayerInteractionMessage>(Server_OnPlayerInteractionMessage);
-            NetworkServer.RegisterHandler<PlayerActionMessage>(Server_OnPlayerActionMessage);
             NetworkServer.RegisterHandler<PlayerLeavingMessage>(Server_OnPlayerLeavingMessage);
         }
 
@@ -132,9 +157,6 @@ namespace UVRN.Player
         {
             NetworkClient.RegisterHandler<PlayerCreationFailedResponseMessage>(Client_OnPlayerCreationFailedResponse);
             NetworkClient.RegisterHandler<PlayerLeftMessage>(Client_OnPlayerLeftMessage);
-            // clear the message when connecting again
-            failedAuthMessage = "";
-            
         }
 
         private void Server_OnPlayerCreationRequest(NetworkConnectionToClient conn, PlayerCreationRequestMessage request)
@@ -182,6 +204,7 @@ namespace UVRN.Player
             var player = go.GetComponent<NetworkPlayerController>();
 
             player.ApplyProfile(conn, profile, conn.connectionId);
+            CurrentPlayers.Add(new NetworkPlayerControllerRequest(conn.connectionId, player));
 
             NetworkServer.AddPlayerForConnection(conn, go);
             Debug.Log($"Instantiated a new player for connection ID {conn.connectionId} with netID {conn.identity.netId}");
@@ -189,12 +212,9 @@ namespace UVRN.Player
 
         private void Client_OnPlayerCreationFailedResponse(PlayerCreationFailedResponseMessage message)
         {
-            Debug.Log("Could not join server: " + message.errorText);
-            Client_OnInvalidLogin.Dispatch(message.errorText);
-            failedAuthMessage = message.errorText;
+            Debug.Log($"Could not join server: {message.errorText}");
         }
 
-        // Send player creation request
         public void Client_OnSceneChanged()
         {
             if (NetworkClient.localPlayer == null)
@@ -233,26 +253,6 @@ namespace UVRN.Player
             // nor conn.connectionId, because the clients don't know client (own or others) IDs
         }
 
-        private void SendActionNotificationToServer(string act)
-        {
-            var action = new PlayerActionMessage()
-            {
-                playerID = LocalPlayerID,
-                action = act
-            };
-            NetworkClient.connection.Send(action);
-        }
-
-        private void SendInteractionNotificationToServer(uint interactedWithID, string action)
-        {
-            var interactionMessage = new PlayerInteractionMessage()
-            {
-                interactorID = LocalPlayerID,
-                interacteeID = interactedWithID,
-                interaction = action
-            };
-            NetworkClient.connection.Send(interactionMessage);
-        }
 
         private void Client_OnPlayerLeftMessage(PlayerLeftMessage message)
         {
@@ -262,20 +262,11 @@ namespace UVRN.Player
         private void Server_OnPlayerLeavingMessage(NetworkConnection conn, PlayerLeavingMessage message)
         {
             var player = conn.identity.GetComponent<NetworkPlayerController>();
+            CurrentPlayers.RemoveAll(r => r.ConnectionID == player.ConnectionID);
             conn.Disconnect();
             Debug.Log($"Player left (Player ID: {player.ConnectionID})");
             var leftMessage = new PlayerLeftMessage { playerID = player.ConnectionID };
             NetworkServer.SendToAll(leftMessage);
-        }
-
-        private void Server_OnPlayerActionMessage(NetworkConnection conn, PlayerActionMessage message)
-        {
-            //UVRN_Logger.Instance.LogEntry(message.playerID.ToString(), $"Action performed: {message.action}");
-        }
-
-        private void Server_OnPlayerInteractionMessage(NetworkConnection conn, PlayerInteractionMessage message)
-        {
-            //UVRN_Logger.Instance.LogEntry(message.interactorID.ToString(), $"Interacting with {message.interacteeID}: {message.interaction}");
         }
 
         private void Client_OnStop()

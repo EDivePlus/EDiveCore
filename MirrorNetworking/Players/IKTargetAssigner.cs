@@ -48,6 +48,9 @@ namespace EDIVE.MirrorNetworking.Players
 
         public void Assign(AvatarController avatar)
         {
+            if (avatar == null)
+                return;
+
             if (avatar.RigFollow)
             {
                 avatar.RigFollow.HeadSource = _HeadTarget.SkeletonTarget;

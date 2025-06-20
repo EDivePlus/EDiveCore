@@ -1,8 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 23.04.2025
 
+using Cysharp.Threading.Tasks;
 using EDIVE.AssetTranslation;
 using EDIVE.Avatars;
+using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
 using Mirror;
 using UnityEngine;
@@ -46,6 +48,17 @@ namespace EDIVE.MirrorNetworking.Players
         public int ConnectionID => _connectionID;
         public string AvatarID => _avatarID;
 
+        private UniTaskCompletionSource<int> _connectionIDCompletionSource;
+
+        public UniTask<int> AwaitConnectionID()
+        {
+            if (ConnectionID != -1)
+                return UniTask.FromResult(ConnectionID);
+
+            _connectionIDCompletionSource ??= new UniTaskCompletionSource<int>();
+            return _connectionIDCompletionSource.Task;
+        }
+
         public override void OnStartClient()
         {
             if (_LocalPlayerToggle)
@@ -54,7 +67,20 @@ namespace EDIVE.MirrorNetworking.Players
             if (_avatarInstance != null)
                 _avatarInstance.IsLocalPlayer = isLocalPlayer;
 
+            if (_IKAssigner != null)
+            {
+                _IKAssigner.InitializeFollow();
+                _IKAssigner.Assign(_avatarInstance);
+            }
+
             RefreshGameObjectName();
+            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            AppCore.Services.Get<NetworkPlayerManager>().UnregisterPlayer(this);
         }
 
         [Server]
@@ -64,6 +90,8 @@ namespace EDIVE.MirrorNetworking.Players
             _role = profile.role;
             _color = profile.color;
             _connectionID = connectionId;
+            _connectionIDCompletionSource?.TrySetResult(_connectionID);
+            _connectionIDCompletionSource = null;
             ApplyAvatar(profile.avatarId, conn);
             RefreshGameObjectName();
         }
@@ -89,22 +117,6 @@ namespace EDIVE.MirrorNetworking.Players
             CmdSetAvatar(avatarDefinition.UniqueID);
         }
 
-        public override void OnStartLocalPlayer()
-        {
-            if (_LocalPlayerToggle)
-                _LocalPlayerToggle.SetState(true);
-
-            if (_avatarInstance != null)
-            {
-                _avatarInstance.IsLocalPlayer = true;
-                if (_IKAssigner != null)
-                    _IKAssigner.Assign(_avatarInstance);
-            }
-
-            if (_IKAssigner != null)
-                _IKAssigner.InitializeFollow();
-        }
-
         private void RefreshGameObjectName()
         {
             var objName = $"Player '{Username}' ({_connectionID})";
@@ -115,6 +127,8 @@ namespace EDIVE.MirrorNetworking.Players
         public void HandleConnectionIDChanged(int oldValue, int newValue)
         {
             RefreshGameObjectName();
+            _connectionIDCompletionSource?.TrySetResult(_connectionID);
+            _connectionIDCompletionSource = null;
         }
 
         public void HandleUsernameChanged(string oldValue, string newValue)

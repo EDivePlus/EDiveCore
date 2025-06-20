@@ -22,7 +22,9 @@
         "EDIVE.Avatars",
         "EDIVE.XRTools",
         "EDIVE.DataStructures",
-        "LRM"
+        "LRM",
+        "EDIVE.External.Promises",
+        "EDIVE.NativeUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

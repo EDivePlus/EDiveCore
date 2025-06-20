@@ -14,24 +14,6 @@ namespace UVRN.Player
         public string errorText;
     }
 
-    // Sent to notify the server about player interactions (muting...)
-    public struct PlayerInteractionMessage : NetworkMessage
-    {
-        // player interatcting
-        public uint interactorID;
-        // player interacted with
-        public uint interacteeID;
-        public string interaction;
-    }
-
-    // Sent to notify the server about player actions
-    public struct PlayerActionMessage : NetworkMessage
-    {
-        // player interatcting
-        public uint playerID;
-        public string action;
-    }
-
     // Sent to notify the server that the player is leaving
     public struct PlayerLeavingMessage : NetworkMessage { }
 
