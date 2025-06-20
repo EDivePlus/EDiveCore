@@ -112,6 +112,7 @@ namespace EDIVE.MirrorNetworking.Players
             ApplyAvatar(avatarId, sender);
         }
 
+        [Client]
         public void SetAvatar(AvatarDefinition avatarDefinition)
         {
             CmdSetAvatar(avatarDefinition.UniqueID);

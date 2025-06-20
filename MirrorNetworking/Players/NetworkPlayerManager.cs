@@ -47,6 +47,7 @@ namespace UVRN.Player
         private PlayerProfile _playerProfile;
         public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
 
+        public NetworkPlayerController LocalPlayer { get; private set; }
         public List<NetworkPlayerController> CurrentPlayers { get; } = new();
         private readonly Dictionary<int, UniTaskCompletionSource<NetworkPlayerController>> _controllerRequests = new();
 
@@ -115,6 +116,9 @@ namespace UVRN.Player
 
         public void RegisterPlayer(NetworkPlayerController player)
         {
+            if (player.isLocalPlayer)
+                LocalPlayer = player;
+
             if (CurrentPlayers.Contains(player))
                 return;
 
@@ -258,10 +262,7 @@ namespace UVRN.Player
             };
             NetworkClient.connection.Send(playerCreationRequest);
             Debug.Log("Sending request for player creation.");
-            // TODO conn.identity should be the player object!! so it is not here yet... I cannot use identity.netId...
-            // nor conn.connectionId, because the clients don't know client (own or others) IDs
         }
-
 
         private void Client_OnPlayerLeftMessage(PlayerLeftMessage message)
         {
