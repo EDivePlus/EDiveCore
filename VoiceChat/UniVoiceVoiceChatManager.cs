@@ -213,6 +213,12 @@ namespace EDIVE.VoiceChat
                     var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
                     var playerController = await playerManager.AwaitPlayerControllerWithConnectionID(id);
 
+                    if (playerController == null)
+                    {
+                        Debug.unityLogger.Log(LogType.Error, TAG, $"Could not find player controller for peer {id}");
+                        return;
+                    }
+
                     if (playerController.TryGetComponent<VoiceChatPlayerController>(out var peerAvatar))
                     {
                         if (peerAvatar != null)
@@ -223,11 +229,11 @@ namespace EDIVE.VoiceChat
 
                             audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; // We set a spatial blend of 1 so that the audio is positional
                             audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
-                            Debug.unityLogger.Log(LogType.Log, TAG, "Parented audio to avatar gameobject for peer " + id);
+                            Debug.unityLogger.Log(LogType.Log, TAG, $"Parented audio to player controller for peer {id}");
                         }
                         else
                         {
-                            Debug.unityLogger.Log(LogType.Log, TAG, "Could not find avatar gameobject for peer " + id);
+                            Debug.unityLogger.Log(LogType.Log, TAG, $"Player controller for peer {id} does not have a VoiceChatPlayerController component");
                         }
                     }
                 });

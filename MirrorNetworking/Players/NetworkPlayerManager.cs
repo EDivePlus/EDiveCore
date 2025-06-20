@@ -48,8 +48,9 @@ namespace UVRN.Player
         public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
 
         public List<NetworkPlayerController> CurrentPlayers { get; } = new();
-
         private readonly Dictionary<int, UniTaskCompletionSource<NetworkPlayerController>> _controllerRequests = new();
+
+        private const float CONTROLLER_REQUEST_TIMEOUT = 20f;
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -88,11 +89,11 @@ namespace UVRN.Player
             }
         }
 
-        public UniTask<NetworkPlayerController> AwaitPlayerControllerWithConnectionID(int connectionId)
+        public async UniTask<NetworkPlayerController> AwaitPlayerControllerWithConnectionID(int connectionId)
         {
             if (CurrentPlayers.TryGetFirst(c => c.ConnectionID == connectionId, out var player))
             {
-                return UniTask.FromResult(player);
+                return player;
             }
 
             if (!_controllerRequests.TryGetValue(connectionId, out var request))
@@ -101,7 +102,15 @@ namespace UVRN.Player
                 _controllerRequests[connectionId] = request;
             }
 
-            return request.Task;
+            try
+            {
+                return await request.Task.Timeout(TimeSpan.FromSeconds(CONTROLLER_REQUEST_TIMEOUT));
+            }
+            catch (TimeoutException)
+            {
+                _controllerRequests.Remove(connectionId);
+            }
+            return null;
         }
 
         public void RegisterPlayer(NetworkPlayerController player)
