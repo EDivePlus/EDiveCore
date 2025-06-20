@@ -28,7 +28,11 @@ namespace EDIVE.VoiceChat
         public bool EnableSpatialAudio
         {
             get => PlayerPrefs.GetInt("UniVoice_EnableSpatialAudio", 1) > 0;
-            set => PlayerPrefs.SetInt("UniVoice_EnableSpatialAudio", value ? 1 : 0);
+            set
+            {
+                PlayerPrefs.SetInt("UniVoice_EnableSpatialAudio", value ? 1 : 0);
+                RefreshSpatialAudio();
+            }
         }
 
         public InputFilterType InputFilter
@@ -204,6 +208,7 @@ namespace EDIVE.VoiceChat
                     // Make incoming audio from this peer positional
                     // Cast the output so that we can access the AudioSource that's playing this newly joined peers audio
                     var output = _session.PeerOutputs[id] as StreamedAudioSourceOutput;
+                    output.gameObject.name = $"Streamed Audio Output ({id})";
                     var audioSource = output.Stream.UnityAudioSource;
 
                     // Question for Oliver:
@@ -212,14 +217,11 @@ namespace EDIVE.VoiceChat
                     var peerAvatar = GetAvatarFromConnId(id);
                     if (peerAvatar != null)
                     {
-                        if (EnableSpatialAudio)
-                        {
-                            audioSource.transform.SetParent(peerAvatar.PeerRoot); // parent the audiosource to the avatar
-                            audioSource.transform.localPosition = Vector3.zero; // set the position to the avatar root
+                        audioSource.transform.SetParent(peerAvatar.PeerRoot); // parent the audiosource to the avatar
+                        audioSource.transform.localPosition = Vector3.zero; // set the position to the avatar root
 
-                            audioSource.spatialBlend = 1; // We set a spatial blend of 1 so that the audio is positional
-                            audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
-                        }
+                        audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; // We set a spatial blend of 1 so that the audio is positional
+                        audioSource.maxDistance = 25; // Let the audio of this peer travel to upto 25 meters
                         Debug.unityLogger.Log(LogType.Log, TAG, "Parented audio to avatar gameobject for peer " + id);
                     }
                     else
@@ -231,6 +233,20 @@ namespace EDIVE.VoiceChat
 
             // When a peer leaves, destroy the UI representing them
             client.OnPeerLeft += id => { Debug.unityLogger.Log(LogType.Log, TAG, $"Peer {id} left"); };
+        }
+
+        public void RefreshSpatialAudio()
+        {
+            if (_session == null)
+                return;
+
+            foreach (var output in _session.PeerOutputs.Values)
+            {
+                if (output is not StreamedAudioSourceOutput streamedOutput)
+                    continue;
+
+                streamedOutput.Stream.UnityAudioSource.spatialBlend = EnableSpatialAudio ? 1 : 0;
+            }
         }
 
         private void RefreshFilters()
