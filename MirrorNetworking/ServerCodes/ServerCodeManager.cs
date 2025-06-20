@@ -64,12 +64,6 @@ namespace EDIVE.MirrorNetworking.ServerCodes
             }
         }
 
-        private IEnumerator LogServerCode()
-        {
-            yield return new WaitForSecondsRealtime(5);
-            Debug.Log($"The server code is {_registeredWithCode}");
-        }
-
         private void DisposeServer()
         {
             if (!string.IsNullOrEmpty(_serverSecret))
