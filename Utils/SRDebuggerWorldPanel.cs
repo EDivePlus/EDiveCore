@@ -4,9 +4,7 @@
 using UnityEngine;
 
 #if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
-using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
-using JetBrains.Annotations;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 #endif
