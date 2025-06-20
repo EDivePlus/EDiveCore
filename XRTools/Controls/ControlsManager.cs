@@ -1,5 +1,4 @@
 using EDIVE.Core.Services;
-using EDIVE.XRTools.DeviceSimulator;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -22,19 +21,16 @@ namespace EDIVE.XRTools.Controls
         [SerializeField]
         private TeleportationProvider _TeleportationProvider;
 
-        [ShowInInspector]
-        public bool XREnabled => UnityEngine.XR.XRSettings.enabled || XRDeviceSimulatorUtils.SimulatorEnabled;
-
         public XRInteractionManager InteractionManager => _InteractionManager;
         public TeleportationProvider TeleportationProvider => _TeleportationProvider;
 
-        public ControlsHandler Controls => XREnabled ? _HeadsetControls : _DesktopControls;
+        public ControlsHandler Controls => XRUtils.XREnabled ? _HeadsetControls : _DesktopControls;
 
         protected override void Awake()
         {
             base.Awake();
-            _DesktopControls.gameObject.SetActive(!XREnabled);
-            _HeadsetControls.gameObject.SetActive(XREnabled);
+            _DesktopControls.gameObject.SetActive(!XRUtils.XREnabled);
+            _HeadsetControls.gameObject.SetActive(XRUtils.XREnabled);
         }
     }
 }

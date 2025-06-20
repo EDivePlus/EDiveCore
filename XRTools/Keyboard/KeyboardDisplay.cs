@@ -38,29 +38,8 @@ namespace EDIVE.XRTools.Keyboard
         [SerializeField]
         private bool _ClearTextOnOpen;
 
-        public TMP_InputField InputField
-        {
-            get => _InputField;
-            set
-            {
-                if (_InputField != null)
-                    _InputField.onSelect.RemoveListener(OnInputFieldGainedFocus);
-
-                _InputField = value;
-
-                if (_InputField != null)
-                {
-                    _InputField.resetOnDeActivation = false;
-                    _InputField.onSelect.AddListener(OnInputFieldGainedFocus);
-                }
-            }
-        }
-
-        public KeyboardController Keyboard
-        {
-            get => _Keyboard;
-            set => SetKeyboard(value);
-        }
+        public TMP_InputField InputField => _InputField;
+        public KeyboardController Keyboard => _Keyboard;
 
         private bool _isActivelyObservingKeyboard;
         private KeyboardController _activeKeyboard;
@@ -69,6 +48,9 @@ namespace EDIVE.XRTools.Keyboard
 
         private void Awake()
         {
+            if (!XRUtils.XREnabled)
+                return;
+
             _activeKeyboard = Keyboard;
             if (InputField != null)
             {
@@ -82,6 +64,9 @@ namespace EDIVE.XRTools.Keyboard
 
         private void OnEnable()
         {
+            if (!XRUtils.XREnabled)
+                return;
+
             if (InputField != null)
             {
                 InputField.onSelect.AddListener(OnInputFieldGainedFocus);
@@ -92,6 +77,9 @@ namespace EDIVE.XRTools.Keyboard
 
         private void Update()
         {
+            if (!XRUtils.XREnabled)
+                return;
+
             if (InputField != null && _isActivelyObservingKeyboard && _activeKeyboard != null)
             {
                 var currentCaret = InputField.caretPosition;
@@ -111,6 +99,9 @@ namespace EDIVE.XRTools.Keyboard
 
         private void OnDisable()
         {
+            if (!XRUtils.XREnabled)
+                return;
+
             if (InputField != null)
                 InputField.onSelect.RemoveListener(OnInputFieldGainedFocus);
 
@@ -121,11 +112,17 @@ namespace EDIVE.XRTools.Keyboard
 
         private void OnDestroy()
         {
+            if (!XRUtils.XREnabled)
+                return;
+
             StopObservingKeyboard(_activeKeyboard);
         }
 
         private void Start()
         {
+            if (!XRUtils.XREnabled)
+                return;
+
             if (_activeKeyboard == null || !_ManualKeyboard)
                 _activeKeyboard = AppCore.Services.Get<KeyboardManager>().Keyboard;
 
