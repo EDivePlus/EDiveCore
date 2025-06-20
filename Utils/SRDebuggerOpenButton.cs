@@ -22,7 +22,9 @@ namespace EDIVE.Utils
 
         private void OnButtonClicked()
         {
+#if SR_DEBUGGER
             SRDebug.Instance?.ShowDebugPanel();
+#endif
         }
     }
 }

@@ -1,18 +1,21 @@
 ﻿// Author: František Holubec
 // Created: 18.05.2025
 
+using UnityEngine;
+
 #if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using JetBrains.Annotations;
-using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.UI;
+#endif
 
 namespace EDIVE.Utils
 {
     public class SRDebuggerWorldPanel : MonoBehaviour
     {
+#if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
         [SerializeField]
         private RectTransform _ParentRect;
 
@@ -45,6 +48,7 @@ namespace EDIVE.Utils
             target.checkFor3DOcclusion = original.checkFor3DOcclusion;
             target.raycastTriggerInteraction = original.raycastTriggerInteraction;
         }
+#endif
     }
 }
-#endif
+
