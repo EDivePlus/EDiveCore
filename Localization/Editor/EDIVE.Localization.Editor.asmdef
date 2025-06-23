@@ -1,0 +1,29 @@
+{
+    "name": "EDIVE.Localization.Editor",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "EDIVE.NativeUtils",
+        "Unity.Localization",
+        "Unity.Localization.Editor",
+        "EDIVE.OdinExtensions",
+        "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
+        "EDIVE.External.ToolbarExtensions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Sirenix.OdinInspector.Editor.dll",
+        "Sirenix.OdinValidator.Editor.dll",
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Sirenix.Utilities.dll",
+        "Sirenix.Utilities.Editor.dll",
+        "Unity.Localization.ThirdParty.Editor.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

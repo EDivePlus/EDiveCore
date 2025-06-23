@@ -1,0 +1,28 @@
+{
+    "name": "EDIVE.Localization",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "EDIVE.NativeUtils",
+        "Unity.TextMeshPro",
+        "EDIVE.OdinExtensions",
+        "EDIVE.StateHandling",
+        "Unity.Localization",
+        "Unity.Localization.Editor",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "EDIVE.EditorUtils",
+        "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
+        "EDIVE.External.ToolbarExtensions",
+        "EDIVE.AppLoading",
+        "EDIVE.DataStructures"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
