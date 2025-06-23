@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using Newtonsoft.Json;
@@ -9,7 +10,7 @@ namespace EDIVE.DataStructures
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class PlatformSpecificValue<TValue>
+    public class PlatformSpecificValue<TValue> : IEnumerable
     {
         [JsonProperty("Default")]
         [SerializeField]
@@ -35,6 +36,40 @@ namespace EDIVE.DataStructures
             return false;
         }
 
+        public void Add(TValue value, RuntimePlatform platform)
+        {
+            if (_Records.TryGetFirst(r => Equals(r.Value, value), out var existingRecord))
+            {
+                if (!existingRecord.Platforms.Contains(platform))
+                {
+                    existingRecord.Platforms.Add(platform);
+                }
+                return;
+            }
+
+            _Records.Add(new PlatformSpecificValueRecord(value, platform));
+        }
+
+        public void Add(TValue value, params RuntimePlatform[] platforms)
+        {
+            if (_Records.TryGetFirst(r => Equals(r.Value, value), out var existingRecord))
+            {
+                foreach (var platform in platforms)
+                {
+                    if (!existingRecord.Platforms.Contains(platform))
+                    {
+                        existingRecord.Platforms.Add(platform);
+                    }
+                }
+
+                return;
+            }
+
+            _Records.Add(new PlatformSpecificValueRecord(value, platforms));
+        }
+
+        public IEnumerator GetEnumerator() => _Records.GetEnumerator();
+
         [Serializable]
         [JsonObject(MemberSerialization.OptIn)]
         private class PlatformSpecificValueRecord
@@ -46,10 +81,27 @@ namespace EDIVE.DataStructures
             [SerializeField]
             [ListDrawerSettings(ShowFoldout = false)]
             [JsonProperty("Platforms")]
-            private List<RuntimePlatform> _Platforms = new();
+            private List<RuntimePlatform> _Platforms;
 
             public TValue Value => _Value;
             public List<RuntimePlatform> Platforms => _Platforms;
+
+            public PlatformSpecificValueRecord()
+            {
+                _Platforms = new List<RuntimePlatform>();
+            }
+
+            public PlatformSpecificValueRecord(TValue value, RuntimePlatform platform)
+            {
+                _Value = value;
+                _Platforms = new List<RuntimePlatform> {platform};
+            }
+
+            public PlatformSpecificValueRecord(TValue value, params RuntimePlatform[] platforms)
+            {
+                _Value = value;
+                _Platforms = new List<RuntimePlatform>(platforms);
+            }
         }
     }
 }
