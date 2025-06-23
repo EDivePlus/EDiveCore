@@ -19,12 +19,21 @@ namespace EDIVE.External.ToolbarExtensions
         private static FieldInfo _rootField;
         private static FieldInfo RootField => _rootField ??= ToolbarType.GetField("m_Root", BindingFlags.NonPublic | BindingFlags.Instance);
 
+        private static MethodInfo _repaintMethod;
+        private static MethodInfo RepaintMethod => _repaintMethod ??= ToolbarType.GetMethod("Repaint", BindingFlags.Instance | BindingFlags.Public);
+
         private static ScriptableObject _currentToolbar;
 
         private static List<PriorityAction> _leftToolbarActions = new();
         private static List<PriorityAction> _rightToolbarActions = new();
 
         private static List<VisualElement> _currentVisualElements = new();
+
+        public static void RepaintToolbar()
+        {
+            if (_currentToolbar != null)
+                RepaintMethod?.Invoke(_currentToolbar, null);
+        }
 
         public static void AddToRightToolbar(Action action, int priority) => AddToToolbar(_rightToolbarActions, action, priority);
         public static void AddToLeftToolbar(Action action, int priority) => AddToToolbar(_leftToolbarActions, action, priority);
