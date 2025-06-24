@@ -16,7 +16,8 @@
         "Unity.TextMeshPro",
         "EDIVE.External.Signals",
         "EDIVE.DataStructures",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
