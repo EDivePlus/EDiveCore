@@ -1,0 +1,21 @@
+﻿{
+  "name": "EDIVE.StagePlay",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.OdinExtensions",
+    "EDIVE.NativeUtils",
+    "EnhancedScroller",
+    "EDIVE.Localization",
+    "Unity.Localization",
+    "Unity.TextMeshPro"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
