@@ -22,11 +22,11 @@ namespace EDIVE.AppLoading
         {
             return state switch
             {
-                LoadItemState.Undefined => RichText.Sprite("circle_help", ColorTools.Red),
-                LoadItemState.Pending => RichText.Sprite("circle_schedule", ColorTools.Aqua),
-                LoadItemState.Loading => RichText.Sprite("circle_pending", ColorTools.Yellow),
-                LoadItemState.Completed => RichText.Sprite("circle_check", ColorTools.Lime),
-                _ => RichText.Sprite("circle_radio", ColorTools.Pink),
+                LoadItemState.Undefined => "\ue887".Color(ColorTools.Red),
+                LoadItemState.Pending => "\ue8b5".Color(ColorTools.Aqua),
+                LoadItemState.Loading => "\uef64".Color(ColorTools.Yellow),
+                LoadItemState.Completed => "\ue86c".Color(ColorTools.Lime),
+                _ => "\ue837".Color(ColorTools.Pink)
             };
         }
 
