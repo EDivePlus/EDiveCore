@@ -47,7 +47,7 @@ namespace EDIVE.Localization
             TableEntryReference = entry;
         }
 
-        public override string ToString() => this.GetSafeLocalizedString(_fallbackValue);
+        public override string ToString() => this.GetLocalizedStringSafe(_fallbackValue);
         public static implicit operator string(SafeLocalizedString s) => s.ToString();
     }
 }

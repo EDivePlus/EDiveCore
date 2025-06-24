@@ -18,24 +18,24 @@ namespace EDIVE.Localization.Editor
     [GlobalConfig("Assets/_Project/Settings/Editor/")]
     public class LocalizationConfig : GlobalConfig<LocalizationConfig>
     {
-        [EnhancedFoldoutGroup("Google Sheets Defaults", Color = "@OdinColors.Green")]
+        [EnhancedBoxGroup("Google Sheets Defaults", Color = "@ColorTools.Green")]
         [ShowCreateNew]
         [LabelText("Sheets Service Provider")]
         [SerializeField]
         private SheetsServiceProvider _DefaultSheetsServiceProvider;
 
-        [EnhancedFoldoutGroup("Google Sheets Defaults")]
+        [EnhancedBoxGroup("Google Sheets Defaults")]
         [LabelText("Spreadsheet ID")]
         [SerializeField]
         private string _DefaultSpreadsheetId;
 
-        [EnhancedFoldoutGroup("Google Sheets Defaults")]
+        [EnhancedBoxGroup("Google Sheets Defaults")]
         [LabelText("Columns Mapping")]
         [SerializeReference]
         private List<SheetColumn> _DefaultColumns = new();
 
         [PropertySpace(5)]
-        [EnhancedFoldoutGroup("Google Sheets Defaults")]
+        [EnhancedBoxGroup("Google Sheets Defaults")]
         [Button]
         [Tooltip("If you've already set up a Google Sheets Extension for a String Table Collection, you can use this to fill out the defaults from that extension.")]
         private void FillOutDefaultsFromTableCollection(StringTableCollection collection)
@@ -52,7 +52,7 @@ namespace EDIVE.Localization.Editor
             }
         }
 
-        [EnhancedFoldoutGroup("Google Sheets Defaults")]
+        [EnhancedBoxGroup("Google Sheets Defaults")]
         [Button]
         private void ApplyDefaultsToAllTableCollections()
         {

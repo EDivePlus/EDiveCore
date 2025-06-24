@@ -66,7 +66,7 @@ namespace EDIVE.Localization
             return $"{localizedString.TableReference.TableCollectionName}/{localizedString.TableEntryReference.ResolveKeyName(sharedTableData)}";
         }
 
-        public static void SetParameterValue<TValue, TVariable>(this LocalizedString localizedString, string paramName, TValue paramValue)
+        public static void SetParameter<TValue, TVariable>(this LocalizedString localizedString, string paramName, TValue paramValue)
             where TVariable : Variable<TValue>, new()
         {
             if (localizedString.TryGetValue(paramName, out var existingValue) && existingValue is TVariable typedExistingValue)
@@ -106,33 +106,16 @@ namespace EDIVE.Localization
 #endif
         }
 
-        public static LocalizedString GetSafe(this LocalizedString localizedString)
+        public static SafeLocalizedString GetSafe(this LocalizedString localizedString)
         {
-            return !localizedString.IsEmpty ? localizedString : SafeLocalizedString.UNDEFINED;
+            return !localizedString.IsEmpty ? new SafeLocalizedString(localizedString.TableReference, localizedString.TableEntryReference) : SafeLocalizedString.UNDEFINED;
         }
 
-        public static string GetSafeLocalizedString(this SafeLocalizedString localizedString, string fallback = null)
+        public static string GetLocalizedStringSafe(this LocalizedString localizedString, string fallback = null)
         {
             if (localizedString.IsEmpty)
                 return fallback ?? SafeLocalizedString.UNDEFINED_TERM;
-            
-#if UNITY_WEBGL
-            var loadOperation = localizedString.GetLocalizedStringAsync();
-            if (!loadOperation.IsDone)
-            {
-                return UnityLocalizedString.NOT_LOADED_TERM;
-            }
-            return loadOperation.Result;
-#else
-            return localizedString.GetLocalizedString();
-#endif
-        }
 
-        public static string GetSafeLocalizedString(this LocalizedString localizedString, string fallback = null)
-        {
-            if (localizedString.IsEmpty)
-                return fallback ?? SafeLocalizedString.UNDEFINED_TERM;
-            
 #if UNITY_WEBGL
             var loadOperation = localizedString.GetLocalizedStringAsync();
             if (!loadOperation.IsDone)
@@ -153,6 +136,26 @@ namespace EDIVE.Localization
         public static string GetEnglishName(this Locale locale)
         {
             return locale.Identifier.CultureInfo.EnglishName;
+        }
+
+        public static LocalizedString WithLocaleOverride(this LocalizedString value, Locale locale)
+        {
+            return new LocalizedString
+            {
+                TableReference = value.TableReference,
+                TableEntryReference = value.TableEntryReference,
+                LocaleOverride = locale
+            };
+        }
+
+        public static SafeLocalizedString WithLocaleOverride(this SafeLocalizedString value, Locale locale)
+        {
+            return new SafeLocalizedString
+            {
+                TableReference = value.TableReference,
+                TableEntryReference = value.TableEntryReference,
+                LocaleOverride = locale
+            };
         }
     }
 }
