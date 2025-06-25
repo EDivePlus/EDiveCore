@@ -25,7 +25,7 @@ namespace EDIVE.MirrorNetworking.Players
         private void Awake()
         {
             if (_XRInteractable)
-                _XRInteractable.selectEntered.AddListener(OnInteractableSelected);
+                _XRInteractable.activated.AddListener(OnInteractableActivated);
 
             if (_Button)
                 _Button.onClick.AddListener(OnButtonClicked);
@@ -36,7 +36,7 @@ namespace EDIVE.MirrorNetworking.Players
             SelectAvatar();
         }
 
-        private void OnInteractableSelected(SelectEnterEventArgs args)
+        private void OnInteractableActivated(ActivateEventArgs arg0)
         {
             SelectAvatar();
         }
