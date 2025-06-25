@@ -19,16 +19,20 @@ namespace EDIVE.Configuration
 
         public UniTask Load(Action<float> progressCallback)
         {
-            _Settings.LoadConfigs();
-
             if (IsHeadless())
+            {
+                // Load existing settings
+                _Settings.LoadConfigs();
+
+                // Save the settings to file if they don't exist
                 _Settings.SaveConfigs();
+            }
 
             return UniTask.CompletedTask;
         }
 
         public static bool IsHeadless() =>
-#if UNITY_SERVER
+#if UNITY_SERVER && !UNITY_EDITOR
             true;
 #else
             SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
