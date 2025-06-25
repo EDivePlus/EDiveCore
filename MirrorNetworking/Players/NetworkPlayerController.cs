@@ -128,29 +128,29 @@ namespace EDIVE.MirrorNetworking.Players
             gameObject.name = objName;
         }
 
-        public void HandleConnectionIDChanged(int oldValue, int newValue)
+        private void HandleConnectionIDChanged(int oldValue, int newValue)
         {
             RefreshGameObjectName();
             _connectionIDCompletionSource?.TrySetResult(_connectionID);
             _connectionIDCompletionSource = null;
         }
 
-        public void HandleUsernameChanged(string oldValue, string newValue)
+        private void HandleUsernameChanged(string oldValue, string newValue)
         {
             RefreshGameObjectName();
         }
 
-        public void HandleRoleChanged(string oldValue, string newValue)
+        private void HandleRoleChanged(string oldValue, string newValue)
         {
 
         }
 
-        public void HandleColorChanged(Color oldValue, Color newValue)
+        private void HandleColorChanged(Color oldValue, Color newValue)
         {
 
         }
 
-        public void HandleAvatarChanged(string oldValue, string newValue)
+        private void HandleAvatarChanged(string oldValue, string newValue)
         {
             CreateLocalAvatar(newValue);
         }
