@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using EDIVE.XRTools.Interactions;
 using Unity.XR.CoreUtils.Bindings;
@@ -100,6 +101,51 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
         [SerializeField]
         [Tooltip("Event fired when the active ray interactor changes between interaction and teleport.")]
         UnityEvent<IXRRayProvider> m_RayInteractorChanged;
+        
+
+        [SerializeField]
+        private List<GrabRecord> _GrabRecords= new List<GrabRecord>();
+
+
+        [Serializable]
+        private class GrabRecord
+        {
+            [SerializeField]
+            private InputActionReference _GrabAction;
+
+            [SerializeField]
+            private List<InputActionReference> _GrabDisabledActions = new List<InputActionReference>();
+            
+            public void Enable()
+            {
+                _GrabAction.action.performed += OnGrabPerformed;
+                _GrabAction.action.canceled += OnGrabCanceled;
+            }
+
+            private void OnGrabPerformed(InputAction.CallbackContext obj)
+            {
+                foreach (var grabDisabledAction in _GrabDisabledActions)
+                {
+                    grabDisabledAction.action.Disable();
+                }
+            }
+            
+            private void OnGrabCanceled(InputAction.CallbackContext obj)
+            {
+                foreach (var grabDisabledAction in _GrabDisabledActions)
+                {
+                    grabDisabledAction.action.Enable();
+                }
+            }
+
+            public void Disable()
+            {
+                _GrabAction.action.performed -= OnGrabPerformed;
+                _GrabAction.action.canceled -= OnGrabCanceled;
+            }
+            
+        }
+        
 
         public bool smoothMotionEnabled
         {
@@ -393,6 +439,11 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
 
         protected void OnEnable()
         {
+            foreach (var grabRecord in _GrabRecords)
+            {
+                grabRecord.Enable();
+            }
+            
             if (m_RayInteractor != null && m_NearFarInteractor != null)
             {
                 Debug.LogWarning("Both Ray Interactor and Near-Far Interactor are assigned. Only one should be assigned, not both. Clearing Ray Interactor.", this);
@@ -415,6 +466,10 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
 
         protected void OnDisable()
         {
+            foreach (var grabRecord in _GrabRecords)
+            {
+                grabRecord.Disable();
+            }
             TeardownInteractorEvents();
         }
 
