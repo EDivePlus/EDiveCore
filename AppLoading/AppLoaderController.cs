@@ -44,6 +44,8 @@ namespace EDIVE.AppLoading
             Application.runInBackground = true;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
+            AppCore.Instance.SetRootScene(SceneManager.GetActiveScene());
+
             var validLoadItems = Setup.GetValidLoadItems().ToList();
             _totalLoadWeight = CalculateTotalLoadWeight();
 

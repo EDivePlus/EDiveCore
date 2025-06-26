@@ -4,14 +4,23 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.AppLoading.Utils;
+using EDIVE.Core;
 using EDIVE.DataStructures;
 using EDIVE.NativeUtils;
+using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace EDIVE.AppLoading.LoadItems
 {
     public abstract class APrefabLoadItemDefinition : ALoadItemDefinition
     {
+        [PropertyOrder(21)]
+        [SerializeField]
+        private bool _ApplyTransform = true;
+
+        [PropertyOrder(21)]
+        [ShowIf(nameof(_ApplyTransform))]
         [SerializeField]
         private TransformSnapshot _Transform;
 
@@ -39,10 +48,13 @@ namespace EDIVE.AppLoading.LoadItems
 
         protected abstract UniTask<GameObject> CreateInstance();
 
-        protected void ApplyTransform(GameObject instance)
+        protected void OnInstantiated(GameObject instance)
         {
-            if (instance == null) return;
-            _Transform.ApplyTo(instance.transform);
+            if (instance.scene != AppCore.Instance.RootScene)
+                SceneManager.MoveGameObjectToScene(instance, AppCore.Instance.RootScene);
+
+            if (_ApplyTransform && instance != null)
+                _Transform.ApplyTo(instance.transform);
         }
 
 #if UNITY_EDITOR

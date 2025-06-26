@@ -9,6 +9,7 @@ using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using IServiceProvider = EDIVE.Core.Services.IServiceProvider;
 
 #if UNITY_EDITOR
@@ -19,10 +20,7 @@ namespace EDIVE.Core
 {
     [DefaultExecutionOrder(1000)]
     public class AppCore : MonoBehaviour
-    { 
-        private bool _isLoaded;
-        private Promise _loadedPromise;
-
+    {
         [HideLabel]
         [InlineProperty]
         [HideReferenceObjectPicker]
@@ -39,6 +37,8 @@ namespace EDIVE.Core
         public static bool IsLoaded => HasInstance && Instance._isLoaded;
         public static bool HasInstance => Application.isPlaying && _instance != null;
         public static bool IsMainThread => Equals(_mainThreadId, Thread.CurrentThread.ManagedThreadId);
+
+        public Scene RootScene { get; private set; }
         
         public static AppCore Instance
         {
@@ -51,6 +51,9 @@ namespace EDIVE.Core
                 return null;
             }
         }
+
+        private bool _isLoaded;
+        private Promise _loadedPromise;
 
         private void Awake()
         {
@@ -71,6 +74,11 @@ namespace EDIVE.Core
                 _instance = null;
 
             _services = null;
+        }
+
+        public void SetRootScene(Scene scene)
+        {
+            RootScene = scene;
         }
 
         public static void SetLoadCompleted()

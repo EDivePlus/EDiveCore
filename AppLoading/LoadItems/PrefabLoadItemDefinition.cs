@@ -18,7 +18,7 @@ namespace EDIVE.AppLoading.LoadItems
         protected override UniTask<GameObject> CreateInstance()
         {
             var instance = Instantiate(_Prefab);
-            ApplyTransform(instance);
+            OnInstantiated(instance);
             return new UniTask<GameObject>(instance);
         }
 

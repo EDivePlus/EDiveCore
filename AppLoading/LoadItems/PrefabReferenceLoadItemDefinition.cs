@@ -27,7 +27,7 @@ namespace EDIVE.AppLoading.LoadItems
         protected override async UniTask<GameObject> CreateInstance()
         {
             var instance = await _PrefabReference.InstantiateAsync();
-            ApplyTransform(instance);
+            OnInstantiated(instance);
             return instance;
         }
 
