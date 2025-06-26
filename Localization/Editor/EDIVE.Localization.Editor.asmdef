@@ -10,7 +10,9 @@
         "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
         "EDIVE.External.ToolbarExtensions"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
