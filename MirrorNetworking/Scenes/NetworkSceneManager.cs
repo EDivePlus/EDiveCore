@@ -79,7 +79,7 @@ namespace EDIVE.MirrorNetworking.Scenes
             ServerChangeScene(_OfflineScene);
         }
 
-        public virtual void ServerChangeScene(ASceneDefinition newSceneDef)
+        private void ServerChangeScene(ASceneDefinition newSceneDef)
         {
             if (!newSceneDef.IsValid())
             {
@@ -234,7 +234,7 @@ namespace EDIVE.MirrorNetworking.Scenes
             });
         }
 
-        public virtual void FinalizeClientSceneLoad()
+        private void FinalizeClientSceneLoad()
         {
             if (NetworkClient.isConnected)
             {
