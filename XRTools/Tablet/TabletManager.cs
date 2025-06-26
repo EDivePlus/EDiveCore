@@ -31,7 +31,7 @@ namespace EDIVE.XRTools.Tablet
         protected override void Awake()
         {
             base.Awake();
-            if(_RepositionAction)
+            if (_RepositionAction)
                 _RepositionAction.action.performed += OnRepositionPerformed;
         }
 
@@ -44,7 +44,7 @@ namespace EDIVE.XRTools.Tablet
         public void RepositionTablet()
         {
             var target = CameraTransform;
-            if (target == null)
+            if (target == null || _Tablet == null)
                 return;
 
             var position = target.position +
