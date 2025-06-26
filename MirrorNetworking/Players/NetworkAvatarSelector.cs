@@ -24,8 +24,14 @@ namespace EDIVE.MirrorNetworking.Players
 
         private void Awake()
         {
+            if (_XRInteractable == null && TryGetComponent(out XRBaseInteractable xrInteractable))
+                _XRInteractable = xrInteractable;
+
             if (_XRInteractable)
                 _XRInteractable.activated.AddListener(OnInteractableActivated);
+
+            if (_Button == null && TryGetComponent(out Button button))
+                _Button = button;
 
             if (_Button)
                 _Button.onClick.AddListener(OnButtonClicked);
