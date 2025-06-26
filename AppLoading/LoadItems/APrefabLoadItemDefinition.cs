@@ -4,6 +4,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.AppLoading.Utils;
+using EDIVE.DataStructures;
 using EDIVE.NativeUtils;
 using UnityEngine;
 
@@ -11,6 +12,9 @@ namespace EDIVE.AppLoading.LoadItems
 {
     public abstract class APrefabLoadItemDefinition : ALoadItemDefinition
     {
+        [SerializeField]
+        private TransformSnapshot _Transform;
+
         public override async UniTask LoadContent(Action<float> progressCallback)
         {
             var instance = await CreateInstance();
@@ -34,6 +38,12 @@ namespace EDIVE.AppLoading.LoadItems
         }
 
         protected abstract UniTask<GameObject> CreateInstance();
+
+        protected void ApplyTransform(GameObject instance)
+        {
+            if (instance == null) return;
+            _Transform.ApplyTo(instance.transform);
+        }
 
 #if UNITY_EDITOR
         public abstract GameObject EditorPrefab { get; }
