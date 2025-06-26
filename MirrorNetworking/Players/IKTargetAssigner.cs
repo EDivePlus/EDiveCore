@@ -38,8 +38,8 @@ namespace EDIVE.MirrorNetworking.Players
                 var headFollow = _HeadTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
                 headFollow.Source = _HeadTarget.RigTarget;
 
-                var leftHandFollow = _RightHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
-                leftHandFollow.Source = _RightHandTarget.RigTarget;
+                var leftHandFollow = _LeftHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
+                leftHandFollow.Source = _LeftHandTarget.RigTarget;
 
                 var rightHandFollow = _RightHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
                 rightHandFollow.Source = _RightHandTarget.RigTarget;
