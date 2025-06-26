@@ -9,10 +9,10 @@ namespace EDIVE.XRTools.Controls
     public class ControlsManager : AServiceBehaviour<ControlsManager>
     {
         [SerializeField]
-        private ControlsHandler _DesktopControls;
+        private GameObject _DesktopControls;
 
         [SerializeField]
-        private ControlsHandler _HeadsetControls;
+        private GameObject _HeadsetControls;
 
         [PropertySpace]
         [SerializeField]
@@ -24,13 +24,13 @@ namespace EDIVE.XRTools.Controls
         public XRInteractionManager InteractionManager => _InteractionManager;
         public TeleportationProvider TeleportationProvider => _TeleportationProvider;
 
-        public ControlsHandler Controls => XRUtils.XREnabled ? _HeadsetControls : _DesktopControls;
-
         protected override void Awake()
         {
             base.Awake();
-            _DesktopControls.gameObject.SetActive(!XRUtils.XREnabled);
-            _HeadsetControls.gameObject.SetActive(XRUtils.XREnabled);
+            if (_DesktopControls)
+                _DesktopControls.SetActive(!XRUtils.XREnabled);
+            if (_HeadsetControls)
+                _HeadsetControls.SetActive(XRUtils.XREnabled);
         }
     }
 }
