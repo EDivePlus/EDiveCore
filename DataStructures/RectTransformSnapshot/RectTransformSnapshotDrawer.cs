@@ -7,9 +7,9 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace EDIVE.DataStructures.RectTransformPreset
+namespace EDIVE.DataStructures.RectTransformSnapshot
 {
-    public class RectTransformSnapshotDrawer : OdinValueDrawer<RectTransformSnapshot.RectTransformSnapshot>, IDisposable
+    public class RectTransformSnapshotDrawer : OdinValueDrawer<RectTransformSnapshot>, IDisposable
     {
         private RectTransform _tempRectTransform;
         private Editor _editor;

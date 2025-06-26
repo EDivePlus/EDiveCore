@@ -1,6 +1,5 @@
 ﻿using System;
 using DG.Tweening;
-using EDIVE.DataStructures.RectTransformPreset;
 using EDIVE.DataStructures.RectTransformSnapshot;
 using Sirenix.OdinInspector;
 using UnityEngine;

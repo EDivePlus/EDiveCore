@@ -1,11 +1,11 @@
 ﻿using DG.Tweening;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.RectTransformPreset
+namespace EDIVE.DataStructures.RectTransformSnapshot
 {
     public static class RectTransformSnapshotExtensions
     {
-        public static Tween DOMorph(this RectTransform t, RectTransformSnapshot.RectTransformSnapshot preset, float duration)
+        public static Tween DOMorph(this RectTransform t, DataStructures.RectTransformSnapshot.RectTransformSnapshot preset, float duration)
         {
             var sequence = DOTween.Sequence()
                 .Append(t.DOAnchorPos(preset.AnchoredPosition, duration))

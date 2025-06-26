@@ -1,5 +1,4 @@
 ﻿using System;
-using EDIVE.DataStructures.RectTransformPreset;
 using EDIVE.DataStructures.RectTransformSnapshot;
 using EDIVE.StateHandling.MultiStates;
 using UnityEngine;
