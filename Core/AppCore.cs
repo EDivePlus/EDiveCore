@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
 using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
@@ -11,10 +12,6 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using IServiceProvider = EDIVE.Core.Services.IServiceProvider;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace EDIVE.Core
 {
@@ -110,6 +107,20 @@ namespace EDIVE.Core
             var source = new UniTaskCompletionSource();
             WhenLoaded(() => source.TrySetResult());
             return source.Task;
+        }
+
+        [ExecuteOnAppRestart(0)]
+        private static async UniTask OnAppRestart()
+        {
+            if (!HasInstance)
+            {
+                Debug.LogError("Cannot clear root scene, missing instance");
+                return;
+            }
+            
+            var unload = SceneManager.UnloadSceneAsync(Instance.RootScene);
+            if (unload != null)
+                await unload;
         }
     }
 }

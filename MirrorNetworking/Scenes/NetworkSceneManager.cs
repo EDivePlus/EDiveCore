@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.AssetTranslation;
 using EDIVE.Core;
+using EDIVE.Core.Restart;
 using EDIVE.External.Signals;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.SceneManagement;
@@ -250,6 +251,22 @@ namespace EDIVE.MirrorNetworking.Scenes
                 }
             }
         }
-
+        
+        [ExecuteOnAppRestart(-100)]
+        public static async UniTask OnAppRestart()
+        {
+            if (!AppCore.Services.TryGet<NetworkSceneManager>(out var sceneManager))
+            {
+                Debug.LogError("Cannot clear scenes, missing network scene manager!");
+                return;
+            }
+            
+            await sceneManager.UnloadAllScenes();
+        }
+        
+        private async UniTask UnloadAllScenes()
+        {
+            await _currentScene.Unload();
+        }
     }
 }

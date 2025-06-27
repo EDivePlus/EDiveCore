@@ -3,6 +3,7 @@ using System.Reflection;
 using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
+using EDIVE.Core.Restart;
 using EDIVE.NativeUtils;
 using UnityEngine;
 
@@ -122,6 +123,12 @@ namespace EDIVE.Tweening
             float duration)
         {
             return DOTween.To(() => target.localPosition, x => target.localPosition = target.localPosition.WithYZ(x.y, x.z), endValue, duration);
+        }
+        
+        [ExecuteOnAppRestart(-1200)]
+        private static void OnAppRestart()
+        {
+            DOTween.KillAll();
         }
     }
 }

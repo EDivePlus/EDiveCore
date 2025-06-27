@@ -5,6 +5,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
+using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
 using Mirror;
@@ -175,6 +176,19 @@ namespace EDIVE.MirrorNetworking
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+        
+        [ExecuteOnAppRestart(-90)]
+        public static UniTask OnAppRestart()
+        {
+            if (!AppCore.Services.TryGet<MasterNetworkManager>(out var networkManager))
+            {
+                Debug.LogError("Cannot stop runtime, missing network manager");
+                return UniTask.CompletedTask;
+            }
+            
+            networkManager.StopRuntime();
+            return UniTask.CompletedTask;
         }
     }
 }

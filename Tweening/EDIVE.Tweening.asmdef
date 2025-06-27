@@ -9,7 +9,8 @@
         "DOTween.Modules",
         "Unity.TextMeshPro",
         "EDIVE.StateHandling",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "EDIVE.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
