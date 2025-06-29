@@ -24,7 +24,10 @@
         "EDIVE.DataStructures",
         "LRM",
         "EDIVE.External.Promises",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "Unity.TextMeshPro",
+        "EnhancedScroller",
+        "Mirror.Transports"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
