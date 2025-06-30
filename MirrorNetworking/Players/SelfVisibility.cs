@@ -7,7 +7,7 @@ namespace EDIVE.MirrorNetworking.Players
     public class SelfVisibility : MonoBehaviour
     {
         [SerializeField]
-        [Layer]
+        [LayerField]
         private int _LocalOnlyLayer;
 
         private void Start()

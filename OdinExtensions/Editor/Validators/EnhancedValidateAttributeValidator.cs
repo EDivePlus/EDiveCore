@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using EDIVE.OdinExtensions.Attributes;
-using EDIVE.OdinExtensions.Editor;
+using EDIVE.OdinExtensions.Editor.Validators;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor.ActionResolvers;
 using Sirenix.OdinInspector.Editor.Validation;
@@ -11,7 +11,7 @@ using UnityEngine;
 using NamedValue = Sirenix.OdinInspector.Editor.ActionResolvers.NamedValue;
 
 [assembly: RegisterValidator(typeof(EnhancedValidateAttributeValidator<>))]
-namespace EDIVE.OdinExtensions.Editor
+namespace EDIVE.OdinExtensions.Editor.Validators
 {
     public class EnhancedValidateAttributeValidator<T> : AttributeValidator<EnhancedValidateAttribute, T>
     {

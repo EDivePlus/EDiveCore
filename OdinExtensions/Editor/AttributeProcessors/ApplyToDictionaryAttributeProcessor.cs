@@ -4,7 +4,7 @@ using System.Reflection;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector.Editor;
 
-namespace EDIVE.OdinExtensions.Editor
+namespace EDIVE.OdinExtensions.Editor.AttributeProcessors
 {
     [ResolverPriority(-100000)]
     public class ApplyToDictionaryAttributeProcessor<T1, T2> : OdinAttributeProcessor<EditableKeyValuePair<T1, T2>>

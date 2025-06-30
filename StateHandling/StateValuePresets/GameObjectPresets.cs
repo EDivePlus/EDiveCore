@@ -16,7 +16,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     public class GameObjectLayerPreset : AStateValuePreset<GameObject>
     {
         [SerializeField]
-        [Layer]
+        [LayerField]
         private int _Layer;
 
         public override string Title => "Layer";
