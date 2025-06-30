@@ -24,7 +24,7 @@ namespace EDIVE.VoiceChat
 
         private UniVoiceVoiceChatManager _voiceChatManager;
 
-        private void Awake()
+        private void OnEnable()
         {
             AppCore.Services.WhenRegistered<UniVoiceVoiceChatManager>(Initialize);
         }
@@ -41,8 +41,8 @@ namespace EDIVE.VoiceChat
                 {
                     _MicDropdown.AddOptions(devices.Select(d => d.Name).ToList());
                     _MicDropdown.value = voiceChatManager.CurrentMicIndex;
+                    _MicDropdown.onValueChanged.AddListener(OnMicChanged);
                 }
-                _MicDropdown.onValueChanged.AddListener(OnMicChanged);
             }
 
             if (_NoMicToggle)
@@ -50,8 +50,8 @@ namespace EDIVE.VoiceChat
 
             if (_AllowMicToggle)
             {
-                _AllowMicToggle.isOn = _voiceChatManager.AllowMic;
                 _AllowMicToggle.onValueChanged.AddListener(OnAllowMicChanged);
+                _AllowMicToggle.isOn = _voiceChatManager.AllowMic;
             }
         }
 

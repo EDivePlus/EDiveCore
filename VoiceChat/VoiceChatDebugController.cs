@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 02.06.2025
 
+using System;
 using System.Linq;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
@@ -25,7 +26,7 @@ namespace EDIVE.VoiceChat
 
         private static readonly int[] FRAME_DURATIONS = {20, 40, 60};
 
-        private void Awake()
+        private void OnEnable()
         {
             AppCore.Services.WhenRegistered<UniVoiceVoiceChatManager>(Initialize);
         }
