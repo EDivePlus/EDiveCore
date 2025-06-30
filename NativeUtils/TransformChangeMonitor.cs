@@ -35,23 +35,31 @@ namespace EDIVE.NativeUtils
 
     public static class TransformChangeMonitorExtensions
     {
-        public static void RegisterChangeSignalListener(this Transform tr, Action<Transform> listenerMethod)
+        public static void AddTransformChangeListener(this GameObject go, Action<Transform> listener)
         {
-            var monitor = tr.TryGetComponent<TransformChangeMonitor>(out var component) 
-                ? component 
-                : tr.gameObject.AddComponent<TransformChangeMonitor>();
-            
+            var monitor = go.GetOrAddComponent<TransformChangeMonitor>();
+
             monitor.hideFlags = HideFlags.NotEditable | HideFlags.DontSave;
-            monitor.TransformChanged -= listenerMethod;
-            monitor.TransformChanged += listenerMethod;
+            monitor.TransformChanged -= listener;
+            monitor.TransformChanged += listener;
         }
 
-        public static void UnregisterChangeSignalListener(this Transform tr, Action<Transform> listenerMethod)
+        public static void RemoveTransformChangeListener(this GameObject go, Action<Transform> listener)
         {
-            if (tr.TryGetComponent<TransformChangeMonitor>(out var monitor))
-            {
-                monitor.TransformChanged -= listenerMethod;
-            }
+            if (!go.TryGetComponent<TransformChangeMonitor>(out var monitor))
+                return;
+
+            monitor.TransformChanged -= listener;
+        }
+
+        public static void AddChangeListener(this Transform tr, Action<Transform> listenerMethod)
+        {
+            tr.gameObject.AddTransformChangeListener(listenerMethod);
+        }
+
+        public static void RemoveChangeListener(this Transform tr, Action<Transform> listenerMethod)
+        {
+            tr.gameObject.RemoveTransformChangeListener(listenerMethod);
         }
     }
 }
