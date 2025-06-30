@@ -19,7 +19,7 @@ namespace EDIVE.StateHandling.MultiStates
 
         [PropertyOrder(-10)]
         [SerializeField]
-        private bool _SetDefaultStateOnAwake = true;
+        private bool _SetDefaultStateOnAwake;
 
         [PropertyOrder(-10)]
         [SerializeField]

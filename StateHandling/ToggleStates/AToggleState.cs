@@ -15,7 +15,7 @@ namespace EDIVE.StateHandling.ToggleStates
 
         [PropertyOrder(-10)]
         [SerializeField]
-        private bool _SetDefaultStateOnAwake = true;
+        private bool _SetDefaultStateOnAwake;
 
         [PropertyOrder(-10)]
         [SerializeField]
