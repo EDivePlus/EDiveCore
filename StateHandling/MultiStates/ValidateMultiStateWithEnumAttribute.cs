@@ -35,11 +35,11 @@ namespace EDIVE.StateHandling.MultiStates
             if (Value == null) return;
 
             var allEnumValues = Enum.GetNames(Attribute.EnumType);
-            var requiredEnumValues = allEnumValues.Except(Attribute.OptionalValues.Select(e => e.ToString()));
+            var requiredEnumValues = allEnumValues.Except(Attribute.OptionalValues.Select(e => e.ToString())).ToList();
 
-            var allStates = Value.GetAllStates();
-            var missing = requiredEnumValues.Except(allStates);
-            var extra = allStates.Except(allEnumValues);
+            var allStates = Value.GetAllStates().ToList();
+            var missing = requiredEnumValues.Except(allStates).ToList();
+            var extra = allStates.Except(allEnumValues).ToList();
 
             if (missing.Any() || extra.Any())
             {
