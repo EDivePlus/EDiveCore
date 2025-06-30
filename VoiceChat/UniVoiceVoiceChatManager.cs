@@ -32,6 +32,8 @@ namespace EDIVE.VoiceChat
             get => PlayerPrefs.GetInt("UniVoice_EnableSpatialAudio", 1) > 0;
             set
             {
+                if (EnableSpatialAudio == value)
+                    return;
                 PlayerPrefs.SetInt("UniVoice_EnableSpatialAudio", value ? 1 : 0);
                 RefreshSpatialAudio();
             }
@@ -42,6 +44,8 @@ namespace EDIVE.VoiceChat
             get => (InputFilterType) PlayerPrefs.GetInt("UniVoice_InputFilter", 1);
             set
             {
+                if (InputFilter == value)
+                    return;
                 PlayerPrefs.SetInt("UniVoice_InputFilter", (int) value);
                 RefreshFilters();
             }
@@ -52,6 +56,8 @@ namespace EDIVE.VoiceChat
             get => PlayerPrefs.GetInt("UniVoice_FrameDuration", 60);
             set
             {
+                if (MicFrameDurationMS == value)
+                    return;
                 PlayerPrefs.SetInt("UniVoice_FrameDuration", value);
                 ReloadMic();
             }
@@ -62,6 +68,8 @@ namespace EDIVE.VoiceChat
             get => PlayerPrefs.GetInt("UniVoice_AllowMic", 1) > 0;
             set
             {
+                if (AllowMic == value)
+                    return;
                 PlayerPrefs.SetInt("UniVoice_AllowMic", value ? 1 : 0);
                 ReloadMic();
             }
@@ -74,7 +82,6 @@ namespace EDIVE.VoiceChat
             {
                 if (value == CurrentMicIndex)
                     return;
-
                 value = Mathf.Clamp(value, 0, Mic.AvailableDevices.Count - 1);
                 PlayerPrefs.SetInt("UniVoice_CurrentMicIndex", value);
                 ReloadMic();
