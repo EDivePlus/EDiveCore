@@ -8,6 +8,7 @@ using EDIVE.Core;
 using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
+using LightReflectiveMirror;
 using Mirror;
 using UnityEngine;
 
@@ -54,6 +55,17 @@ namespace EDIVE.MirrorNetworking
             }
         }
         private ClientConnectionState _clientConnectionState = ClientConnectionState.Disconnected;
+
+        public string CurrentServerName
+        {
+            get
+            {
+                if (transport is LightReflectiveMirrorTransport lrm)
+                    return lrm.serverId;
+
+                return networkAddress;
+            }
+        }
 
         public override void Start()
         {

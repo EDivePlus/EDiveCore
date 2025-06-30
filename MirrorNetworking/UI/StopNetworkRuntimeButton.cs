@@ -10,9 +10,6 @@ namespace EDIVE.MirrorNetworking.UI
     [RequireComponent(typeof(Button))]
     public class StopNetworkRuntimeButton : MonoBehaviour
     {
-        [SerializeField]
-        private NetworkRuntimeMode _NetworkMode = NetworkRuntimeMode.Client;
-        
         private Button _button;
         
         private void Awake()
