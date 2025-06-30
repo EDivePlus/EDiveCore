@@ -56,7 +56,7 @@ namespace EDIVE.SceneManagement
         {
             if (LoadState != SceneLoadState.Loaded)
             {
-                Debug.LogError($"Cannot load scene in state {LoadState}");
+                Debug.LogError($"Cannot unload scene in state {LoadState}");
                 return;
             }
 
