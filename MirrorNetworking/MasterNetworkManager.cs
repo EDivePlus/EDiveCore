@@ -46,7 +46,7 @@ namespace EDIVE.MirrorNetworking
         public ClientConnectionState ClientConnectionState
         {
             get => _clientConnectionState;
-            set
+            private set
             {
                 if (_clientConnectionState == value)
                     return;
@@ -161,7 +161,7 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnClientConnect();
             Debug.Log("Connected to server");
-            ClientConnectionState = ClientConnectionState.Disconnected;
+            ClientConnectionState = ClientConnectionState.Connected;
             ClientConnected.Dispatch();
             // TODO wait for server response somewhere and call OnConnected client event
         }
@@ -177,6 +177,7 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnClientDisconnect();
             Debug.Log("Disconnected from server");
+            ClientConnectionState = ClientConnectionState.Disconnected;
             ClientDisconnected.Dispatch();
         }
 
