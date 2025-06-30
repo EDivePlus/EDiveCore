@@ -79,6 +79,14 @@ namespace EDIVE.XRTools.Tablet
                 _RepositionAction.action.performed += OnRepositionPerformed;
         }
 
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (_RepositionAction)
+                _RepositionAction.action.performed -= OnRepositionPerformed;
+            _animTween?.Kill();
+        }
+
         private void OnRepositionPerformed(InputAction.CallbackContext context)
         {
             ToggleTablet();
