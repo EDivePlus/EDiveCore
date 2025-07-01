@@ -7,15 +7,20 @@ using System.Linq;
 using System.Reflection;
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace EDIVE.Core.Restart
 {
     public static class AppRestartUtility
     {
+#if UNITY_EDITOR
         [MenuItem("Tools/Restart App", priority = 200)]
+#endif
         public static void Restart()
         {
             RestartAsync().Forget();
@@ -61,7 +66,7 @@ namespace EDIVE.Core.Restart
 
         private static IEnumerable<(MemberInfo, TAttribute)> GetMembersWithAttribute<TAttribute>() where TAttribute : Attribute
         {
-            var coreAssembly = typeof(AppRestartBuildProcessor).Assembly;
+            var coreAssembly = typeof(TAttribute).Assembly;
             var coreAssemblyName = coreAssembly.GetName().Name;
             
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
