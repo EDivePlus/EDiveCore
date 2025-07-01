@@ -8,6 +8,7 @@ using EDIVE.Core;
 using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
+using EDIVE.MirrorNetworking.Utils;
 using LightReflectiveMirror;
 using Mirror;
 using UnityEngine;
@@ -60,7 +61,7 @@ namespace EDIVE.MirrorNetworking
         {
             get
             {
-                if (transport is LightReflectiveMirrorTransport lrm)
+                if (this.TryGetTransport<LightReflectiveMirrorTransport>(out var lrm))
                     return lrm.serverId;
 
                 return networkAddress;
@@ -183,6 +184,7 @@ namespace EDIVE.MirrorNetworking
 
         public void StartRuntime(NetworkRuntimeMode runtimeMode)
         {
+            ClientConnectionState = ClientConnectionState.Connecting;
             switch (runtimeMode)
             {
                 case NetworkRuntimeMode.Client:
@@ -201,6 +203,7 @@ namespace EDIVE.MirrorNetworking
 
         public void StopRuntime()
         {
+            ClientConnectionState = ClientConnectionState.Disconnected;
             switch (mode)
             {
                 case NetworkManagerMode.Offline:

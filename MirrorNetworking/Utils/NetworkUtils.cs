@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 22.03.2025
 
+using Mirror;
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -31,5 +32,41 @@ namespace EDIVE.MirrorNetworking.Utils
 #endif
 
         public static ClientPlatformType ClientPlatformType => XRSettings.enabled ? ClientPlatformType.Headset : ClientPlatformType.Desktop;
+
+        public static bool TryGetTransport<T>(this NetworkManager manager, out T result) where T : Transport
+        {
+            var rootTransport = manager.transport;
+            return rootTransport.TryGetTransport(out result);
+        }
+
+        private static bool TryGetTransport<T>(this Transport parentTransport, out T result) where T : Transport
+        {
+            if (parentTransport == null)
+            {
+                result = null;
+                return false;
+            }
+
+            if (parentTransport is T mainTransport)
+            {
+                result = mainTransport;
+                return true;
+            }
+
+            if (parentTransport is MiddlewareTransport middlewareTransport && middlewareTransport.inner.TryGetTransport(out result))
+                return true;
+
+            if (parentTransport is MultiplexTransport multiplexTransport)
+            {
+                foreach (var childMultiplexTransport in multiplexTransport.transports)
+                {
+                    if (childMultiplexTransport.TryGetTransport(out result))
+                        return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
     }
 }

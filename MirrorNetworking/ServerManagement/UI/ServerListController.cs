@@ -2,6 +2,9 @@
 // Created: 13.06.2025
 
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using EDIVE.Core;
+using EDIVE.MirrorNetworking.Utils;
 using EnhancedUI.EnhancedScroller;
 using LightReflectiveMirror;
 using Mirror;
@@ -24,22 +27,30 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
         private readonly List<Room> _currentRooms = new();
         private LightReflectiveMirrorTransport _lrm;
 
-        private void Start()
-        {
-            _Scroller.Delegate = this;
-            RefreshScroller();
-        }
-
         private void OnEnable()
         {
+            AppCore.Services.WhenRegistered<MasterNetworkManager>(Initialize);
+        }
+
+        private void Initialize(MasterNetworkManager manager)
+        {
+            _Scroller.Delegate = this;
+            if (!manager.TryGetTransport<LightReflectiveMirrorTransport>(out var lrm))
+                return;
+
             if (_RefreshButton)
                 _RefreshButton.onClick.AddListener(OnRefreshClicked);
-            if (Transport.active is LightReflectiveMirrorTransport lrm)
+
+            _lrm = lrm;
+            _lrm.serverListUpdated.AddListener(RefreshScroller);
+
+            UniTask.Void(async () =>
             {
-                _lrm = lrm;
-                _lrm.serverListUpdated.AddListener(RefreshScroller);
-            }
-        }
+                await UniTask.Yield();
+                RefreshScroller();
+            });
+    }
+
         private void OnDisable()
         {
             if (_RefreshButton)
@@ -57,9 +68,6 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
 
         private void RefreshScroller()
         {
-            if(!_lrm)
-                return;
-
             _currentRooms.Clear();
             _currentRooms.AddRange(_lrm.relayServerList);
             _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);
