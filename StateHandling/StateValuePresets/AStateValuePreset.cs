@@ -12,6 +12,7 @@ namespace EDIVE.StateHandling.StateValuePresets
         public abstract string Title { get; }
         
         public abstract void ApplyTo(object targetObject);
+        public abstract void CaptureFrom(object targetObject);
         
         public abstract Type TargetType { get; }
         public abstract bool IsValidFor(Type targetType);
@@ -47,7 +48,14 @@ namespace EDIVE.StateHandling.StateValuePresets
             if (targetObject is TTarget tTarget)
                 ApplyTo(tTarget);
         }
+        public override void CaptureFrom(object targetObject)
+        {
+            if (targetObject is TTarget tTarget)
+                CaptureFrom(tTarget);
+        }
+
         public abstract void ApplyTo(TTarget targetObject);
+        public abstract void CaptureFrom(TTarget targetObject);
 
         public override Type TargetType => typeof(TTarget);
         public override bool IsValidFor(Type targetType) => typeof(TTarget).IsAssignableFrom(targetType);

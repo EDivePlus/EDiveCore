@@ -9,6 +9,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Interactable";
         public override void ApplyTo(CanvasGroup targetObject) => targetObject.interactable = Value;
+        public override void CaptureFrom(CanvasGroup targetObject) => Value = targetObject.interactable;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -16,6 +17,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Block Raycasts";
         public override void ApplyTo(CanvasGroup targetObject) => targetObject.blocksRaycasts = Value;
+        public override void CaptureFrom(CanvasGroup targetObject) => Value = targetObject.blocksRaycasts;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -23,5 +25,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Alpha";
         public override void ApplyTo(CanvasGroup targetObject) => targetObject.alpha = Value;
+        public override void CaptureFrom(CanvasGroup targetObject) => Value = targetObject.alpha;
     }
 }

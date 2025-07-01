@@ -10,6 +10,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Child Alignment";
         public override void ApplyTo(LayoutGroup targetObject) => targetObject.childAlignment = Value;
+        public override void CaptureFrom(LayoutGroup targetObject) => Value = targetObject.childAlignment;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -17,5 +18,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Reverse Arrangement";
         public override void ApplyTo(HorizontalOrVerticalLayoutGroup targetObject) => targetObject.reverseArrangement = Value;
+        public override void CaptureFrom(HorizontalOrVerticalLayoutGroup targetObject) => Value = targetObject.reverseArrangement;
     }
 }

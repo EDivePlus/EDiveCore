@@ -10,6 +10,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Anchored Position";
         public override void ApplyTo(RectTransform targetObject) => targetObject.anchoredPosition = Value;
+        public override void CaptureFrom(RectTransform targetObject) => Value = targetObject.anchoredPosition;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -17,6 +18,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Size Delta";
         public override void ApplyTo(RectTransform targetObject) => targetObject.sizeDelta = Value;
+        public override void CaptureFrom(RectTransform targetObject) => Value = targetObject.sizeDelta;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -24,6 +26,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Pivot";
         public override void ApplyTo(RectTransform targetObject) => targetObject.pivot = Value;
+        public override void CaptureFrom(RectTransform targetObject) => Value = targetObject.pivot;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -31,5 +34,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Layout";
         public override void ApplyTo(RectTransform targetObject) => Value.ApplyTo(targetObject);
+        public override void CaptureFrom(RectTransform targetObject) => Value = new RectTransformSnapshot(targetObject);
     }
 }

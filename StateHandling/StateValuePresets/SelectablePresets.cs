@@ -9,5 +9,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Interactable";
         public override void ApplyTo(Selectable targetObject) => targetObject.interactable = Value;
+        public override void CaptureFrom(Selectable targetObject) => Value = targetObject.interactable;
     }
 }

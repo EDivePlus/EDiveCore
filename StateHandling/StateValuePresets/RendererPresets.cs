@@ -12,6 +12,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Enabled";
         public override void ApplyTo(Renderer targetObject) => targetObject.enabled = Value;
+        public override void CaptureFrom(Renderer targetObject) => Value = targetObject.enabled;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]
@@ -40,6 +41,14 @@ namespace EDIVE.StateHandling.StateValuePresets
             else
                 targetObject.materials = materials;
         }
+
+        public override void CaptureFrom(Renderer targetObject)
+        {
+            var materials = _UseSharedMaterial ? targetObject.sharedMaterials : targetObject.materials;
+            if (_MaterialIndex >= materials.Length)
+                return;
+            Value = materials[_MaterialIndex];
+        }
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -47,6 +56,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Sorting Layer";
         public override void ApplyTo(Renderer targetObject) => targetObject.sortingLayerName = Value;
+        public override void CaptureFrom(Renderer targetObject) => Value = targetObject.sortingLayerName;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -54,6 +64,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Sorting Order";
         public override void ApplyTo(Renderer targetObject) => targetObject.sortingOrder = Value;
+        public override void CaptureFrom(Renderer targetObject) => Value = targetObject.sortingOrder;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]
@@ -87,19 +98,29 @@ namespace EDIVE.StateHandling.StateValuePresets
         }
 
         public abstract void ApplyTo(Material targetMaterial);
+
+        public override void CaptureFrom(TRenderer targetObject)
+        {
+            if (TryGetMaterial(targetObject, out var material))
+                CaptureFrom(material);
+        }
+
+        public abstract TValue CaptureFrom(Material targetMaterial);
     }
 
     [Preserve]
     public class RendererMaterialAlphaPreset : ARendererMaterialPreset<Renderer, float>
     {
         public override string Title => "Alpha";
-        public override void ApplyTo(Material targetObject) => targetObject.color = targetObject.color.WithA(Value);
+        public override void ApplyTo(Material targetMaterial) => targetMaterial.color = targetMaterial.color.WithA(Value);
+        public override float CaptureFrom(Material targetMaterial) => Value = targetMaterial.color.a;
     }
 
     [Preserve]
     public class RendererMaterialColorPreset : ARendererMaterialPreset<Renderer, Color>
     {
         public override string Title => "Color";
-        public override void ApplyTo(Material targetObject) => targetObject.color = Value;
+        public override void ApplyTo(Material targetMaterial) => targetMaterial.color = Value;
+        public override Color CaptureFrom(Material targetMaterial) => Value = targetMaterial.color;
     }
 }

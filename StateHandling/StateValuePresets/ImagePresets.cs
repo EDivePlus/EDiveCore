@@ -10,6 +10,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Sprite";
         public override void ApplyTo(Image targetObject) => targetObject.sprite = Value;
+        public override void CaptureFrom(Image targetObject) => Value = targetObject.sprite;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -17,6 +18,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Fill Amount";
         public override void ApplyTo(Image targetObject) => targetObject.fillAmount = Value;
+        public override void CaptureFrom(Image targetObject) => Value = targetObject.fillAmount;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]
@@ -24,5 +26,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Fill Clockwise";
         public override void ApplyTo(Image targetObject) => targetObject.fillClockwise = Value;
+        public override void CaptureFrom(Image targetObject) => Value = targetObject.fillClockwise;
     }
 }

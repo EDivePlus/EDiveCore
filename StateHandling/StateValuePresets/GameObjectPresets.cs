@@ -10,6 +10,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Active";
         public override void ApplyTo(GameObject targetObject) => targetObject.SetActive(Value);
+        public override void CaptureFrom(GameObject targetObject) => Value = targetObject.activeSelf;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)]
@@ -38,5 +39,7 @@ namespace EDIVE.StateHandling.StateValuePresets
                 }
             }
         }
+
+        public override void CaptureFrom(GameObject targetObject) => _Layer = targetObject.layer;
     }
 }

@@ -11,6 +11,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Alpha";
         public override void ApplyTo(Graphic targetObject) => targetObject.color = targetObject.color.WithA(Value);
+        public override void CaptureFrom(Graphic targetObject) => Value = targetObject.color.a;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -18,6 +19,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Color";
         public override void ApplyTo(Graphic targetObject) => targetObject.color = Value;
+        public override void CaptureFrom(Graphic targetObject) => Value = targetObject.color;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -25,5 +27,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Material";
         public override void ApplyTo(Graphic targetObject) => targetObject.material = Value;
+        public override void CaptureFrom(Graphic targetObject) => Value = targetObject.material;
     }
 }

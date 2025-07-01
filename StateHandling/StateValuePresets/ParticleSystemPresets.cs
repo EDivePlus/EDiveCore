@@ -21,5 +21,7 @@ namespace EDIVE.StateHandling.StateValuePresets
             else
                 targetObject.Stop(_WithChildren);
         }
+
+        public override void CaptureFrom(ParticleSystem targetObject) => Value = targetObject.isPlaying;
     }
 }

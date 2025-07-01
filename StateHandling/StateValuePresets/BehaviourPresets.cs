@@ -9,5 +9,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Enabled";
         public override void ApplyTo(Behaviour targetObject) => targetObject.enabled = Value;
+        public override void CaptureFrom(Behaviour targetObject) => Value = targetObject.enabled;
     }
 }

@@ -9,5 +9,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "State";
         public override void ApplyTo(AToggleState targetObject) => targetObject.SetState(Value);
+        public override void CaptureFrom(AToggleState targetObject) => Value = targetObject.State;
     }
 }

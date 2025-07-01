@@ -9,5 +9,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Emitting";
         public override void ApplyTo(TrailRenderer targetObject) => targetObject.emitting = Value;
+        public override void CaptureFrom(TrailRenderer targetObject) => Value = targetObject.emitting;
     }
 }

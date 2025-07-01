@@ -15,6 +15,7 @@ namespace EDIVE.StateHandling.StateValuePresets
         
         public override string Title => "Sorting Layer";
         public override void ApplyTo(Canvas targetObject) => targetObject.sortingLayerName = _SortingLayer;
+        public override void CaptureFrom(Canvas targetObject) => _SortingLayer = targetObject.sortingLayerName;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
@@ -22,5 +23,6 @@ namespace EDIVE.StateHandling.StateValuePresets
     {
         public override string Title => "Sorting Order";
         public override void ApplyTo(Canvas targetObject) => targetObject.sortingOrder = Value;
+        public override void CaptureFrom(Canvas targetObject) => Value = targetObject.sortingOrder;
     }
 }

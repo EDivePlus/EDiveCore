@@ -12,6 +12,7 @@ namespace EDIVE.Utils.FontSymbols
     {
         public override string Title => "Font Symbol";
         public override void ApplyTo(FontSymbolText targetObject) => targetObject.FontSymbol = Value;
+        public override void CaptureFrom(FontSymbolText targetObject) => Value = targetObject.FontSymbol;
     }
 
     [Serializable, Preserve]
@@ -19,5 +20,6 @@ namespace EDIVE.Utils.FontSymbols
     {
         public override string Title => "Font Symbol";
         public override void ApplyTo(FontSymbolTMPTextUI targetObject) => targetObject.FontSymbol = Value;
+        public override void CaptureFrom(FontSymbolTMPTextUI targetObject) => Value = targetObject.FontSymbol;
     }
 }
