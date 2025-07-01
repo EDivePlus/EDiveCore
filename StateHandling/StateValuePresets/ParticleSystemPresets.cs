@@ -1,17 +1,17 @@
 using System;
-using EDIVE.StateHandling.MultiStates;
+using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class ParticleSystemPlayingPresets : AStateValuePreset<ParticleSystem, bool>
     {
         public override string Title => "Playing";
         
         [SerializeField]
         [Tooltip("Play all child ParticleSystems as well")]
+        [JsonProperty("WithChildren")]
         private bool _WithChildren = true;
         
         public override void ApplyTo(ParticleSystem targetObject)

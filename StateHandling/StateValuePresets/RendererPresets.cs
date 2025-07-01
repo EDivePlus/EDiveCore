@@ -1,26 +1,29 @@
 using System;
 using EDIVE.NativeUtils;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class RendererEnabledPreset : AStateValuePreset<Renderer, bool>
     {
         public override string Title => "Enabled";
         public override void ApplyTo(Renderer targetObject) => targetObject.enabled = Value;
     }
 
-    [Serializable, Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public class RendererMaterialPreset : AStateValuePreset<Renderer, Material>
     {
         [MinValue(0)]
         [SerializeField]
+        [JsonProperty("MaterialIndex")]
         private int _MaterialIndex;
 
         [SerializeField]
+        [JsonProperty("UseSharedMaterial")]
         private bool _UseSharedMaterial;
 
         public override string Title => "Material";
@@ -39,30 +42,32 @@ namespace EDIVE.StateHandling.StateValuePresets
         }
     }
 
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class RendererSortingLayerPreset : AStateValuePreset<Renderer, string>
     {
         public override string Title => "Sorting Layer";
         public override void ApplyTo(Renderer targetObject) => targetObject.sortingLayerName = Value;
     }
     
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class RendererSortingOrderPreset : AStateValuePreset<Renderer, int>
     {
         public override string Title => "Sorting Order";
         public override void ApplyTo(Renderer targetObject) => targetObject.sortingOrder = Value;
     }
 
-    [Serializable, Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public abstract class ARendererMaterialPreset<TRenderer, TValue> : AStateValuePreset<TRenderer, TValue> where TRenderer : Renderer
     {
-        [SerializeField]
-        private bool _UseSharedMaterial;
-
         [MinValue(0)]
         [SerializeField]
+        [JsonProperty("MaterialIndex")]
         private int _MaterialIndex;
-
+        
+        [SerializeField]
+        [JsonProperty("UseSharedMaterial")]
+        private bool _UseSharedMaterial;
+        
         private bool TryGetMaterial(TRenderer target, out Material material)
         {
             var materials = _UseSharedMaterial ? target.sharedMaterials : target.materials;

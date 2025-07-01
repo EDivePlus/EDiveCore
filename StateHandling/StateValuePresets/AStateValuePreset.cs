@@ -1,13 +1,12 @@
 using System;
 using EDIVE.Utils.ObjectActions;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable]
-    [Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public abstract class AStateValuePreset : IObjectAction
     {
         public abstract string Title { get; }
@@ -40,8 +39,7 @@ namespace EDIVE.StateHandling.StateValuePresets
         }
     }
 
-    [Serializable]
-    [Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public abstract class AStateValuePreset<TTarget> : AStateValuePreset
     {
         public override void ApplyTo(object targetObject)
@@ -55,12 +53,12 @@ namespace EDIVE.StateHandling.StateValuePresets
         public override bool IsValidFor(Type targetType) => typeof(TTarget).IsAssignableFrom(targetType);
     }
     
-    [Serializable]
-    [Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public abstract class AStateValuePreset<TTarget, TValue> : AStateValuePreset<TTarget>
     {
         [SerializeField]
         [LabelText("$Title")]
+        [JsonProperty("Value")]
         private TValue _Value;
         
         public TValue Value

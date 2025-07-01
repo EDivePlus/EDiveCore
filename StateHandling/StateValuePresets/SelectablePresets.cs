@@ -1,11 +1,10 @@
 using System;
-using EDIVE.StateHandling.MultiStates;
-using UnityEngine.Scripting;
+using Newtonsoft.Json;
 using UnityEngine.UI;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class SelectableInteractablePreset : AStateValuePreset<Selectable, bool>
     {
         public override string Title => "Interactable";

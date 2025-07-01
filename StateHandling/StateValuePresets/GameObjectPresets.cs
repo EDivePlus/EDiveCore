@@ -1,26 +1,27 @@
 using System;
-using System.Collections;
 using EDIVE.OdinExtensions.Attributes;
+using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class GameObjectActivePreset : AStateValuePreset<GameObject, bool>
     {
         public override string Title => "Active";
         public override void ApplyTo(GameObject targetObject) => targetObject.SetActive(Value);
     }
 
-    [Serializable, Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public class GameObjectLayerPreset : AStateValuePreset<GameObject>
     {
         [SerializeField]
         [LayerField]
+        [JsonProperty("Layer")]
         private int _Layer;
 
         [SerializeField]
+        [JsonProperty("IncludeChildren")]
         private bool _IncludeChildren;
 
         public override string Title => "Layer";

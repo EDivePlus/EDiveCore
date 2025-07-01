@@ -1,11 +1,10 @@
 using System;
-using EDIVE.StateHandling.MultiStates;
+using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
-{ 
-    [Serializable, Preserve] 
+{
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public class BehaviourEnabledPreset : AStateValuePreset<Behaviour, bool>
     {
         public override string Title => "Enabled";

@@ -1,11 +1,10 @@
 ﻿using System;
-using EDIVE.StateHandling.MultiStates;
+using Newtonsoft.Json;
 using TMPro;
-using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class TMPTextTextPreset : AStateValuePreset<TMP_Text, string>
     {
         public override string Title => "Text";

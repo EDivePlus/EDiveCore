@@ -1,25 +1,24 @@
 ﻿using System;
-using EDIVE.StateHandling.MultiStates;
+using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class CanvasGroupInteractablePreset : AStateValuePreset<CanvasGroup, bool>
     {
         public override string Title => "Interactable";
         public override void ApplyTo(CanvasGroup targetObject) => targetObject.interactable = Value;
     }
     
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class CanvasGroupBlockRaycastPreset : AStateValuePreset<CanvasGroup, bool>
     {
         public override string Title => "Block Raycasts";
         public override void ApplyTo(CanvasGroup targetObject) => targetObject.blocksRaycasts = Value;
     }
     
-    [Serializable, Preserve] 
+    [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class CanvasGroupAlphaPreset : AStateValuePreset<CanvasGroup, float>
     {
         public override string Title => "Alpha";
