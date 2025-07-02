@@ -40,7 +40,7 @@ namespace EDIVE.VoiceChat
                 _FrameDurationDropdown.ClearOptions();
                 _FrameDurationDropdown.AddOptions(FRAME_DURATIONS.Select(d => $"{d}ms").ToList());
                 _FrameDurationDropdown.onValueChanged.RemoveListener(OnFrameDurationChanged);
-                OnFrameDurationChanged(FRAME_DURATIONS.IndexOf(_voiceChatManager.MicFrameDurationMS));
+                _FrameDurationDropdown.value = FRAME_DURATIONS.IndexOf(_voiceChatManager.MicFrameDurationMS);
                 _FrameDurationDropdown.onValueChanged.AddListener(OnFrameDurationChanged);
             }
 
@@ -49,14 +49,14 @@ namespace EDIVE.VoiceChat
                 _InputFilterDropdown.ClearOptions();
                 _InputFilterDropdown.AddOptions(EnumUtils.GetValues<UniVoiceVoiceChatManager.InputFilterType>().Select(d => d.ToString()).ToList());
                 _InputFilterDropdown.onValueChanged.RemoveListener(OnInputFilterChanged);
-                OnInputFilterChanged((int) _voiceChatManager.InputFilter);
+                _InputFilterDropdown.value = (int) _voiceChatManager.InputFilter;
                 _InputFilterDropdown.onValueChanged.AddListener(OnInputFilterChanged);
             }
 
             if (_SpatialAudioToggle)
             {
                 _SpatialAudioToggle.onValueChanged.RemoveListener(OnSpatialAudioToggleChanged);
-                OnSpatialAudioToggleChanged(_voiceChatManager.EnableSpatialAudio);
+                _SpatialAudioToggle.isOn = _voiceChatManager.EnableSpatialAudio;
                 _SpatialAudioToggle.onValueChanged.AddListener(OnSpatialAudioToggleChanged);
             }
         }
