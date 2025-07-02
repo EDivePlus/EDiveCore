@@ -6,9 +6,10 @@ namespace EDIVE.StateHandling.ToggleStates
 {
     public class ToggleState : AToggleState
     {
+        [PropertySpace(4)]
         [SerializeField]
         [HideReferenceObjectPicker]
-        internal List<ToggleStateRecord> _ObjectToggleStatePreset = new List<ToggleStateRecord>();
+        internal List<ToggleStateRecord> _ObjectToggleStatePreset = new();
 
         protected override void SetStateInternal(bool state, bool immediate = false)
         {

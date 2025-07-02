@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using EDIVE.OdinExtensions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
-using Sirenix.Utilities.Editor;
+using Sirenix.OdinInspector.Editor;
+using UnityEditor;
 #endif
 
 namespace EDIVE.StateHandling
@@ -29,21 +31,42 @@ namespace EDIVE.StateHandling
         {
             foreach (var objectPreset in _ObjectPresets)
             {
-                if (objectPreset == null)
-                {
-                    Debug.LogError("Object preset is null!");
-                    continue;
-                }
-                objectPreset.Apply();
+                objectPreset?.Apply();
+            }
+        }
+
+        public void Capture()
+        {
+            foreach (var objectPreset in _ObjectPresets)
+            {
+                objectPreset?.Capture();
             }
         }
 
 #if UNITY_EDITOR
-        public void OnObjectPresetsTitleBarGUI()
+        [UsedImplicitly]
+        private void OnObjectPresetsTitleBarGUI(List<ObjectStatePresetRecord> value, InspectorProperty property)
         {
-            if (SirenixEditorGUI.ToolbarButton("APPLY"))
+            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.UploadSolid, "Apply"))
             {
-                Apply();
+                foreach (var record in value)
+                {
+                    if (record.Target == null)
+                        continue;
+                    Undo.RecordObject(record.Target, "Apply state presets");
+                    record.Apply();
+                }
+            }
+
+            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.DownloadSolid, "Capture"))
+            {
+                foreach (var record in value)
+                {
+                    if (record.Target == null)
+                        continue;
+                    record.Capture();
+                }
+                property.MarkSerializationRootDirty();
             }
         }
 #endif

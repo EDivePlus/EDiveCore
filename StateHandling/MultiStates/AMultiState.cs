@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -30,9 +31,13 @@ namespace EDIVE.StateHandling.MultiStates
 
         [PropertyOrder(-10)]
         [ShowInInspector]
-        [InlineButton("RefreshState", "Refresh")]
+        [InlineIconButton("Refresh", "RefreshState")]
         [ValueDropdown("GetAllStates")]
-        public string State { get => _state; set => SetState(value); }
+        public string State
+        {
+            get => _state;
+            set => SetState(value);
+        }
 
         public string DefaultState
         {
@@ -46,7 +51,7 @@ namespace EDIVE.StateHandling.MultiStates
             }
         }
 
-        private string _state;
+        private string _state = string.Empty;
 
         public bool SetState(string state, bool immediate = false)
         {

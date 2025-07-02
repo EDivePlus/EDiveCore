@@ -32,7 +32,7 @@ namespace EDIVE.StateHandling.StateValuePresets
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class RectTransformSnapshotPreset : AStateValuePreset<RectTransform, RectTransformSnapshot>
     {
-        public override string Title => "Layout";
+        public override string Title => "Snapshot";
         public override void ApplyTo(RectTransform targetObject) => Value.ApplyTo(targetObject);
         public override void CaptureFrom(RectTransform targetObject) => Value = new RectTransformSnapshot(targetObject);
     }

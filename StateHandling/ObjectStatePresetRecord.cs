@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.StateValuePresets;
 using JetBrains.Annotations;
@@ -8,6 +9,7 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using Sirenix.OdinInspector.Editor;
 #endif
 
 namespace EDIVE.StateHandling
@@ -23,6 +25,7 @@ namespace EDIVE.StateHandling
 
         [SerializeReference]
         [HideReferenceObjectPicker]
+        [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = "OnPresetsTitleBarGUI")]
         [EnhancedValidate("ValidateValuePresets", ContinuousValidationCheck = true)]
         [ValueDropdown("GetValuePresetDropdown", IsUniqueList = true, DrawDropdownForListElements = false)]
         internal List<AStateValuePreset> _ValuePresets = new();
@@ -50,17 +53,12 @@ namespace EDIVE.StateHandling
 
         public void Apply()
         {
-            if (_ValuePresets == null) 
+            if (_ValuePresets == null || _Target == null)
                 return;
             
             foreach (var valuePreset in _ValuePresets)
             {
-                if (valuePreset == null)
-                {
-                    Debug.LogError("Name: " + _Target.name + ", Value preset is null!");
-                    continue;
-                }
-                valuePreset.ApplyTo(_Target);
+                valuePreset?.ApplyTo(_Target);
 
             }
 #if UNITY_EDITOR
@@ -68,7 +66,40 @@ namespace EDIVE.StateHandling
 #endif
         }
 
+        public void Capture()
+        {
+            if (_ValuePresets == null || _Target == null)
+                return;
+
+            foreach (var valuePreset in _ValuePresets)
+            {
+                valuePreset?.CaptureFrom(_Target);
+            }
+        }
+
 #if UNITY_EDITOR
+        [UsedImplicitly]
+        private void OnPresetsTitleBarGUI(List<AStateValuePreset> value, InspectorProperty property)
+        {
+            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.UploadSolid, "Apply"))
+            {
+                if (Target != null)
+                {
+                    Undo.RecordObject(Target, "Apply state presets");
+                    Apply();
+                }
+            }
+
+            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.DownloadSolid, "Capture"))
+            {
+                if (Target != null)
+                {
+                    Capture();
+                    property.MarkSerializationRootDirty();
+                }
+            }
+        }
+
         [UsedImplicitly]
         private IEnumerable GetValuePresetDropdown()
         {

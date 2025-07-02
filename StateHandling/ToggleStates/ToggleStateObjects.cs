@@ -6,11 +6,13 @@ namespace EDIVE.StateHandling.ToggleStates
 {
     public class ToggleStateObjects : AToggleState
     {
-        [PropertySpace(4)]
+        [VerticalGroup("Targets", PaddingTop = 4)]
+        [HorizontalGroup("Targets/Horizontal")]
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false)]
         internal List<GameObject> _OnTargets = new();
 
+        [HorizontalGroup("Targets/Horizontal")]
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false)]
         internal List<GameObject> _OffTargets = new();

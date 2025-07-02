@@ -1,3 +1,4 @@
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -24,19 +25,11 @@ namespace EDIVE.StateHandling.ToggleStates
 
         [PropertyOrder(-10)]
         [ShowInInspector]
-        [InlineButton("RefreshState", "Refresh")]
+        [InlineIconButton("Refresh", "RefreshState")]
         public bool State
         {
             get => _state;
             set => SetState(value);
-        }
-
-        [PropertyOrder(-10)]
-        [ShowInInspector]
-        public bool StateImmediate
-        {
-            get => _state;
-            set => SetState(value, true);
         }
 
         public bool DefaultState

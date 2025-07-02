@@ -7,6 +7,7 @@ using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -249,6 +250,27 @@ namespace EDIVE.OdinExtensions
                 }
             }
             return false;
+        }
+
+        public static bool ToolbarIconButton(EditorIcon icon, string tooltip = null, bool ignoreGUIEnabled = false)
+        {
+            Rect rect = GUILayoutUtility.GetRect(SirenixEditorGUI.currentDrawingToolbarHeight, 0.0f, (GUILayoutOption[]) GUILayoutOptions.ExpandWidth(false).ExpandHeight());
+            if (GUI.Button(rect, GUIHelper.TempContent(string.Empty, tooltip), SirenixGUIStyles.ToolbarButton))
+            {
+                GUIHelper.RemoveFocusControl();
+                GUIHelper.RequestRepaint();
+                return true;
+            }
+            if (Event.current.type == UnityEngine.EventType.Repaint)
+                icon.Draw(rect, 16f);
+            if (!ignoreGUIEnabled || Event.current.button != 0 || Event.current.rawType != UnityEngine.EventType.MouseDown || !GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
+                return false;
+            GUIHelper.RemoveFocusControl();
+            GUIHelper.RequestRepaint();
+            GUIHelper.PushGUIEnabled(true);
+            Event.current.Use();
+            GUIHelper.PopGUIEnabled();
+            return true;
         }
     }
 }
