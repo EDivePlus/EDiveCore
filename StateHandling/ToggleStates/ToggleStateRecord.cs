@@ -27,7 +27,7 @@ namespace EDIVE.StateHandling.ToggleStates
         [HorizontalGroup("Presets")]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = "OnPresetsTitleBarGUI")]
-        [OnValueChanged(nameof(OnPresetsChanged), true)]
+        [OnValueChanged("OnPresetsChanged", true)]
         [EnhancedValidate("ValidateValuePresets", ContinuousValidationCheck = true)]
         [ValueDropdown("GetValuePresetDropdown", IsUniqueList = true, DrawDropdownForListElements = false)]
         internal List<AStateValuePreset> _EnabledPresets = new();
@@ -36,7 +36,7 @@ namespace EDIVE.StateHandling.ToggleStates
         [HorizontalGroup("Presets")]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = "OnPresetsTitleBarGUI")]
-        [OnValueChanged(nameof(OnPresetsChanged), true)]
+        [OnValueChanged("OnPresetsChanged", true)]
         [EnhancedValidate("ValidateValuePresets", ContinuousValidationCheck = true)]
         [ValueDropdown("GetValuePresetDropdown", IsUniqueList = true, DrawDropdownForListElements = false)]
         internal List<AStateValuePreset> _DisabledPresets = new();
