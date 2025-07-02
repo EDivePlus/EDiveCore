@@ -247,7 +247,7 @@ namespace EDIVE.Tweening.ObjectActions
     }
 
     [Serializable]
-    public class RectTransformSnapshotPreset : ATweenObjectAction<RectTransform>
+    public class RectTransformSnapshotTweenAction : ATweenObjectAction<RectTransform>
     {
         [InlineProperty]
         [HideLabel]
