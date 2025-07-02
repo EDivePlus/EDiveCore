@@ -7,7 +7,6 @@ using EDIVE.Core;
 using EDIVE.MirrorNetworking.Utils;
 using EnhancedUI.EnhancedScroller;
 using LightReflectiveMirror;
-using Mirror;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -44,12 +43,12 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
             _lrm = lrm;
             _lrm.serverListUpdated.AddListener(RefreshScroller);
 
-            UniTask.Void(async () =>
+            UniTask.Void(async cancellationToken =>
             {
-                await UniTask.Yield();
+                await UniTask.Yield(cancellationToken);
                 RefreshScroller();
-            });
-    }
+            }, destroyCancellationToken);
+        }
 
         private void OnDisable()
         {

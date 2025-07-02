@@ -87,12 +87,14 @@ namespace EDIVE.MirrorNetworking
 
         public override void OnStartServer()
         {
+            base.OnStartServer();
             ServerStarted.Dispatch();
             RuntimeStateChanged.Dispatch(true, mode == NetworkManagerMode.Host ? NetworkRuntimeMode.Host : NetworkRuntimeMode.Server);
         }
 
         public override void OnStopServer()
         {
+            base.OnStopServer();
             ServerStopped.Dispatch();
             RuntimeStateChanged.Dispatch(false, mode == NetworkManagerMode.Host ? NetworkRuntimeMode.Host : NetworkRuntimeMode.Server);
         }
@@ -107,7 +109,10 @@ namespace EDIVE.MirrorNetworking
 
         public override void OnServerConnect(NetworkConnectionToClient conn)
         {
+            if (conn == null)
+                return;
             Debug.Log($"Client connecting {conn.connectionId}");
+            base.OnServerConnect(conn);
             ServerClientConnecting.Dispatch(conn);
             Debug.Log($"Total connections {ConnectionCount}");
             if (ConnectionCount > maxConnections)
@@ -123,10 +128,11 @@ namespace EDIVE.MirrorNetworking
 
         public override void OnServerDisconnect(NetworkConnectionToClient conn)
         {
-            if (conn == null) return;
+            if (conn == null)
+                return;
             Debug.Log($"Client disconnecting {conn.connectionId}");
-            ServerClientDisconnecting.Dispatch(conn);
             base.OnServerDisconnect(conn);
+            ServerClientDisconnecting.Dispatch(conn);
             Debug.Log($"Client disconnected {conn.connectionId}");
             ServerClientDisconnected.Dispatch(conn);
         }
