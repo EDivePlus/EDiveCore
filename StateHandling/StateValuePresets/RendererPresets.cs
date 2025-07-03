@@ -1,9 +1,11 @@
 using System;
 using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions.Attributes;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Scripting;
+using UnityEngine.Serialization;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
@@ -51,12 +53,19 @@ namespace EDIVE.StateHandling.StateValuePresets
         }
     }
 
-    [Serializable, JsonObject(MemberSerialization.OptIn)] 
-    public class RendererSortingLayerPreset : AStateValuePreset<Renderer, string>
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
+    public class RendererSortingLayerPreset : AStateValuePreset<Renderer>
     {
+        [FormerlySerializedAs("_SortingLayer")]
+        [SortingLayer]
+        [LabelText("$Title")]
+        [SerializeField]
+        [JsonProperty("Value")]
+        private string _Value = "Default";
+
         public override string Title => "Sorting Layer";
-        public override void ApplyTo(Renderer targetObject) => targetObject.sortingLayerName = Value;
-        public override void CaptureFrom(Renderer targetObject) => Value = targetObject.sortingLayerName;
+        public override void ApplyTo(Renderer targetObject) => targetObject.sortingLayerName = _Value;
+        public override void CaptureFrom(Renderer targetObject) => _Value = targetObject.sortingLayerName;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 

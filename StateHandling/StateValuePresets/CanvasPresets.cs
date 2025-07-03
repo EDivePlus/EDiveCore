@@ -1,21 +1,25 @@
 ﻿using System;
 using EDIVE.OdinExtensions.Attributes;
 using Newtonsoft.Json;
+using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.StateHandling.StateValuePresets
 {
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
     public class CanvasSortingLayerPreset : AStateValuePreset<Canvas>
     {
+        [FormerlySerializedAs("_SortingLayer")]
         [SortingLayer]
+        [LabelText("$Title")]
         [SerializeField]
-        [JsonProperty("SortingLayer")]
-        private string _SortingLayer = "Default";
+        [JsonProperty("Value")]
+        private string _Value = "Default";
         
         public override string Title => "Sorting Layer";
-        public override void ApplyTo(Canvas targetObject) => targetObject.sortingLayerName = _SortingLayer;
-        public override void CaptureFrom(Canvas targetObject) => _SortingLayer = targetObject.sortingLayerName;
+        public override void ApplyTo(Canvas targetObject) => targetObject.sortingLayerName = _Value;
+        public override void CaptureFrom(Canvas targetObject) => _Value = targetObject.sortingLayerName;
     }
 
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
