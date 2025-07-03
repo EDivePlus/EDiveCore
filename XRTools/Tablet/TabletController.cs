@@ -30,6 +30,9 @@ namespace EDIVE.XRTools.Tablet
         private TransformScriptableVariable _CameraTransformVariable;
 
         [SerializeField]
+        private bool _RepositionOnAwake = true;
+
+        [SerializeField]
         private InputActionReference _RepositionAction;
 
         [SerializeField]
@@ -77,6 +80,9 @@ namespace EDIVE.XRTools.Tablet
             _isOpen = true;
             if (_RepositionAction)
                 _RepositionAction.action.performed += OnRepositionPerformed;
+
+            if (_RepositionOnAwake)
+                RepositionTablet();
         }
 
         protected override void OnDestroy()
