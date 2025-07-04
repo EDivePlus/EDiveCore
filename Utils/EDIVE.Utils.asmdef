@@ -9,7 +9,8 @@
         "StompyRobot.SRDebugger",
         "StompyRobot.SRF",
         "Unity.XR.Interaction.Toolkit",
-        "UniTask"
+        "UniTask",
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

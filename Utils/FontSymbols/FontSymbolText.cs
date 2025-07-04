@@ -78,7 +78,7 @@ namespace EDIVE.Utils.FontSymbols
         }
 
         [ShowInInspector]
-        public RaycastPadding RaycastPadding
+        public RectPadding RaycastPadding
         {
             get => raycastPadding;
             set => raycastPadding = value;

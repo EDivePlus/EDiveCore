@@ -7,7 +7,7 @@ using UnityEngine;
 namespace EDIVE.DataStructures
 {
     [Serializable]
-    public struct RaycastPadding
+    public struct RectPadding
     {
         [SerializeField]
         private float _Left;
@@ -26,7 +26,7 @@ namespace EDIVE.DataStructures
         public float Top { get => _Top; set => _Top = value; }
         public float Bottom { get => _Bottom; set => _Bottom = value; }
 
-        public RaycastPadding(float left, float bottom, float right, float top)
+        public RectPadding(float left, float bottom, float right, float top)
         {
             _Left = left;
             _Bottom = bottom;
@@ -34,7 +34,7 @@ namespace EDIVE.DataStructures
             _Top = top;
         }
 
-        public static implicit operator RaycastPadding(Vector4 p) => new(p.x, p.y, p.z, p.w);
-        public static implicit operator Vector4(RaycastPadding p) => new(p.Left, p.Bottom, p.Right, p.Top);
+        public static implicit operator RectPadding(Vector4 p) => new(p.x, p.y, p.z, p.w);
+        public static implicit operator Vector4(RectPadding p) => new(p.Left, p.Bottom, p.Right, p.Top);
     }
 }
