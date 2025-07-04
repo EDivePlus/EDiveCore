@@ -31,7 +31,7 @@ namespace EDIVE.StateHandling.StateValuePresets
         {
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return Equals((AStateValuePreset) obj);
+            return obj.GetType() == GetType();
         }
 
         public override int GetHashCode()
