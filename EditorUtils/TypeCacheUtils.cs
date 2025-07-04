@@ -34,5 +34,36 @@ namespace EDIVE.EditorUtils
         {
             return TypeCache.GetTypesDerivedFrom(targetType).Append(targetType).Where(type => !type.IsAbstract && !type.IsGenericType);
         }
+
+        public static IEnumerable<Type> GetDerivedGenericTypes<TParent,T>()
+        {
+            var parentTypes = TypeCache.GetTypesDerivedFrom<TParent>();
+            var genericTypes = TypeCache.GetTypesDerivedFrom<T>();
+            foreach (var genericType in genericTypes)
+            {
+                if (genericType.IsAbstract)
+                    continue;
+
+                foreach (var parentType in parentTypes)
+                {
+                    if (parentType.IsAbstract || !parentType.IsGenericType)
+                        continue;
+
+                    var arguments = parentType.GetGenericArguments();
+                    if (arguments.Length != 1 || !arguments[0].GetGenericParameterConstraints().All(c => c.IsAssignableFrom(genericType)))
+                        continue;
+
+                    yield return parentType.MakeGenericType(genericType);
+                }
+            }
+        }
+
+        public static IEnumerable<TParent> GetDerivedClassesOfGenericTypes<TParent, T>(params object[] constructorArgs)
+        {
+            foreach (var type in GetDerivedGenericTypes<TParent, T>())
+            {
+                yield return (TParent) Activator.CreateInstance(type, constructorArgs);
+            }
+        }
     }
 }
