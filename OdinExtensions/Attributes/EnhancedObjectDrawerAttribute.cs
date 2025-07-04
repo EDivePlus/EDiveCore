@@ -9,6 +9,7 @@ namespace EDIVE.OdinExtensions.Attributes
         public string ElementCondition;
         public string PreferredTypeGetter;
         public bool PreferCurrentType = true;
+        public bool ShowSelectRoot = true;
 
         public EnhancedObjectDrawerAttribute() { }
         public EnhancedObjectDrawerAttribute(string elementCondition)

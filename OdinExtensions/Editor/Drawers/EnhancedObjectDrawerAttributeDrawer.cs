@@ -46,6 +46,15 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
             GUIHelper.PopGUIEnabled();
 
+            if (Attribute.ShowSelectRoot && Property.SerializationRoot.ValueEntry.WeakSmartValue is Component component)
+            {
+                rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+                if (SirenixEditorGUI.IconButton(rect, FontAwesomeEditorIcons.CrosshairsSolid, "Select root"))
+                {
+                    ShowSelector(fieldRect, component.gameObject);
+                }
+            }
+
             EditorGUILayout.EndHorizontal();
             if (EditorGUI.EndChangeCheck())
             {
