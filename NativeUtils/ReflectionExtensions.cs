@@ -74,18 +74,21 @@ namespace EDIVE.NativeUtils
             return cannotStartWith.Any(c => fullname.StartsWith(c));
         }
 
-        public static bool IsReferencingAssembly(this Assembly assembly, Assembly otherAssembly)
+        public static bool IsReferencingAssembly(this Assembly assembly, Assembly otherAssembly, bool includeSelf = true)
         {
-            return assembly.IsReferencingAssembly(otherAssembly.GetName());
+            return otherAssembly != null && assembly.IsReferencingAssembly(otherAssembly.GetName(), includeSelf);
         }
         
-        public static bool IsReferencingAssembly(this Assembly assembly, AssemblyName otherAssemblyName)
+        public static bool IsReferencingAssembly(this Assembly assembly, AssemblyName otherAssemblyName, bool includeSelf = true)
         {
-            return assembly.IsReferencingAssembly(otherAssemblyName.Name);
+            return otherAssemblyName != null &&  assembly.IsReferencingAssembly(otherAssemblyName.Name, includeSelf);
         }
         
-        public static bool IsReferencingAssembly(this Assembly assembly, string otherAssemblyName)
+        public static bool IsReferencingAssembly(this Assembly assembly, string otherAssemblyName, bool includeSelf = true)
         {
+            if (includeSelf && assembly.GetName().Name == otherAssemblyName)
+                return true;
+
             return assembly.GetReferencedAssemblies().Any(a => a.Name == otherAssemblyName);
         }
         
@@ -130,8 +133,9 @@ namespace EDIVE.NativeUtils
 
         public static IEnumerable<Type> GetAssignableTypes(this Type baseType)
         {
+            var baseAssemblyName = baseType.Assembly.GetName().Name;
             return AppDomain.CurrentDomain.GetAssemblies()
-                .Where(assembly => !assembly.IsNonUserAssembly() && assembly.IsReferencingAssembly(baseType.Assembly))
+                .Where(assembly => !assembly.IsNonUserAssembly() && assembly.IsReferencingAssembly(baseAssemblyName))
                 .SelectMany(SafeGetTypes)
                 .Where(baseType.IsAssignableFrom)
                 .Where(type => type.IsClass && !type.IsAbstract && !type.IsGenericType);

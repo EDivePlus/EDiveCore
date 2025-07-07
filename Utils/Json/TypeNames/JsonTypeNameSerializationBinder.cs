@@ -28,7 +28,7 @@ namespace EDIVE.Utils.Json.TypeNames
                     if (assembly.IsDynamic || assembly.IsNonUserAssembly())
                         continue;
 
-                    if (assembly != attributeAssembly && !assembly.IsReferencingAssembly(attributeAssemblyName))
+                    if (!assembly.IsReferencingAssembly(attributeAssemblyName))
                         continue;
 
                     try

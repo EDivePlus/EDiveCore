@@ -35,7 +35,7 @@ namespace EDIVE.Core.Restart
                 if (assembly.IsDynamic || assembly.IsNonUserAssembly())
                     continue;
 
-                if (assembly != coreAssembly && !assembly.IsReferencingAssembly(coreAssemblyName))
+                if (!assembly.IsReferencingAssembly(coreAssemblyName))
                     continue;
 
                 XElement assemblyElement = null;
