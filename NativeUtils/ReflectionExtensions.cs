@@ -127,5 +127,26 @@ namespace EDIVE.NativeUtils
             if (type == null || attributeType == null) return false;
             return type.CustomAttributes.Any(a => a.AttributeType == attributeType);
         }
+
+        public static IEnumerable<Type> GetAssignableTypes(this Type baseType)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Where(assembly => !assembly.IsNonUserAssembly() && assembly.IsReferencingAssembly(baseType.Assembly))
+                .SelectMany(SafeGetTypes)
+                .Where(baseType.IsAssignableFrom)
+                .Where(type => type.IsClass && !type.IsAbstract && !type.IsGenericType);
+        }
+
+        private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(t => t != null);
+            }
+        }
     }
 }
