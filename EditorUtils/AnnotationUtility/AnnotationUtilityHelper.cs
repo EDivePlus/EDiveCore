@@ -22,13 +22,23 @@ namespace EDIVE.EditorUtils.AnnotationUtility
             return ((Array) GET_ANNOTATIONS_METHOD!.Invoke(null, null)).Cast<object>().Select(o => new AnnotationWrapper(o));
         }
 
-        [MenuItem("Tools/Disable All Scene Icons", priority = 200)]
+        [MenuItem("Tools/Scene Icons/Disable All", priority = 200)]
         public static void DisableAllSceneIcons()
         {
             var annotations = GetAnnotations();
             foreach (var annotation in annotations)
             {
                 annotation.IconEnabled = false;
+            }
+        }
+
+        [MenuItem("Tools/Scene Icons/Enable All", priority = 200)]
+        public static void EnableAllSceneIcons()
+        {
+            var annotations = GetAnnotations();
+            foreach (var annotation in annotations)
+            {
+                annotation.IconEnabled = true;
             }
         }
     }
