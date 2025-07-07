@@ -29,6 +29,11 @@
             "name": "com.unity.xr.interaction.toolkit",
             "expression": "",
             "define": "XR_INTERACTION_TOOLKIT"
+        },
+        {
+            "name": "com.cysharp.memorypack",
+            "expression": "",
+            "define": "MEMORY_PACK"
         }
     ],
     "noEngineReferences": false
