@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 07.07.2025
 
+#if MEMORY_PACK
 using System;
 
 namespace EDIVE.Utils.MemoryPack
@@ -16,3 +17,4 @@ namespace EDIVE.Utils.MemoryPack
         }
     }
 }
+#endif

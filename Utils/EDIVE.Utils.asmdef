@@ -10,7 +10,8 @@
         "StompyRobot.SRF",
         "Unity.XR.Interaction.Toolkit",
         "UniTask",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "R3.Unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -34,6 +35,11 @@
             "name": "com.cysharp.memorypack",
             "expression": "",
             "define": "MEMORY_PACK"
+        },
+        {
+            "name": "com.cysharp.r3",
+            "expression": "",
+            "define": "R3"
         }
     ],
     "noEngineReferences": false
