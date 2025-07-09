@@ -176,14 +176,6 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
                 UpdateUIActions();
             }
         }
-        
-        bool IsManipulatorUsingStick()
-        {
-            if (m_NearFarInteractor is EnhancedNearFarInteractor enhanced && enhanced.IsManipulatingAttachTransform())
-                return true;
-
-            return false;
-        }
 
         bool m_StartCalled;
         bool m_PostponedDeactivateTeleport;
@@ -516,11 +508,6 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
                     if (!m_NearFarEnableTeleportDuringNearInteraction)
                         DisableTeleportActions();
                 }
-            }
-            //If the manipulator (transformer) is using the joystick, disable teleport actions.
-            if (IsManipulatorUsingStick())
-            {
-                DisableTeleportActions();
             }
         }
 
