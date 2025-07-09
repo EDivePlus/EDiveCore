@@ -53,17 +53,28 @@ namespace EDIVE.NativeUtils
 
         public static IEnumerable<T> GetValues<T>() where T : Enum
         {
-            return (T[])Enum.GetValues(typeof(T));
+            return Enum.GetValues(typeof(T)).Cast<T>();
         }
 
-        public static T SanitizeFlags<T>(this T value, params T[] validFlags) where T : Enum
+        public static T SanitizeFlags<T>(this T value) where T : Enum
         {
-            if (validFlags == null || validFlags.Length == 0)
-                return value;
+            var mask = GetValues<T>()
+                .Select(v => Convert.ToUInt64(v))
+                .Where(IsSingleBit)
+                .Aggregate(0UL, (c, v) => c | v);
 
-            var mask = validFlags.Aggregate<T, ulong>(0, (current, flag) => current | Convert.ToUInt64(flag));
-            var clean = Convert.ToUInt64(value) & mask;
-            return (T)Enum.ToObject(typeof(T), clean);
+            var sanitizedValue = Convert.ToUInt64(value) & mask;
+            return (T)Enum.ToObject(typeof(T), sanitizedValue);
+        }
+
+        public static bool IsSingleBitFlag<T>(this T value) where T : Enum
+        {
+            return IsSingleBit(Convert.ToUInt64(value));
+        }
+
+        private static bool IsSingleBit(ulong value)
+        {
+            return value != 0 && (value & (value - 1)) == 0;
         }
     }
 }

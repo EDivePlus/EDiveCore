@@ -97,7 +97,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         public bool BuildAndroidAppBundle => _BuildAndroidAppBundle;
         public bool ExtractAppBundleApk => _ExtractAppBundleApk;
-        public AndroidArchitecture TargetArchitectures => _TargetArchitectures.SanitizeFlags(AndroidArchitecture.ARM64, AndroidArchitecture.ARMv7, AndroidArchitecture.X86_64);
+        public AndroidArchitecture TargetArchitectures => _TargetArchitectures.SanitizeFlags();
         public AndroidBuildSystem BuildSystem => _BuildSystem;
 
         public bool MinifyDebug => _MinifyDebug;
