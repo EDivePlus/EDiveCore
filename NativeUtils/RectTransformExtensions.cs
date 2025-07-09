@@ -107,9 +107,11 @@ namespace EDIVE.NativeUtils
         {
             if (!rectTransform) return;
             rectTransform.localPosition = Vector3.zero;
+            rectTransform.localRotation = Quaternion.identity;
+            rectTransform.localScale = Vector3.one;
+
             rectTransform.offsetMin = rectTransform.offsetMax = rectTransform.anchorMin = Vector2.zero;
             rectTransform.anchorMax = Vector2.one;
-            rectTransform.localScale = Vector3.one;
         }
     }
 }
