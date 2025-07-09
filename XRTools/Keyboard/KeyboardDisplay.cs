@@ -51,6 +51,9 @@ namespace EDIVE.XRTools.Keyboard
             if (!XRUtils.XREnabled)
                 return;
 
+            if (_InputField == null)
+                _InputField = GetComponent<TMP_InputField>();
+
             _activeKeyboard = Keyboard;
             if (InputField != null)
             {
@@ -75,6 +78,19 @@ namespace EDIVE.XRTools.Keyboard
             }
         }
 
+        private void Start()
+        {
+            if (!XRUtils.XREnabled)
+                return;
+
+            if (_activeKeyboard == null || !_ManualKeyboard)
+                _activeKeyboard = AppCore.Services.Get<KeyboardManager>().Keyboard;
+
+            var observeOnStart = _AlwaysObserveKeyboard && _activeKeyboard != null && !_isActivelyObservingKeyboard;
+            if (observeOnStart)
+                StartObservingKeyboard(_activeKeyboard);
+        }
+
         private void Update()
         {
             if (!XRUtils.XREnabled)
@@ -89,12 +105,6 @@ namespace EDIVE.XRTools.Keyboard
                     _activeKeyboard.CaretPosition = currentCaret;
                 }
             }
-        }
-
-        private void OnTextSelectionChanged(string selectedText, int startIndex, int endIndex)
-        {
-            _activeKeyboard.SelectStartIndex = startIndex;
-            _activeKeyboard.SelectEndIndex = endIndex;
         }
 
         private void OnDisable()
@@ -118,17 +128,15 @@ namespace EDIVE.XRTools.Keyboard
             StopObservingKeyboard(_activeKeyboard);
         }
 
-        private void Start()
+        private void OnTextSelectionChanged(string selectedText, int startIndex, int endIndex)
         {
-            if (!XRUtils.XREnabled)
-                return;
+            _activeKeyboard.SelectStartIndex = startIndex;
+            _activeKeyboard.SelectEndIndex = endIndex;
+        }
 
-            if (_activeKeyboard == null || !_ManualKeyboard)
-                _activeKeyboard = AppCore.Services.Get<KeyboardManager>().Keyboard;
-
-            var observeOnStart = _AlwaysObserveKeyboard && _activeKeyboard != null && !_isActivelyObservingKeyboard;
-            if (observeOnStart)
-                StartObservingKeyboard(_activeKeyboard);
+        public void ManualSelect()
+        {
+            OnInputFieldGainedFocus(_InputField.text);
         }
 
         private void SetKeyboard(KeyboardController updateKeyboard, bool observeKeyboard = true)

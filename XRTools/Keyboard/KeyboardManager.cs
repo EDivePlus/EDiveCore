@@ -2,6 +2,7 @@ using EDIVE.Core.Services;
 using EDIVE.DataStructures.ScriptableVariables.Variables;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
 namespace EDIVE.XRTools.Keyboard
@@ -13,6 +14,9 @@ namespace EDIVE.XRTools.Keyboard
 
         [SerializeField]
         private Vector3 _KeyboardOffset;
+
+        [SerializeField]
+        private bool _AutoAddKeyboardDisplay = true;
 
         [SerializeField]
         private bool _RepositionOutOfViewKeyboardOnOpen = true;
@@ -30,10 +34,37 @@ namespace EDIVE.XRTools.Keyboard
                 ? _CameraTransformVariable.Value
                 : Camera.main?.transform;
 
+        private GameObject _lastFocusedObject;
+
         protected override void Awake()
         {
             base.Awake();
             _Keyboard.gameObject.SetActive(false);
+        }
+
+        private void Update()
+        {
+            var current = EventSystem.current?.currentSelectedGameObject;
+            if (current != _lastFocusedObject && TryGetInputField(current, out var inputField))
+            {
+                OnInputFieldFocused(inputField);
+            }
+            _lastFocusedObject = current;
+        }
+
+        private static bool TryGetInputField(GameObject go, out TMP_InputField inputField)
+        {
+            inputField = null;
+            return go != null && go.TryGetComponent(out inputField);
+        }
+
+        private void OnInputFieldFocused(TMP_InputField inputField)
+        {
+            if (_AutoAddKeyboardDisplay && !inputField.TryGetComponent<KeyboardDisplay>(out _))
+            {
+                var keyboardDisplay = inputField.gameObject.AddComponent<KeyboardDisplay>();
+                keyboardDisplay.ManualSelect();
+            }
         }
 
         public KeyboardController ShowKeyboard(TMP_InputField inputField, bool observeCharacterLimit = false)
