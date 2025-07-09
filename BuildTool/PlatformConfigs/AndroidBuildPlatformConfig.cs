@@ -1,4 +1,5 @@
 using EDIVE.BuildTool.Presets;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -96,7 +97,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         public bool BuildAndroidAppBundle => _BuildAndroidAppBundle;
         public bool ExtractAppBundleApk => _ExtractAppBundleApk;
-        public AndroidArchitecture TargetArchitectures => _TargetArchitectures;
+        public AndroidArchitecture TargetArchitectures => _TargetArchitectures.SanitizeFlags(AndroidArchitecture.ARM64, AndroidArchitecture.ARMv7, AndroidArchitecture.X86_64);
         public AndroidBuildSystem BuildSystem => _BuildSystem;
 
         public bool MinifyDebug => _MinifyDebug;

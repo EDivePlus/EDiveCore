@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EDIVE.NativeUtils
 {
@@ -54,6 +55,15 @@ namespace EDIVE.NativeUtils
         {
             return (T[])Enum.GetValues(typeof(T));
         }
+
+        public static T SanitizeFlags<T>(this T value, params T[] validFlags) where T : Enum
+        {
+            if (validFlags == null || validFlags.Length == 0)
+                return value;
+
+            var mask = validFlags.Aggregate<T, ulong>(0, (current, flag) => current | Convert.ToUInt64(flag));
+            var clean = Convert.ToUInt64(value) & mask;
+            return (T)Enum.ToObject(typeof(T), clean);
+        }
     }
 }
-
