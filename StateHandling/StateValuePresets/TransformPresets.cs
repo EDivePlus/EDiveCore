@@ -5,19 +5,19 @@ using UnityEngine;
 namespace EDIVE.StateHandling.StateValuePresets
 {
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
-    public class TransformRotationPreset : AStateValuePreset<Transform, Vector3>
+    public class TransformRotationPreset : AStateValuePreset<Transform, Quaternion>
     {
         public override string Title => "Rotation";
-        public override void ApplyTo(Transform targetObject) => targetObject.rotation = Quaternion.Euler(Value);
-        public override void CaptureFrom(Transform targetObject) => Value = targetObject.rotation.eulerAngles;
+        public override void ApplyTo(Transform targetObject) => targetObject.rotation = Value;
+        public override void CaptureFrom(Transform targetObject) => Value = targetObject.rotation;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
-    public class TransformLocalRotationPreset : AStateValuePreset<Transform, Vector3>
+    public class TransformLocalRotationPreset : AStateValuePreset<Transform, Quaternion>
     {
         public override string Title => "Local Rotation";
-        public override void ApplyTo(Transform targetObject) => targetObject.localRotation = Quaternion.Euler(Value);
-        public override void CaptureFrom(Transform targetObject) => Value = targetObject.localRotation.eulerAngles;
+        public override void ApplyTo(Transform targetObject) => targetObject.localRotation = Value;
+        public override void CaptureFrom(Transform targetObject) => Value = targetObject.localRotation;
     }
     
     [Serializable, JsonObject(MemberSerialization.OptIn)] 
