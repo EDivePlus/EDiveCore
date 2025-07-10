@@ -2,6 +2,7 @@
 // Created: 04.07.2025
 
 using Sirenix.OdinInspector;
+using Sirenix.Utilities;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -26,7 +27,7 @@ namespace EDIVE.Utils
             var localSize = _BoxCollider.transform.InverseTransformVector(bounds.size);
 
             _BoxCollider.center = localCenter;
-            _BoxCollider.size = localSize;
+            _BoxCollider.size = localSize.Abs();
 
 #if UNITY_EDITOR
             EditorUtility.SetDirty(_BoxCollider);
