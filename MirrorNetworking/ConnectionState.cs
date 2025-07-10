@@ -3,7 +3,7 @@
 
 namespace EDIVE.MirrorNetworking
 {
-    public enum ClientConnectionState
+    public enum ConnectionState
     {
         Disconnected,
         Connecting,

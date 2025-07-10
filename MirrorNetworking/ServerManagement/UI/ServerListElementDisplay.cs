@@ -56,7 +56,7 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
             networkManager.networkAddress = _data.serverId;
-            networkManager.StartClient();
+            networkManager.StartRuntime(NetworkRuntimeMode.Client);
         }
     }
 }

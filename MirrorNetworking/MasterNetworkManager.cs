@@ -2,6 +2,7 @@
 // Created: 22.03.2025
 
 using System;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
@@ -17,6 +18,9 @@ namespace EDIVE.MirrorNetworking
 {
     public class MasterNetworkManager : NetworkManager, IService, ILoadable
     {
+        [SerializeField]
+        private UniversalTransport _UniversalTransport;
+
         public Signal ServerStarted { get; } = new();
         public Signal ServerStopped { get; } = new();
         public Signal<NetworkConnectionToClient> ServerPlayerAdded { get; } = new();
@@ -30,7 +34,7 @@ namespace EDIVE.MirrorNetworking
         public Signal ClientStopped { get; } = new();
         public Signal ClientConnected { get; } = new();
         public Signal ClientDisconnected { get; } = new();
-        public Signal<ClientConnectionState> ClientConnectionStateChanged { get; } = new();
+        public Signal<ConnectionState> ClientConnectionStateChanged { get; } = new();
 
         public Signal<bool, NetworkRuntimeMode> RuntimeStateChanged { get; } = new();
         public Signal<TransportError, string> ClientError { get; } = new();
@@ -44,18 +48,18 @@ namespace EDIVE.MirrorNetworking
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        public ClientConnectionState ClientConnectionState
+        public ConnectionState ConnectionState
         {
-            get => _clientConnectionState;
+            get => _connectionState;
             private set
             {
-                if (_clientConnectionState == value)
+                if (_connectionState == value)
                     return;
-                _clientConnectionState = value;
+                _connectionState = value;
                 ClientConnectionStateChanged.Dispatch(value);
             }
         }
-        private ClientConnectionState _clientConnectionState = ClientConnectionState.Disconnected;
+        private ConnectionState _connectionState = ConnectionState.Disconnected;
 
         public string CurrentServerName
         {
@@ -88,6 +92,7 @@ namespace EDIVE.MirrorNetworking
         public override void OnStartServer()
         {
             base.OnStartServer();
+            ConnectionState = ConnectionState.Connected;
             ServerStarted.Dispatch();
             RuntimeStateChanged.Dispatch(true, mode == NetworkManagerMode.Host ? NetworkRuntimeMode.Host : NetworkRuntimeMode.Server);
         }
@@ -95,6 +100,7 @@ namespace EDIVE.MirrorNetworking
         public override void OnStopServer()
         {
             base.OnStopServer();
+            ConnectionState = ConnectionState.Disconnected;
             ServerStopped.Dispatch();
             RuntimeStateChanged.Dispatch(false, mode == NetworkManagerMode.Host ? NetworkRuntimeMode.Host : NetworkRuntimeMode.Server);
         }
@@ -148,7 +154,7 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnStartClient();
             Debug.Log($"Connecting to: {networkAddress}");
-            ClientConnectionState = ClientConnectionState.Connecting;
+            ConnectionState = ConnectionState.Connecting;
             ClientStarted.Dispatch();
             if (mode == NetworkManagerMode.ClientOnly)
                 RuntimeStateChanged.Dispatch(true, NetworkRuntimeMode.Client);
@@ -158,7 +164,7 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnStopClient();
             Debug.Log("Client stopped");
-            ClientConnectionState = ClientConnectionState.Disconnected;
+            ConnectionState = ConnectionState.Disconnected;
             ClientStopped.Dispatch();
             if (mode == NetworkManagerMode.ClientOnly)
                 RuntimeStateChanged.Dispatch(false, NetworkRuntimeMode.Client);
@@ -168,7 +174,7 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnClientConnect();
             Debug.Log("Connected to server");
-            ClientConnectionState = ClientConnectionState.Connected;
+            ConnectionState = ConnectionState.Connected;
             ClientConnected.Dispatch();
             // TODO wait for server response somewhere and call OnConnected client event
         }
@@ -184,13 +190,16 @@ namespace EDIVE.MirrorNetworking
         {
             base.OnClientDisconnect();
             Debug.Log("Disconnected from server");
-            ClientConnectionState = ClientConnectionState.Disconnected;
+            ConnectionState = ConnectionState.Disconnected;
             ClientDisconnected.Dispatch();
         }
 
         public void StartRuntime(NetworkRuntimeMode runtimeMode)
         {
-            ClientConnectionState = ClientConnectionState.Connecting;
+            ConnectionState = ConnectionState.Connecting;
+            if (_UniversalTransport)
+                _UniversalTransport.ResolveTransport(runtimeMode, networkAddress);
+
             switch (runtimeMode)
             {
                 case NetworkRuntimeMode.Client:
@@ -209,7 +218,7 @@ namespace EDIVE.MirrorNetworking
 
         public void StopRuntime()
         {
-            ClientConnectionState = ClientConnectionState.Disconnected;
+            ConnectionState = ConnectionState.Disconnected;
             switch (mode)
             {
                 case NetworkManagerMode.Offline:

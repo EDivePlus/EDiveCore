@@ -11,7 +11,7 @@ namespace EDIVE.MirrorNetworking.UI
     public class NetworkStateDisplay : MonoBehaviour
     {
         [SerializeField]
-        [ValidateMultiStateWithEnum(typeof(ClientConnectionState))]
+        [ValidateMultiStateWithEnum(typeof(ConnectionState))]
         private AMultiState _ConnectionState;
 
         [SerializeField]
@@ -45,12 +45,12 @@ namespace EDIVE.MirrorNetworking.UI
         }
 
         private void OnRuntimeStateChanged(bool state, NetworkRuntimeMode mode) => RefreshState();
-        private void OnClientConnectionStateChanged(ClientConnectionState state) => RefreshState();
+        private void OnClientConnectionStateChanged(ConnectionState state) => RefreshState();
 
         private void RefreshState()
         {
             if (_ConnectionState)
-                _ConnectionState.SetState(_networkManager.ClientConnectionState);
+                _ConnectionState.SetState(_networkManager.ConnectionState);
 
             if (_RuntimeModeState)
                 _RuntimeModeState.SetState(_networkManager.CurrentNetworkMode);

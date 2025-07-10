@@ -9,7 +9,6 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
@@ -26,8 +25,9 @@ namespace EDIVE.MirrorNetworking.ServerCodes
         [SerializeField]
         private ServerCodeConfig _Config;
 
+        [ReadOnly]
         [Sirenix.OdinInspector.ShowInInspector]
-        private string _registeredWithCode;
+        public string RegisteredWithCode { get; private set; }
 
         private IEnumerator _serverRefreshCoroutine;
         private string _serverSecret;
@@ -94,7 +94,7 @@ namespace EDIVE.MirrorNetworking.ServerCodes
         {
             Debug.Log($"Server registered with code {response.code}");
 
-            _registeredWithCode = response.code;
+            RegisteredWithCode = response.code;
             _serverSecret = response.secret;
             _serverRefreshCoroutine = ServerRegistrationRefresh(new ServerRefreshRequest
                 {
@@ -105,8 +105,9 @@ namespace EDIVE.MirrorNetworking.ServerCodes
 
             UniTask.Void(async () =>
             {
-                await UniTask.Delay(TimeSpan.FromSeconds(5));
-                Debug.Log($"The server code is {_registeredWithCode}");
+                await AppCore.AwaitLoaded();
+                await UniTask.Delay(TimeSpan.FromSeconds(1));
+                Debug.Log($"The server code is {RegisteredWithCode}");
             });
         }
 

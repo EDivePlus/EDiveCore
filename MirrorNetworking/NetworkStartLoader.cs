@@ -21,12 +21,12 @@ namespace EDIVE.MirrorNetworking
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:
-                    networkManager.StartServer();
+                    networkManager.StartRuntime(NetworkRuntimeMode.Server);
                     await sceneManager.ServerSceneChanged.Await();
                     break;
 
                 case NetworkRuntimeMode.Host:
-                    networkManager.StartHost();
+                    networkManager.StartRuntime(NetworkRuntimeMode.Host);
                     await sceneManager.ClientSceneChanged.Await();
                     break;
 
