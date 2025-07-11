@@ -6,13 +6,8 @@ using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.ScriptableVariables.Modules
+namespace EDIVE.ScriptableArchitecture.Variables.Modules
 {
-    public interface IScriptableVariableSaveModule<T>
-    {
-
-    }
-
     [Serializable]
     public class PlayerPrefsSaveModule<T> : IScriptableVariableSaveModule<T>
     {

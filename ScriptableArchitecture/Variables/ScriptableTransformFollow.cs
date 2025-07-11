@@ -1,10 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 12.06.2025
 
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using UnityEngine;
-using EDIVE.DataStructures.ScriptableVariables.Variables;
 
-namespace EDIVE.DataStructures.ScriptableVariables
+namespace EDIVE.ScriptableArchitecture.Variables
 {
     public class ScriptableTransformFollow : MonoBehaviour
     {

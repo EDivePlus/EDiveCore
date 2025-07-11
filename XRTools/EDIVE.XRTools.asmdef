@@ -17,7 +17,8 @@
         "EDIVE.External.Signals",
         "EDIVE.DataStructures",
         "Unity.Mathematics",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "EDIVE.ScriptableArchitecture"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

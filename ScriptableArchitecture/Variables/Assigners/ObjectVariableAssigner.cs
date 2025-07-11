@@ -3,15 +3,15 @@
 
 using System;
 using System.Collections.Generic;
-using EDIVE.DataStructures.ScriptableVariables.Variables;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace EDIVE.DataStructures.ScriptableVariables
+namespace EDIVE.ScriptableArchitecture.Variables.Assigners
 {
-    public class ObjectVariableAssigner : AVariableAssigner
+    public class ObjectVariableAssigner : AScriptableAssigner
     {
         [SerializeField]
         [EnhancedTableList(ShowFoldout = false)]
@@ -26,6 +26,11 @@ namespace EDIVE.DataStructures.ScriptableVariables
             {
                 record.Assign();
             }
+        }
+
+        protected override void UnassignReferences()
+        {
+            // OnDisable/Destroy order is not guaranteed, so we do not unassign references here.
         }
 
         [Serializable]
@@ -49,27 +54,11 @@ namespace EDIVE.DataStructures.ScriptableVariables
 
                 _Variable.TrySetObjectValue(_Value);
             }
-#if UNITY_EDITOR
+
             private void ValidateValue(SelfValidationResult result)
             {
-                if (_Variable == null)
-                    return;
-
-                if (!typeof(Object).IsAssignableFrom(_Variable.VariableType))
-                {
-                    result.AddError("Variable type is not of Unity Object type");
-                    return;
-                }
-
-                if (_Value == null)
-                    return;
-
-                if (!_Variable.VariableType.IsAssignableFrom(_Value.GetType()))
-                {
-                    result.AddError($"Object '{_Value}' is not assignable to variable '{_Variable.VariableType}'");
-                }
+                ScriptableArchitectureUtils.ValidateScriptableValue(result, _Variable, _Value);
             }
-#endif
         }
     }
 }

@@ -1,0 +1,20 @@
+{
+    "name": "EDIVE.ScriptableArchitecture",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "EDIVE.OdinExtensions",
+        "EDIVE.EditorUtils",
+        "EDIVE.External.DomainReloadHelper",
+        "EDIVE.External.Signals"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

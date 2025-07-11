@@ -1,7 +1,7 @@
 using System;
 using EDIVE.Avatars;
-using EDIVE.DataStructures.ScriptableVariables;
-using EDIVE.DataStructures.ScriptableVariables.Variables;
+using EDIVE.ScriptableArchitecture.Variables;
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using Mirror;
 using UnityEngine;
 

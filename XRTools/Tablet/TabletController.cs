@@ -3,7 +3,7 @@
 
 using DG.Tweening;
 using EDIVE.Core.Services;
-using EDIVE.DataStructures.ScriptableVariables.Variables;
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using EDIVE.XRTools.Keyboard;
 using Sirenix.OdinInspector;
 using UnityEngine;

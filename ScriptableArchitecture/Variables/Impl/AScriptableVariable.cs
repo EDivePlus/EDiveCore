@@ -6,23 +6,25 @@ using EDIVE.External.Signals;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.ScriptableVariables.Variables
+namespace EDIVE.ScriptableArchitecture.Variables.Impl
 {
-    public abstract class AScriptableVariable : ScriptableObject
+    public abstract class AScriptableVariable : AScriptableBase
     {
-        public abstract Type VariableType { get; }
         public Signal ValueChanged { get; } = new();
-
-        public abstract void Clear();
-
         public abstract bool TrySetObjectValue(object value);
         public abstract object GetObjectValue();
     }
 
     public abstract class AScriptableVariable<T> : AScriptableVariable
     {
+        [SerializeField]
+        private T _DefaultValue;
+
         [NonSerialized]
         private T _value;
+
+        [NonSerialized]
+        private bool _initialized;
 
         [ShowInInspector]
         public virtual T Value
@@ -30,10 +32,15 @@ namespace EDIVE.DataStructures.ScriptableVariables.Variables
             get => GetValue();
             set => SetValue(value);
         }
-        public override Type VariableType => typeof(T);
+        public override Type GenericType => typeof(T);
 
         public T GetValue()
         {
+            if (_initialized)
+                return _value;
+
+            _value = _DefaultValue;
+            _initialized = true;
             return _value;
         }
 
@@ -68,9 +75,10 @@ namespace EDIVE.DataStructures.ScriptableVariables.Variables
 
         public static implicit operator T(AScriptableVariable<T> variable) => variable.Value;
 
-        public override void Clear()
+        public override void ResetState()
         {
             _value = default;
+            _initialized = false;
             ValueChanged.RemoveAllListeners();
         }
 

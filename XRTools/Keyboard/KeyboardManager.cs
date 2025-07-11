@@ -1,5 +1,5 @@
 using EDIVE.Core.Services;
-using EDIVE.DataStructures.ScriptableVariables.Variables;
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;

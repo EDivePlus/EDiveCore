@@ -1,14 +1,14 @@
 ﻿// Author: František Holubec
 // Created: 27.05.2025
 
-using EDIVE.DataStructures.ScriptableVariables.Variables;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.ScriptableVariables
+namespace EDIVE.ScriptableArchitecture.Variables.Assigners
 {
-    public class TransformVariableAssigner : AVariableAssigner
+    public class TransformVariableAssigner : AScriptableAssigner
     {
         [Required]
         [ShowCreateNew]
@@ -18,6 +18,11 @@ namespace EDIVE.DataStructures.ScriptableVariables
         protected override void AssignReferences()
         {
             _Variable.SetValue(transform);
+        }
+
+        protected override void UnassignReferences()
+        {
+            // OnDisable/Destroy order is not guaranteed, so we do not unassign references here.
         }
     }
 }

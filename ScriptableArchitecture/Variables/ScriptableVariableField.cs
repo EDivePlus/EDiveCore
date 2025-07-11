@@ -2,11 +2,11 @@
 // Created: 02.06.2025
 
 using System;
-using EDIVE.DataStructures.ScriptableVariables.Variables;
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.ScriptableVariables
+namespace EDIVE.ScriptableArchitecture.Variables
 {
     [Serializable]
     public class ScriptableVariableField<T>

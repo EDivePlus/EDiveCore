@@ -27,7 +27,8 @@
         "EDIVE.NativeUtils",
         "Unity.TextMeshPro",
         "EnhancedScroller",
-        "Mirror.Transports"
+        "Mirror.Transports",
+        "EDIVE.ScriptableArchitecture"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

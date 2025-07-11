@@ -1,9 +1,9 @@
 ﻿// Author: František Holubec
 // Created: 27.05.2025
 
-namespace EDIVE.DataStructures.ScriptableVariables.Variables
+namespace EDIVE.ScriptableArchitecture
 {
-    public enum VariableAssignLifetime
+    public enum AssignLifetime
     {
         Full,
         Enabled
