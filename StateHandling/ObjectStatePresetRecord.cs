@@ -61,9 +61,6 @@ namespace EDIVE.StateHandling
                 valuePreset?.ApplyTo(_Target);
 
             }
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(_Target);
-#endif
         }
 
         public void Capture()
@@ -78,6 +75,14 @@ namespace EDIVE.StateHandling
         }
 
 #if UNITY_EDITOR
+        public void SetDirty()
+        {
+            if (_Target == null)
+                return;
+
+            EditorUtility.SetDirty(_Target);
+        }
+        
         [UsedImplicitly]
         private void OnPresetsTitleBarGUI(List<AStateValuePreset> value, InspectorProperty property)
         {
@@ -87,6 +92,7 @@ namespace EDIVE.StateHandling
                 {
                     Undo.RecordObject(Target, "Apply state presets");
                     Apply();
+                    SetDirty();
                 }
             }
 

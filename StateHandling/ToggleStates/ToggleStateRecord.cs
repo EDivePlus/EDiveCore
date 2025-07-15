@@ -58,10 +58,6 @@ namespace EDIVE.StateHandling.ToggleStates
 
             var valuePresets = _state ? _EnabledPresets : _DisabledPresets;
             Apply(valuePresets);
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(_Target);
-#endif
         }
 
         private void Apply(List<AStateValuePreset> presets)
@@ -73,9 +69,6 @@ namespace EDIVE.StateHandling.ToggleStates
             {
                 preset?.ApplyTo(_Target);
             }
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(_Target);
-#endif
         }
 
         private void Capture(List<AStateValuePreset> presets)
@@ -90,6 +83,14 @@ namespace EDIVE.StateHandling.ToggleStates
         }
 
 #if UNITY_EDITOR
+        public void SetDirty()
+        {
+            if (_Target == null)
+                return;
+
+            EditorUtility.SetDirty(_Target);
+        }
+        
         [UsedImplicitly]
         private void OnPresetsTitleBarGUI(List<AStateValuePreset> value, InspectorProperty property)
         {
@@ -99,6 +100,7 @@ namespace EDIVE.StateHandling.ToggleStates
                 {
                     Undo.RecordObject(Target, "Apply state presets");
                     Apply(value);
+                    SetDirty();
                 }
             }
 

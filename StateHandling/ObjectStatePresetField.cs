@@ -55,6 +55,7 @@ namespace EDIVE.StateHandling
                         continue;
                     Undo.RecordObject(record.Target, "Apply state presets");
                     record.Apply();
+                    record.SetDirty();
                 }
             }
 
