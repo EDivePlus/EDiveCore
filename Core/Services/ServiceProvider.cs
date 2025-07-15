@@ -124,6 +124,41 @@ namespace EDIVE.Core.Services
             return source.Task;
         }
         
+        public async UniTask<(T, T2)> AwaitRegistered<T, T2>() 
+            where T : class, IService
+            where T2 : class, IService
+        {
+            var t = await AwaitRegistered<T>();
+            var t2 = await AwaitRegistered<T2>();
+            return (t, t2);
+        }
+        
+        public async UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>() 
+            where T : class, IService
+            where T2 : class, IService
+            where T3 : class, IService
+        {
+            var t = await AwaitRegistered<T>();
+            var t2 = await AwaitRegistered<T2>();
+            var t3 = await AwaitRegistered<T3>();
+            return (t, t2, t3);
+        }
+        
+        public void WhenRegistered<T, T2>(Action<T, T2> action)
+            where T : class, IService
+            where T2 : class, IService
+        {
+            AwaitRegistered<T, T2>().ContinueWith(r => action?.Invoke(r.Item1, r.Item2));
+        }
+        
+        public void WhenRegistered<T, T2, T3>(Action<T, T2, T3> action)
+            where T : class, IService
+            where T2 : class, IService
+            where T3 : class, IService
+        {
+            AwaitRegistered<T, T2, T3>().ContinueWith(r => action?.Invoke(r.Item1, r.Item2, r.Item3));
+        }
+        
         private abstract class PromiseCaster
         {
             public abstract bool Dispatch(object service);

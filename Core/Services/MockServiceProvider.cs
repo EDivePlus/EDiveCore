@@ -65,10 +65,32 @@ namespace EDIVE.Core.Services
             PrintMockMessage(nameof(WhenRegistered));
         }
 
+        public void WhenRegistered<T, T2>(Action<T, T2> action) where T : class, IService where T2 : class, IService
+        {
+            PrintMockMessage(nameof(WhenRegistered));
+        }
+
+        public void WhenRegistered<T, T2, T3>(Action<T, T2, T3> action) where T : class, IService where T2 : class, IService where T3 : class, IService
+        {
+            PrintMockMessage(nameof(WhenRegistered));
+        }
+
         public UniTask<T> AwaitRegistered<T>() where T : class, IService
         {
             PrintMockMessage(nameof(AwaitRegistered));
             return UniTask.Never<T>(CancellationToken.None);
+        }
+
+        public UniTask<(T, T2)> AwaitRegistered<T, T2>() where T : class, IService where T2 : class, IService
+        {
+            PrintMockMessage(nameof(AwaitRegistered));
+            return UniTask.Never<(T, T2)>(CancellationToken.None);
+        }
+
+        public UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>() where T : class, IService where T2 : class, IService where T3 : class, IService
+        {
+            PrintMockMessage(nameof(AwaitRegistered));
+            return UniTask.Never<(T, T2, T3)>(CancellationToken.None);
         }
 
         private static void PrintMockMessage(string methodName)
