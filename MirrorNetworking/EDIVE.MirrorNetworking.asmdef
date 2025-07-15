@@ -28,7 +28,8 @@
         "Unity.TextMeshPro",
         "EnhancedScroller",
         "Mirror.Transports",
-        "EDIVE.ScriptableArchitecture"
+        "EDIVE.ScriptableArchitecture",
+        "Mirror.Components"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

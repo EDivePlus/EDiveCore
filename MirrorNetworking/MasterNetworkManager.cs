@@ -60,18 +60,7 @@ namespace EDIVE.MirrorNetworking
             }
         }
         private ConnectionState _connectionState = ConnectionState.Disconnected;
-
-        public string CurrentServerName
-        {
-            get
-            {
-                if (this.TryGetTransport<LightReflectiveMirrorTransport>(out var lrm))
-                    return lrm.serverId;
-
-                return networkAddress;
-            }
-        }
-
+        
         public override void Start()
         {
             // Nothing, we will start the server or client in the load finalizer

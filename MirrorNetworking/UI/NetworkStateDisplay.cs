@@ -2,6 +2,7 @@
 // Created: 29.06.2025
 
 using EDIVE.Core;
+using EDIVE.MirrorNetworking.ServerManagement;
 using EDIVE.StateHandling.MultiStates;
 using TMPro;
 using UnityEngine;
@@ -22,17 +23,20 @@ namespace EDIVE.MirrorNetworking.UI
         private TMP_Text _CurrentServerNameText;
 
         private MasterNetworkManager _networkManager;
+        private NetworkServerManager _serverManager;
 
         private void OnEnable()
         {
-            AppCore.Services.WhenRegistered<MasterNetworkManager>(Initialize);
+            AppCore.Services.WhenRegistered<MasterNetworkManager, NetworkServerManager>(Initialize);
         }
 
-        private void Initialize(MasterNetworkManager networkManager)
+        private void Initialize(MasterNetworkManager networkManager, NetworkServerManager serverManager)
         {
             _networkManager = networkManager;
             _networkManager.ClientConnectionStateChanged.AddListener(OnClientConnectionStateChanged);
             _networkManager.RuntimeStateChanged.AddListener(OnRuntimeStateChanged);
+            
+            _serverManager = serverManager;
             RefreshState();
         }
 
@@ -56,7 +60,7 @@ namespace EDIVE.MirrorNetworking.UI
                 _RuntimeModeState.SetState(_networkManager.CurrentNetworkMode);
 
             if (_CurrentServerNameText)
-                _CurrentServerNameText.text = _networkManager.CurrentServerName;
+                _CurrentServerNameText.text = _serverManager.ServerConfig.ServerName;
         }
     }
 }

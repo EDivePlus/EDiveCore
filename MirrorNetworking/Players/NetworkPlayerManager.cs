@@ -6,7 +6,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Avatars;
 using EDIVE.Core;
-using EDIVE.External.Signals;
 using EDIVE.MirrorNetworking;
 using EDIVE.MirrorNetworking.Players;
 using EDIVE.MirrorNetworking.Scenes;

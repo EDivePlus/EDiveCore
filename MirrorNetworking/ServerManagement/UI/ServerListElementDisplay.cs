@@ -17,9 +17,7 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
 
         [SerializeField]
         private TMP_Text _ServerIdText;
-
-        [SerializeField]
-        private TMP_Text _ServerDataText;
+        
 
         [SerializeField]
         private TMP_Text _ClientsCountText;
@@ -27,23 +25,20 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
         [SerializeField]
         private Button _ConnectButton;
 
-        private Room _data;
+        private ServerRecord _serverRecord;
 
-        public void SetRoom(Room data)
+        public void SetRoom(ServerRecord serverRecord)
         {
-            _data = data;
+            _serverRecord = serverRecord;
 
             if (_ServerNameText)
-                _ServerNameText.text = data.serverName;
+                _ServerNameText.text = _serverRecord.ServerName;
 
             if (_ServerIdText)
-                _ServerIdText.text = data.serverId;
-
-            if (_ServerDataText)
-                _ServerDataText.text = data.serverData;
-
+                _ServerIdText.text = $"{_serverRecord.ServerID}";
+            
             if (_ClientsCountText)
-                _ClientsCountText.text = $"{data.currentPlayers}/{data.maxPlayers}";
+                _ClientsCountText.text = $"{_serverRecord.CurrentPlayers}/{_serverRecord.MaxPlayers}";
 
             if (_ConnectButton)
             {
@@ -55,7 +50,7 @@ namespace EDIVE.MirrorNetworking.ServerManagement.UI
         private void OnConnectClicked()
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            networkManager.networkAddress = _data.serverId;
+            networkManager.networkAddress = _serverRecord.Address;
             networkManager.StartRuntime(NetworkRuntimeMode.Client);
         }
     }

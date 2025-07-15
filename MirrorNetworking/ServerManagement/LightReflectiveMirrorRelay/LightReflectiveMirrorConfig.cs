@@ -6,10 +6,10 @@ using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.MirrorNetworking.ServerManagement
+namespace EDIVE.MirrorNetworking.ServerManagement.LightReflectiveMirrorRelay
 {
     [JsonObject(MemberSerialization.OptIn)]
-    public class RelayConfig : ScriptableObject
+    public class LightReflectiveMirrorConfig : ScriptableObject
     {
         [JsonProperty("NodeIP")]
         [SerializeField]
@@ -57,14 +57,6 @@ namespace EDIVE.MirrorNetworking.ServerManagement
         [SerializeField]
         private int _AppID = 1;
 
-        [JsonProperty("ServerName")]
-        [SerializeField]
-        private string _ServerName;
-
-        [JsonProperty("MaxPlayers")]
-        [SerializeField]
-        private int _MaxPlayers = 10;
-
         [JsonProperty]
         [SerializeField]
         private bool _IsPublic = true;
@@ -79,8 +71,6 @@ namespace EDIVE.MirrorNetworking.ServerManagement
         public string LoadBalancerIP => _LoadBalancerIP;
         public ushort LoadBalancerPort => _LoadBalancerPort;
         public int AppID => _AppID;
-        public string ServerName => _ServerName;
-        public int MaxPlayers => _MaxPlayers;
         public bool IsPublic => _IsPublic;
 
         public void ApplyTo(LightReflectiveMirrorTransport transport)
@@ -98,8 +88,6 @@ namespace EDIVE.MirrorNetworking.ServerManagement
                 transport.loadBalancerPort = _LoadBalancerPort;
             }
             transport.appId = AppID;
-            transport.serverName = ServerName;
-            transport.maxServerPlayers = MaxPlayers;
             transport.isPublicServer = IsPublic;
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(transport);
@@ -118,8 +106,6 @@ namespace EDIVE.MirrorNetworking.ServerManagement
             _LoadBalancerIP = transport.loadBalancerAddress;
             _LoadBalancerPort = transport.loadBalancerPort;
             _AppID = transport.appId;
-            _ServerName = transport.serverName;
-            _MaxPlayers = transport.maxServerPlayers;
             _IsPublic = transport.isPublicServer;
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
