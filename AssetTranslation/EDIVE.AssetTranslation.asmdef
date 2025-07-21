@@ -16,6 +16,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.cysharp.memorypack",
+            "expression": "",
+            "define": "MEMORY_PACK"
+        }
+    ],
     "noEngineReferences": false
 }
