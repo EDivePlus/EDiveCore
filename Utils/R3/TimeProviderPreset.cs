@@ -3,6 +3,8 @@
 
 #if R3
 using System;
+using MemoryPack;
+using Newtonsoft.Json;
 using R3;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -11,18 +13,31 @@ namespace EDIVE.Utils.R3
 {
     [Serializable]
     [InlineProperty]
-    public class TimeProviderPreset
+    [MemoryPackable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public partial class TimeProviderPreset
     {
         [HideLabel]
         [HorizontalGroup]
         [SerializeField]
-        private PlayerLoopTiming _LoopTiming = PlayerLoopTiming.Update;
-
+        [MemoryPackInclude]
+        [JsonProperty("TimeKind")]
+        private TimeKind _TimeKind = TimeKind.Time;
+        
         [HideLabel]
         [HorizontalGroup]
         [SerializeField]
-        private TimeKind _TimeKind = TimeKind.Time;
+        [MemoryPackInclude]
+        [JsonProperty("LoopTiming")]
+        private PlayerLoopTiming _LoopTiming = PlayerLoopTiming.Update;
 
+        [MemoryPackIgnore]
+        public TimeKind TimeKind => _TimeKind;
+        
+        [MemoryPackIgnore]
+        public PlayerLoopTiming LoopTiming => _LoopTiming;
+
+        [MemoryPackConstructor]
         public TimeProviderPreset() { }
         public TimeProviderPreset(PlayerLoopTiming loopTiming, TimeKind timeKind = TimeKind.Time)
         {
