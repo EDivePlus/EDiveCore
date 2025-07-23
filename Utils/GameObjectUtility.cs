@@ -4,13 +4,14 @@
 using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.DomainReloadHelper;
+using EDIVE.NativeUtils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
-namespace EDIVE.NativeUtils
+namespace EDIVE.Utils
 {
-    public static class PrefabUtility
+    public static class GameObjectUtility
     {
         public static T InstantiateInitialize<T>(T prefab, Action<T> initializer, Transform parent = null) where T : Object
         {
