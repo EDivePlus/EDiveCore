@@ -2,6 +2,7 @@
 // Created: 04.04.2025
 
 using System;
+using EDIVE.Time.DateTimeUtils;
 using EDIVE.Utils.Json;
 
 namespace EDIVE.DataStructures.DateTimeStructures

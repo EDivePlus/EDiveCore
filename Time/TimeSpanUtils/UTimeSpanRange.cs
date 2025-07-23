@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.TimeSpanStructures
+namespace EDIVE.Time.TimeSpanUtils
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]

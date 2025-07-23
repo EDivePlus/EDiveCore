@@ -5,7 +5,7 @@ using System.Reflection;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
 
-namespace EDIVE.DataStructures.TimeSpanStructures
+namespace EDIVE.Time.TimeSpanUtils.Editor
 {
     [ResolverPriority(-100000)]
     public class UTimeSpanRangeAttributeProcessor : OdinAttributeProcessor<UTimeSpanRange>

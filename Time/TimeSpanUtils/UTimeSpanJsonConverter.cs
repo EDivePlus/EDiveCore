@@ -4,8 +4,9 @@
 using System;
 using EDIVE.Utils.Json;
 
-namespace EDIVE.DataStructures.TimeSpanStructures
+namespace EDIVE.Time.TimeSpanUtils
 {
+    [Serializable]
     public class UTimeSpanJsonConverter : AWrapperJsonConverter<UTimeSpan, TimeSpan>
     {
         protected override UTimeSpan CreateWrapper(TimeSpan value) => new(value);
