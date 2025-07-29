@@ -27,7 +27,11 @@ namespace EDIVE.Time.TimeSpanUtils
         public TimeSpan TimeSpan
         {
             get => _TimeSpan;
-            set => SetTimeSpan(value);
+            set
+            {
+                _TimeSpan = value;
+                UpdateText();
+            }
         }
         
         public void SetTimeSpan(TimeSpan timeSpan)
