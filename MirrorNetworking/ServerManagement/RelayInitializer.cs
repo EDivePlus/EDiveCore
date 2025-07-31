@@ -19,17 +19,22 @@ namespace EDIVE.MirrorNetworking.ServerManagement
         [SerializeField]
         private float _ConnectTimeout = 5f;
 
-        public async UniTask Load(Action<float> progressCallback)
+        public UniTask Load(Action<float> progressCallback)
         {
             var transport = GetComponent<LightReflectiveMirrorTransport>();
             _Config.ApplyTo(transport);
             transport.ConnectToRelay();
+            AwaitRelay(transport).Forget();
+            return UniTask.CompletedTask;
+        }
 
+        private async UniTask AwaitRelay(LightReflectiveMirrorTransport transport)
+        {
             var cts = new CancellationTokenSource();
             cts.CancelAfterSlim(TimeSpan.FromSeconds(_ConnectTimeout));
             try
             {
-                await UniTask.WaitUntil(() => transport.IsAuthenticated(), PlayerLoopTiming.Update, cts.Token);
+                await UniTask.WaitUntil(transport.IsAuthenticated, PlayerLoopTiming.Update, cts.Token);
             }
             catch (OperationCanceledException)
             {
