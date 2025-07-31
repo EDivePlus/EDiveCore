@@ -2,6 +2,7 @@
 // Created: 22.07.2025
 
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.DomainReloadHelper;
 using EDIVE.NativeUtils;
@@ -24,9 +25,9 @@ namespace EDIVE.Utils
             return instance;
         }
         
-        public static async UniTask<T> InstantiateInitializeAsync<T>(T prefab, Action<T> initializer, Transform parent = null) where T : Object
+        public static async UniTask<T> InstantiateInitializeAsync<T>(T prefab, Action<T> initializer, Transform parent = null, CancellationToken cancellationToken = default) where T : Object
         {
-            var instance = (await Object.InstantiateAsync(prefab, InactiveParent))[0];
+            var instance = (await Object.InstantiateAsync(prefab, InactiveParent).WithCancellation(cancellationToken))[0];
             initializer?.Invoke(instance);
             if (instance.TryGetGameObject(out var instanceGameObject))
             {
