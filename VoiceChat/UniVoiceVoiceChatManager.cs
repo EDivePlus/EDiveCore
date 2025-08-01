@@ -20,13 +20,6 @@ namespace EDIVE.VoiceChat
         private const string TAG = "[UniVoiceVoiceChatManager]";
         private ClientSession<int> _session;
 
-        public enum InputFilterType
-        {
-            None = 0,
-            GaussianBlur = 1,
-            RNNoise = 2,
-        }
-
         public bool EnableSpatialAudio
         {
             get => PlayerPrefs.GetInt("UniVoice_EnableSpatialAudio", 1) > 0;
@@ -38,19 +31,7 @@ namespace EDIVE.VoiceChat
                 RefreshSpatialAudio();
             }
         }
-
-        public InputFilterType InputFilter
-        {
-            get => (InputFilterType) PlayerPrefs.GetInt("UniVoice_InputFilter", 1);
-            set
-            {
-                if (InputFilter == value)
-                    return;
-                PlayerPrefs.SetInt("UniVoice_InputFilter", (int) value);
-                RefreshFilters();
-            }
-        }
-
+        
         public int MicFrameDurationMS
         {
             get => PlayerPrefs.GetInt("UniVoice_FrameDuration", 60);
@@ -192,7 +173,7 @@ namespace EDIVE.VoiceChat
 
             // Next, for incoming audio we register the Concentus decode filter as the audio we'd
             // receive from other clients would be encoded and not readily playable
-            _session.OutputFilters.Add(new ConcentusDecodeFilter());
+            _session.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter());
             Debug.unityLogger.Log(LogType.Log, TAG, "Registered ConcentusDecodeFilter as an output filter");
 
             // We subscribe to some client events to show updates on the UI when you join or leave
@@ -266,40 +247,7 @@ namespace EDIVE.VoiceChat
                 streamedOutput.Stream.UnityAudioSource.spatialBlend = EnableSpatialAudio ? 1 : 0;
             }
         }
-
-        private void RefreshFilters()
-        {
-            // This method is called when the user changes the filters in the settings
-            // We can use this to refresh the filters in the session
-            if (_session == null)
-                return;
-
-            _session.InputFilters.Clear();
-            _session.OutputFilters.Clear();
-
-            switch (InputFilter)
-            {
-                case InputFilterType.None:
-                    break;
-                case InputFilterType.GaussianBlur:
-                    _session.InputFilters.Add(new GaussianAudioBlur());
-                    break;
-                case InputFilterType.RNNoise:
-                    _session.InputFilters.Add(new RNNoiseFilter());
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            // The next one is the Opus encoder filter. This is VERY important. Without this the
-            // outgoing data would be very large, usually by a factor of 10 or more.
-            _session.InputFilters.Add(new ConcentusEncodeFilter());
-
-            // Next, for incoming audio we register the Concentus decode filter as the audio we'd
-            // receive from other clients would be encoded and not readily playable
-            _session.OutputFilters.Add(new ConcentusDecodeFilter());
-        }
-
+        
         private void InitializeServer()
         {
             // We create a server. If this code runs in server mode, MirrorServer will take care
