@@ -5,7 +5,7 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.TimeSpanStructures
+namespace EDIVE.Time.TimeSpanUtils.Editor
 {
     public static class TimeDrawerUtils
     {

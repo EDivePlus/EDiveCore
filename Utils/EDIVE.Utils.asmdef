@@ -11,7 +11,8 @@
         "Unity.XR.Interaction.Toolkit",
         "UniTask",
         "EDIVE.DataStructures",
-        "R3.Unity"
+        "R3.Unity",
+        "EDIVE.External.DomainReloadHelper"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

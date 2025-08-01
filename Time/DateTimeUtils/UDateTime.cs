@@ -8,7 +8,7 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.DateTimeStructures
+namespace EDIVE.Time.DateTimeUtils
 {
     /// <summary>
     /// Unity serializable wrapper for DateTime, usually necessary for fields in Monobehaviour or ScriptableObject

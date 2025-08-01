@@ -14,9 +14,6 @@ namespace EDIVE.VoiceChat
     public class VoiceChatDebugController : MonoBehaviour
     {
         [SerializeField]
-        private TMP_Dropdown _InputFilterDropdown;
-
-        [SerializeField]
         private TMP_Dropdown _FrameDurationDropdown;
 
         [SerializeField]
@@ -44,15 +41,6 @@ namespace EDIVE.VoiceChat
                 _FrameDurationDropdown.onValueChanged.AddListener(OnFrameDurationChanged);
             }
 
-            if (_InputFilterDropdown)
-            {
-                _InputFilterDropdown.ClearOptions();
-                _InputFilterDropdown.AddOptions(EnumUtils.GetValues<UniVoiceVoiceChatManager.InputFilterType>().Select(d => d.ToString()).ToList());
-                _InputFilterDropdown.onValueChanged.RemoveListener(OnInputFilterChanged);
-                _InputFilterDropdown.value = (int) _voiceChatManager.InputFilter;
-                _InputFilterDropdown.onValueChanged.AddListener(OnInputFilterChanged);
-            }
-
             if (_SpatialAudioToggle)
             {
                 _SpatialAudioToggle.onValueChanged.RemoveListener(OnSpatialAudioToggleChanged);
@@ -65,12 +53,7 @@ namespace EDIVE.VoiceChat
         {
             _voiceChatManager.EnableSpatialAudio = value;
         }
-
-        private void OnInputFilterChanged(int value)
-        {
-            _voiceChatManager.InputFilter = (UniVoiceVoiceChatManager.InputFilterType) value;
-        }
-
+        
         private void OnFrameDurationChanged(int value)
         {
             _voiceChatManager.MicFrameDurationMS = FRAME_DURATIONS[value];

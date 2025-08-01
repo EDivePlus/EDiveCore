@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace EDIVE.NativeUtils
@@ -43,6 +44,42 @@ namespace EDIVE.NativeUtils
             tr.localScale = Vector3.one;
         }
         
-    
+        public static string GetPath(this Transform transform)
+        {
+            if (transform == null)
+                return string.Empty;
+
+            var pathBuilder = new StringBuilder();
+            var currentTransform = transform;
+            while (currentTransform != null)
+            {
+                if (pathBuilder.Length > 0)
+                    pathBuilder.Insert(0, "/");
+                pathBuilder.Insert(0, currentTransform.name);
+                currentTransform = currentTransform.parent;
+            }
+            return pathBuilder.ToString();
+        }
+
+        public static string GetPathIn(this Transform transform, Transform parent)
+        {
+            if (transform == null || parent == null)
+                return string.Empty;
+
+            var pathBuilder = new StringBuilder();
+            var currentTransform = transform;
+            while (currentTransform != null && currentTransform != parent)
+            {
+                if (pathBuilder.Length > 0)
+                    pathBuilder.Insert(0, "/");
+                pathBuilder.Insert(0, currentTransform.name);
+                currentTransform = currentTransform.parent;
+            }
+
+            if (currentTransform == null)
+                return string.Empty; // Not a child of the specified parent
+
+            return pathBuilder.ToString();
+        }
     }
 }

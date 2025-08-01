@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace EDIVE.NativeUtils
@@ -38,6 +39,40 @@ namespace EDIVE.NativeUtils
                 if(gameObject)
                     gameObject.SetActive(active);
             }
+        }
+
+        public static bool TryGetGameObject(this Object obj, out GameObject gameObject)
+        {
+            if (obj == null)
+            {
+                gameObject = null;
+                return false;
+            }
+
+            if (obj is GameObject go)
+            {
+                gameObject = go;
+                return true;
+            }
+
+            if (obj is Component component)
+            {
+                gameObject = component.gameObject;
+                return true;
+            }
+
+            gameObject = null;
+            return false;
+        }
+        
+        public static bool TryGetComponent<T>(this Object obj, out T component) where T : Component
+        {
+            if (obj.TryGetGameObject(out var gameObject)) 
+                return gameObject.TryGetComponent(out component);
+            
+            component = null;
+            return false;
+
         }
     }
 }

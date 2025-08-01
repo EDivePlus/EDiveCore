@@ -5,7 +5,7 @@ using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 using UnityEngine;
 
-namespace EDIVE.DataStructures.TimeSpanStructures
+namespace EDIVE.Time.TimeSpanUtils.Editor
 {
     [UsedImplicitly]
     public sealed class UTimeSpanDrawer : OdinValueDrawer<UTimeSpan>
