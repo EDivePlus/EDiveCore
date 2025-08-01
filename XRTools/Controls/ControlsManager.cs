@@ -4,6 +4,10 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace EDIVE.XRTools.Controls
 {
     public class ControlsManager : AServiceBehaviour<ControlsManager>
@@ -32,5 +36,22 @@ namespace EDIVE.XRTools.Controls
             if (_HeadsetControls)
                 _HeadsetControls.SetActive(XRUtils.XREnabled);
         }
+
+#if UNITY_EDITOR
+        [PropertySpace]
+        [Button]
+        private void AssignInteractionManager()
+        {
+            foreach (var component in GetComponentsInChildren<Component>())
+            {
+                var serializedObject = new SerializedObject(component);
+                var interactionManagerProperty = serializedObject.FindProperty("m_InteractionManager");
+                if (interactionManagerProperty == null)
+                    continue;
+                interactionManagerProperty.objectReferenceValue = InteractionManager;
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+#endif
     }
 }
