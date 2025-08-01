@@ -22,7 +22,7 @@ namespace EDIVE.MirrorNetworking.ServerManagement.LightReflectiveMirrorRelay
         [SerializeField]
         private float _ConnectTimeout = 5f;
 
-        public override async UniTask Initialize(ServerConfig serverConfig)
+        public override UniTask Initialize(ServerConfig serverConfig)
         {
             _RelayConfig.ApplyTo(_Transport);
             _Transport.ConnectToRelay();
@@ -37,11 +37,17 @@ namespace EDIVE.MirrorNetworking.ServerManagement.LightReflectiveMirrorRelay
             _Transport.maxServerPlayers = serverConfig.MaxPlayers;
             _Transport.serverListUpdated.AddListener(OnServerListUpdated);
 
+            AwaitRelay().Forget();
+            return UniTask.CompletedTask;
+        }
+ 
+        private async UniTask AwaitRelay()
+        {
             var cts = new CancellationTokenSource();
             cts.CancelAfterSlim(TimeSpan.FromSeconds(_ConnectTimeout));
             try
             {
-                await UniTask.WaitUntil(() => _Transport.IsAuthenticated(), PlayerLoopTiming.Update, cts.Token);
+                await UniTask.WaitUntil(_Transport.IsAuthenticated, PlayerLoopTiming.Update, cts.Token);
             }
             catch (OperationCanceledException)
             {
