@@ -1,0 +1,24 @@
+{
+    "name": "EDIVE.VoiceRecording",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.AppLoading",
+        "EDIVE.Core",
+        "EDIVE.VoiceChat",
+        "EDIVE.Time",
+        "EDIVE.External.Signals",
+        "EDIVE.OdinExtensions",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
