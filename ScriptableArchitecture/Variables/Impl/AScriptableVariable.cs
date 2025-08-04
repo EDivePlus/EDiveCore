@@ -48,9 +48,10 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
         {
             if (Equals(value, _value))
                 return;
-
+            
             var prev = _value;
             _value = value;
+            _initialized = true;
             OnValueChanged(prev, value);
         }
 

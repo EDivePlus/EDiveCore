@@ -17,7 +17,8 @@ namespace EDIVE.ScriptableArchitecture.Variables.Assigners
 
         protected override void AssignReferences()
         {
-            _Variable.SetValue(transform);
+            if (_Variable != null)
+                _Variable.SetValue(transform);
         }
 
         protected override void UnassignReferences()
