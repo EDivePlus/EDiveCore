@@ -25,19 +25,12 @@ namespace EDIVE.VoiceRecording
 
         [SerializeField]
         private TextMeshProUGUI _TimerText;
-
-        [SerializeField]
-        private TextMeshProUGUI _RecordingOnText;
-
+        
         [SerializeField]
         private Transform _RecordingDescriptions;
 
         private Coroutine _recordingRoutine;
         private VoiceRecordingManager _voiceRecordingManager;
-        
-        [Tooltip("Used to show that this is the controller instance that initiated the current ongoing recording.")]
-        [ShowInInspector]
-        public bool IsRecording;
 
         private void OnEnable()
         {
@@ -68,9 +61,10 @@ namespace EDIVE.VoiceRecording
         {
             Debug.Log(gameObject.name);
             Debug.Log("VoiceRecordingController.ToggleRecording entered.");
-            _voiceRecordingManager.ToggleVoiceRecording(this);
+            _voiceRecordingManager.ToggleVoiceRecording();
+            
             Debug.Log("_voiceRecordingManager.ToggleVoiceRecording() called.");
-            if (_voiceRecordingManager.Recording && IsRecording)
+            if (_voiceRecordingManager.Recording)
             {
                 Debug.Log("Recording is ON. Showing UI...");
                 ShowRecordingUI();

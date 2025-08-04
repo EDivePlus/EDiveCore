@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.External.Signals;
-using EDIVE.VoiceRecording;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Time.TimeSpanUtils;
 using EDIVE.VoiceChat;
@@ -88,21 +87,7 @@ namespace EDIVE.VoiceRecording
             else
                 EndVoiceRecording();
         }
-
-        public void ToggleVoiceRecording(VoiceRecordingController controller)
-        {
-            if (!Recording)
-            {
-                StartVoiceRecording();
-                controller.IsRecording = true;
-            }
-            else if (controller.IsRecording)
-            {
-                EndVoiceRecording();
-                controller.IsRecording = false;
-            }
-        }
-
+        
         [Button]
         public void StartVoiceRecording()
         {
