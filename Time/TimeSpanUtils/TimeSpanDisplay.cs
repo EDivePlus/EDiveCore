@@ -17,7 +17,7 @@ namespace EDIVE.Time.TimeSpanUtils
         
         [ShowCreateNew]
         [SerializeField]
-        private TimeSpanFormatDefinition _Format;
+        private ATimeSpanFormatDefinition _Format;
 
         [PropertySpace]
         [InlineIconButton(FontAwesomeEditorIconType.SquareUpSolid, nameof(UpdateText), "Apply")]
