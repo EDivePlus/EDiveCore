@@ -23,11 +23,6 @@ namespace EDIVE.MirrorNetworking.Scenes
         [ShowCreateNew]
         [EnhancedInlineEditor]
         [SerializeField]
-        private ASceneDefinition _OfflineScene;
-
-        [ShowCreateNew]
-        [EnhancedInlineEditor]
-        [SerializeField]
         private ASceneDefinition _OnlineScene;
 
         public Signal ServerBeforeSceneChange { get; } = new();
@@ -77,7 +72,7 @@ namespace EDIVE.MirrorNetworking.Scenes
 
         private void OnServerStopped()
         {
-            ServerChangeScene(_OfflineScene);
+            // ServerChangeScene(_OfflineScene);
         }
 
         private void ServerChangeScene(ASceneDefinition newSceneDef)
@@ -102,7 +97,7 @@ namespace EDIVE.MirrorNetworking.Scenes
 
             // Throw error if called from client
             // Allow changing scene while stopping the server
-            if (!NetworkServer.active && !newSceneDef.Equals(_OfflineScene))
+            if (!NetworkServer.active)
             {
                 Debug.LogError("ServerChangeScene can only be called on an active server.");
                 return;
@@ -176,15 +171,6 @@ namespace EDIVE.MirrorNetworking.Scenes
             {
                 ClientChangeScene(definition);
             }
-        }
-
-        public async UniTask LoadOfflineScene()
-        {
-            if (_currentScene != null)
-                await _currentScene.Unload();
-
-            _currentScene = _OfflineScene.CreateInstance();
-            await _currentScene.Load();
         }
 
         private void ClientChangeScene(ASceneDefinition newSceneDef)

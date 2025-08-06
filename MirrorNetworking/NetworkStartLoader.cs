@@ -31,7 +31,7 @@ namespace EDIVE.MirrorNetworking
                     break;
 
                 case NetworkRuntimeMode.Client:
-                    await sceneManager.LoadOfflineScene();
+                    // await sceneManager.LoadOfflineScene();
                     break;
 
                 default: throw new ArgumentOutOfRangeException();
