@@ -70,7 +70,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     if (isInvalidScene) scenesDropdown = scenesDropdown.Prepend(buttonLabel);
                 
                     var selector = new GenericSelector<string>("Scenes", false, x => x, scenesDropdown);
-                    selector.FlattenedTree = true;
                     selector.SetSelection(ValueEntry.SmartValue);
                     selector.SelectionTree.DefaultMenuStyle.Height = 22;
                     selector.SelectionTree.Config.DrawSearchToolbar = true;
