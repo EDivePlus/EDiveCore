@@ -19,16 +19,16 @@ namespace EDIVE.VoiceChat
         [SerializeField]
         private Toggle _SpatialAudioToggle;
 
-        private UniVoiceVoiceChatManager _voiceChatManager;
+        private AVoiceChatManager _voiceChatManager;
 
         private static readonly int[] FRAME_DURATIONS = {20, 40, 60};
 
         private void OnEnable()
         {
-            AppCore.Services.WhenRegistered<UniVoiceVoiceChatManager>(Initialize);
+            AppCore.Services.WhenRegistered<AVoiceChatManager>(Initialize);
         }
 
-        private void Initialize(UniVoiceVoiceChatManager voiceChatManager)
+        private void Initialize(AVoiceChatManager voiceChatManager)
         {
             _voiceChatManager = voiceChatManager;
 

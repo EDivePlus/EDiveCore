@@ -1,8 +1,11 @@
 ﻿// Author: František Holubec
 // Created: 14.04.2025
 
-using Mirror;
 using UnityEngine;
+
+#if MIRROR
+using Mirror;
+#endif
 
 namespace EDIVE.AssetTranslation
 {

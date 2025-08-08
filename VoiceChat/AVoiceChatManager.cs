@@ -15,7 +15,11 @@ namespace EDIVE.VoiceChat
         public UnityEventMute OnLocalMute => m_onLocalMute;
 
         public bool MuteMicOnConnect { get; set; }
-
+        public abstract bool EnableSpatialAudio { get; set; }
+        public abstract int MicFrameDurationMS { get; set; }
+        public abstract bool AllowMic { get; set; }
+        public abstract int CurrentMicIndex { get; set; }
+        
         public void OnApplicationQuit()
         {
             StopVoiceChat();
