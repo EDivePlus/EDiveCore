@@ -29,9 +29,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         [SerializeField, Tooltip("How long in seconds to wait for a server response after sending a discovery packet.")]
         private float _SearchTimeout = 2f;
         
-        [SerializeField, Tooltip("Interval in seconds between active discovery packets.")]
-        private float _ActiveDiscoveryInterval = 2f;
-        
         [SerializeField, Tooltip("How long in seconds before a server is removed if no response is received.")]
         private float _ServerTimeout = 10f;
 
@@ -62,28 +59,33 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
         private void Awake()
         {
-            _networkManager = GetComponentInParent<NetworkManager>() ?? InstanceFinder.NetworkManager;
+            _networkManager = GetComponentInParent<NetworkManager>();
+            if (_networkManager == null)
+                _networkManager = InstanceFinder.NetworkManager;
+
             if (_networkManager == null)
             {
-                NetworkManagerExtensions.LogWarning($"NetworkDiscovery on {gameObject.name} cannot work as NetworkManager wasn't found.");
+                NetworkManagerExtensions.LogWarning($"PlayerSpawner on {gameObject.name} cannot work as NetworkManager wasn't found on this object or within parent objects.");
                 return;
             }
 
             _secretBytes = Encoding.UTF8.GetBytes(_Secret);
             _mainThreadSynchronizationContext = SynchronizationContext.Current;
+        }
+
+        private void OnEnable()
+        {
+            if (!_Automatic)
+                return;
+
+            _networkManager.ServerManager.OnServerConnectionState += ServerConnectionStateChangedEventHandler;
+            _networkManager.ClientManager.OnClientConnectionState += ClientConnectionStateChangedEventHandler;
+            
             if (_networkManager.IsServerStarted) 
                 AdvertiseServer();
 
             if (_networkManager.IsOffline) 
                 SearchForServers();
-        }
-
-        private void OnEnable()
-        {
-            if (!_Automatic) return;
-
-            _networkManager.ServerManager.OnServerConnectionState += ServerConnectionStateChangedEventHandler;
-            _networkManager.ClientManager.OnClientConnectionState += ClientConnectionStateChangedEventHandler;
         }
 
         private void OnDisable() => Shutdown();

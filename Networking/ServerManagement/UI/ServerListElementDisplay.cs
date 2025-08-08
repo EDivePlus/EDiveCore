@@ -48,11 +48,9 @@ namespace EDIVE.Networking.ServerManagement.UI
 
         private void OnConnectClicked()
         {
-            /*
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            networkManager.networkAddress = _serverRecord.Address;
+            networkManager.SetAddress(_serverRecord.Address);
             networkManager.StartRuntime(NetworkRuntimeMode.Client);
-            */
         }
     }
 }
