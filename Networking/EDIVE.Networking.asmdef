@@ -32,7 +32,8 @@
         "Unity.Services.Multiplayer",
         "Unity.Services.Relay.RelayService",
         "Unity.Networking.Transport",
-        "FishyUnityTransport"
+        "FishyUnityTransport",
+        "GameKit.Dependencies"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
