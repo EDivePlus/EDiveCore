@@ -14,18 +14,18 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
     [DrawerPriority(DrawerPriorityLevel.WrapperPriority)]
     public class SceneReferenceAttributeDrawer : OdinAttributeDrawer<SceneReferenceAttribute, string>
     {
-        private List<SceneAsset> _allScenes;
+        private List<SceneAsset> _availableScenes;
 
         protected override void Initialize()
         {
             base.Initialize();
-            Refresh();
+            RefreshAvailableScenes();
         }
 
-        private void Refresh()
+        private void RefreshAvailableScenes()
         {
-            _allScenes ??= new List<SceneAsset>();
-            _allScenes.Clear();
+            _availableScenes ??= new List<SceneAsset>();
+            _availableScenes.Clear();
             
             if (Attribute.OnlyBuildScenes)
             {
@@ -37,7 +37,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
                     if (sceneAsset == null) continue;
 
-                    _allScenes.Add(sceneAsset);
+                    _availableScenes.Add(sceneAsset);
                 }
             }
             else
@@ -48,81 +48,106 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     foreach (var guid in guids)
                     {
                         var path = AssetDatabase.GUIDToAssetPath(guid);
-                        _allScenes.Add(AssetDatabase.LoadAssetAtPath<SceneAsset>(path));
+                        _availableScenes.Add(AssetDatabase.LoadAssetAtPath<SceneAsset>(path));
                     }
                 }
             }
+            _availableScenes.Sort((sceneA, sceneB) => string.Compare(sceneA.name, sceneB.name, StringComparison.Ordinal));
+        }
 
-            _allScenes.Sort((sceneA, sceneB) => string.Compare(sceneA.name, sceneB.name, StringComparison.Ordinal));
+        private bool IsSceneValid(string sceneString, out SceneAsset sceneAsset, out string label)
+        {
+            sceneAsset = GetSceneAsset(sceneString);
+            var isValid = sceneAsset != null || string.IsNullOrWhiteSpace(sceneString);
+            label = isValid ? ValueEntry.SmartValue : $"{ValueEntry.SmartValue} (INVALID)";
+            return isValid;
         }
 
         protected override void DrawPropertyLayout(GUIContent label)
         {
-            var sceneAsset = GetSceneAsset(ValueEntry.SmartValue, Attribute.ReferenceType);
-            var isInvalidScene = !string.IsNullOrWhiteSpace(ValueEntry.SmartValue) && sceneAsset == null;
-            var buttonLabel = isInvalidScene ? $"{ValueEntry.SmartValue} (INVALID)" : ValueEntry.SmartValue;
+            var dropdownRect = SirenixEditorGUI.BeginHorizontalPropertyLayout(label);
+            var isSceneValid = IsSceneValid(ValueEntry.SmartValue, out var sceneAsset, out var sceneLabel);
             
-            EditorGUILayout.BeginHorizontal();
+            var iconRect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+            if (SirenixEditorGUI.IconButton(iconRect, FontAwesomeEditorIcons.SquareCaretDownSolid, "Select"))
             {
-                GenericSelector<string>.DrawSelectorDropdown(label, buttonLabel, rect =>
-                {
-                    var scenesDropdown = GetScenesDropdown();
-                    if (isInvalidScene) scenesDropdown = scenesDropdown.Prepend(buttonLabel);
+                CreateSelector(dropdownRect);
+            }
+            if (isSceneValid)
+            {
                 
-                    var selector = new GenericSelector<string>("Scenes", false, x => x, scenesDropdown);
-                    selector.SetSelection(ValueEntry.SmartValue);
-                    selector.SelectionTree.DefaultMenuStyle.Height = 22;
-                    selector.SelectionTree.Config.DrawSearchToolbar = true;
-                    selector.SelectionTree.Config.AutoFocusSearchBar = true;
-                    selector.SelectionTree.EnumerateTree().AddThumbnailIcons(true);
-                    selector.SelectionConfirmed += selection =>
-                    {
-                        ValueEntry.SmartValue = selection.FirstOrDefault();
-                    };
-                    var window = selector.ShowInPopup(rect);
-                    window.OnClose += selector.SelectionTree.Selection.ConfirmSelection;
-                    return selector;
-                });
-            
-                GUILayout.Space(4);
-                EditorGUI.BeginDisabledGroup(sceneAsset == null);
-                var pingRect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,  GUILayoutOptions.ExpandWidth(false).Width(18));
-                if (SirenixEditorGUI.IconButton(pingRect, FontAwesomeEditorIcons.LocationCrosshairsSolid))
+                EditorGUI.BeginChangeCheck();
+                var newSceneAsset = (SceneAsset) SirenixEditorFields.UnityObjectField(sceneAsset, typeof(SceneAsset), false);
+                if (EditorGUI.EndChangeCheck())
                 {
-                    EditorGUIUtility.PingObject(sceneAsset);
-                }
-                EditorGUI.EndDisabledGroup();
-            
-                GUILayout.Space(4);
-            
-                var refreshRect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,  GUILayoutOptions.ExpandWidth(false).Width(18));
-                if (SirenixEditorGUI.IconButton(refreshRect, EditorIcons.Refresh))
-                {
-                    Refresh();
+                    ValueEntry.SmartValue = GetSceneString(newSceneAsset);
                 }
             }
-            EditorGUILayout.EndHorizontal();
+            else
+            {
+                EditorGUILayout.TextField(sceneLabel);
+            }
+            SirenixEditorGUI.EndHorizontalPropertyLayout();
         }
+        
+        private OdinSelector<string> CreateSelector(Rect rect)
+        {
+            RefreshAvailableScenes();
+            var isSceneValid = IsSceneValid(ValueEntry.SmartValue, out _, out var sceneLabel);
+            var scenesDropdown = GetScenesDropdown();
+            if (!isSceneValid) scenesDropdown = scenesDropdown.Prepend(sceneLabel);
 
+            var selector = new GenericSelector<string>("Scenes", false, x => x, scenesDropdown);
+            selector.SetSelection(ValueEntry.SmartValue);
+            selector.SelectionTree.DefaultMenuStyle.Height = 22;
+            selector.SelectionTree.Config.DrawSearchToolbar = true;
+            selector.SelectionTree.Config.AutoFocusSearchBar = true;
+            selector.SelectionTree.EnumerateTree().AddThumbnailIcons(true);
+            selector.SelectionConfirmed += selection =>
+            {
+                var selected = selection.FirstOrDefault();
+                if (!isSceneValid && string.IsNullOrEmpty(selected))
+                    return;
+
+                ValueEntry.SmartValue = selected;
+            };
+            var window = selector.ShowInPopup(rect);
+            window.OnClose += selector.SelectionTree.Selection.ConfirmSelection;
+            return selector;
+        }
+        
         private IEnumerable<string> GetScenesDropdown()
         {
             switch (Attribute.ReferenceType)
             {
                 case SceneReferenceType.Path:
-                    return _allScenes.Select(AssetDatabase.GetAssetPath).Prepend(string.Empty);
+                    return _availableScenes.Select(AssetDatabase.GetAssetPath).Prepend(string.Empty);
                 case SceneReferenceType.Name:
-                    return _allScenes.Select(scene => scene.name).Prepend(string.Empty);
+                    return _availableScenes.Select(scene => scene.name).Prepend(string.Empty);
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
-
-        private SceneAsset GetSceneAsset(string scene, SceneReferenceType sceneReferenceType)
+        
+        private string GetSceneString(SceneAsset sceneAsset)
         {
-            foreach (var sceneAsset in _allScenes)
+            if (sceneAsset == null) 
+                return string.Empty;
+            
+            return Attribute.ReferenceType switch
             {
-                if(sceneAsset == null) continue;
-                switch (sceneReferenceType)
+                SceneReferenceType.Path => AssetDatabase.GetAssetPath(sceneAsset),
+                SceneReferenceType.Name => sceneAsset.name,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+        
+        private SceneAsset GetSceneAsset(string scene)
+        {
+            foreach (var sceneAsset in _availableScenes)
+            {
+                if (sceneAsset == null) continue;
+                switch (Attribute.ReferenceType)
                 {
                     case SceneReferenceType.Path:
                         if (AssetDatabase.GetAssetPath(sceneAsset) == scene) return sceneAsset;

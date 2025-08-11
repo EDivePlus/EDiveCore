@@ -10,6 +10,12 @@ namespace EDIVE.OdinExtensions.Attributes
 
         public bool OnlyBuildScenes { get; set; }
 
+        public SceneReferenceAttribute()
+        {
+            ReferenceType = SceneReferenceType.Path;
+            OnlyBuildScenes = false;
+        }
+        
         public SceneReferenceAttribute(SceneReferenceType referenceType, bool onlyBuildScenes = false)
         {
             ReferenceType = referenceType;
