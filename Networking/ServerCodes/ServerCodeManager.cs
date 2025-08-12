@@ -15,7 +15,6 @@ using EDIVE.Core;
 using EDIVE.OdinExtensions.Attributes;
 using FishNet;
 using FishNet.Transporting;
-using FishNet.Transporting.Tugboat;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
@@ -38,6 +37,7 @@ namespace EDIVE.Networking.ServerCodes
         private const string CODE_CHARS = "AB0123456789";
         private const float REFRESH_TIME = 10;
         private static readonly HttpClient CLIENT = new();
+        private List<int> _startedTransports = new();
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -50,17 +50,20 @@ namespace EDIVE.Networking.ServerCodes
         
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
-            // Only for tugboat transport
-            if (InstanceFinder.TransportManager.GetTransport(args.TransportIndex) is not Tugboat)
-                return;
-            
+            // Connection can change for each transport, so we need to track them
             if (args.ConnectionState == LocalConnectionState.Started)
             {
-                RegisterServerByCode();
+                var wasStarted = _startedTransports.Count != 0;
+                _startedTransports.Add(args.TransportIndex);
+                if (!wasStarted) 
+                    RegisterServerByCode();
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped)
             {
-                DisposeServer();
+                
+                _startedTransports.Remove(args.TransportIndex);
+                if(_startedTransports.Count == 0)
+                    DisposeServer();
             }
         }
         
