@@ -1,8 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 23.04.2025
 
-#if MIRROR
-using EDIVE.MirrorNetworking.Players;
+using EDIVE.Networking.Players;
 using UnityEngine;
 
 namespace EDIVE.VoiceChat
@@ -14,9 +13,7 @@ namespace EDIVE.VoiceChat
 
         [SerializeField]
         private Transform _PeerRoot;
-
-        public int ConnectionID => _PlayerController.ConnectionID;
+        
         public Transform PeerRoot => _PeerRoot;
     }
 }
-#endif
