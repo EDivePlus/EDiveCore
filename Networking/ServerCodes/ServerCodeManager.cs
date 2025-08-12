@@ -50,16 +50,24 @@ namespace EDIVE.Networking.ServerCodes
         
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
-            if (args.ConnectionState == LocalConnectionState.Starting)
+            // Only for tugboat transport
+            if (InstanceFinder.TransportManager.GetTransport(args.TransportIndex) is not Tugboat)
+                return;
+            
+            if (args.ConnectionState == LocalConnectionState.Started)
             {
-                
+                RegisterServerByCode();
+            }
+            else if (args.ConnectionState == LocalConnectionState.Stopped)
+            {
+                DisposeServer();
             }
         }
         
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
-            //dependencies.Add(typeof(MasterNetworkManager));
+            dependencies.Add(typeof(MasterNetworkManager));
         }
 
         protected override void OnDestroy()
