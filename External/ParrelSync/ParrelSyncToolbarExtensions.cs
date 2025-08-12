@@ -60,7 +60,13 @@ namespace EDIVE.External.ParrelSync
             {
                 _ProjectCloneRecords = ParrelSyncUtility.CloneRecords.Select(r => new DropdownProjectRecord(r)).ToList();
             }
-
+            
+            [Button]
+            private void OpenManager()
+            {
+                EnhancedClonesManagerWindow.OpenWindow();
+            }
+            
             [Serializable]
             private class DropdownProjectRecord
             {

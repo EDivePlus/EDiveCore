@@ -49,7 +49,7 @@ namespace EDIVE.External.ParrelSync
         private bool IsClone => ClonesManager.IsClone();
 
         [MenuItem("ParrelSync/Enhanced Clones Manager", priority = -100)]
-        private static void InitWindow()
+        public static void OpenWindow()
         {
             var window = GetWindow<EnhancedClonesManagerWindow>();
             window.titleContent = new GUIContent("Clones Manager");
