@@ -44,19 +44,19 @@ namespace Adrenak.UniVoice.Networks
             if (_networkManager)
             {
                 _networkManager.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
+                _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
                 _networkManager.ClientManager.OnRemoteConnectionState -= OnRemoteConnectionStateChanged;
                 _networkManager.ClientManager.UnregisterBroadcast<FishNetMessage>(OnReceivedMessage);
             }
             PeerIDs.Clear();
         }
         
-        private void OnClientAuthenticated()
-        {
-            Debug.Log(_networkManager.ClientManager.Connection.ClientId);
-        }
-        
         private void OnRemoteConnectionStateChanged(RemoteConnectionStateArgs args)
         {
+            // Don't process connection state changes before the client is authenticated
+            if (_networkManager.ClientManager.Connection.ClientId < 0)
+                return;
+            
             if (args.ConnectionState == RemoteConnectionState.Started)
             {
                 var newPeerID = args.ConnectionId;
@@ -86,32 +86,35 @@ namespace Adrenak.UniVoice.Networks
             }
         }
         
+        private void OnClientAuthenticated()
+        {
+            ID = _networkManager.ClientManager.Connection.ClientId;
+            PeerIDs = _networkManager.ClientManager.Clients.Keys.Where(x => x != ID).ToList();
+            
+            var log = $"Initialized with ID {ID}. ";
+            if (PeerIDs.Count > 0)
+                log += $"Peer list: {string.Join(", ", PeerIDs)}";
+            else
+                log += "There are currently no peers.";
+            Debug.unityLogger.Log(LogType.Log, TAG, log);
+            
+            OnJoined?.Invoke(ID, PeerIDs);
+            foreach (var peerId in PeerIDs)
+                OnPeerJoined?.Invoke(peerId);
+        }
+        
         private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
         {
-            if (args.ConnectionState == LocalConnectionState.Started)
+            if (args.ConnectionState == LocalConnectionState.Stopped)
             {
-                ID = _networkManager.ClientManager.Connection.ClientId;
-                var log = $"Initialized with ID {ID}. ";
-                Debug.unityLogger.Log(LogType.Log, TAG, log);
-
-                OnJoined?.Invoke(ID, PeerIDs);
+                YourVoiceSettings = new VoiceSettings();
+                var oldPeerIds = PeerIDs.ToList();
+                PeerIDs.Clear();
+                ID = -1;
+                foreach (var peerId in oldPeerIds)
+                    OnPeerLeft?.Invoke(peerId);
+                OnLeft?.Invoke();
             }
-            else if (args.ConnectionState == LocalConnectionState.Stopped)
-            {
-                //_networkManager.ClientManager.UnregisterBroadcast<FishNetMessage>(OnReceivedMessage);
-                OnClientDisconnected();
-            }
-        }
-
-        private void OnClientDisconnected()
-        {
-            YourVoiceSettings = new VoiceSettings();
-            var oldPeerIds = PeerIDs;
-            PeerIDs.Clear();
-            ID = -1;
-            foreach (var peerId in oldPeerIds)
-                OnPeerLeft?.Invoke(peerId);
-            OnLeft?.Invoke();
         }
 
         private void OnReceivedMessage(FishNetMessage msg, Channel channel)
