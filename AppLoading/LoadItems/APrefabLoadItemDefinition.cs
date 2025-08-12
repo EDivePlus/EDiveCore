@@ -29,7 +29,7 @@ namespace EDIVE.AppLoading.LoadItems
             var instance = await CreateInstance();
             if (instance == null)
             {
-                Debug.LogError($"Load item '{name}' instance is null", this);
+                DebugLite.LogError($"Load item '{name}' instance is null", this);
                 return;
             }
 

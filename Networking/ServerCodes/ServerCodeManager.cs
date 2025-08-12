@@ -110,7 +110,7 @@ namespace EDIVE.Networking.ServerCodes
 
         private void RegisterServerByCode_Callback(ServerRegisterResponse.Data response)
         {
-            Debug.Log($"Server registered with code {response.code}");
+            DebugLite.Log($"[ServerCodeManager] Server registered with code {response.code}");
 
             RegisteredWithCode = response.code;
             _serverSecret = response.secret;
@@ -125,7 +125,7 @@ namespace EDIVE.Networking.ServerCodes
             {
                 await AppCore.AwaitLoaded();
                 await UniTask.Delay(TimeSpan.FromSeconds(1));
-                Debug.Log($"The server code is {RegisteredWithCode}");
+                DebugLite.Log($"[ServerCodeManager] The server code is {RegisteredWithCode}");
             });
         }
 

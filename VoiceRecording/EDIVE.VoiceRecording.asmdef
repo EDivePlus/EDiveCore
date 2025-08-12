@@ -10,7 +10,8 @@
         "EDIVE.OdinExtensions",
         "UniTask",
         "Unity.TextMeshPro",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "EDIVE.NativeUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

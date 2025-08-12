@@ -58,14 +58,14 @@ namespace EDIVE.VoiceRecording
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            Debug.Log("Loading VoiceRecordingManager.");
+            DebugLite.Log("[VoiceRecordingManager] Loading...");
 
             _voiceChatManager = AppCore.Services.Get<AVoiceChatManager>();
 
             // microphone set-up
             if (Microphone.devices.Length == 0)
             {
-                Debug.LogError("No microphone found!");
+                DebugLite.LogError("[VoiceRecordingManager] No microphone found!");
             }
             else
             {
@@ -75,7 +75,7 @@ namespace EDIVE.VoiceRecording
             }
 
             AppCore.Services.Register(this);
-            Debug.Log("Loaded VoiceRecordingManager.");
+            DebugLite.Log("[VoiceRecordingManager] Loaded");
             return UniTask.CompletedTask;
         }
 
@@ -91,11 +91,11 @@ namespace EDIVE.VoiceRecording
         [Button]
         public void StartVoiceRecording()
         {
-            Debug.Log("Starting voice recording.");
+            DebugLite.Log("[VoiceRecordingManager] Starting voice recording.");
             Recording = true;
             _recordingStartTime = UnityEngine.Time.time;
 
-            Debug.Log("Starting microphone.");
+            DebugLite.Log("[VoiceRecordingManager]Starting microphone.");
             _micRecording = Microphone.Start(null, true, (int) MaxClipDuration.TotalSeconds * _MicrophoneBufferSize, _Frequency);
 
             // Todo End voice recording after max duration
@@ -106,13 +106,13 @@ namespace EDIVE.VoiceRecording
             _mutedPreviously = _voiceChatManager.IsMicMuted();
             _voiceChatManager.SetMicMuted(Recording);
             RecordingStateChanged.Dispatch(Recording);
-            Debug.Log("Voice recording started.");
+            DebugLite.Log("[VoiceRecordingManager] Voice recording started.");
         }
 
         [Button]
         public void EndVoiceRecording()
         {
-            Debug.Log("Ending voice recording.");
+            DebugLite.Log("[VoiceRecordingManager] Ending voice recording.");
 
             // end recording
             Recording = false;
@@ -122,12 +122,12 @@ namespace EDIVE.VoiceRecording
             // unmute player unless they were muted before the recording
             _voiceChatManager.SetMicMuted(_mutedPreviously);
             RecordingStateChanged.Dispatch(Recording);
-            Debug.Log("Voice recording ended.");
+            DebugLite.Log("[VoiceRecordingManager] Voice recording ended.");
         }
 
         private void SaveVoiceRecording(AudioClip currRecording)
         {
-            Debug.Log("Saving voice recording.");
+            DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
 
             // Specific name of the recording - makes sure recording names are unique by adding the time they were created
             string name = "/VoiceRecording_" + System.DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");

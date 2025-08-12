@@ -137,7 +137,7 @@ namespace EDIVE.Networking.Players
                 profile = PlayerProfile
             };
             _networkManager.ClientManager.Broadcast(playerCreationRequest);
-            Debug.Log("Sending request for player creation.");
+            DebugLite.Log($"[NetworkPlayerManager] Sending request for player creation.");
         }
         
         private void OnServerPlayerCreationRequest(NetworkConnection conn, PlayerCreationRequestMessage request, Channel channel)
@@ -154,7 +154,7 @@ namespace EDIVE.Networking.Players
             playerController.ApplyProfile(request.profile);
             _currentPlayers.Add(playerController);
             
-            Debug.Log($"Instantiated a new player for ID:'{conn.ClientId}'");
+            DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
         }
 
         private PlayerProfile CreatePlayerProfile()

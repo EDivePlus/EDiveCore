@@ -111,7 +111,7 @@ namespace EDIVE.AppLoading.LoadItems
             }
             else
             {
-                Debug.LogError($"Load item '{name}' isn't valid!");
+                DebugLite.LogError($"Load item '{name}' isn't valid!");
             }
 
             _fakeLoadingTimeTweener?.Kill();
@@ -161,7 +161,7 @@ namespace EDIVE.AppLoading.LoadItems
         {
             if (SortingPreparedGroup is null)
             {
-                Debug.LogError($"Load item '{name} has no prepared sorting group, is it assigned to a group?']");
+                DebugLite.LogError($"Load item '{name} has no prepared sorting group, is it assigned to a group?']");
                 return Dependencies;
             }
 
