@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading;
 using EDIVE.Avatars;
+using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing;
-using FishNet.Object.Synchronizing;
 using FishNet.Transporting;
 using UnityEngine;
 using Channel = FishNet.Transporting.Channel;
@@ -21,7 +22,7 @@ namespace EDIVE.Networking.Players
     /// But right now it is kind of overlapping with the functionallity in the UVRN_Player class
     /// so it could use a bit of refactor and cleanup.
     /// </summary>
-    public class NetworkPlayerManager : ALoadableNetworkServiceBehaviour<NetworkPlayerManager>
+    public class NetworkPlayerManager : ALoadableServiceBehaviour<NetworkPlayerManager>
     {
         [SerializeField]
         private NetworkPlayerController _PlayerPrefab;
@@ -46,7 +47,8 @@ namespace EDIVE.Networking.Players
         public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
 
         public NetworkPlayerController LocalPlayer { get; private set; }
-        private readonly SyncHashSet<NetworkPlayerController> _currentPlayers = new();
+        private List<NetworkPlayerController> _currentPlayers = new();
+        private List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -59,7 +61,28 @@ namespace EDIVE.Networking.Players
             _networkManager.ServerManager.RegisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
             return UniTask.CompletedTask;
         }
-        
+
+        public void RegisterPlayer(NetworkPlayerController player)
+        {
+            if (player.IsOwner)
+                LocalPlayer = player;
+
+            if (_currentPlayers.Contains(player))
+                return;
+            
+            _currentPlayers.Add(player);
+            if (_playerRequests.TryGetFirst(p => p.id == player.OwnerId, out var request))
+            {
+                request.promise.Dispatch(player);
+                _playerRequests.Remove(request);
+            }
+        }
+
+        public void UnregisterPlayer(NetworkPlayerController player)
+        {
+            _currentPlayers.Remove(player);
+        }
+
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
@@ -75,6 +98,25 @@ namespace EDIVE.Networking.Players
                 _networkManager.ServerManager.OnRemoteConnectionState -= OnServerRemoteConnectionState;
                 _networkManager.ServerManager.UnregisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
             }
+        }
+
+        public async UniTask<NetworkPlayerController> AwaitPlayerController(int clientID)
+        {
+            if (_currentPlayers.TryGetFirst(c => c.OwnerId == clientID, out var playerController))
+                return playerController;
+
+            var promise = new Promise<NetworkPlayerController>();
+            var record = (clientID, promise);
+            _playerRequests.Add(record);
+
+            var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
+            promise.Then(r => completionSource.TrySetResult(r));
+            
+            // wait for player or timeout
+            var timeout = UniTask.Delay(TimeSpan.FromSeconds(3));
+            var result = await UniTask.WhenAny(completionSource.Task, timeout);
+            _playerRequests.Remove(record);
+            return result.result;
         }
         
         private void OnServerRemoteConnectionState(NetworkConnection conn, RemoteConnectionStateArgs args)

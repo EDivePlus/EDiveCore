@@ -3,6 +3,7 @@
 
 using EDIVE.AssetTranslation;
 using EDIVE.Avatars;
+using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -54,8 +55,22 @@ namespace EDIVE.Networking.Players
                 _IKAssigner.InitializeFollow();
                 _IKAssigner.Assign(_avatarInstance);
             }
-
             RefreshGameObjectName();
+        }
+
+        public override void OnStartNetwork()
+        {
+            base.OnStartNetwork();
+            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
+        }
+
+        public override void OnStopNetwork()
+        {
+            base.OnStopNetwork();
+            if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
+            { 
+                playerManager.UnregisterPlayer(this);
+            }
         }
         
         [Server]
