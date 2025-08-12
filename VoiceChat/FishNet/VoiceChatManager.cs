@@ -17,56 +17,56 @@ namespace EDIVE.VoiceChat
 {
     public class VoiceChatManager : AVoiceChatManager
     {
-        private const string TAG = "[UniVoiceVoiceChatManager]";
+        private const string TAG = "[VoiceChatManager]";
         private ClientSession<int> _session;
 
         private NetworkManager _networkManager;
         
         public override bool EnableSpatialAudio
         {
-            get => PlayerPrefs.GetInt("UniVoice_EnableSpatialAudio", 1) > 0;
+            get => PlayerPrefs.GetInt("VoiceChat_EnableSpatialAudio", 1) > 0;
             set
             {
                 if (EnableSpatialAudio == value)
                     return;
-                PlayerPrefs.SetInt("UniVoice_EnableSpatialAudio", value ? 1 : 0);
+                PlayerPrefs.SetInt("VoiceChat_EnableSpatialAudio", value ? 1 : 0);
                 RefreshSpatialAudio();
             }
         }
         
         public override int MicFrameDurationMS
         {
-            get => PlayerPrefs.GetInt("UniVoice_FrameDuration", 60);
+            get => PlayerPrefs.GetInt("VoiceChat_FrameDuration", 60);
             set
             {
                 if (MicFrameDurationMS == value)
                     return;
-                PlayerPrefs.SetInt("UniVoice_FrameDuration", value);
+                PlayerPrefs.SetInt("VoiceChat_FrameDuration", value);
                 ReloadMic();
             }
         }
 
         public override bool AllowMic
         {
-            get => PlayerPrefs.GetInt("UniVoice_AllowMic", 1) > 0;
+            get => PlayerPrefs.GetInt("VoiceChat_AllowMic", 1) > 0;
             set
             {
                 if (AllowMic == value)
                     return;
-                PlayerPrefs.SetInt("UniVoice_AllowMic", value ? 1 : 0);
+                PlayerPrefs.SetInt("VoiceChat_AllowMic", value ? 1 : 0);
                 ReloadMic();
             }
         }
 
         public override int CurrentMicIndex
         {
-            get => PlayerPrefs.GetInt("UniVoice_CurrentMicIndex", 0);
+            get => PlayerPrefs.GetInt("VoiceChat_CurrentMicIndex", 0);
             set
             {
                 if (value == CurrentMicIndex)
                     return;
                 value = Mathf.Clamp(value, 0, Mic.AvailableDevices.Count - 1);
-                PlayerPrefs.SetInt("UniVoice_CurrentMicIndex", value);
+                PlayerPrefs.SetInt("VoiceChat_CurrentMicIndex", value);
                 ReloadMic();
             }
         }
