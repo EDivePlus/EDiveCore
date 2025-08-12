@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace EDIVE.BuildTool
 {
-    [GlobalConfig("Assets/_Project/Settings/Editor/")]
+    [GlobalConfig("Assets/_Shared/Settings/Editor/")]
     public class BuildGlobalSettings : GlobalConfig<BuildGlobalSettings>
     {
         [SerializeField]

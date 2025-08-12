@@ -19,7 +19,7 @@ using Sirenix.OdinInspector.Editor;
 
 namespace EDIVE.AssetTranslation
 {
-    [GlobalConfig("Assets/_Project/Settings/Resources/")]
+    [GlobalConfig("Assets/_Shared/Settings/Resources/")]
     public class AssetTranslationConfig : GlobalConfig<AssetTranslationConfig>
     {
         [EnhancedValidate("ValidateTranslators")]

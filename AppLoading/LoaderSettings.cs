@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace EDIVE.AppLoading
 {
-    [GlobalConfig("Assets/_Project/Settings/")]
+    [GlobalConfig("Assets/_Shared/Settings/")]
     public class LoaderSettings : GlobalConfig<LoaderSettings>
     {
         [SerializeField]
