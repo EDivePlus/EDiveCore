@@ -168,7 +168,16 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
         private async Task AdvertiseServerAsync(CancellationToken cancellationToken)
         {
-            UdpClient udpClient = null;
+            var udpClient = new UdpClient(_Port)
+            {
+                EnableBroadcast = true
+            };
+            cancellationToken.Register(() =>
+            {
+                udpClient?.Close();
+                udpClient = null;
+            });
+            
             try
             {
                 LogInformation("Started advertising server.");
@@ -176,11 +185,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    udpClient ??= new UdpClient(_Port)
-                    {
-                        EnableBroadcast = true
-                    };
-                    
                     var receiveTask = udpClient.ReceiveAsync();
                     var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
                     var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
@@ -196,11 +200,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                             var bytes = SerializeResponse(response);
                             await udpClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
                         }
-                    }
-                    else
-                    {
-                        udpClient.Close();
-                        udpClient = null;
                     }
                 }
                 LogInformation("Stopped advertising server.");
@@ -220,7 +219,11 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
         private async Task SearchForServersAsync(CancellationToken cancellationToken)
         {
-            UdpClient udpClient = null;
+            var udpClient = new UdpClient(0)  
+            {
+                EnableBroadcast = true
+            };
+            cancellationToken.Register(() => udpClient.Close());
             try
             {
                 LogInformation("Started searching for servers.");
@@ -229,58 +232,48 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    udpClient ??= new UdpClient(0)
+                    try
                     {
-                        EnableBroadcast = true
-                    };
-                    
-                    // Send discovery packet
-                    await udpClient.SendAsync(_secretBytes, _secretBytes.Length, broadcastEndPoint);
+                        // Send discovery packet
+                        await udpClient.SendAsync(_secretBytes, _secretBytes.Length, broadcastEndPoint);
 
-                    // Wait for responses within the timeout
-                    var receiveTask = udpClient.ReceiveAsync();
-                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
+                        // Wait for responses within the timeout
+                        var receiveTask = udpClient.ReceiveAsync();
+                        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
 
-                    var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
+                        var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
 
-                    if (completedTask == receiveTask)
-                    {
-                        var result = receiveTask.Result;
-                        try
+                        if (completedTask == receiveTask)
                         {
-                            var response = DeserializeResponse(result.Buffer);
-                            UpdateServerList(result.RemoteEndPoint, response);
+                            var result = receiveTask.Result;
+                            try
+                            {
+                                var response = DeserializeResponse(result.Buffer);
+                                UpdateServerList(result.RemoteEndPoint, response);
+                            }
+                            catch (Exception ex)
+                            {
+                                LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
-                        }
+                        RemoveExpiredServers();
                     }
-                    else
+                    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
                     {
-                        udpClient.Close();
-                        udpClient = null;
+                        Debug.LogException(ex, this);
                     }
-                    RemoveExpiredServers();
                 }
 
                 LogInformation("Stopped searching for servers.");
             }
-            catch (SocketException socketException)
+            catch (Exception ex)
             {
-                if (socketException.SocketErrorCode == SocketError.AddressAlreadyInUse)
-                    LogError($"Unable to search for servers. Port {_Port} is already in use.");
-                else
-                    Debug.LogException(socketException, this);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
+                Debug.LogException(ex, this);
             }
             finally
             {
                 IsSearching = false;
-                udpClient?.Close();
+                udpClient.Close();
             }
         }
 
