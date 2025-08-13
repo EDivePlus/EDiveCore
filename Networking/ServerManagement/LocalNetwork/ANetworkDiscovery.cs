@@ -178,8 +178,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 {
                     udpClient ??= new UdpClient(_Port)
                     {
-                        EnableBroadcast = true,
-                        MulticastLoopback = false
+                        EnableBroadcast = true
                     };
                     
                     var receiveTask = udpClient.ReceiveAsync();
@@ -232,8 +231,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 {
                     udpClient ??= new UdpClient(0)
                     {
-                        EnableBroadcast = true,
-                        MulticastLoopback = false
+                        EnableBroadcast = true
                     };
                     
                     // Send discovery packet
