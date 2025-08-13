@@ -106,7 +106,7 @@ namespace EDIVE.VoiceChat
         {
             // Create a client for this device
             var client = new FishNetClient();
-            Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorClient object");
+            Debug.unityLogger.Log(LogType.Log, TAG, "Created Client object");
             IAudioInput input;
 
             // Question for Oliver:
@@ -242,7 +242,7 @@ namespace EDIVE.VoiceChat
             // We create a server. If this code runs in server mode, MirrorServer will take care
             // or automatically handling all incoming messages.
             var server = new FishNetServer();
-            Debug.unityLogger.Log(LogType.Log, TAG, "Created MirrorServer object");
+            Debug.unityLogger.Log(LogType.Log, TAG, "Created Server object");
 
             // Subscribe to some server events
             server.OnServerStart += () => {
