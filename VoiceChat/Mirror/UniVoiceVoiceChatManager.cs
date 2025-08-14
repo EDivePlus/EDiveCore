@@ -8,10 +8,10 @@ using Adrenak.UniVoice.Networks;
 using Adrenak.UniVoice.Outputs;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
-using EDIVE.MirrorNetworking;
-using EDIVE.MirrorNetworking.Utils;
+using EDIVE.Networking;
+using EDIVE.Networking.Players;
+using EDIVE.Networking.Utils;
 using UnityEngine;
-using UVRN.Player;
 
 namespace EDIVE.VoiceChat
 {
@@ -199,7 +199,7 @@ namespace EDIVE.VoiceChat
                 UniTask.Void(async () =>
                 {
                     var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
-                    var playerController = await playerManager.AwaitPlayerControllerWithConnectionID(id);
+                    var playerController = await playerManager.AwaitPlayerController(id);
 
                     if (playerController == null)
                     {
