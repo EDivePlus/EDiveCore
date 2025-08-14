@@ -12,6 +12,9 @@ namespace EDIVE.Networking.XR
     [RequireComponent(typeof(XRBaseInteractable))]
     public class NetworkXRInteractable : NetworkBehaviour
     {
+        [SerializeField]
+        private bool _RemoveKinematicOnDrop = true;
+        
         private Rigidbody _rigidbody;
         private XRBaseInteractable _interactable;
 
@@ -37,11 +40,15 @@ namespace EDIVE.Networking.XR
 
         private void OnSelectExited(SelectExitEventArgs arg0)
         {
-            //CmdDrop();
+            CmdDrop();
+            if (_rigidbody && _RemoveKinematicOnDrop)
+            {
+                _rigidbody.isKinematic = false;
+            }
         }
-
+        
         [ServerRpc(RequireOwnership = false)]
-        public void CmdPickup(NetworkConnection sender = null)
+        private void CmdPickup(NetworkConnection sender = null)
         {
             ResetInteractableVelocity();
             if (sender.ClientId != Owner.ClientId)
@@ -49,11 +56,11 @@ namespace EDIVE.Networking.XR
                 GiveOwnership(sender);
             }
         }
-
+        
         [ServerRpc(RequireOwnership = false)]
-        public void CmdDrop(NetworkConnection sender = null)
+        private void CmdDrop(NetworkConnection sender = null)
         {
-
+            //RemoveOwnership();
         }
 
         private void ResetInteractableVelocity()
