@@ -24,16 +24,11 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             Servers.Clear();
             AddServers(_NetworkDiscovery.ServerList.Select(s => GetRecord(s.endPoint, s.response)));
         }
-
-        private void OnServerListUpdated(IPEndPoint endPoint, NetworkDiscoveryResponse response)
-        {
-            AddServer(GetRecord(endPoint, response));
-        }
-
+        
         public override void StartSearch()
         {
-            Servers.Clear();
             /*
+            Servers.Clear();
             if (_NetworkDiscovery.IsSearching)
             {
                 _NetworkDiscovery.StopSearchingOrAdvertising();

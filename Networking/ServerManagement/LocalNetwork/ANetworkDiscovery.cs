@@ -15,323 +15,421 @@ using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.LocalNetwork
 {
-    public abstract class ANetworkDiscovery<TResponse> : MonoBehaviour
-    {
-        [SerializeField] 
-        private string _Secret = "default_secret";
+	/// <summary>
+	/// Allows clients to find servers on the local network.
+	/// </summary>
+	public abstract class ANetworkDiscovery<TResponse> : MonoBehaviour
+	{
+		/// <summary>
+		/// The <see cref="FishNet.Managing.NetworkManager"/> to use.
+		/// </summary>
+		private NetworkManager _networkManager;
+		
+		/// <summary>
+		/// The secret to use when advertising or searching for servers.
+		/// </summary>
+		[SerializeField]
+		[Tooltip("Secret to use when advertising or searching for servers.")]
+		private string _Secret;
+		
+		/// <summary>
+		/// Port to use when advertising or searching for servers.
+		/// </summary>
+		[SerializeField]
+		[Tooltip("Port to use when advertising or searching for servers.")]
+		private ushort _Port;
+
+		/// <summary>
+		/// How long (in seconds) to wait for a response when advertising or searching for servers.
+		/// </summary>
+		[SerializeField]
+		[Tooltip("How long (in seconds) to wait for a response when advertising or searching for servers.")]
+		private float _SearchTimeout = 2f;
+
+		[SerializeField] 
+		[Tooltip("How long in seconds before a server is removed if no response is received.")]
+		private float _ServerTimeout = 10f;
+		
+		/// <summary>
+		/// If true, will automatically start advertising or searching for servers when the NetworkManager starts or stops.
+		/// </summary>
+		[SerializeField]
+		private bool _Automatic;
+
+		private readonly Dictionary<IPEndPoint, (TResponse response, float lastSeen)> _serverList = new();
         
-        [SerializeField] 
-        private ushort _Port = 47777;
+		public IEnumerable<(IPEndPoint endPoint, TResponse response)> ServerList => _serverList.Select(s => (s.Key, s.Value.response)).ToList();
         
-        [SerializeField] 
-        private bool _Automatic = true;
-        
-        [SerializeField, Tooltip("How long in seconds to wait for a server response after sending a discovery packet.")]
-        private float _SearchTimeout = 2f;
-        
-        [SerializeField, Tooltip("How long in seconds before a server is removed if no response is received.")]
-        private float _ServerTimeout = 10f;
+		public event Action ServerListUpdated;
+		
+		/// <summary>
+		/// True if the server is being advertised.
+		/// </summary>
+		public bool IsAdvertising { get; private set; }
 
-        private NetworkManager _networkManager;
-        private byte[] _secretBytes;
-        private SynchronizationContext _mainThreadSynchronizationContext;
-        private CancellationTokenSource _cancellationTokenSource;
+		/// <summary>
+		/// True if the client is searching for servers.
+		/// </summary>
+		public bool IsSearching { get; private set; }
 
-        public bool IsAdvertising { get; private set; }
-        public bool IsSearching { get; private set; }
-        
-        private readonly Dictionary<IPEndPoint, (TResponse response, float lastSeen)> _serverList = new();
-        
-        public IEnumerable<(IPEndPoint endPoint, TResponse response)> ServerList
-        {
-            get
-            {
-                lock (_serverList)
-                {
-                    return _serverList.Select(s => (s.Key, s.Value.response)).ToList();
-                }
-            }
-        }
-        
-        public event Action ServerListUpdated;
+		/// <summary>
+		/// How long (in seconds) to wait for a response when advertising or searching for servers.
+		/// </summary>
+		private float SearchTimeout => _SearchTimeout < 1.0f ? 1.0f : _SearchTimeout;
+		
+		/// <summary>
+		/// The synchronizationContext of the main thread.
+		/// </summary>
+		private SynchronizationContext _mainThreadSynchronizationContext;
 
-        private float SearchTimeout => Mathf.Max(1.0f, _SearchTimeout);
+		/// <summary>
+		/// Used to cancel the search or advertising.
+		/// </summary>
+		private CancellationTokenSource _cancellationTokenSource;
 
-        private void Awake()
-        {
-            _networkManager = GetComponentInParent<NetworkManager>();
-            if (_networkManager == null)
-                _networkManager = InstanceFinder.NetworkManager;
+		/// <summary>
+		/// A byte-representation of the secret to use when advertising or searching for servers.
+		/// </summary>
+		private byte[] _secretBytes;
 
-            if (_networkManager == null)
-            {
-                NetworkManagerExtensions.LogWarning($"PlayerSpawner on {gameObject.name} cannot work as NetworkManager wasn't found on this object or within parent objects.");
-                return;
-            }
+		private void Awake()
+		{
+			_networkManager = GetComponentInParent<NetworkManager>();
+			if (_networkManager == null)
+				_networkManager = InstanceFinder.NetworkManager;
 
-            _secretBytes = Encoding.UTF8.GetBytes(_Secret);
-            _mainThreadSynchronizationContext = SynchronizationContext.Current;
-        }
+			if (_networkManager == null)
+			{
+				LogError($"No NetworkManager found for {gameObject.name}.");
+				enabled = false;
+				return;
+			}
+			
+			_secretBytes = Encoding.UTF8.GetBytes(_Secret);
+			_mainThreadSynchronizationContext = SynchronizationContext.Current;
+		}
 
-        private void OnEnable()
-        {
-            if (!_Automatic)
-                return;
+		private void OnEnable()
+		{
+			if (!_Automatic) 
+				return;
 
-            _networkManager.ServerManager.OnServerConnectionState += ServerConnectionStateChangedEventHandler;
-            _networkManager.ClientManager.OnClientConnectionState += ClientConnectionStateChangedEventHandler;
-            
-            if (_networkManager.IsServerStarted) 
-                AdvertiseServer();
+			_networkManager.ServerManager.OnServerConnectionState += ServerConnectionStateChangedEventHandler;
+			_networkManager.ClientManager.OnClientConnectionState += ClientConnectionStateChangedEventHandler;
+			
+			if (_networkManager.IsServerStarted) 
+				AdvertiseServer();
 
-            if (_networkManager.IsOffline) 
-                SearchForServers();
-        }
+			if (_networkManager.IsOffline) 
+				SearchForServers();
+		}
 
-        private void OnDisable() => Shutdown();
-        private void OnDestroy() => Shutdown();
-        private void OnApplicationQuit() => Shutdown();
+		private void OnDisable()
+		{
+			Shutdown();
+		}
 
-        private void Shutdown()
-        {
-            if (_networkManager != null)
-            {
-                _networkManager.ServerManager.OnServerConnectionState -= ServerConnectionStateChangedEventHandler;
-                _networkManager.ClientManager.OnClientConnectionState -= ClientConnectionStateChangedEventHandler;
-            }
+		private void OnDestroy()
+		{
+			Shutdown();
+		}
 
-            StopSearchingOrAdvertising();
-        }
+		private void OnApplicationQuit()
+		{
+			Shutdown();
+		}
 
-        private void ServerConnectionStateChangedEventHandler(ServerConnectionStateArgs args)
-        {
-            if (args.ConnectionState == LocalConnectionState.Started)
-                AdvertiseServer();
-            else if (args.ConnectionState == LocalConnectionState.Stopped)
-                StopSearchingOrAdvertising();
-        }
+		/// <summary>
+		/// Shuts the NetworkDiscovery.
+		/// </summary>
+		private void Shutdown()
+		{
+			if (_networkManager != null)
+			{
+				_networkManager.ServerManager.OnServerConnectionState -= ServerConnectionStateChangedEventHandler;
+				_networkManager.ClientManager.OnClientConnectionState -= ClientConnectionStateChangedEventHandler;
+			}
+			StopSearchingOrAdvertising();
+		}
 
-        private void ClientConnectionStateChangedEventHandler(ClientConnectionStateArgs args)
-        {
-            if (_networkManager.IsServerStarted) return;
+		private void ServerConnectionStateChangedEventHandler(ServerConnectionStateArgs args)
+		{
+			if (args.ConnectionState == LocalConnectionState.Started)
+			{
+				AdvertiseServer();
+			}
+			else if (args.ConnectionState == LocalConnectionState.Stopped)
+			{
+				StopSearchingOrAdvertising();
+			}
+		}
 
-            if (args.ConnectionState == LocalConnectionState.Started)
-                StopSearchingOrAdvertising();
-            else if (args.ConnectionState == LocalConnectionState.Stopped)
-                SearchForServers();
-        }
+		private void ClientConnectionStateChangedEventHandler(ClientConnectionStateArgs args)
+		{
+			if (_networkManager.IsServerStarted) return;
 
-        public void AdvertiseServer()
-        {
-            if (IsAdvertising)
-            {
-                LogWarning("Server is already being advertised.");
-                return;
-            }
-            
-            StopSearchingOrAdvertising(); 
-            _cancellationTokenSource = new CancellationTokenSource();
-            AdvertiseServerAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
-        }
+			if (args.ConnectionState == LocalConnectionState.Started)
+			{
+				StopSearchingOrAdvertising();
+			}
+			else if (args.ConnectionState == LocalConnectionState.Stopped)
+			{
+				SearchForServers();
+			}
+		}
 
-        public void SearchForServers()
-        {
-            if (IsSearching)
-            {
-                LogWarning("Already searching for servers.");
-                return;
-            }
+		/// <summary>
+		/// Advertises the server on the local network.
+		/// </summary>
+		public void AdvertiseServer()
+		{
+			if (IsAdvertising)
+			{
+				LogWarning("Server is already being advertised.");
+				return;
+			}
 
-            StopSearchingOrAdvertising(); 
-            _cancellationTokenSource = new CancellationTokenSource();
-            SearchForServersAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
-        }
+			StopSearchingOrAdvertising(); 
+			_cancellationTokenSource = new CancellationTokenSource();
+			AdvertiseServerAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+		}
 
-        public void StopSearchingOrAdvertising()
-        {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
-        }
+		/// <summary>
+		/// Searches for servers on the local network.
+		/// </summary>
+		public void SearchForServers()
+		{
+			if (IsSearching)
+			{
+				LogWarning("Already searching for servers.");
+				return;
+			}
 
-        private static byte[] SerializeResponse(TResponse response)
-        {
-            var json = JsonConvert.SerializeObject(response);
-            return Encoding.UTF8.GetBytes(json);
-        }
+			StopSearchingOrAdvertising(); 
+			_cancellationTokenSource = new CancellationTokenSource();
+			SearchForServersAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+		}
 
-        private static TResponse DeserializeResponse(byte[] data)
-        {
-            var json = Encoding.UTF8.GetString(data);
-            return JsonConvert.DeserializeObject<TResponse>(json);
-        }
+		/// <summary>
+		/// Stops searching or advertising.
+		/// </summary>
+		public void StopSearchingOrAdvertising()
+		{
+			_cancellationTokenSource?.Cancel();
+			_cancellationTokenSource?.Dispose();
+			_cancellationTokenSource = null;
+		}
 
-        private async Task AdvertiseServerAsync(CancellationToken cancellationToken)
-        {
-            var udpClient = new UdpClient(_Port)
-            {
-                EnableBroadcast = true
-            };
-            cancellationToken.Register(() =>
-            {
-                udpClient?.Close();
-                udpClient = null;
-            });
-            
-            try
-            {
-                LogInformation("Started advertising server.");
-                IsAdvertising = true;
-                
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var receiveTask = udpClient.ReceiveAsync();
-                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
-                    var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
+		private static byte[] SerializeResponse(TResponse response)
+		{
+			var json = JsonConvert.SerializeObject(response);
+			return Encoding.UTF8.GetBytes(json);
+		}
 
-                    if (completedTask == receiveTask)
-                    {
-                        var result = receiveTask.Result;
-                        var receivedSecret = Encoding.UTF8.GetString(result.Buffer);
+		private static TResponse DeserializeResponse(byte[] data)
+		{
+			var json = Encoding.UTF8.GetString(data);
+			return JsonConvert.DeserializeObject<TResponse>(json);
+		}
+		
+		protected abstract TResponse ProcessRequest(IPEndPoint endpoint);
 
-                        if (receivedSecret == _Secret)
-                        {
-                            var response = ProcessRequest(result.RemoteEndPoint);
-                            var bytes = SerializeResponse(response);
-                            await udpClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
-                        }
-                    }
-                }
-                LogInformation("Stopped advertising server.");
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception, this);
-            }
-            finally
-            {
-                IsAdvertising = false;
-                udpClient?.Close();
-            }
-        }
+		
+		/// <summary>
+		/// Advertises the server on the local network.
+		/// </summary>
+		/// <param name="cancellationToken">Used to cancel advertising.</param>
+		private async Task AdvertiseServerAsync(CancellationToken cancellationToken)
+		{
+			UdpClient udpClient = null;
 
-        protected abstract TResponse ProcessRequest(IPEndPoint endpoint);
+			try
+			{
+				LogInformation("Started advertising server.");
+				IsAdvertising = true;
 
-        private async Task SearchForServersAsync(CancellationToken cancellationToken)
-        {
-            var udpClient = new UdpClient(0)  
-            {
-                EnableBroadcast = true
-            };
-            cancellationToken.Register(() => udpClient.Close());
-            try
-            {
-                LogInformation("Started searching for servers.");
-                IsSearching = true;
-                IPEndPoint broadcastEndPoint = new(IPAddress.Broadcast, _Port);
-                
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    try
-                    {
-                        // Send discovery packet
-                        await udpClient.SendAsync(_secretBytes, _secretBytes.Length, broadcastEndPoint);
+				while (!cancellationToken.IsCancellationRequested)
+				{
+					udpClient ??= new UdpClient(_Port);
 
-                        // Wait for responses within the timeout
-                        var receiveTask = udpClient.ReceiveAsync();
-                        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
+					LogInformation("Waiting for request...");
+					var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
+					try
+					{
+						var receiveTask = udpClient.ReceiveAsync();
+						var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
 
-                        var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
+						if (completedTask == receiveTask)
+						{
+							var result = receiveTask.Result;
+							var receivedSecret = Encoding.UTF8.GetString(result.Buffer);
+							if (receivedSecret == _Secret)
+							{
+								LogInformation($"Received request from {result.RemoteEndPoint}.");
+							
+								var response = ProcessRequest(result.RemoteEndPoint);
+								var bytes = SerializeResponse(response);
+								await udpClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
+							}
+							else
+							{
+								LogWarning($"Received invalid request from {result.RemoteEndPoint}.");
+							}
+						}
+						else
+						{
+							LogInformation("Timed out. Retrying...");
+							udpClient.Close();
+							udpClient = null;
+						}
+					}
+					catch (Exception exception)
+					{
+						Debug.LogException(exception, this);
+						udpClient.Close();
+						udpClient = null;
+					}
+					
+					// wait for timeout
+					await timeoutTask;
+				}
 
-                        if (completedTask == receiveTask)
-                        {
-                            var result = receiveTask.Result;
-                            try
-                            {
-                                var response = DeserializeResponse(result.Buffer);
-                                UpdateServerList(result.RemoteEndPoint, response);
-                            }
-                            catch (Exception ex)
-                            {
-                                LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
-                            }
-                        }
-                        RemoveExpiredServers();
-                    }
-                    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
-                    {
-                        Debug.LogException(ex, this);
-                    }
-                }
+				LogInformation("Stopped advertising server.");
+			}
+			catch (Exception exception)
+			{
+				Debug.LogException(exception, this);
+			}
+			finally
+			{
+				IsAdvertising = false;
+				LogInformation("Closing UDP client...");
+				udpClient?.Close();
+			}
+		}
 
-                LogInformation("Stopped searching for servers.");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex, this);
-            }
-            finally
-            {
-                IsSearching = false;
-                udpClient.Close();
-            }
-        }
+		/// <summary>
+		/// Searches for servers on the local network.
+		/// </summary>
+		/// <param name="cancellationToken">Used to cancel searching.</param>
+		private async Task SearchForServersAsync(CancellationToken cancellationToken)
+		{
+			UdpClient udpClient = null;
+			try
+			{
+				LogInformation("Started searching for servers.");
+				IsSearching = true;
+				IPEndPoint broadcastEndPoint = new(IPAddress.Broadcast, _Port);
 
-        private void UpdateServerList(IPEndPoint endpoint, TResponse data)
-        {
-            var changed = false;
-            lock (_serverList)
-            {
-                if (!_serverList.ContainsKey(endpoint) || !EqualityComparer<TResponse>.Default.Equals(_serverList[endpoint].response, data))
-                    changed = true;
+				while (!cancellationToken.IsCancellationRequested)
+				{
+					udpClient ??= new UdpClient();
+					try
+					{
+						LogInformation("Sending request...");
+						await udpClient.SendAsync(_secretBytes, _secretBytes.Length, broadcastEndPoint);
+						
+						LogInformation("Waiting for response...");
+						var receiveTask = udpClient.ReceiveAsync();
+						var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
+						var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
 
-                _serverList[endpoint] = (data, Time.realtimeSinceStartup);
-            }
+						if (completedTask == receiveTask)
+						{
+							var result = receiveTask.Result;
+						
+							try
+							{
+								LogInformation($"Received response from {result.RemoteEndPoint}.");
+								var response = DeserializeResponse(result.Buffer);
+								_mainThreadSynchronizationContext.Post(_ => UpdateServerList(result.RemoteEndPoint, response), null);
+							}
+							catch (Exception ex)
+							{
+								LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
+							}
+						}
+						else
+						{
+							LogInformation("Timed out. Retrying...");
+							udpClient.Close();
+							udpClient = null;
+						}
+						_mainThreadSynchronizationContext.Post(_ => RemoveExpiredServers(), null);
+					}
+					catch (Exception exception)
+					{
+						Debug.LogException(exception, this);
+						udpClient.Close();
+						udpClient = null;
+					}
+				}
+				LogInformation("Stopped searching for servers.");
+			}
+			catch (Exception exception)
+			{
+				Debug.LogException(exception, this);
+			}
+			finally
+			{
+				IsSearching = false;
+				udpClient?.Close();
+			}
+		}
+		
+		private void UpdateServerList(IPEndPoint endpoint, TResponse data)
+		{
+			var changed = !_serverList.ContainsKey(endpoint) || !EqualityComparer<TResponse>.Default.Equals(_serverList[endpoint].response, data);
+			_serverList[endpoint] = (data, Time.realtimeSinceStartup);
+			if (changed)
+				ServerListUpdated?.Invoke();
+		}
+		
+		private void RemoveExpiredServers()
+		{
+			var changed = false;
+			var now = Time.realtimeSinceStartup;
 
-            if (changed)
-                _mainThreadSynchronizationContext.Post(_ => ServerListUpdated?.Invoke(), null);
-        }
+			foreach (var (endpoint, (_, lastSeen)) in _serverList.ToList())
+			{
+				if ((now - lastSeen) > _ServerTimeout)
+				{
+					_serverList.Remove(endpoint);
+					changed = true;
+				}
+			}
+			
+			if (changed)
+				ServerListUpdated?.Invoke();
+		}
+		
 
-        private void RemoveExpiredServers()
-        {
-            bool changed = false;
-            var now = Time.realtimeSinceStartup;
-            lock (_serverList)
-            {
-                var toRemove = new List<IPEndPoint>();
-                foreach (var kvp in _serverList)
-                {
-                    if ((now - kvp.Value.lastSeen) > _ServerTimeout)
-                        toRemove.Add(kvp.Key);
-                }
+		/// <summary>
+		/// Logs a message if the NetworkManager can log.
+		/// </summary>
+		/// <param name="message">Message to log.</param>
+		[System.Diagnostics.Conditional("NET_DISCOVERY_LOGS")]
+		private void LogInformation(string message)
+		{
+			if (NetworkManagerExtensions.CanLog(LoggingType.Common)) Debug.Log($"[{GetType().Name}] {message}", this);
+		}
 
-                foreach (var ep in toRemove)
-                {
-                    _serverList.Remove(ep);
-                    changed = true;
-                }
-            }
+		/// <summary>
+		/// Logs a warning if the NetworkManager can log.
+		/// </summary>
+		/// <param name="message">Message to log.</param>
+		private void LogWarning(string message)
+		{
+			if (NetworkManagerExtensions.CanLog(LoggingType.Warning)) Debug.LogWarning($"[{GetType().Name}] {message}", this);
+		}
 
-            if (changed)
-                _mainThreadSynchronizationContext.Post(_ => ServerListUpdated?.Invoke(), null);
-        }
-
-        private void LogInformation(string message)
-        {
-            if (NetworkManagerExtensions.CanLog(LoggingType.Common))
-                Debug.Log($"[{nameof(ANetworkDiscovery<TResponse>)}] {message}", this);
-        }
-
-        private void LogWarning(string message)
-        {
-            if (NetworkManagerExtensions.CanLog(LoggingType.Warning))
-                Debug.LogWarning($"[{nameof(ANetworkDiscovery<TResponse>)}] {message}", this);
-        }
-
-        private void LogError(string message)
-        {
-            if (NetworkManagerExtensions.CanLog(LoggingType.Error))
-                Debug.LogError($"[{nameof(ANetworkDiscovery<TResponse>)}] {message}", this);
-        }
-    }
+		/// <summary>
+		/// Logs an error if the NetworkManager can log.
+		/// </summary>
+		/// <param name="message">Message to log.</param>
+		private void LogError(string message)
+		{
+			if (NetworkManagerExtensions.CanLog(LoggingType.Error)) Debug.LogError($"[{GetType().Name}] {message}", this);
+		}
+	}
 }
