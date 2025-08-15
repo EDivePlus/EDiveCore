@@ -4,13 +4,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Adrenak.BRW;
 using FishNet;
-using FishNet.Connection;
 using FishNet.Managing;
 using FishNet.Transporting;
 using UnityEngine;
 
 namespace Adrenak.UniVoice.Networks
 {
+    /// <summary>
+    /// This is the implementation of <see cref="IAudioClient{T}"/> interface for FishNet.
+    /// It uses the FishNet to send and receive UniVoice data to the server.
+    /// </summary>
     public class FishNetClient : IAudioClient<int>
     {
         private const string TAG = "[FishNetClient]";
@@ -36,7 +39,7 @@ namespace Adrenak.UniVoice.Networks
             _networkManager.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
             _networkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
             _networkManager.ClientManager.OnRemoteConnectionState += OnRemoteConnectionStateChanged;
-            _networkManager.ClientManager.RegisterBroadcast<FishNetMessage>(OnReceivedMessage);
+            _networkManager.ClientManager.RegisterBroadcast<FishNetBroadcast>(OnReceivedMessage);
         }
         
         public void Dispose()
@@ -46,7 +49,7 @@ namespace Adrenak.UniVoice.Networks
                 _networkManager.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
                 _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
                 _networkManager.ClientManager.OnRemoteConnectionState -= OnRemoteConnectionStateChanged;
-                _networkManager.ClientManager.UnregisterBroadcast<FishNetMessage>(OnReceivedMessage);
+                _networkManager.ClientManager.UnregisterBroadcast<FishNetBroadcast>(OnReceivedMessage);
             }
             PeerIDs.Clear();
         }
@@ -88,6 +91,7 @@ namespace Adrenak.UniVoice.Networks
         
         private void OnClientAuthenticated()
         {
+            // We need to use OnClientAuthenticated to ensure the client does have ClientId set
             ID = _networkManager.ClientManager.Connection.ClientId;
             PeerIDs = _networkManager.ClientManager.Clients.Keys.Where(x => x != ID).ToList();
             
@@ -105,6 +109,7 @@ namespace Adrenak.UniVoice.Networks
         
         private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
         {
+            // We check only for the stopped state here, as the started state is handled in OnClientAuthenticated
             if (args.ConnectionState == LocalConnectionState.Stopped)
             {
                 YourVoiceSettings = new VoiceSettings();
@@ -117,14 +122,14 @@ namespace Adrenak.UniVoice.Networks
             }
         }
 
-        private void OnReceivedMessage(FishNetMessage msg, Channel channel)
+        private void OnReceivedMessage(FishNetBroadcast msg, Channel channel)
         {
             var reader = new BytesReader(msg.data);
             var tag = reader.ReadString();
             switch (tag)
             {
                 // When the server sends audio from a peer meant for this client
-                case FishNetMessageTags.AUDIO_FRAME:
+                case FishNetBroadcastTags.AUDIO_FRAME:
                     var sender = reader.ReadInt();
                     if (sender == ID || !PeerIDs.Contains(sender))
                         return;
@@ -149,14 +154,14 @@ namespace Adrenak.UniVoice.Networks
             if (ID == -1)
                 return;
             var writer = new BytesWriter();
-            writer.WriteString(FishNetMessageTags.AUDIO_FRAME);
+            writer.WriteString(FishNetBroadcastTags.AUDIO_FRAME);
             writer.WriteInt(ID);
             writer.WriteLong(frame.timestamp);
             writer.WriteInt(frame.frequency);
             writer.WriteInt(frame.channelCount);
             writer.WriteByteArray(frame.samples);
 
-            var message = new FishNetMessage
+            var message = new FishNetBroadcast
             {
                 data = writer.Bytes
             };
@@ -168,19 +173,21 @@ namespace Adrenak.UniVoice.Networks
         /// <summary>
         /// Updates the server with the voice settings of this client
         /// </summary>
-        public void SubmitVoiceSettings()
+        public void SubmitVoiceSettings() 
         {
             if (ID == -1)
                 return;
-            
             var writer = new BytesWriter();
-            writer.WriteString(FishNetMessageTags.VOICE_SETTINGS);
+            writer.WriteString(FishNetBroadcastTags.VOICE_SETTINGS);
             writer.WriteInt(YourVoiceSettings.muteAll ? 1 : 0);
             writer.WriteIntArray(YourVoiceSettings.mutedPeers.ToArray());
             writer.WriteInt(YourVoiceSettings.deafenAll ? 1 : 0);
             writer.WriteIntArray(YourVoiceSettings.deafenedPeers.ToArray());
-            var message = new FishNetMessage
-            {
+            writer.WriteString(string.Join(",", YourVoiceSettings.myTags));
+            writer.WriteString(string.Join(",", YourVoiceSettings.mutedTags));
+            writer.WriteString(string.Join(",", YourVoiceSettings.deafenedTags));
+
+            var message = new FishNetBroadcast() {
                 data = writer.Bytes
             };
             _networkManager.ClientManager.Broadcast(message);
