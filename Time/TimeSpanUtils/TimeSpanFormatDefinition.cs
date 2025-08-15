@@ -13,7 +13,7 @@ namespace EDIVE.Time.TimeSpanUtils
     {
         [SerializeField]
         [EnhancedValidate("ValidateFormat", ContinuousValidationCheck = true)]
-        private string _Format = "mm:ss";
+        private string _Format = @"mm\:ss";
 
         public override string Format(TimeSpan timeSpan)
         {
