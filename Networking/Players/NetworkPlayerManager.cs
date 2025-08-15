@@ -5,6 +5,7 @@ using EDIVE.AppLoading;
 using EDIVE.Avatars;
 using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
+using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
 using FishNet;
@@ -139,22 +140,25 @@ namespace EDIVE.Networking.Players
             _networkManager.ClientManager.Broadcast(playerCreationRequest);
             DebugLite.Log($"[NetworkPlayerManager] Sending request for player creation.");
         }
-        
+
         private void OnServerPlayerCreationRequest(NetworkConnection conn, PlayerCreationRequestMessage request, Channel channel)
         {
-            // Todo: resolve spawn point
-            var position = Vector3.zero;
-            var rotation = Quaternion.identity;
+            conn.WhenLoadedStartScenes(() =>
+            {
+                // Todo: resolve spawn point
+                var position = Vector3.zero;
+                var rotation = Quaternion.identity;
 
-            var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
-            _networkManager.ServerManager.Spawn(netObj, conn);
-            _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
+                var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
+                _networkManager.ServerManager.Spawn(netObj, conn);
+                _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
             
-            var playerController = netObj.GetComponent<NetworkPlayerController>();
-            playerController.ApplyProfile(request.profile);
-            _currentPlayers.Add(playerController);
+                var playerController = netObj.GetComponent<NetworkPlayerController>();
+                playerController.ApplyProfile(request.profile);
+                _currentPlayers.Add(playerController);
             
-            DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
+                DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
+            });
         }
 
         private PlayerProfile CreatePlayerProfile()
