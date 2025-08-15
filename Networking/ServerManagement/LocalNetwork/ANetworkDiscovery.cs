@@ -10,6 +10,7 @@ using FishNet;
 using FishNet.Managing;
 using FishNet.Managing.Logging;
 using FishNet.Transporting;
+using FishNet.Transporting.Tugboat;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -20,28 +21,14 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 	/// </summary>
 	public abstract class ANetworkDiscovery<TResponse> : MonoBehaviour
 	{
-		/// <summary>
-		/// The <see cref="FishNet.Managing.NetworkManager"/> to use.
-		/// </summary>
-		private NetworkManager _networkManager;
-		
-		/// <summary>
-		/// The secret to use when advertising or searching for servers.
-		/// </summary>
 		[SerializeField]
 		[Tooltip("Secret to use when advertising or searching for servers.")]
 		private string _Secret;
 		
-		/// <summary>
-		/// Port to use when advertising or searching for servers.
-		/// </summary>
 		[SerializeField]
 		[Tooltip("Port to use when advertising or searching for servers.")]
 		private ushort _Port;
-
-		/// <summary>
-		/// How long (in seconds) to wait for a response when advertising or searching for servers.
-		/// </summary>
+		
 		[SerializeField]
 		[Tooltip("How long (in seconds) to wait for a response when advertising or searching for servers.")]
 		private float _SearchTimeout = 2f;
@@ -50,9 +37,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		[Tooltip("How long in seconds before a server is removed if no response is received.")]
 		private float _ServerTimeout = 10f;
 		
-		/// <summary>
-		/// If true, will automatically start advertising or searching for servers when the NetworkManager starts or stops.
-		/// </summary>
 		[SerializeField]
 		private bool _Automatic;
 
@@ -62,34 +46,14 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         
 		public event Action ServerListUpdated;
 		
-		/// <summary>
-		/// True if the server is being advertised.
-		/// </summary>
 		public bool IsAdvertising { get; private set; }
-
-		/// <summary>
-		/// True if the client is searching for servers.
-		/// </summary>
 		public bool IsSearching { get; private set; }
-
-		/// <summary>
-		/// How long (in seconds) to wait for a response when advertising or searching for servers.
-		/// </summary>
 		private float SearchTimeout => _SearchTimeout < 1.0f ? 1.0f : _SearchTimeout;
 		
-		/// <summary>
-		/// The synchronizationContext of the main thread.
-		/// </summary>
+		private NetworkManager _networkManager;
+		
 		private SynchronizationContext _mainThreadSynchronizationContext;
-
-		/// <summary>
-		/// Used to cancel the search or advertising.
-		/// </summary>
 		private CancellationTokenSource _cancellationTokenSource;
-
-		/// <summary>
-		/// A byte-representation of the secret to use when advertising or searching for servers.
-		/// </summary>
 		private byte[] _secretBytes;
 
 		private void Awake()
@@ -154,6 +118,10 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 		private void ServerConnectionStateChangedEventHandler(ServerConnectionStateArgs args)
 		{
+			var transport = _networkManager.TransportManager.GetTransport(args.TransportIndex);
+			if (transport is not Tugboat)
+				return;
+			
 			if (args.ConnectionState == LocalConnectionState.Started)
 			{
 				AdvertiseServer();
