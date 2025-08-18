@@ -25,17 +25,6 @@ namespace EDIVE.Utils
             return instance;
         }
         
-        public static async UniTask<T> InstantiateInitializeAsync<T>(T prefab, Action<T> initializer, Transform parent = null, CancellationToken cancellationToken = default) where T : Object
-        {
-            var instance = (await Object.InstantiateAsync(prefab, InactiveParent).WithCancellation(cancellationToken))[0];
-            initializer?.Invoke(instance);
-            if (instance.TryGetGameObject(out var instanceGameObject))
-            {
-                instanceGameObject.transform.SetParent(parent);
-            }
-            return instance;
-        }
-        
         [ClearOnReload]
         private static GameObject _inactiveParentObj;
         
