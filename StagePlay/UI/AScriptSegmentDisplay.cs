@@ -3,26 +3,26 @@
 
 using EnhancedUI.EnhancedScroller;
 
-namespace EDIVE.StagePlay.Script.UI
+namespace EDIVE.StagePlay.UI
 {
     public abstract class AScriptSegmentDisplay : EnhancedScrollerCellView
     {
-        public abstract void SetData(AScriptSegment data, StagePlayConfig config);
-    }
-
+        public abstract void SetData(AScriptSegment data);
+    } 
+    
     public abstract class AScriptSegmentDisplay<TData> : AScriptSegmentDisplay where TData : AScriptSegment
     {
         public TData Data { get; private set; }
-
-        public override void SetData(AScriptSegment data, StagePlayConfig config)
+        
+        public sealed override void SetData(AScriptSegment data)
         {
             if (data is not TData typedData)
                 return;
-
-            SetData(typedData, config);
+            
+            SetData(typedData);
         }
 
-        protected virtual void SetData(TData data, StagePlayConfig config)
+        protected virtual void SetData(TData data)
         {
             Data = data;
         }

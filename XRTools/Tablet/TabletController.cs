@@ -1,15 +1,12 @@
 ﻿// Author: František Holubec
 // Created: 26.06.2025
 
-using System;
 using DG.Tweening;
 using EDIVE.Core.Services;
-using EDIVE.ScriptableArchitecture.Variables.Impl;
+using EDIVE.Utils.Activations;
 using EDIVE.XRTools.Keyboard;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
 namespace EDIVE.XRTools.Tablet
 {
@@ -28,17 +25,11 @@ namespace EDIVE.XRTools.Tablet
         private Canvas _DebugLayer;
 
         [SerializeField]
-        private TransformScriptableVariable _CameraTransformVariable;
+        private SmoothCameraFollower _CameraFollower;
 
-        [SerializeField]
-        private bool _RepositionOnStart = true;
-
-        [SerializeField]
-        private InputActionReference _RepositionAction;
-
-        [SerializeField]
-        private Vector3 _PositionOffset;
-
+        [SerializeReference]
+        private IActivation _RepositionAction;
+        
         [SerializeField]
         [Range(0, 1)]
         private float _FacingThreshold = 0.3f;
@@ -58,10 +49,6 @@ namespace EDIVE.XRTools.Tablet
         public Canvas OverlayLayer => _OverlayLayer;
         public Canvas DebugLayer => _DebugLayer;
 
-        private Transform CameraTransform => _CameraTransformVariable != null && _CameraTransformVariable.Value != null
-            ? _CameraTransformVariable.Value
-            : Camera.main?.transform;
-
         [ShowInInspector]
         public bool IsInView => CheckInView();
 
@@ -78,26 +65,13 @@ namespace EDIVE.XRTools.Tablet
         protected void Awake()
         {
             _isOpen = true;
-            if (_RepositionAction)
-                _RepositionAction.action.performed += OnRepositionPerformed;
-        }
-
-        private void Start()
-        {
-            if (_RepositionOnStart)
-                RepositionTablet();
+            _RepositionAction?.RegisterActivationListener(ToggleTablet);
         }
 
         protected void OnDestroy()
         {
-            if (_RepositionAction)
-                _RepositionAction.action.performed -= OnRepositionPerformed;
+            _RepositionAction?.UnregisterActivationListener(ToggleTablet);
             _animTween?.Kill();
-        }
-
-        private void OnRepositionPerformed(InputAction.CallbackContext context)
-        {
-            ToggleTablet();
         }
 
         [Button]
@@ -119,44 +93,26 @@ namespace EDIVE.XRTools.Tablet
         public void RepositionTablet()
         {
             SetOpen(true);
+            if (_CameraFollower != null) 
+                _CameraFollower.Reposition();
         }
 
         public void SetOpen(bool open)
         {
             _animTween?.Kill();
             _isOpen = open;
+            
+            if (_CameraFollower != null)
+                _CameraFollower.Reposition();
+            
             var newScale = open ? Vector3.one : Vector3.zero;
-
-            var sequence = DOTween.Sequence();
-            sequence.Append(transform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad));
-
-            if (open)
-            {
-                var target = CameraTransform;
-                if (target == null)
-                    return;
-
-                var newPosition = target.position +
-                                  target.right * _PositionOffset.x +
-                                  target.forward * _PositionOffset.z +
-                                  Vector3.up * _PositionOffset.y;
-
-                var forward = (newPosition - target.position).normalized;
-                BurstMathUtility.OrthogonalLookRotation(forward, Vector3.up, out var newRotation);
-
-                sequence.Join(transform.DOMove(newPosition, _TweenDuration).SetEase(Ease.InOutQuad));
-                sequence.Join(transform.DORotateQuaternion(newRotation, _TweenDuration).SetEase(Ease.InOutQuad));
-            }
-            _animTween = sequence;
+            _animTween = transform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
         }
 
         private bool CheckInView()
         {
-            var target = CameraTransform;
-            if (target == null)
-                return false;
-
-            return XRUtils.IsTargetInView(target, transform, _MaxDistance, _FacingThreshold, _FacingThreshold);
+            var target = _CameraFollower.CameraTransform;
+            return target != null && XRUtils.IsTargetInView(target, transform, _MaxDistance, _FacingThreshold, _FacingThreshold);
         }
     }
 }

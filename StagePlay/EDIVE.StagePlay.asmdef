@@ -2,12 +2,19 @@
   "name": "EDIVE.StagePlay",
   "rootNamespace": "",
   "references": [
+    "UniTask",
+    "EnhancedScroller",
+    "Unity.TextMeshPro",
+    "Unity.XR.Interaction.Toolkit",
     "EDIVE.OdinExtensions",
     "EDIVE.NativeUtils",
-    "EnhancedScroller",
-    "EDIVE.Localization",
-    "Unity.Localization",
-    "Unity.TextMeshPro"
+    "EDIVE.AppLoading",
+    "EDIVE.Core",
+    "EDIVE.Utils.Json",
+    "EDIVE.VisualPresets",
+    "EDIVE.ScriptableArchitecture",
+    "EDIVE.XRTools",
+    "EDIVE.Utils"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -15,15 +22,7 @@
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": [
-    "UNITY_LOCALIZATION"
-  ],
-  "versionDefines": [
-    {
-      "name": "com.unity.localization",
-      "expression": "",
-      "define": "UNITY_LOCALIZATION"
-    }
-  ],
+  "defineConstraints": [],
+  "versionDefines": [],
   "noEngineReferences": false
 }
