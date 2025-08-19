@@ -18,7 +18,9 @@ namespace EDIVE.Utils
         {
             var instance = Object.Instantiate(prefab, InactiveParent);
             initializer?.Invoke(instance);
-            if (instance.TryGetGameObject(out var instanceGameObject))
+            
+            // Reparent if the instance wasn't moved already
+            if (instance.TryGetGameObject(out var instanceGameObject) && instanceGameObject.transform.parent == InactiveParent)
             {
                 instanceGameObject.transform.SetParent(parent);
             }
