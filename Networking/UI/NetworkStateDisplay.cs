@@ -12,11 +12,11 @@ namespace EDIVE.Networking.UI
     public class NetworkStateDisplay : MonoBehaviour
     {
         [SerializeField]
-        [ValidateMultiStateWithEnum(typeof(ConnectionState))]
+        [ValidateMultiState(typeof(ConnectionState))]
         private AMultiState _ConnectionState;
 
         [SerializeField]
-        [ValidateMultiStateWithEnum(typeof(NetworkRuntimeMode))]
+        [ValidateMultiState(typeof(NetworkRuntimeMode))]
         private AMultiState _RuntimeModeState;
 
         [SerializeField]

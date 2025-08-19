@@ -34,12 +34,12 @@ namespace EDIVE.XRTools.Keyboard
 
         [ShowIf(nameof(_KeyType), KeyType.Shift)]
         [SerializeField]
-        [ValidateMultiStateWithEnum(typeof(ShiftState))]
+        [ValidateMultiState(typeof(ShiftState))]
         private AMultiState _ShiftState;
 
         [ShowIf(nameof(_KeyType), KeyType.Layout)]
         [SerializeField]
-        [ValidateMultiStateWithEnum(typeof(KeyboardLayout))]
+        [ValidateMultiState(typeof(KeyboardLayout))]
         private AMultiState _LayoutState;
 
         public KeyboardController Keyboard { get; private set; }

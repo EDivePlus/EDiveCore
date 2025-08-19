@@ -16,7 +16,7 @@ namespace EDIVE.XRTools.Keyboard
         private bool _CloseOnSubmit = true;
 
         [SerializeField]
-        [ValidateMultiStateWithEnum(typeof(KeyboardLayout))]
+        [ValidateMultiState(typeof(KeyboardLayout))]
         private AMultiState _LayoutState;
 
         public TMP_InputField CurrentInputField
