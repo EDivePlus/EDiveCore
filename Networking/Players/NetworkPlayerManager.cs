@@ -48,8 +48,8 @@ namespace EDIVE.Networking.Players
         public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
 
         public NetworkPlayerController LocalPlayer { get; private set; }
-        private List<NetworkPlayerController> _currentPlayers = new();
-        private List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
+        private readonly List<NetworkPlayerController> _currentPlayers = new();
+        private readonly List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -65,7 +65,7 @@ namespace EDIVE.Networking.Players
 
         public void RegisterPlayer(NetworkPlayerController player)
         {
-            if (player.IsOwner)
+            if (player.IsOwner) 
                 LocalPlayer = player;
 
             if (_currentPlayers.Contains(player))

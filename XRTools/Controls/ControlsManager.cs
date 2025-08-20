@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using EDIVE.Core.Services;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -13,10 +14,10 @@ namespace EDIVE.XRTools.Controls
     public class ControlsManager : AServiceBehaviour<ControlsManager>
     {
         [SerializeField]
-        private GameObject _DesktopControls;
+        private AControls _DesktopControls;
 
         [SerializeField]
-        private GameObject _HeadsetControls;
+        private AControls _HeadsetControls;
 
         [PropertySpace]
         [SerializeField]
@@ -27,14 +28,33 @@ namespace EDIVE.XRTools.Controls
 
         public XRInteractionManager InteractionManager => _InteractionManager;
         public TeleportationProvider TeleportationProvider => _TeleportationProvider;
+        
+        private AControls _currentControls;
+        private IEnumerable<AControls> AllControls
+        {
+            get
+            {
+                yield return _DesktopControls;
+                yield return _HeadsetControls;
+            }
+        }
 
         protected override void Awake()
         {
             base.Awake();
-            if (_DesktopControls)
-                _DesktopControls.SetActive(!XRUtils.XREnabled);
-            if (_HeadsetControls)
-                _HeadsetControls.SetActive(XRUtils.XREnabled);
+            _currentControls = XRUtils.XREnabled ? _HeadsetControls : _DesktopControls;
+            foreach (var controls in AllControls)
+            {
+                controls.SetActive(controls == _currentControls);
+            }
+        }
+
+        public void RequestTeleport(Vector3 position, Quaternion rotation)
+        {
+            if (_currentControls)
+            {
+                _currentControls.RequestTeleport(position, rotation);
+            }
         }
 
 #if UNITY_EDITOR
