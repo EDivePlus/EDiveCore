@@ -33,8 +33,8 @@ namespace EDIVE.Networking.Scenes
         private string _OnlineScene;
         
         private NetworkManager _networkManager;
-        private HashSet<Scene> _loadedScenes = new();
-
+        private readonly List<Scene> _loadedScenes = new();
+        
         private void OnEnable()
         {
             _networkManager = InstanceFinder.NetworkManager;
@@ -63,9 +63,23 @@ namespace EDIVE.Networking.Scenes
             }
         }
         
+        public void LoadScene()
+        {
+            var lookup = new SceneLookupData(GetSceneName(_OnlineScene));
+            SceneLoadData data = new(lookup);
+            _networkManager.SceneManager.LoadGlobalScenes(data);
+        }
         private void OnSceneLoadEnd(SceneLoadEndEventArgs args)
         {
+            // Cache newly loaded scenes, clear invalid ones
             _loadedScenes.AddRange(args.LoadedScenes);
+            for (var i = _loadedScenes.Count - 1; i >= 0; i--)
+            {
+                var scene = _loadedScenes[i];
+                if (!scene.IsValid() || !scene.isLoaded) 
+                    _loadedScenes.RemoveAt(i);
+            }
+            
             if (args.LoadedScenes.TryGetFirst(s => s.name == GetSceneName(_OnlineScene), out var onlineScene))
             {
                 UnloadOfflineScene();
@@ -76,7 +90,6 @@ namespace EDIVE.Networking.Scenes
                 UnloadOfflineScene();
             }
         }
-
         
         private void OnServerConnectionState(ServerConnectionStateArgs obj)
         {
