@@ -7,30 +7,30 @@ namespace EDIVE.External.ToolbarExtensions
     {
         public static readonly GUIStyle ToolbarButton = new(EditorStyles.toolbarButton)
         {
-            fixedHeight = 18,
+            fixedHeight = 20,
             padding = new RectOffset(2,2,2,2)
         };
 
         public static readonly GUIStyle ToolbarButtonBiggerIcon = new(EditorStyles.toolbarButton)
         {
-            fixedHeight = 18,
+            fixedHeight = 20,
             padding = new RectOffset(1,1,1,1)
         };
 
         public static readonly GUIStyle ToolbarDropdown = new(EditorStyles.toolbarPopup)
         {
-            fixedHeight = 18,
+            fixedHeight = 20,
             padding = new RectOffset(5,5,2,2)
         };
         public static readonly GUIStyle ToolbarLabelButton = new(EditorStyles.toolbarButton)
         {
-            fixedHeight = 18,
+            fixedHeight = 20,
             padding = new RectOffset(5,5,2,2)
         };
 
         public static readonly GUIStyle Toolbar = new(EditorStyles.toolbar)
         {
-            fixedHeight = 18,
+            fixedHeight = 20,
             padding = new RectOffset(1,1,1,1)
         };
     }

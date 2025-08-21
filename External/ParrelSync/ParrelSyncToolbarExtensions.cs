@@ -41,7 +41,7 @@ namespace EDIVE.External.ParrelSync
                 if (GUILayout.Button(buttonLabel, ToolbarStyles.ToolbarDropdown, GUILayout.ExpandWidth(false)))
                 {
                     var dropdown = new ParrelSyncToolbarDropdown();
-                    OdinEditorWindow.InspectObjectInDropDown(dropdown, new Vector2(0, 18), 420);
+                    OdinEditorWindow.InspectObjectInDropDown(dropdown, new Vector2(0, 20), 420);
                 }
             }
 

@@ -22,7 +22,7 @@ namespace EDIVE.Networking.Utils
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
             EditorGUILayout.BeginVertical(GUILayout.Width(70));
             EditorGUI.BeginChangeCheck();
-            var newMode = EnumSelector<NetworkRuntimeMode>.DrawEnumField(null, NetworkUtils.EditorRuntimeMode);
+            var newMode = EnumSelector<NetworkRuntimeMode>.DrawEnumField(null, NetworkUtils.EditorRuntimeMode, ToolbarStyles.ToolbarDropdown);
             if (EditorGUI.EndChangeCheck())
             {
                 NetworkUtils.EditorRuntimeMode = newMode;
