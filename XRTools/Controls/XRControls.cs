@@ -11,12 +11,13 @@ namespace EDIVE.XRTools.Controls
         [SerializeField]
         private TeleportationProvider _TeleportationProvider;
         
-        public override void RequestTeleport(Vector3 position, Quaternion rotation)
+        public override void RequestTeleport(Vector3 position, Quaternion? rotation = null)
         {
             _TeleportationProvider.QueueTeleportRequest(new TeleportRequest
             {
                 destinationPosition = position,
-                destinationRotation = rotation
+                destinationRotation = rotation ?? Quaternion.identity,
+                matchOrientation = rotation.HasValue ? MatchOrientation.WorldSpaceUp : MatchOrientation.None
             });
         }
     }

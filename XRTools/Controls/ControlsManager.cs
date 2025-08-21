@@ -49,7 +49,8 @@ namespace EDIVE.XRTools.Controls
             }
         }
 
-        public void RequestTeleport(Vector3 position, Quaternion rotation)
+        [Button]
+        public void RequestTeleport(Vector3 position, Quaternion? rotation = null)
         {
             if (_currentControls)
             {

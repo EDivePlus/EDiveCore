@@ -12,7 +12,7 @@ namespace EDIVE.XRTools.Controls
             gameObject.SetActive(active);
         }
         
-        public abstract void RequestTeleport(Vector3 position, Quaternion rotation);
+        public abstract void RequestTeleport(Vector3 position, Quaternion? rotation = null);
         
         protected virtual void Awake() { }
     }

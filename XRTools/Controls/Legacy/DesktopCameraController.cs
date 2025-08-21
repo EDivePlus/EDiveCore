@@ -309,10 +309,11 @@ namespace EDIVE.XRTools.Controls.Legacy
 #endif
         }
 
-        public void Teleport(Vector3 position, Quaternion rotation)
+        public void Teleport(Vector3 position, Quaternion? rotation = null)
         {
             transform.position = position;
-            transform.rotation = rotation;
+            if (rotation.HasValue)
+                transform.rotation = rotation.Value;
             
             m_TargetCameraState.SetFromTransform(transform);
             m_InterpolatingCameraState.SetFromTransform(transform);

@@ -18,7 +18,7 @@ namespace EDIVE.XRTools.Controls
             _defaultHeight = _CameraController.transform.localPosition.y;
         }
 
-        public override void RequestTeleport(Vector3 position, Quaternion rotation)
+        public override void RequestTeleport(Vector3 position, Quaternion? rotation = null)
         {
             _CameraController.Teleport(position + Vector3.up * _defaultHeight, rotation);
         }
