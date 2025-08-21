@@ -37,6 +37,9 @@ namespace EDIVE.NativeUtils
     {
         public static void AddTransformChangeListener(this GameObject go, Action<Transform> listener)
         {
+            if (go == null || listener == null)
+                return;
+            
             var monitor = go.GetOrAddComponent<TransformChangeMonitor>();
 
             monitor.hideFlags = HideFlags.NotEditable | HideFlags.DontSave;
@@ -46,7 +49,7 @@ namespace EDIVE.NativeUtils
 
         public static void RemoveTransformChangeListener(this GameObject go, Action<Transform> listener)
         {
-            if (!go.TryGetComponent<TransformChangeMonitor>(out var monitor))
+            if (go == null || listener == null || !go.TryGetComponent<TransformChangeMonitor>(out var monitor))
                 return;
 
             monitor.TransformChanged -= listener;
