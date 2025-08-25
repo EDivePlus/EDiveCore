@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Avatars;
+using EDIVE.Core;
 using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
+using EDIVE.Networking.Spawning;
 using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
+using EDIVE.XRTools.Controls;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing;
@@ -131,13 +134,24 @@ namespace EDIVE.Networking.Players
         
         private void OnClientLoadedStartScenes(NetworkConnection conn, bool asServer)
         {
+            // Only run on clients, we need player's profile for connection
             if (asServer) 
                 return;
+            
             var playerCreationRequest = new PlayerCreationRequestMessage()
             {
                 profile = PlayerProfile
             };
             _networkManager.ClientManager.Broadcast(playerCreationRequest);
+            
+            // Teleport player to spawn position, player's position is handled by the controls
+            if (AppCore.Services.TryGet<APlayerSpawnPlace>(out var playerSpawnPlace) && 
+                playerSpawnPlace.TryGetLocation(conn, out var position, out var rotation) &&
+                AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+            {
+                controlsManager.RequestTeleport(position, rotation);
+            }
+            
             DebugLite.Log($"[NetworkPlayerManager] Sending request for player creation.");
         }
 
@@ -145,10 +159,10 @@ namespace EDIVE.Networking.Players
         {
             conn.WhenLoadedStartScenes(() =>
             {
-                // Todo: resolve spawn point
+                // Position will sync from players controls, so we can just instantiate player at origin
                 var position = Vector3.zero;
                 var rotation = Quaternion.identity;
-
+                
                 var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
                 _networkManager.ServerManager.Spawn(netObj, conn);
                 _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
