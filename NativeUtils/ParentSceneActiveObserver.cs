@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 
 namespace EDIVE.Utils
 {
-    public abstract class ParentSceneActiveObserver : MonoBehaviour
+    public class ParentSceneActiveObserver : MonoBehaviour
     {
         public bool IsParentSceneActive { get; private set; }
         public event Action<bool> ParentSceneActiveChanged;
