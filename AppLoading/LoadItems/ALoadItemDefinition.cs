@@ -42,6 +42,7 @@ namespace EDIVE.AppLoading.LoadItems
         [SerializeField]
         [CustomValueDrawer("DecoratedLoadItemDrawer")]
         [EnhancedValidate("ValidateDependencies")]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<ALoadItemDefinition> _Dependencies = new();
 
         public float LoadWeight => _LoadWeight;

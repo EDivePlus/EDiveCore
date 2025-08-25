@@ -17,22 +17,22 @@ namespace EDIVE.AppLoading
 {
     public class LoadGroupDefinition : AUniqueDefinition
     {
-        [PropertySpace(6)]
+        [SerializeField]
+        private bool _Disabled;
+        
+        [PropertySpace]
         [Searchable]
         [SerializeField]
         [EnhancedValidate("ValidateLoadItems")]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<ALoadItemDefinition> _LoadItems = new();
 
         [PropertySpace]
-        [PropertyOrder(50)]
         [SerializeField]
         [Searchable]
         [EnhancedValidate("ValidateDependencies")]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<LoadGroupDefinition> _Dependencies = new();
-
-        [PropertySpace]
-        [SerializeField]
-        private bool _Disabled;
 
         public UniTaskCompletionSource CompletionSource { get; private set; }
 
