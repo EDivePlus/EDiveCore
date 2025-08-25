@@ -26,8 +26,7 @@ namespace Adrenak.UniVoice.Networks
         public List<int> ClientIDs { get; private set; }
         public Dictionary<int, VoiceSettings> ClientVoiceSettings { get; private set; }
         
-        private NetworkManager _networkManager;
-        private List<int> _startedTransports = new();
+        private readonly NetworkManager _networkManager;
 
         public FishNetServer()
         {
@@ -80,18 +79,13 @@ namespace Adrenak.UniVoice.Networks
         private void OnServerConnectionStateChanged(ServerConnectionStateArgs args)
         {
             // Connection can change for each transport, so we need to track them
-            if (args.ConnectionState == LocalConnectionState.Started)
+            if (args.ConnectionState == LocalConnectionState.Started && _networkManager.ServerManager.IsOnlyOneServerStarted())
             {
-                var wasStarted = _startedTransports.Count != 0;
-                _startedTransports.Add(args.TransportIndex);
-                if (!wasStarted) 
-                    OnServerStarted();
+                OnServerStarted();
             }
-            else if (args.ConnectionState == LocalConnectionState.Stopped)
+            else if (args.ConnectionState == LocalConnectionState.Stopped && _networkManager.ServerManager.AreAllServersStopped())
             {
-                _startedTransports.Remove(args.TransportIndex);
-                if(_startedTransports.Count == 0)
-                    OnServerShutdown();
+                OnServerShutdown();
             }
         }
 
