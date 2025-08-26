@@ -27,6 +27,14 @@ namespace EDIVE.Networking.UI
         
         private void OnEnable()
         {
+            if (!AppCore.Services.IsRegistered<MasterNetworkManager>())
+            {
+                if (_ConnectionState)
+                    _ConnectionState.SetState(ConnectionState.Disconnected);
+
+                if (_RuntimeModeState)
+                    _RuntimeModeState.SetState(NetworkRuntimeMode.Offline);
+            }
             AppCore.Services.WhenRegistered<MasterNetworkManager, NetworkServerManager>(Initialize);
         }
 
