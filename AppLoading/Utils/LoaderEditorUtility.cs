@@ -20,7 +20,7 @@ namespace EDIVE.AppLoading.Utils
         {
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
             ToolbarExtender.AddToLeftToolbar(PlayRootSceneToolbarGUI, 1000);
-            ToolbarExtender.AddToLeftToolbar(ManagersSceneToolbarGUI, -90);
+            ToolbarExtender.AddToLeftToolbar(LoaderToolbarGUI, -90);
         }
 
         private static void PlayRootSceneToolbarGUI()
@@ -33,7 +33,7 @@ namespace EDIVE.AppLoading.Utils
             EditorGUI.EndDisabledGroup();
         }
 
-        private static void ManagersSceneToolbarGUI()
+        private static void LoaderToolbarGUI()
         {
             GUILayout.Space(2);
             var dropdownRect = GUILayoutUtility.GetRect(0, 18).MinWidth(200);
@@ -48,6 +48,21 @@ namespace EDIVE.AppLoading.Utils
                 menu.AddItem(new GUIContent("Disable Parallel Load"), LoaderUtils.DisableParallelLoad, () => LoaderUtils.DisableParallelLoad = !LoaderUtils.DisableParallelLoad);
                 menu.DropDown(dropdownRect);
             }
+            
+            GUILayout.Space(2); 
+            var rootScene = SceneManager.GetSceneByPath(LoaderSettings.RootScene);
+            var icon = rootScene.isLoaded ? FontAwesomeEditorIcons.FolderXmarkSolid : FontAwesomeEditorIcons.FolderPlusSolid;
+            var tooltip = rootScene.isLoaded ? "Unload Root Scene" : "Load Root Scene";
+            EditorGUI.BeginDisabledGroup(!string.IsNullOrEmpty(LoaderSettings.RootScene) && rootScene.isLoaded && EditorSceneManager.loadedRootSceneCount <= 1);
+            if (GUILayout.Button(new GUIContent(null, icon.Active, tooltip), ToolbarStyles.ToolbarButton, GUILayout.Width(25)))
+            {
+                if (rootScene.isLoaded)
+                    EditorSceneManager.CloseScene(rootScene, true);
+                else
+                    EditorSceneManager.OpenScene(LoaderSettings.RootScene, OpenSceneMode.Additive);
+            }
+            EditorGUI.EndDisabledGroup();
+            
             GUILayout.Space(2);
         }
 
