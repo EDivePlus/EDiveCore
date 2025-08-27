@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using EDIVE.Core.Services;
-using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using FishNet;
 using FishNet.Connection;
@@ -23,10 +22,6 @@ namespace EDIVE.Networking.Scenes
     {
         [SerializeField]
         [SceneReference]
-        private string _OfflineScene;
-        
-        [SerializeField]
-        [SceneReference]
         private List<string> _OnlineScenes;
         
         private NetworkManager _networkManager;
@@ -38,9 +33,9 @@ namespace EDIVE.Networking.Scenes
             if (_networkManager == null || !_networkManager.Initialized)
                 return;
 
-            if (_OnlineScenes.All(string.IsNullOrEmpty) || string.IsNullOrEmpty(_OfflineScene))
+            if (_OnlineScenes.All(string.IsNullOrEmpty))
             {
-                NetworkManagerExtensions.LogWarning("Online or Offline scene is not specified. Default scenes will not load.");
+                NetworkManagerExtensions.LogWarning("No online scene is not specified. Default scenes will not load.");
                 return;
             }
 
@@ -48,7 +43,7 @@ namespace EDIVE.Networking.Scenes
             _networkManager.ServerManager.OnAuthenticationResult += OnAuthenticationResult;
             _networkManager.ServerManager.OnServerConnectionState += OnServerConnectionState;
             _networkManager.SceneManager.OnLoadEnd += OnSceneLoadEnd;
-            LoadOffline();
+            UnloadOnlineScenes();
         }
         
         private void OnDisable()
@@ -72,15 +67,6 @@ namespace EDIVE.Networking.Scenes
                 if (!scene.IsValid() || !scene.isLoaded) 
                     _loadedScenes.RemoveAt(i);
             }
-            
-            if (args.LoadedScenes.TryGetFirst(loaded => _OnlineScenes.Any(online => loaded.name == GetSceneName(online)), out var onlineScene))
-            {
-                UnloadOffline();
-                
-                // This is kinda broken in host/server mode
-                if (!_networkManager.IsServerOnlyStarted) 
-                    UnitySceneManager.SetActiveScene(onlineScene);
-            }
         }
         
         private void OnServerConnectionState(ServerConnectionStateArgs args)
@@ -93,7 +79,7 @@ namespace EDIVE.Networking.Scenes
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped && _networkManager.ServerManager.AreAllServersStopped())
             {
-                LoadOffline();
+                UnloadOnlineScenes();
             }
         }
         
@@ -101,7 +87,7 @@ namespace EDIVE.Networking.Scenes
         {
             if (args.ConnectionState == LocalConnectionState.Stopped)
             {
-                LoadOffline();
+                UnloadOnlineScenes();
             }
         }
         
@@ -115,30 +101,14 @@ namespace EDIVE.Networking.Scenes
             _networkManager.SceneManager.LoadConnectionScenes(connection, loadData);
         }
         
-        private void LoadOffline()
+        private void UnloadOnlineScenes()
         {
-            var offlineSceneName = GetSceneName(_OfflineScene);
-            var offlineScene = UnitySceneManager.GetSceneByName(offlineSceneName);
-            if (offlineScene.isLoaded)
-                return;
-            
-            // Unload all online scenes
             foreach (var scene in _loadedScenes)
             {
                 if (scene.IsValid() && scene.isLoaded) 
                     UnitySceneManager.UnloadSceneAsync(scene);
             }
             _loadedScenes.Clear();
-            UnitySceneManager.LoadSceneAsync(offlineSceneName, LoadSceneMode.Additive);
-        }
-        
-        private void UnloadOffline()
-        {
-            var s = UnitySceneManager.GetSceneByName(GetSceneName(_OfflineScene));
-            if (string.IsNullOrEmpty(s.name))
-                return;
-
-            UnitySceneManager.UnloadSceneAsync(s);
         }
         
         private string GetSceneName(string fullPath)
