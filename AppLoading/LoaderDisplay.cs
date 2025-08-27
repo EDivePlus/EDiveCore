@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using EDIVE.AppLoading.LoadItems;
+using EDIVE.Core;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -40,6 +41,9 @@ namespace EDIVE.AppLoading
 
         private void Awake()
         {
+            if (_LoaderController == null)
+                _LoaderController = AppCore.Services.Get<AppLoaderController>();
+            
             _ProgressSlider.minValue = 0;
             _ProgressSlider.maxValue = 1;
             _ProgressSlider.wholeNumbers = false;
@@ -56,12 +60,18 @@ namespace EDIVE.AppLoading
             }
 
             _loadItems = _LoaderController.Setup.GetValidLoadItemsSorted().ToList();
+            _LoaderController.LoadFinalizedSignal.AddListener(OnLoadFinalized);
         }
-
+        
         private void OnDestroy()
         {
             if (_LoadReportToggle)
                 _LoadReportToggle.onValueChanged.RemoveListener(OnToggleValueChanged);
+        }
+        
+        private void OnLoadFinalized()
+        {
+            Destroy(gameObject);
         }
 
         private void OnToggleValueChanged(bool state)
