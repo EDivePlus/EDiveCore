@@ -32,11 +32,13 @@ namespace EDIVE.Lighting
             if (sunLight != null)
             {
                 sunLight.enabled = lightingConfig.EnableSun;
-                sunLight.transform.rotation = Quaternion.Euler(lightingConfig.SunDirection);
-                sunLight.color = lightingConfig.SunColor;
-                sunLight.intensity = lightingConfig.SunIntensity;
-                sunLight.bounceIntensity = lightingConfig.SunIndirectMultiplier;
-                DynamicGI.UpdateEnvironment();
+                if (lightingConfig.EnableSun)
+                {
+                    sunLight.transform.rotation = Quaternion.Euler(lightingConfig.SunDirection);
+                    sunLight.color = lightingConfig.SunColor;
+                    sunLight.intensity = lightingConfig.SunIntensity;
+                    sunLight.bounceIntensity = lightingConfig.SunIndirectMultiplier;
+                }
             }
             
             var skybox = RenderSettings.skybox;
@@ -45,6 +47,8 @@ namespace EDIVE.Lighting
                 if (lightingConfig.SkyboxTexture != null)
                     skybox.SetTexture(MAIN_TEX, lightingConfig.SkyboxTexture);
             }
+            
+            DynamicGI.UpdateEnvironment();
         }
     }
 }
