@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 26.06.2025
 
+using System;
 using DG.Tweening;
 using EDIVE.Core.Services;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
@@ -30,7 +31,7 @@ namespace EDIVE.XRTools.Tablet
         private TransformScriptableVariable _CameraTransformVariable;
 
         [SerializeField]
-        private bool _RepositionOnAwake = true;
+        private bool _RepositionOnStart = true;
 
         [SerializeField]
         private InputActionReference _RepositionAction;
@@ -80,8 +81,11 @@ namespace EDIVE.XRTools.Tablet
             _isOpen = true;
             if (_RepositionAction)
                 _RepositionAction.action.performed += OnRepositionPerformed;
+        }
 
-            if (_RepositionOnAwake)
+        private void Start()
+        {
+            if (_RepositionOnStart)
                 RepositionTablet();
         }
 
