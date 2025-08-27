@@ -15,7 +15,7 @@ using IServiceProvider = EDIVE.Core.Services.IServiceProvider;
 
 namespace EDIVE.Core
 {
-    [DefaultExecutionOrder(1000)]
+    [DefaultExecutionOrder(-1000)]
     public class AppCore : MonoBehaviour
     {
         [HideLabel]
