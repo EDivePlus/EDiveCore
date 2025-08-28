@@ -13,8 +13,14 @@ namespace EDIVE.Networking.Utils
         {
             if (!connection.LoadedStartScenes())
             {
-                connection.OnLoadedStartScenes += (_, _) => callback?.Invoke();
+                connection.OnLoadedStartScenes += OnConnectionOnOnLoadedStartScenes;
                 return;
+                
+                void OnConnectionOnOnLoadedStartScenes(NetworkConnection networkConnection, bool asServer)
+                {
+                    callback?.Invoke();
+                    connection.OnLoadedStartScenes -= OnConnectionOnOnLoadedStartScenes;
+                }
             }
             callback?.Invoke();
         }

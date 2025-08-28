@@ -1,9 +1,16 @@
 ﻿{
-  "name": "EDIVE.Lighting",
+  "name": "EDIVE.Environment",
   "rootNamespace": "",
   "references": [
+    "UniTask",
     "EDIVE.Core",
-    "EDIVE.OdinExtensions"
+    "EDIVE.OdinExtensions",
+    "FishNet.Runtime",
+    "EDIVE.NativeUtils",
+    "EDIVE.External.Signals",
+    "EDIVE.XRTools",
+    "EDIVE.Networking",
+    "Unity.XR.Interaction.Toolkit"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

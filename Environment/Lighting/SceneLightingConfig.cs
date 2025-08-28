@@ -4,7 +4,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Lighting
+namespace EDIVE.Environment.Lighting
 {
     public class SceneLightingConfig : ScriptableObject
     {

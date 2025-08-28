@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Avatars;
-using EDIVE.Core;
 using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
-using EDIVE.Networking.Spawning;
 using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
-using EDIVE.XRTools.Controls;
 using FishNet;
 using FishNet.Connection;
 using FishNet.Managing;
@@ -143,36 +140,24 @@ namespace EDIVE.Networking.Players
                 profile = PlayerProfile
             };
             _networkManager.ClientManager.Broadcast(playerCreationRequest);
-            
-            // Teleport player to spawn position, player's position is handled by the controls
-            if (AppCore.Services.TryGet<APlayerSpawnPlace>(out var playerSpawnPlace) && 
-                playerSpawnPlace.TryGetLocation(conn, out var position, out var rotation) &&
-                AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
-            {
-                controlsManager.RequestTeleport(position, rotation);
-            }
-            
-            DebugLite.Log($"[NetworkPlayerManager] Sending request for player creation.");
+            DebugLite.Log("[NetworkPlayerManager] Sending request for player creation.");
         }
 
         private void OnServerPlayerCreationRequest(NetworkConnection conn, PlayerCreationRequestMessage request, Channel channel)
         {
-            conn.WhenLoadedStartScenes(() =>
-            {
-                // Position will sync from players controls, so we can just instantiate player at origin
-                var position = Vector3.zero;
-                var rotation = Quaternion.identity;
+            // Position will sync from players controls, so we can just instantiate player at origin
+            var position = Vector3.zero;
+            var rotation = Quaternion.identity;
                 
-                var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
-                _networkManager.ServerManager.Spawn(netObj, conn);
-                _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
+            var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
+            _networkManager.ServerManager.Spawn(netObj, conn);
+            _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
             
-                var playerController = netObj.GetComponent<NetworkPlayerController>();
-                playerController.ApplyProfile(request.profile);
-                _currentPlayers.Add(playerController);
+            var playerController = netObj.GetComponent<NetworkPlayerController>();
+            playerController.ApplyProfile(request.profile);
+            _currentPlayers.Add(playerController);
             
-                DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
-            });
+            DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
         }
 
         private PlayerProfile CreatePlayerProfile()

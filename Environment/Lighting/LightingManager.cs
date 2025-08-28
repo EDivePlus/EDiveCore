@@ -6,7 +6,7 @@ using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Lighting
+namespace EDIVE.Environment.Lighting
 {
     public class LightingManager : AServiceBehaviour<LightingManager>
     {
@@ -31,7 +31,7 @@ namespace EDIVE.Lighting
             var sunLight = RenderSettings.sun;
             if (sunLight != null)
             {
-                sunLight.enabled = lightingConfig.EnableSun;
+                sunLight.gameObject.SetActive(lightingConfig.EnableSun);
                 if (lightingConfig.EnableSun)
                 {
                     sunLight.transform.rotation = Quaternion.Euler(lightingConfig.SunDirection);

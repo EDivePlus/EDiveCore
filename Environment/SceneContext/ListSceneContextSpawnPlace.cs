@@ -1,14 +1,14 @@
 ﻿// Author: František Holubec
-// Created: 21.08.2025
+// Created: 27.08.2025
 
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using FishNet.Connection;
 using UnityEngine;
 
-namespace EDIVE.Networking.Spawning
+namespace EDIVE.Environment.SceneContext
 {
-    public class ListPlayerSpawnPlace : APlayerSpawnPlace   
+    public class ListSceneContextSpawnPlace  : ASceneContextSpawnPlace   
     {
         [SerializeField]
         private List<Transform> _Locations;

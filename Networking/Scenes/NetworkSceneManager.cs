@@ -1,10 +1,13 @@
 ﻿// Author: František Holubec
 // Created: 08.04.2025
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using EDIVE.Core.Services;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using FishNet;
 using FishNet.Connection;
@@ -14,6 +17,7 @@ using FishNet.Transporting;
 using GameKit.Dependencies.Utilities;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Channel = FishNet.Transporting.Channel;
 using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace EDIVE.Networking.Scenes
@@ -24,8 +28,14 @@ namespace EDIVE.Networking.Scenes
         [SceneReference]
         private List<string> _OnlineScenes;
         
+        [SerializeField]
+        [SceneReference]
+        private string _ClientDefaultScene;
+        
         private NetworkManager _networkManager;
         private readonly List<Scene> _loadedScenes = new();
+        
+        public IReadOnlyList<Scene> LoadedScenes => _loadedScenes;
 
         private void OnEnable()
         {
@@ -43,9 +53,12 @@ namespace EDIVE.Networking.Scenes
             _networkManager.ServerManager.OnAuthenticationResult += OnAuthenticationResult;
             _networkManager.ServerManager.OnServerConnectionState += OnServerConnectionState;
             _networkManager.SceneManager.OnLoadEnd += OnSceneLoadEnd;
+
+            _networkManager.ServerManager.RegisterBroadcast<ConnectionSceneRequest>(OnConnectionSceneRequest);
+
             UnloadOnlineScenes();
         }
-        
+
         private void OnDisable()
         {
             if (!ApplicationState.IsQuitting() && _networkManager != null && _networkManager.Initialized)
@@ -54,9 +67,53 @@ namespace EDIVE.Networking.Scenes
                 _networkManager.ServerManager.OnAuthenticationResult -= OnAuthenticationResult;
                 _networkManager.ServerManager.OnServerConnectionState -= OnServerConnectionState;
                 _networkManager.SceneManager.OnLoadEnd -= OnSceneLoadEnd;
+
+                _networkManager.ServerManager.UnregisterBroadcast<ConnectionSceneRequest>(OnConnectionSceneRequest);
+            }
+        }
+
+        private void OnConnectionSceneRequest(NetworkConnection connection, ConnectionSceneRequest request, Channel channel)
+        {
+            if (request.Operation == ConnectionSceneRequestOperation.Load)
+            {
+                var loadData = new SceneLoadData(request.SceneName);
+                _networkManager.SceneManager.LoadConnectionScenes(connection, loadData);
+            }
+            else
+            {
+                var unloadData = new SceneUnloadData(request.SceneName) {Options = new UnloadOptions {Mode = UnloadOptions.ServerUnloadMode.KeepUnused}};
+                _networkManager.SceneManager.UnloadConnectionScenes(connection, unloadData);
+            }
+        }
+
+        public async UniTask<Scene?> AwaitLoadConnectionScene(string sceneName)
+        {
+            if (_loadedScenes.TryGetFirst(s => s.name == sceneName, out var scene))
+                return scene;
+            
+            var completionSource = new UniTaskCompletionSource<Scene>();
+            _networkManager.SceneManager.OnLoadEnd += OnConnectionSceneLoaded;
+            _networkManager.ClientManager.Broadcast(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Load));
+            
+            var result = await completionSource.Task.TimeoutWithoutException(TimeSpan.FromSeconds(4));
+            _networkManager.SceneManager.OnLoadEnd -= OnConnectionSceneLoaded;
+            return result.IsTimeout ? null : result.Result;
+            
+            void OnConnectionSceneLoaded(SceneLoadEndEventArgs loadArgs)
+            {
+                if (loadArgs.LoadedScenes.TryGetFirst(s => s.name == sceneName, out var loadedScene))
+                    completionSource.TrySetResult(loadedScene);
             }
         }
         
+        public void UnloadConnectionScene(string sceneName)
+        {
+            if (_loadedScenes.All(s => s.name != sceneName))
+                return;
+            
+            _networkManager.ClientManager.Broadcast(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Unload));
+        }
+
         private void OnSceneLoadEnd(SceneLoadEndEventArgs args)
         {
             // Cache newly loaded scenes, clear invalid ones
@@ -93,10 +150,10 @@ namespace EDIVE.Networking.Scenes
         
         private void OnAuthenticationResult(NetworkConnection connection, bool authenticated)
         {
-            if (!authenticated)
+            if (string.IsNullOrEmpty(_ClientDefaultScene) || !authenticated)
                 return;
-
-            var onlineScene = GetSceneName(_OnlineScenes.FirstOrDefault());
+            
+            var onlineScene = GetSceneName(_ClientDefaultScene);
             var loadData = new SceneLoadData(onlineScene);
             _networkManager.SceneManager.LoadConnectionScenes(connection, loadData);
         }
