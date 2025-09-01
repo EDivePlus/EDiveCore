@@ -11,6 +11,7 @@ using EDIVE.External.Signals;
 using EDIVE.Networking.Scenes;
 using EDIVE.XRTools.Controls;
 using FishNet;
+using FishNet.Managing;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -24,18 +25,26 @@ namespace EDIVE.Environment.SceneSetup
         public SceneSetupDefinition CurrentSetup { get; private set; }
         public Signal<SceneSetupDefinition> CurrentContextChanged { get; } = new();
 
+        private NetworkManager _networkManager;
         private bool _switchInProgress;
 
         protected override void Awake()
         {
             base.Awake();
-            InstanceFinder.NetworkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
+            _networkManager = InstanceFinder.NetworkManager;
+            if (_networkManager == null)
+                return;
+            
+            _networkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            InstanceFinder.NetworkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
+            if (_networkManager != null)
+            {
+                _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
+            }
         }
 
         private void OnClientAuthenticated()
