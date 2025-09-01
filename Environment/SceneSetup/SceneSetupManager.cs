@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.Core.Services;
 using EDIVE.Environment.Sky;
 using EDIVE.External.Signals;
-using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
 using EDIVE.XRTools.Controls;
 using FishNet;
@@ -16,7 +16,7 @@ using UnityEngine;
 
 namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneSetupManager : ANetworkServiceBehaviour<SceneSetupManager>
+    public class SceneSetupManager : AServiceBehaviour<SceneSetupManager>
     {
         [SerializeField]
         private SceneSetupDefinition _DefaultSetup;
@@ -26,9 +26,20 @@ namespace EDIVE.Environment.SceneSetup
 
         private bool _switchInProgress;
 
-        public override void OnStartClient()
+        protected override void Awake()
         {
-            base.OnStartClient();
+            base.Awake();
+            InstanceFinder.NetworkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            InstanceFinder.NetworkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
+        }
+
+        private void OnClientAuthenticated()
+        {
             SetCurrentContext(_DefaultSetup);
         }
         
