@@ -17,7 +17,7 @@ namespace EDIVE.XRTools.Controls
             {
                 destinationPosition = position,
                 destinationRotation = rotation ?? Quaternion.identity,
-                matchOrientation = rotation.HasValue ? MatchOrientation.WorldSpaceUp : MatchOrientation.None
+                matchOrientation = rotation.HasValue ? MatchOrientation.TargetUpAndForward : MatchOrientation.None
             });
         }
     }
