@@ -3,26 +3,26 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.Environment.Lighting;
+using EDIVE.Environment.Sky;
 using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
 
-namespace EDIVE.Environment.SceneContext
+namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneContextDefinition : ScriptableObject
+    public class SceneSetupDefinition : ScriptableObject
     {
         [SerializeField]
-        private SceneLightingConfig _Lighting;
+        private SkyDefinition _Sky;
         
         [SceneReference]
         [SerializeField]
         private List<string> _Scenes;
         
-        public SceneLightingConfig Lighting => _Lighting;
+        public SkyDefinition Sky => _Sky;
         public IEnumerable<string> Scenes => _Scenes.Where(s => !string.IsNullOrEmpty(s));
-        public ASceneContextSpawnPlace SpawnPlace {get; private set; }
+        public ASceneSpawnPlace SpawnPlace {get; private set; }
         
-        public void RegisterSpawnPlace(ASceneContextSpawnPlace spawnPlace)
+        public void RegisterSpawnPlace(ASceneSpawnPlace spawnPlace)
         {
             SpawnPlace = spawnPlace;
         }

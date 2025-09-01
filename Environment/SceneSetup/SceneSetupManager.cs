@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
-using EDIVE.Environment.Lighting;
+using EDIVE.Environment.Sky;
 using EDIVE.External.Signals;
 using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
@@ -14,33 +14,33 @@ using FishNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Environment.SceneContext
+namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneContextManager : ANetworkServiceBehaviour<SceneContextManager>
+    public class SceneSetupManager : ANetworkServiceBehaviour<SceneSetupManager>
     {
         [SerializeField]
-        private SceneContextDefinition _DefaultContext;
+        private SceneSetupDefinition _DefaultSetup;
         
-        public SceneContextDefinition CurrentContext { get; private set; }
-        public Signal<SceneContextDefinition> CurrentContextChanged { get; } = new();
+        public SceneSetupDefinition CurrentSetup { get; private set; }
+        public Signal<SceneSetupDefinition> CurrentContextChanged { get; } = new();
 
         private bool _switchInProgress;
 
         public override void OnStartClient()
         {
             base.OnStartClient();
-            SetCurrentContext(_DefaultContext);
+            SetCurrentContext(_DefaultSetup);
         }
         
         [Button]
-        public void SetCurrentContext(SceneContextDefinition definition)
+        public void SetCurrentContext(SceneSetupDefinition definition)
         {
             SetCurrentContextAsync(definition).Forget();
         }
 
-        public async UniTask SetCurrentContextAsync(SceneContextDefinition definition)
+        public async UniTask SetCurrentContextAsync(SceneSetupDefinition definition)
         {
-            if (_switchInProgress || definition == null || definition == CurrentContext)
+            if (_switchInProgress || definition == null || definition == CurrentSetup)
                 return;
 
             _switchInProgress = true;
@@ -61,8 +61,8 @@ namespace EDIVE.Environment.SceneContext
                     return;
             }
             
-            if (definition.Lighting != null && AppCore.Services.TryGet<LightingManager>(out var lightingManager))
-                lightingManager.SetLighting(definition.Lighting);
+            if (definition.Sky != null && AppCore.Services.TryGet<SkyManager>(out var skyManager))
+                skyManager.SetSky(definition.Sky);
             
             if (definition.SpawnPlace != null && AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
             {
@@ -73,9 +73,9 @@ namespace EDIVE.Environment.SceneContext
                 }
             }
 
-            CurrentContext = definition;
+            CurrentSetup = definition;
             _switchInProgress = false;
-            CurrentContextChanged.Dispatch(CurrentContext);
+            CurrentContextChanged.Dispatch(CurrentSetup);
         }
         
         private string GetSceneName(string fullPath)

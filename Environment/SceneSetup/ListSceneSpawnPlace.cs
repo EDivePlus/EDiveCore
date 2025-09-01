@@ -6,9 +6,9 @@ using EDIVE.NativeUtils;
 using FishNet.Connection;
 using UnityEngine;
 
-namespace EDIVE.Environment.SceneContext
+namespace EDIVE.Environment.SceneSetup
 {
-    public class ListSceneContextSpawnPlace  : ASceneContextSpawnPlace   
+    public class ListSceneSpawnPlace  : ASceneSpawnPlace   
     {
         [SerializeField]
         private List<Transform> _Locations;

@@ -4,9 +4,9 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Environment.Lighting
+namespace EDIVE.Environment.Sky
 {
-    public class SceneLightingConfig : ScriptableObject
+    public class SkyDefinition : ScriptableObject
     {
         [SerializeField]
         private Cubemap _SkyboxTexture;

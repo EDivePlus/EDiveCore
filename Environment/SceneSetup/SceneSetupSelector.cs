@@ -7,12 +7,12 @@ using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
-namespace EDIVE.Environment.SceneContext
+namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneContextSelector : MonoBehaviour
+    public class SceneSetupSelector : MonoBehaviour
     {
         [SerializeField]
-        private SceneContextDefinition _Definition;
+        private SceneSetupDefinition _Definition;
 
         [SerializeField]
         private XRBaseInteractable _XRInteractable;
@@ -50,7 +50,7 @@ namespace EDIVE.Environment.SceneContext
             if (_Definition == null)
                 return;
 
-            if (AppCore.Services.TryGet<SceneContextManager>(out var sceneContextManager))
+            if (AppCore.Services.TryGet<SceneSetupManager>(out var sceneContextManager))
                 sceneContextManager.SetCurrentContext(_Definition);
         }
     }
