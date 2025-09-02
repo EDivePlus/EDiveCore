@@ -51,15 +51,20 @@ namespace EDIVE.AppLoading.Utils
             
             GUILayout.Space(2); 
             var rootScene = SceneManager.GetSceneByPath(LoaderSettings.RootScene);
-            var icon = rootScene.isLoaded ? FontAwesomeEditorIcons.FolderXmarkSolid : FontAwesomeEditorIcons.FolderPlusSolid;
-            var tooltip = rootScene.isLoaded ? "Unload Root Scene" : "Load Root Scene";
+            var icon = rootScene.isLoaded ? FontAwesomeEditorIcons.LightbulbSlashSolid : FontAwesomeEditorIcons.LightbulbSolid;
+            var tooltip = rootScene.isLoaded ? "Unload Light Scene" : "Load Light Scene";
             EditorGUI.BeginDisabledGroup(!string.IsNullOrEmpty(LoaderSettings.RootScene) && rootScene.isLoaded && EditorSceneManager.loadedRootSceneCount <= 1);
             if (GUILayout.Button(new GUIContent(null, icon.Active, tooltip), ToolbarStyles.ToolbarButton, GUILayout.Width(25)))
             {
                 if (rootScene.isLoaded)
+                {
                     EditorSceneManager.CloseScene(rootScene, true);
+                }
                 else
-                    EditorSceneManager.OpenScene(LoaderSettings.RootScene, OpenSceneMode.Additive);
+                {
+                    var scene = EditorSceneManager.OpenScene(LoaderSettings.RootScene, OpenSceneMode.Additive);
+                    SceneManager.SetActiveScene(scene);
+                }
             }
             EditorGUI.EndDisabledGroup();
             
