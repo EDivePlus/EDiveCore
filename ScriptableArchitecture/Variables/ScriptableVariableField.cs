@@ -9,22 +9,23 @@ using UnityEngine;
 namespace EDIVE.ScriptableArchitecture.Variables
 {
     [Serializable]
+    [InlineProperty]
     public class ScriptableVariableField<T>
     {
-        public enum TargetType
-        {
-            Local,
-            Scriptable
-        }
-
+        [HorizontalGroup]
+        [HideLabel]
         [SerializeField]
-        private TargetType _TargetType;
+        private ScriptableVariableTargetType _TargetType;
 
-        [ShowIf("@_TargetType == TargetType.Local")]
+        [HorizontalGroup]
+        [HideLabel]
+        [ShowIf("@_TargetType == ScriptableVariableTargetType.Local")]
         [SerializeField]
         private T _LocalValue;
 
-        [ShowIf("@_TargetType == TargetType.Scriptable")]
+        [HorizontalGroup]
+        [HideLabel]
+        [ShowIf("@_TargetType == ScriptableVariableTargetType.Scriptable")]
         [SerializeField]
         private AScriptableVariable<T> _ScriptableValue;
 
@@ -32,16 +33,42 @@ namespace EDIVE.ScriptableArchitecture.Variables
         {
             get
             {
-                if (_TargetType == TargetType.Local) return _LocalValue;
-                if (_TargetType == TargetType.Scriptable && _ScriptableValue) return _ScriptableValue.Value;
+                if (_TargetType == ScriptableVariableTargetType.Local) return _LocalValue;
+                if (_TargetType == ScriptableVariableTargetType.Scriptable && _ScriptableValue) return _ScriptableValue.Value;
                 return default; 
             }
             set
             {
-                _TargetType = TargetType.Local; 
+                _TargetType = ScriptableVariableTargetType.Local; 
                 _LocalValue = value;
             }
         }
+
+        public ScriptableVariableField() { }
+        
+        public ScriptableVariableField(ScriptableVariableTargetType targetType)
+        {
+            _TargetType = targetType;
+        }
+
+        public ScriptableVariableField(AScriptableVariable<T> scriptableValue)
+        {
+            _ScriptableValue = scriptableValue;
+            _TargetType = ScriptableVariableTargetType.Scriptable;
+        }
+
+        public ScriptableVariableField(T localValue)
+        {
+            _LocalValue = localValue;
+            _TargetType = ScriptableVariableTargetType.Local;
+        }
+
         public static implicit operator T(ScriptableVariableField<T> variable) => variable.Value;
+    }
+    
+    public enum ScriptableVariableTargetType
+    {
+        Local,
+        Scriptable
     }
 }
