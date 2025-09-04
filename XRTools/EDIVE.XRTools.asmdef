@@ -18,7 +18,8 @@
         "EDIVE.DataStructures",
         "Unity.Mathematics",
         "Unity.InputSystem",
-        "EDIVE.ScriptableArchitecture"
+        "EDIVE.ScriptableArchitecture",
+        "EDIVE.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
