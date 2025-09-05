@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Avatars;
+using EDIVE.Core;
 using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Utils;
@@ -150,7 +151,7 @@ namespace EDIVE.Networking.Players
             var rotation = Quaternion.identity;
                 
             var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
-            _networkManager.ServerManager.Spawn(netObj, conn);
+            _networkManager.ServerManager.Spawn(netObj, conn, AppCore.Instance.RootScene);
             _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
             
             var playerController = netObj.GetComponent<NetworkPlayerController>();
