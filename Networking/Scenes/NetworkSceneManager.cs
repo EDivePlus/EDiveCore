@@ -89,7 +89,12 @@ namespace EDIVE.Networking.Scenes
         public async UniTask<Scene?> AwaitLoadConnectionScene(string sceneName)
         {
             if (_loadedScenes.TryGetFirst(s => s.name == sceneName, out var scene))
+            {
+                if (_networkManager.IsServerStarted) 
+                    _networkManager.SceneManager.AddConnectionToScene(_networkManager.ClientManager.Connection, scene);
+                
                 return scene;
+            }
             
             var completionSource = new UniTaskCompletionSource<Scene>();
             _networkManager.SceneManager.OnLoadEnd += OnConnectionSceneLoaded;
