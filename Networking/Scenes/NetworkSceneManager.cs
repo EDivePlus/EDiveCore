@@ -129,6 +129,12 @@ namespace EDIVE.Networking.Scenes
                 if (!scene.IsValid() || !scene.isLoaded) 
                     _loadedScenes.RemoveAt(i);
             }
+
+            var onlineScene = args.LoadedScenes.FirstOrDefault(loaded => _OnlineScenes.Any(online => loaded.name == GetSceneName(online)));
+            if (onlineScene.isLoaded)
+            {
+                UnitySceneManager.SetActiveScene(onlineScene);
+            }
         }
         
         private void OnServerConnectionState(ServerConnectionStateArgs args)
