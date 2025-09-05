@@ -96,7 +96,16 @@ namespace EDIVE.AppLoading.LoadItems
         public async UniTask Load()
         {
             // Wait for all dependencies to be loaded
-            var dependencySources = _Dependencies.Where(l => l.IsValid).Select(d => d.CompletionSource.Task);
+            var dependencySources = _Dependencies
+                .Where(i => i.IsValid && i.CompletionSource != null)
+                .Select(i => i.CompletionSource.Task);
+            
+            var invalidDependencies = _Dependencies.Where(i => !i.IsValid || i.CompletionSource == null).Select(i => i.name).ToList();
+            if (invalidDependencies.Any())
+            {
+                Debug.LogError($"Invalid dependencies for '{name}': {string.Join(", ", invalidDependencies)}");
+            }
+            
             await UniTask.WhenAll(dependencySources);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
