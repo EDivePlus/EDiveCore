@@ -6,7 +6,6 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Core.Services;
-using EDIVE.Environment.Sky;
 using EDIVE.External.Signals;
 using EDIVE.Networking.Scenes;
 using EDIVE.XRTools.Controls;
@@ -14,6 +13,7 @@ using FishNet;
 using FishNet.Managing;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace EDIVE.Environment.SceneSetup
 {
@@ -64,6 +64,7 @@ namespace EDIVE.Environment.SceneSetup
                 return;
 
             _switchInProgress = true;
+            
             var defScenes = definition.Scenes.ToList();
             if (defScenes.Any() && AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
             {
@@ -79,20 +80,35 @@ namespace EDIVE.Environment.SceneSetup
                 var loadedScenes = await UniTask.WhenAll(defScenes.Select(defScene => networkSceneManager.AwaitLoadConnectionScene(GetSceneName(defScene))));
                 if (loadedScenes.Any(scene => scene == null))
                     return;
-            }
-            
-            if (definition.Sky != null && AppCore.Services.TryGet<SkyManager>(out var skyManager))
-                skyManager.SetSky(definition.Sky);
-            
-            if (definition.SpawnPlace != null && AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
-            {
-                var connection = InstanceFinder.ClientManager.Connection;
-                if (definition.SpawnPlace.TryGetLocation(connection, out var position, out var rotation))
+                
+                if (definition.SetFirstSceneActive)
                 {
-                    controlsManager.RequestTeleport(position, rotation);
+                    var firstScene = loadedScenes.FirstOrDefault(scene => scene != null && scene.Value.isLoaded);
+                    if (firstScene != null)
+                        UnitySceneManager.SetActiveScene(firstScene.Value);
                 }
             }
 
+            var controller = definition.Controller;
+            if (controller != null)
+            {
+                if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+                {
+                    var connection = InstanceFinder.ClientManager.Connection;
+                    if (controller.SpawnPlace.TryGetLocation(connection, out var position, out var rotation))
+                    {
+                        controlsManager.RequestTeleport(position, rotation);
+                    }
+                }
+
+                // Todo find better way to disable other controllers
+                var allControllers = FindObjectsByType<SceneSetupController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                foreach (var sceneController in allControllers)
+                {
+                    sceneController.SetLightsActive(controller == sceneController);
+                }
+            }
+            
             CurrentSetup = definition;
             _switchInProgress = false;
             CurrentContextChanged.Dispatch(CurrentSetup);
@@ -100,7 +116,7 @@ namespace EDIVE.Environment.SceneSetup
         
         private string GetSceneName(string fullPath)
         {
-            return Path.GetFileNameWithoutExtension(fullPath);
+            return string.IsNullOrEmpty(fullPath) ? fullPath : Path.GetFileNameWithoutExtension(fullPath);
         }
     }
 }

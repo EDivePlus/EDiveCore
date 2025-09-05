@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace EDIVE.Environment.SceneSetup
 {
-    public class ListSceneSpawnPlace  : ASceneSpawnPlace   
+    public class ListSceneSpawnPlace : ASceneSpawnPlace   
     {
         [SerializeField]
         private List<Transform> _Locations;

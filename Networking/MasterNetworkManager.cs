@@ -9,7 +9,6 @@ using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
 using FishNet;
-using FishNet.Connection;
 using FishNet.Managing;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;

@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.Environment.Sky;
 using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
 
@@ -11,20 +10,20 @@ namespace EDIVE.Environment.SceneSetup
 {
     public class SceneSetupDefinition : ScriptableObject
     {
-        [SerializeField]
-        private SkyDefinition _Sky;
-        
         [SceneReference]
         [SerializeField]
         private List<string> _Scenes;
         
-        public SkyDefinition Sky => _Sky;
-        public IEnumerable<string> Scenes => _Scenes.Where(s => !string.IsNullOrEmpty(s));
-        public ASceneSpawnPlace SpawnPlace {get; private set; }
+        [SerializeField]
+        private bool _SetFirstSceneActive = true;
         
-        public void RegisterSpawnPlace(ASceneSpawnPlace spawnPlace)
+        public bool SetFirstSceneActive => _SetFirstSceneActive;
+        public IEnumerable<string> Scenes => _Scenes.Where(s => !string.IsNullOrEmpty(s));
+        public SceneSetupController Controller {get; private set; }
+        
+        public void RegisterController(SceneSetupController controller)
         {
-            SpawnPlace = spawnPlace;
+            Controller = controller;
         }
     }
 }

@@ -6,7 +6,6 @@ using EDIVE.Avatars;
 using EDIVE.Core;
 using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
-using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
 using FishNet;
@@ -19,11 +18,6 @@ using Random = UnityEngine.Random;
 
 namespace EDIVE.Networking.Players
 {
-    /// <summary>
-    /// This class should manage all stuff related to the players and their connections establishing.
-    /// But right now it is kind of overlapping with the functionallity in the UVRN_Player class
-    /// so it could use a bit of refactor and cleanup.
-    /// </summary>
     public class NetworkPlayerManager : ALoadableServiceBehaviour<NetworkPlayerManager>
     {
         [SerializeField]

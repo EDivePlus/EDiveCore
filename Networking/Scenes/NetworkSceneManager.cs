@@ -32,6 +32,9 @@ namespace EDIVE.Networking.Scenes
         [SceneReference]
         private string _ClientDefaultScene;
         
+        [SerializeField]
+        private bool _SetSceneActive = false;
+        
         private NetworkManager _networkManager;
         private readonly List<Scene> _loadedScenes = new();
         
@@ -130,10 +133,13 @@ namespace EDIVE.Networking.Scenes
                     _loadedScenes.RemoveAt(i);
             }
 
-            var onlineScene = args.LoadedScenes.FirstOrDefault(loaded => _OnlineScenes.Any(online => loaded.name == GetSceneName(online)));
-            if (onlineScene.isLoaded)
+            if (_SetSceneActive)
             {
-                UnitySceneManager.SetActiveScene(onlineScene);
+                var onlineScene = args.LoadedScenes.FirstOrDefault(loaded => _OnlineScenes.Any(online => loaded.name == GetSceneName(online)));
+                if (onlineScene.isLoaded)
+                {
+                    UnitySceneManager.SetActiveScene(onlineScene);
+                }
             }
         }
         
