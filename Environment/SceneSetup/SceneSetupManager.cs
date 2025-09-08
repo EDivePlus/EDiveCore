@@ -60,7 +60,7 @@ namespace EDIVE.Environment.SceneSetup
 
         public async UniTask SetCurrentContextAsync(SceneSetupDefinition definition)
         {
-            if (_switchInProgress || definition == null || definition == CurrentSetup)
+            if (_switchInProgress || definition == null)
                 return;
 
             _switchInProgress = true;
