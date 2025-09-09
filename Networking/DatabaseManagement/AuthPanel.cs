@@ -5,26 +5,19 @@ using EDIVE.XRTools.Keyboard;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 
 namespace EDIVE.Networking.DatabaseManagement
 {
     public class AuthPanel : MonoBehaviour
     {
         [Header("Refs")]
-        [SerializeField]
-        private AuthService _auth;
-        [SerializeField]
-        private TokenStore _tokenStore;
-        [SerializeField]
-        private TMP_InputField _emailInput;
-        [SerializeField]
-        private TMP_InputField _passwordInput;
-        [SerializeField]
-        private Button _loginButton;
-        [SerializeField]
+        [SerializeField] private AuthService _auth;
+        [SerializeField] private TMP_InputField _emailInput;
+        [SerializeField] private TMP_InputField _passwordInput;
+        [SerializeField] private Button _loginButton;
 
-
-        private void Awake()
+ private void Awake()
         {
             _loginButton.onClick.AddListener(OnLoginClicked);
         }
@@ -35,7 +28,7 @@ namespace EDIVE.Networking.DatabaseManagement
 
             if (_auth.IsLoggedIn)
             {
-                Debug.Log($"Přihlášen jako {_tokenStore.UserId}");
+                Debug.Log($"Přihlášen (UserId): {AuthStorage.GetUserId()}");
                 SetLoggedInUI(true);
             }
             else
@@ -52,19 +45,13 @@ namespace EDIVE.Networking.DatabaseManagement
         {
             _auth.OnLoginSucceeded -= OnLoginOk;
             _auth.OnLoginFailed -= OnLoginFail;
-        }
-        
-
-        private void OnToggleShowPassword(bool show)
-        {
-            _passwordInput.contentType = show ? TMP_InputField.ContentType.Standard : TMP_InputField.ContentType.Password;
-            _passwordInput.ForceLabelUpdate();
+            _loginButton.onClick.RemoveListener(OnLoginClicked);
         }
 
         private void OnLoginClicked()
         {
             var email = _emailInput.text?.Trim();
-            var pass = _passwordInput.text ?? "";
+            var pass  = _passwordInput.text ?? "";
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pass))
             {
@@ -76,21 +63,22 @@ namespace EDIVE.Networking.DatabaseManagement
             _auth.Login(email, pass);
         }
 
-        private void OnLogoutClicked()
-        {
-            _tokenStore.Clear();
-            SetLoggedInUI(false);
-            Debug.Log("Odhlášeno.");
-        }
-
         private void OnLoginOk(LoginResponse r)
         {
             SetLoggedInUI(true);
-            
             Debug.Log("Přihlášení proběhlo úspěšně.");
             Debug.Log($"Access Token: {r.AccessToken}");
-            
-            Debug.Log($"Refresh Token: {r.RefreshToken}");
+
+            var expUnix = JwtUtils.GetUnixExp(r.AccessToken);
+            if (expUnix.HasValue)
+            {
+                var dt = DateTimeOffset.FromUnixTimeSeconds(expUnix.Value).UtcDateTime;
+                Debug.Log($"JWT exp: {dt:O} (UTC)");
+            }
+
+            var sub = JwtUtils.GetClaim(r.AccessToken, "sub");
+            if (!string.IsNullOrEmpty(sub))
+                Debug.Log($"JWT sub: {sub}");
         }
 
         private void OnLoginFail(long status, string message)
@@ -104,7 +92,8 @@ namespace EDIVE.Networking.DatabaseManagement
             _passwordInput.interactable = !logged;
             _loginButton.interactable = !logged;
         }
-        
-        
     }
 }
+
+
+

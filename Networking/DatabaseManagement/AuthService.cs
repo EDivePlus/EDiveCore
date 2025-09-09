@@ -18,15 +18,13 @@ namespace EDIVE.Networking.DatabaseManagement
         private string _baseUrl = "https://ediveplus.phil.muni.cz:8443/ediveplus";
         [SerializeField]
         private float _timeoutSeconds = 20f;
-        [SerializeField]
-        private TokenStore _tokenStore;
 
-        public bool IsLoggedIn => _tokenStore != null && _tokenStore.IsValid;
+        public bool IsLoggedIn => AuthStorage.IsValid();
 
         public event Action<LoginResponse> OnLoginSucceeded;
         public event Action<long, string> OnLoginFailed;
 
-        public void TryLoadStoredToken() => _tokenStore?.LoadFromPrefsIfEmpty();
+        public void TryLoadStoredToken() { }
 
         public void Login(string email, string password)
         {
@@ -50,31 +48,65 @@ namespace EDIVE.Networking.DatabaseManagement
 
                 yield return req.SendWebRequest();
 
-                // Unity 2022+: request.result je spolehlivé
                 if (req.result == UnityWebRequest.Result.Success)
                 {
                     try
                     {
-                        var resp = JsonConvert.DeserializeObject<LoginResponse>(req.downloadHandler.text);
-                        if (resp == null || string.IsNullOrEmpty(resp.AccessToken))
+                        var raw = req.downloadHandler.text ?? "";
+                        
+                        string jwt = null;
+                        try
                         {
-                            OnLoginFailed?.Invoke(200, "Neplatná odpověď serveru (chybí access token).");
+                            var jo = JToken.Parse(raw);
+                            jwt = (string) (jo["token"] ?? jo["access_token"] ?? jo["accessToken"]);
+                        }
+                        catch
+                        {
+                        }
+                        
+
+                        if (string.IsNullOrEmpty(jwt))
+                        {
+                            OnLoginFailed?.Invoke(200, "Neplatná odpověď serveru (nenalezen token).");
                             yield break;
                         }
+                        
+                        var expUnix = JwtUtils.GetUnixExp(jwt);
+                        var sub = JwtUtils.GetClaim(jwt, "sub");
+                        var emailFromJwt = JwtUtils.GetClaim(jwt, "email");
+                        var refreshFromJwt = JwtUtils.GetClaim(jwt, "refresh_token");
+                        
+                        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                        var expiresIn = expUnix.HasValue ? (int) Mathf.Max(0, (int) (expUnix.Value - now)) : 0;
+                        
+                        var resp = new LoginResponse
+                        {
+                            AccessToken = jwt,
+                            RefreshToken = refreshFromJwt,
+                            UserId = !string.IsNullOrEmpty(sub) ? sub : emailFromJwt,
+                            ExpiresIn = expiresIn
+                        };
+                        
+                        AuthStorage.Save(
+                            accessToken: resp.AccessToken,
+                            refreshToken: resp.RefreshToken,
+                            userId: resp.UserId,
+                            expUnixFromJwt: expUnix,
+                            expiresInFromApi: resp.ExpiresIn
+                        );
 
-                        _tokenStore?.Save(resp);
                         OnLoginSucceeded?.Invoke(resp);
                     }
                     catch (Exception e)
                     {
-                        OnLoginFailed?.Invoke(200, $"Chyba parsování JSON: {e.Message}");
+                        OnLoginFailed?.Invoke(200, $"Chyba parsování login odpovědi: {e.Message}");
                     }
                 }
                 else
                 {
-                    var status = req.responseCode; // 0 pokud timeout/DNS/TLS
+                    var status = req.responseCode;
                     var msg = req.error;
-                    
+
                     if (status == 401) msg = "Nesprávný e-mail nebo heslo.";
                     else if (status == 403) msg = "Přístup odepřen.";
                     else if (status >= 500) msg = "Chyba serveru. Zkus to prosím později.";
