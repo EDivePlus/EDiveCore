@@ -58,5 +58,15 @@ namespace EDIVE.Networking.DatabaseManagement
             PlayerPrefs.DeleteKey(K_USERID);
             PlayerPrefs.DeleteKey(K_EXPIRESAT);
         }
+        public static void SetLastEmail(string email)
+        {
+            PlayerPrefs.SetString(K_EMAIL, email ?? "");
+            PlayerPrefs.Save();
+        }
+
+        public static string GetLastEmail()
+        {
+            return PlayerPrefs.GetString(K_EMAIL, "");
+        }
     }
 }

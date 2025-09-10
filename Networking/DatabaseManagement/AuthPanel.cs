@@ -22,6 +22,7 @@ namespace EDIVE.Networking.DatabaseManagement
         {
             _LoginButton.onClick.AddListener(OnLoginClicked);
             _LogoutButton.onClick.AddListener(OnLogoutClicked);
+            _EmailInput.onEndEdit.AddListener(OnEmailEndEdit);
         }
 
         private void Start()
@@ -38,6 +39,13 @@ namespace EDIVE.Networking.DatabaseManagement
                 Debug.Log("Zadej přihlašovací údaje.");
                 SetLoggedInUI(false);
             }
+            
+            var lastEmail = AuthStorage.GetLastEmail(); // viz předešlý krok s uložením e-mailu
+            if (!string.IsNullOrEmpty(lastEmail))
+            {
+                _EmailInput.SetTextWithoutNotify(lastEmail);
+                _EmailInput.caretPosition = _EmailInput.text.Length;
+            }
 
             _Auth.OnLoginSucceeded += OnLoginOk;
             _Auth.OnLoginFailed += OnLoginFail;
@@ -49,6 +57,7 @@ namespace EDIVE.Networking.DatabaseManagement
             _Auth.OnLoginFailed -= OnLoginFail;
             _LoginButton.onClick.RemoveListener(OnLoginClicked);
             _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
+            _EmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
         }
 
         private void OnLoginClicked()
@@ -82,6 +91,10 @@ namespace EDIVE.Networking.DatabaseManagement
             var sub = JwtUtils.GetClaim(r._AccessToken, "sub");
             if (!string.IsNullOrEmpty(sub))
                 Debug.Log($"JWT sub: {sub}");
+            
+            var emailNow = _EmailInput.text?.Trim();
+            if (!string.IsNullOrEmpty(emailNow))
+                AuthStorage.SetLastEmail(emailNow);
         }
 
         private void OnLoginFail(long status, string message)
@@ -101,6 +114,12 @@ namespace EDIVE.Networking.DatabaseManagement
             _Auth.Logout();
             SetLoggedInUI(false);
             Debug.Log("Uživatel byl odhlášen.");
+        }
+        private void OnEmailEndEdit(string value)
+        {
+            var v = value?.Trim();
+            if (!string.IsNullOrEmpty(v))
+                AuthStorage.SetLastEmail(v);
         }
     }
 }
