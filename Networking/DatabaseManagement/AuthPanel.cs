@@ -12,21 +12,23 @@ namespace EDIVE.Networking.DatabaseManagement
     public class AuthPanel : MonoBehaviour
     {
         [Header("Refs")]
-        [SerializeField] private AuthService _auth;
-        [SerializeField] private TMP_InputField _emailInput;
-        [SerializeField] private TMP_InputField _passwordInput;
-        [SerializeField] private Button _loginButton;
+        [SerializeField] private AuthService _Auth;
+        [SerializeField] private TMP_InputField _EmailInput;
+        [SerializeField] private TMP_InputField _PasswordInput;
+        [SerializeField] private Button _LoginButton;
+        [SerializeField] private Button _LogoutButton;
 
  private void Awake()
         {
-            _loginButton.onClick.AddListener(OnLoginClicked);
+            _LoginButton.onClick.AddListener(OnLoginClicked);
+            _LogoutButton.onClick.AddListener(OnLogoutClicked);
         }
 
         private void Start()
         {
-            _auth.TryLoadStoredToken();
+            _Auth.TryLoadStoredToken();
 
-            if (_auth.IsLoggedIn)
+            if (_Auth.IsLoggedIn)
             {
                 Debug.Log($"Přihlášen (UserId): {AuthStorage.GetUserId()}");
                 SetLoggedInUI(true);
@@ -37,21 +39,22 @@ namespace EDIVE.Networking.DatabaseManagement
                 SetLoggedInUI(false);
             }
 
-            _auth.OnLoginSucceeded += OnLoginOk;
-            _auth.OnLoginFailed += OnLoginFail;
+            _Auth.OnLoginSucceeded += OnLoginOk;
+            _Auth.OnLoginFailed += OnLoginFail;
         }
 
         private void OnDestroy()
         {
-            _auth.OnLoginSucceeded -= OnLoginOk;
-            _auth.OnLoginFailed -= OnLoginFail;
-            _loginButton.onClick.RemoveListener(OnLoginClicked);
+            _Auth.OnLoginSucceeded -= OnLoginOk;
+            _Auth.OnLoginFailed -= OnLoginFail;
+            _LoginButton.onClick.RemoveListener(OnLoginClicked);
+            _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
         }
 
         private void OnLoginClicked()
         {
-            var email = _emailInput.text?.Trim();
-            var pass  = _passwordInput.text ?? "";
+            var email = _EmailInput.text?.Trim();
+            var pass  = _PasswordInput.text ?? "";
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pass))
             {
@@ -60,7 +63,7 @@ namespace EDIVE.Networking.DatabaseManagement
             }
 
             Debug.Log("Přihlašuji…");
-            _auth.Login(email, pass);
+            _Auth.Login(email, pass);
         }
 
         private void OnLoginOk(LoginResponse r)
@@ -88,9 +91,16 @@ namespace EDIVE.Networking.DatabaseManagement
 
         private void SetLoggedInUI(bool logged)
         {
-            _emailInput.interactable = !logged;
-            _passwordInput.interactable = !logged;
-            _loginButton.interactable = !logged;
+            _EmailInput.interactable = !logged;
+            _PasswordInput.interactable = !logged;
+            _LoginButton.interactable = !logged;
+            _LogoutButton.interactable = logged; 
+        }
+        private void OnLogoutClicked()
+        {
+            _Auth.Logout();
+            SetLoggedInUI(false);
+            Debug.Log("Uživatel byl odhlášen.");
         }
     }
 }

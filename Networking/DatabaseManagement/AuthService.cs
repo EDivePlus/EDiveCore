@@ -116,5 +116,10 @@ namespace EDIVE.Networking.DatabaseManagement
                 }
             }
         }
+        public void Logout()
+        {
+            AuthStorage.Clear();
+        }
+        
     }
 }
