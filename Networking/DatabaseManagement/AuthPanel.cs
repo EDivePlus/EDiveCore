@@ -17,12 +17,15 @@ namespace EDIVE.Networking.DatabaseManagement
         [SerializeField] private TMP_InputField _PasswordInput;
         [SerializeField] private Button _LoginButton;
         [SerializeField] private Button _LogoutButton;
+        [SerializeField] private Button _TogglePasswordButton; 
+        private bool _IsPasswordHidden = true;
 
  private void Awake()
         {
             _LoginButton.onClick.AddListener(OnLoginClicked);
             _LogoutButton.onClick.AddListener(OnLogoutClicked);
             _EmailInput.onEndEdit.AddListener(OnEmailEndEdit);
+            if (_TogglePasswordButton != null) _TogglePasswordButton.onClick.AddListener(OnTogglePasswordClicked);
         }
 
         private void Start()
@@ -46,6 +49,9 @@ namespace EDIVE.Networking.DatabaseManagement
                 _EmailInput.SetTextWithoutNotify(lastEmail);
                 _EmailInput.caretPosition = _EmailInput.text.Length;
             }
+            
+            _IsPasswordHidden = true;
+            ApplyPasswordMaskState();
 
             _Auth.OnLoginSucceeded += OnLoginOk;
             _Auth.OnLoginFailed += OnLoginFail;
@@ -58,6 +64,7 @@ namespace EDIVE.Networking.DatabaseManagement
             _LoginButton.onClick.RemoveListener(OnLoginClicked);
             _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
             _EmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
+            if (_TogglePasswordButton != null) _TogglePasswordButton.onClick.RemoveListener(OnTogglePasswordClicked);
         }
 
         private void OnLoginClicked()
@@ -108,6 +115,21 @@ namespace EDIVE.Networking.DatabaseManagement
             _PasswordInput.interactable = !logged;
             _LoginButton.interactable = !logged;
             _LogoutButton.interactable = logged; 
+            
+            if (logged)
+            {
+                _IsPasswordHidden = true;
+                _PasswordInput.SetTextWithoutNotify("*****");
+                ApplyPasswordMaskState();
+                if (_TogglePasswordButton != null) _TogglePasswordButton.interactable = false;
+            }
+            else
+            {
+                _IsPasswordHidden = true;
+                _PasswordInput.SetTextWithoutNotify(string.Empty);
+                ApplyPasswordMaskState();
+                if (_TogglePasswordButton != null) _TogglePasswordButton.interactable = true;
+            }
         }
         private void OnLogoutClicked()
         {
@@ -120,6 +142,20 @@ namespace EDIVE.Networking.DatabaseManagement
             var v = value?.Trim();
             if (!string.IsNullOrEmpty(v))
                 AuthStorage.SetLastEmail(v);
+        }
+        
+        private void ApplyPasswordMaskState()
+        {
+            if (_PasswordInput == null) return;
+            _PasswordInput.contentType = _IsPasswordHidden
+                ? TMP_InputField.ContentType.Password
+                : TMP_InputField.ContentType.Standard;
+            _PasswordInput.ForceLabelUpdate();
+        }
+        private void OnTogglePasswordClicked()
+        {
+            _IsPasswordHidden = !_IsPasswordHidden;
+            ApplyPasswordMaskState();
         }
     }
 }
