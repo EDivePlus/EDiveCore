@@ -11,6 +11,7 @@ namespace EDIVE.Networking.DatabaseManagement
         private const string K_REFRESH   = "auth.refresh";
         private const string K_USERID    = "auth.userId";
         private const string K_EXPIRESAT = "auth.expiresAt";
+        private const string K_EMAIL = "auth.lastEmail";
 
         public static void Save(string accessToken, string refreshToken, string userId, long? expUnixFromJwt, int expiresInFromApi)
         {

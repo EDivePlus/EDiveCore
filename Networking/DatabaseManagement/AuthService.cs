@@ -15,9 +15,9 @@ namespace EDIVE.Networking.DatabaseManagement
     {
         [Header("Config")]
         [SerializeField]
-        private string _baseUrl = "https://ediveplus.phil.muni.cz:8443/ediveplus";
+        private string _BaseUrl = "https://ediveplus.phil.muni.cz:8443/ediveplus";
         [SerializeField]
-        private float _timeoutSeconds = 20f;
+        private float _TimeoutSeconds = 20f;
 
         public bool IsLoggedIn => AuthStorage.IsValid();
 
@@ -34,7 +34,7 @@ namespace EDIVE.Networking.DatabaseManagement
 
         private IEnumerator LoginCoroutine(string email, string password)
         {
-            var url = $"{_baseUrl}/auth/login";
+            var url = $"{_BaseUrl}/auth/login";
             var payload = new LoginRequest(email, password);
             var json = JsonConvert.SerializeObject(payload);
 
@@ -44,7 +44,7 @@ namespace EDIVE.Networking.DatabaseManagement
                 req.uploadHandler = new UploadHandlerRaw(body);
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.SetRequestHeader("Content-Type", "application/json");
-                req.timeout = Mathf.CeilToInt(_timeoutSeconds);
+                req.timeout = Mathf.CeilToInt(_TimeoutSeconds);
 
                 yield return req.SendWebRequest();
 
@@ -81,18 +81,18 @@ namespace EDIVE.Networking.DatabaseManagement
                         
                         var resp = new LoginResponse
                         {
-                            AccessToken = jwt,
-                            RefreshToken = refreshFromJwt,
-                            UserId = !string.IsNullOrEmpty(sub) ? sub : emailFromJwt,
-                            ExpiresIn = expiresIn
+                            _AccessToken = jwt,
+                            _RefreshToken = refreshFromJwt,
+                            _UserId = !string.IsNullOrEmpty(sub) ? sub : emailFromJwt,
+                            _ExpiresIn = expiresIn
                         };
                         
                         AuthStorage.Save(
-                            accessToken: resp.AccessToken,
-                            refreshToken: resp.RefreshToken,
-                            userId: resp.UserId,
+                            accessToken: resp._AccessToken,
+                            refreshToken: resp._RefreshToken,
+                            userId: resp._UserId,
                             expUnixFromJwt: expUnix,
-                            expiresInFromApi: resp.ExpiresIn
+                            expiresInFromApi: resp._ExpiresIn
                         );
 
                         OnLoginSucceeded?.Invoke(resp);

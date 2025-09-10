@@ -70,16 +70,16 @@ namespace EDIVE.Networking.DatabaseManagement
         {
             SetLoggedInUI(true);
             Debug.Log("Přihlášení proběhlo úspěšně.");
-            Debug.Log($"Access Token: {r.AccessToken}");
+            Debug.Log($"Access Token: {r._AccessToken}");
 
-            var expUnix = JwtUtils.GetUnixExp(r.AccessToken);
+            var expUnix = JwtUtils.GetUnixExp(r._AccessToken);
             if (expUnix.HasValue)
             {
                 var dt = DateTimeOffset.FromUnixTimeSeconds(expUnix.Value).UtcDateTime;
                 Debug.Log($"JWT exp: {dt:O} (UTC)");
             }
 
-            var sub = JwtUtils.GetClaim(r.AccessToken, "sub");
+            var sub = JwtUtils.GetClaim(r._AccessToken, "sub");
             if (!string.IsNullOrEmpty(sub))
                 Debug.Log($"JWT sub: {sub}");
         }
