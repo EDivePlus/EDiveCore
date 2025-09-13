@@ -8,6 +8,7 @@ using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.EditorUtils.DomainReload;
 using EDIVE.NativeUtils;
+using EDIVE.Utils;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using UnityEditor.Build;
@@ -110,6 +111,7 @@ namespace EDIVE.BuildTool.Runners
             if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
             {
                 Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
+                TeamCityServiceMessages.MessageBuildProblem($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported! Check if it is installed for current version of Unity on building machine!");
                 yield break;
             }
                 
@@ -148,7 +150,7 @@ namespace EDIVE.BuildTool.Runners
                 EditorUtility.DisplayProgressBar("Build", "Post processing build", 0.9f);
                 yield return ExecuteBuildSegment(PostProcessAndChangeEditor);
             }
-                
+        
             if (Context.State < BuildStateType.StateRestore)
             {
                 EditorUtility.DisplayProgressBar("Build", "Editor state restoring", 0.9f);
@@ -162,8 +164,10 @@ namespace EDIVE.BuildTool.Runners
         {
             DebugLite.Log($"[BuildRunner] State started {Context.State}");
             EditorApplication.LockReloadAssemblies();
+            TeamCityServiceMessages.BeginMessageBlock($"[BuildRunner] State: {Context.State}");
             yield return segmentFunction();
             DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
+            TeamCityServiceMessages.EndMessageBlock($"[BuildRunner] State: {Context.State}");
             EditorApplication.UnlockReloadAssemblies();
             yield return null;
             while (EditorApplication.isCompiling)
@@ -221,6 +225,13 @@ namespace EDIVE.BuildTool.Runners
             
             Context.State = BuildStateType.PipelinePreparation;
             DebugLite.Log($"[BuildRunner] Starting build (Path: {UserConfig.PathResolver.FullPath})");
+            
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ProductName", PlayerSettings.productName);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFolderPath", UserConfig.PathResolver.FolderPath);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFileName", UserConfig.PathResolver.FileName);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFullPath", UserConfig.PathResolver.FullPath);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
 
             try
             {
@@ -255,18 +266,29 @@ namespace EDIVE.BuildTool.Runners
             yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostprocess(_Context));
             DebugLite.Log("[BuildRunner] Postprocess Actions completed");
 
+            if (Application.isBatchMode)
+            {
+                DebugLite.Log("[BuildRunner] Target switch is ignored in batch mode");
+                yield break;
+            }
+            
             DebugLite.Log("[BuildRunner] Restoring settings");
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
             var prevNamedBuildTarget =_PrevWasServer ? NamedBuildTarget.Server : NamedBuildTarget.FromBuildTargetGroup(BuildPipeline.GetBuildTargetGroup(_PrevBuildTarget));
+            
             EditorUserBuildSettings.SwitchActiveBuildTarget(prevNamedBuildTarget, _PrevBuildTarget);
-
             CompilationPipeline.RequestScriptCompilation();
         }
-        
+
         private IEnumerator RestoreEditorState()
         {
+            if (Application.isBatchMode)
+            {
+                DebugLite.Log("[BuildRunner] Restore is ignored in batch mode");
+                yield break;
+            }
+            
             Context.State = BuildStateType.StateRestore;
-
             RestoreSettingsAfterBuild();
 
             DebugLite.Log("[BuildRunner] Actions pre defines executing");
