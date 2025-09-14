@@ -23,7 +23,7 @@ namespace EDIVE.BuildTool
         private static readonly BuildPanel BUILD_PANEL = new();
         private static readonly UserConfigsPanel USER_CONFIGS_PANEL = new();
 
-        private static EditorIcon BuildHelperIcon => FontAwesomeEditorIcons.HammerSolid;
+        private static EditorIcon BuildToolIcon => FontAwesomeEditorIcons.HammerSolid;
         
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
@@ -34,7 +34,7 @@ namespace EDIVE.BuildTool
         private static void OnToolbarGUI()
         {
             GUILayout.Space(2);
-            if (GUILayout.Button(new GUIContent(null, BuildHelperIcon.Highlighted, "Build Tool"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
+            if (GUILayout.Button(new GUIContent(null, BuildToolIcon.Highlighted, "Build Tool"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
             {
                 OpenWindow();
             }
@@ -65,14 +65,14 @@ namespace EDIVE.BuildTool
 
         private void SetupWindowStyle()
         {
-            titleContent = new GUIContent("Build Helper", BuildHelperIcon.Highlighted);
+            titleContent = new GUIContent("Build Helper", BuildToolIcon.Highlighted);
         }
 
         protected override OdinMenuTree BuildMenuTree()
         {
             var tree = new OdinMenuTree(true)
             {
-                {"Build", BUILD_PANEL, BuildHelperIcon},
+                {"Build", BUILD_PANEL, BuildToolIcon},
                 {"Global Settings", BuildGlobalSettings.Instance, FontAwesomeEditorIcons.GearSolid},
                 {"User Configs", USER_CONFIGS_PANEL, FontAwesomeEditorIcons.UserGroupSolid},
             };

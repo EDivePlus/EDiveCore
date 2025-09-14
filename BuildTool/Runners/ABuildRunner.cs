@@ -313,11 +313,11 @@ namespace EDIVE.BuildTool.Runners
 
         private void SetDefineSymbols(NamedBuildTarget namedTarget, IEnumerable<string> defines)
         {
-            DebugLite.Log($"[BuildHelper] Previous defines: {PlayerSettings.GetScriptingDefineSymbols(namedTarget)}");
+            DebugLite.Log($"[BuildRunner] Previous defines: {PlayerSettings.GetScriptingDefineSymbols(namedTarget)}");
             var definesArray = defines.ToArray();
             PlayerSettings.SetScriptingDefineSymbols(namedTarget, definesArray);
             AssetDatabase.SaveAssets();
-            DebugLite.Log($"[BuildHelper] New defines: {string.Join(",", definesArray)}");
+            DebugLite.Log($"[BuildRunner] New defines: {string.Join(",", definesArray)}");
         }
 
         private static IEnumerator ExecuteBuildActions(IEnumerable<ABuildAction> buildActions, Func<ABuildAction, IEnumerator> function)
