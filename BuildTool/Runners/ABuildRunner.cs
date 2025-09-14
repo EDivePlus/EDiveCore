@@ -161,6 +161,9 @@ namespace EDIVE.BuildTool.Runners
             }
 
             EditorUtility.ClearProgressBar();
+            
+            if (Application.isBatchMode)
+                EditorApplication.Exit(_Context.Result == BuildResult.Succeeded ? 0 : 1);
         }
 
         private IEnumerator ExecuteBuildSegment(Func<IEnumerator> segmentFunction)
@@ -306,9 +309,6 @@ namespace EDIVE.BuildTool.Runners
                 else
                     Debug.LogError($"[BuildRunner] {PlatformConfig.NamedBuildTarget} Build result: '{_Context.Report.summary.result}'");
             }
-
-            if (Application.isBatchMode)
-                EditorApplication.Exit(_Context.Result == BuildResult.Succeeded ? 0 : 1);
         }
 
         private void SetDefineSymbols(NamedBuildTarget namedTarget, IEnumerable<string> defines)
