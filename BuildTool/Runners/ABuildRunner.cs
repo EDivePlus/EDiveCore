@@ -98,35 +98,39 @@ namespace EDIVE.BuildTool.Runners
         {
             if (Context.State == BuildStateType.NotStarted)
             {
+                if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
+                {
+                    Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
+                    TeamCityServiceMessages.MessageBuildProblem($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported! Check if it is installed for current version of Unity on building machine!");
+                    yield break;
+                }
+                
+                DebugLite.Log("[BuildRunner] Waiting for initial compilation to finish...");
+                DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
+                yield return null;
+                while (EditorApplication.isCompiling)
+                    yield return null;
+                DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
+                
+                DebugLite.Log("[BuildRunner] Initial build preparation...");
                 if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                     yield break;
-            }
-
-            var activeScene = SceneManager.GetActiveScene();
-            if (!string.IsNullOrEmpty(activeScene.path))
-            {
-                EditorSceneManager.OpenScene(activeScene.path);
+                
+                var activeScene = SceneManager.GetActiveScene();
+                if (!string.IsNullOrEmpty(activeScene.path))
+                {
+                    EditorSceneManager.OpenScene(activeScene.path);
+                }
+                EditorUtility.DisplayProgressBar("Build", "Build initializing", 0f);
             }
             
-            if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
-            {
-                Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
-                TeamCityServiceMessages.MessageBuildProblem($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported! Check if it is installed for current version of Unity on building machine!");
-                yield break;
-            }
-                
-            EditorUtility.DisplayProgressBar("Build", "Build initializing", 0f);
             DebugLite.Log("[BuildRunner] Build prepared for start or resume...");
 
-            yield return null;
-            while (EditorApplication.isCompiling)
-                yield return null;
-            
             if (Context.State != BuildStateType.NotStarted)
             {
                 DebugLite.Log($"[BuildRunner] Resuming build from state {Context.State}");
             }
-
+        
             if (Context.State < BuildStateType.StateCapture)
             {
                 EditorUtility.DisplayProgressBar("Build", "Editor state capture", 0.1f);

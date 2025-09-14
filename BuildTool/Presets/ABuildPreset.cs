@@ -10,7 +10,6 @@ using EDIVE.BuildTool.Runners;
 using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -64,6 +63,11 @@ namespace EDIVE.BuildTool.Presets
         }
 
         protected abstract IEnumerable<BuildSetupData> GetSetupData(NamedBuildTarget namedTarget, BuildTarget target);
+        
+        public override string ToString()
+        {
+            return $"User: '{(UserConfig != null ? UserConfig.name : "null")}' Platform: '{(BasePlatformConfig != null ? BasePlatformConfig.name : "null")}'";
+        }
     }
 
     [Serializable]

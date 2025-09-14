@@ -11,34 +11,34 @@ using EDIVE.NativeUtils;
 using EDIVE.Utils;
 using JetBrains.Annotations;
 using UnityEditor;
-using UnityEngine;
 
 [SuppressMessage("ReSharper", "CheckNamespace")]
 public static class CommandLineBuild
 {
-    public const string CMD_USER_CONFIG = "-userConfig";
-    public const string CMD_PLATFORM_CONFIG = "-platformConfig";
+    private const string CMD_USER_CONFIG = "-userConfig";
+    private const string CMD_PLATFORM_CONFIG = "-platformConfig";
 
-    public const string CMD_VERSION_MAJOR = "-vMaj";
-    public const string CMD_VERSION_MINOR = "-vMin";
-    public const string CMD_VERSION_PATCH = "-vPatch";
-    public const string CMD_VERSION_BUILD = "-vBuild";
+    private const string CMD_VERSION_MAJOR = "-vMaj";
+    private const string CMD_VERSION_MINOR = "-vMin";
+    private const string CMD_VERSION_PATCH = "-vPatch";
+    private const string CMD_VERSION_BUILD = "-vBuild";
 
     private const char CMD_PREFIX = '-';
 
     [UsedImplicitly]
     public static void Build()
     {
-        var arguments = GetArguments();
+        TeamCityServiceMessages.MessageLog("[CMDBuild] Initializing command line build...");
         
+        var arguments = GetArguments();
         if (!arguments.TryGetValue(CMD_PLATFORM_CONFIG, out var platformConfigName))
         {
-            TeamCityServiceMessages.MessageBuildProblem("Platform config not specified");
+            TeamCityServiceMessages.MessageBuildProblem("[CMDBuild] Platform config not specified");
             return;
         }
         if (!EditorAssetUtils.FindAllAssetsOfType<ABuildPlatformConfig>().TryGetFirst(c => c.name == platformConfigName, out var platformConfig ))
         {
-            TeamCityServiceMessages.MessageBuildProblem($"Platform config '{platformConfigName}' not found");
+            TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] Platform config '{platformConfigName}' not found");
             return;
         }
         
@@ -48,7 +48,7 @@ public static class CommandLineBuild
             if (EditorAssetUtils.FindAllAssetsOfType<BuildUserConfig>().TryGetFirst(c => c.name == userName, out var foundUser))
                 user = foundUser;
             else
-                TeamCityServiceMessages.MessageBuildProblem($"User config '{userName}' not found, using default.");
+                TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] User config '{userName}' not found, using default.");
         }
 
         var versionDef = BuildGlobalSettings.Instance.VersionDefinition;
@@ -64,6 +64,8 @@ public static class CommandLineBuild
         versionDef.CurrentVersion = version;
         
         var preset = platformConfig.CreatePreset(user);
+        
+        TeamCityServiceMessages.MessageLog($"[CMDBuild] Preset created: {preset}");
         preset.Build(BuildOptions.None);
     }
 
@@ -85,7 +87,7 @@ public static class CommandLineBuild
             }
 
             if (!commandToValueDictionary.TryAdd(command, value))
-                Debug.Log("Duplicate command line argument " + command);
+                TeamCityServiceMessages.MessageLog($"[CMDBuild] Duplicate command line argument: '{command}'", ServiceMessageLogType.Warning);
         }
 
         return commandToValueDictionary;
