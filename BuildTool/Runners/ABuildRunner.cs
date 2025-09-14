@@ -382,16 +382,17 @@ namespace EDIVE.BuildTool.Runners
             if (Context.State == state)
                 return;
             
-            if (state != BuildStateType.NotStarted)
+            if (Context.State != BuildStateType.NotStarted)
             {
-                TeamCityServiceMessages.EndMessageBlock($"[BuildRunner] State: {Context.State}");
                 DebugLite.Log($"[BuildRunner] State completed {Context.State}");
+                TeamCityServiceMessages.EndMessageBlock($"[BuildRunner] State: {Context.State}");
             }
+            
             Context.State = state;
-            if (state != BuildStateType.Completed)
+            if (Context.State != BuildStateType.Completed)
             {
-                DebugLite.Log($"[BuildRunner] State started {Context.State}");
                 TeamCityServiceMessages.BeginMessageBlock($"[BuildRunner] State: {Context.State}");
+                DebugLite.Log($"[BuildRunner] State started {Context.State}");
             }
         }
     }
