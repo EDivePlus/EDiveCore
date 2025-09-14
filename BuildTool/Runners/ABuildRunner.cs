@@ -183,7 +183,8 @@ namespace EDIVE.BuildTool.Runners
             yield return null;
 
             Context.VersionDefinition = BuildGlobalSettings.Instance.VersionDefinition;
-            Context.VersionDefinition.IncrementCurrentVersion();
+            if (!Application.isBatchMode)
+                Context.VersionDefinition.IncrementCurrentVersion();
             Context.VersionDefinition.ApplyCurrentVersion();
 
             UserConfig.PathResolver.ResolvePath(Preset);
