@@ -202,6 +202,7 @@ namespace EDIVE.BuildTool.Runners
             DebugLite.Log("[BuildRunner] Applying settings");
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _Context.Defines);
 
+            SetContextState(BuildStateType.BuildTargetSwitch);
             _PrevBuildTarget = EditorUserBuildSettings.activeBuildTarget;
             _PrevWasServer = BuildUtils.CurrentNamedBuildTarget == NamedBuildTarget.Server;
             EditorUserBuildSettings.SwitchActiveBuildTarget(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget);
@@ -274,6 +275,8 @@ namespace EDIVE.BuildTool.Runners
                 DebugLite.Log("[BuildRunner] Target switch is ignored in batch mode");
                 yield break;
             }
+            
+            SetContextState(BuildStateType.BuildTargetRevert);
             
             DebugLite.Log("[BuildRunner] Restoring settings");
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
