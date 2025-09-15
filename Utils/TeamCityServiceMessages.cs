@@ -140,8 +140,9 @@ namespace EDIVE.Utils
             if (string.IsNullOrEmpty(text)) return text;
             return text
                 .Replace("|", "||")
-                .Replace("\\", "|")
                 .Replace("'", "|'")
+                .Replace("\n", "|n")
+                .Replace("\r ", "|r")
                 .Replace("[", "|[")
                 .Replace("]", "|]");
         }
