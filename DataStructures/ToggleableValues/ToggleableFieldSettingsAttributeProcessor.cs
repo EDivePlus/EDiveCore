@@ -8,7 +8,7 @@ using System.Reflection;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 
-namespace EDIVE.Utils.ToggleableValues
+namespace EDIVE.DataStructures.ToggleableValues
 {
     public class ToggleableFieldSettingsAttributeProcessor<T> : OdinAttributeProcessor<ToggleableField<T>>
     {

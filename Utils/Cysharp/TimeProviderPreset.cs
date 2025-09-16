@@ -9,7 +9,7 @@ using R3;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Utils.R3
+namespace EDIVE.Utils.Cysharp
 {
     [Serializable]
     [InlineProperty]

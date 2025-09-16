@@ -19,7 +19,8 @@
         "Unity.Mathematics",
         "Unity.InputSystem",
         "EDIVE.ScriptableArchitecture",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "StompyRobot.SRDebugger"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -28,6 +29,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+      {
+        "name": "com.unity.xr.interaction.toolkit",
+        "expression": "",
+        "define": "XR_INTERACTION_TOOLKIT"
+      }
+    ],
     "noEngineReferences": false
 }

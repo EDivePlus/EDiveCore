@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
-using EDIVE.Utils;
+using EDIVE.NativeUtils.TeamCity;
 using JetBrains.Annotations;
 using UnityEditor;
 

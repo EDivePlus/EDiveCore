@@ -1,0 +1,29 @@
+﻿{
+  "name": "EDIVE.Utils.Cysharp",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.OdinExtensions",
+    "EDIVE.NativeUtils",
+    "R3.Unity"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.cysharp.r3",
+      "expression": "",
+      "define": "R3"
+    },
+    {
+      "name": "com.cysharp.memorypack",
+      "expression": "",
+      "define": "MEMORY_PACK"
+    }
+  ],
+  "noEngineReferences": false
+}

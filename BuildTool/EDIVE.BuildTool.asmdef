@@ -2,7 +2,7 @@
     "name": "EDIVE.BuildTool",
     "rootNamespace": "",
     "references": [
-        "EDIVE.Utils",
+        "Unity.EditorCoroutines.Editor",
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
         "EDIVE.Core",
@@ -10,7 +10,7 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.EditorUtils",
         "EDIVE.External.Signals",
-        "Unity.EditorCoroutines.Editor"
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [
         "Editor"

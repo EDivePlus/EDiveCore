@@ -3,7 +3,7 @@
 
 using System;
 
-namespace EDIVE.Utils.ToggleableValues
+namespace EDIVE.DataStructures.ToggleableValues
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class ToggleableFieldSettingsAttribute : Attribute

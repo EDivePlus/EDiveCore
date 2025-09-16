@@ -6,12 +6,8 @@
         "EDIVE.NativeUtils",
         "Whinarn.UnityMeshSimplifier.Runtime",
         "Unity.Formats.Fbx.Editor",
-        "StompyRobot.SRDebugger",
-        "StompyRobot.SRF",
-        "Unity.XR.Interaction.Toolkit",
         "UniTask",
         "EDIVE.DataStructures",
-        "R3.Unity",
         "EDIVE.External.DomainReloadHelper"
     ],
     "includePlatforms": [],
@@ -26,21 +22,6 @@
             "name": "com.whinarn.unitymeshsimplifier",
             "expression": "",
             "define": "MESH_SIMPLIFIER"
-        },
-        {
-            "name": "com.unity.xr.interaction.toolkit",
-            "expression": "",
-            "define": "XR_INTERACTION_TOOLKIT"
-        },
-        {
-            "name": "com.cysharp.memorypack",
-            "expression": "",
-            "define": "MEMORY_PACK"
-        },
-        {
-            "name": "com.cysharp.r3",
-            "expression": "",
-            "define": "R3"
         }
     ],
     "noEngineReferences": false

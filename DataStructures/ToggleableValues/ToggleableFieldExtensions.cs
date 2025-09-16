@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EDIVE.Utils.ToggleableValues
+namespace EDIVE.DataStructures.ToggleableValues
 {
     public static class ToggleableFieldExtensions
     {

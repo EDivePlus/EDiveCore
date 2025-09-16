@@ -11,7 +11,7 @@ using MemoryPack;
 using MemoryPack.Formatters;
 using UnityEngine;
 
-namespace EDIVE.Utils.MemoryPack
+namespace EDIVE.Utils.Cysharp
 {
     public static class MemoryPackUtility
     {

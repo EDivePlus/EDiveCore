@@ -3,7 +3,7 @@
 
 using System;
 
-namespace EDIVE.Utils
+namespace EDIVE.NativeUtils.TeamCity
 {
     /// <summary>
     /// Interface for reporting Service Messages to TeamCity

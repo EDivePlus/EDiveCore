@@ -2,7 +2,7 @@
 // Created: 08.07.2025
 
 #if R3
-namespace EDIVE.Utils.R3
+namespace EDIVE.Utils.Cysharp
 {
     public enum PlayerLoopTiming
     {
