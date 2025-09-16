@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using EDIVE.BuildTool.PathResolving;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
 using UnityEditor;
@@ -16,6 +17,9 @@ namespace EDIVE.BuildTool
 
         [SerializeField]
         private AppVersion _Version;
+        
+        [SerializeField]
+        private FilePath _ResultPath;
 
         [SerializeField]
         private BuildStateType _State;
@@ -38,6 +42,7 @@ namespace EDIVE.BuildTool
         public BuildResult Result { get => _Result; set => _Result = value; }
         public BuildReport Report { get => _Report; set => _Report = value; }
         public List<string> Defines { get => _Defines; set => _Defines = value; }
+        public FilePath ResultPath { get => _ResultPath; set => _ResultPath = value; }
 
         public BuildContext(BuildOptions options = BuildOptions.None)
         {

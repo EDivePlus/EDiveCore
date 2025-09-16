@@ -191,7 +191,7 @@ namespace EDIVE.BuildTool.Runners
                 Context.VersionDefinition.IncrementCurrentVersion();
             Context.VersionDefinition.ApplyCurrentVersion();
 
-            UserConfig.PathResolver.ResolvePath(Preset);
+            Context.ResultPath = UserConfig.PathResolver.ResolvePath(Preset);
             _Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
             PlayerSettings.GetScriptingDefineSymbols(PlatformConfig.NamedBuildTarget, out _PrevDefines);
             
@@ -221,7 +221,7 @@ namespace EDIVE.BuildTool.Runners
             yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreprocess(_Context));
             DebugLite.Log("[BuildRunner] Preprocess Actions completed");
             
-            PathUtility.EnsurePathExists(UserConfig.PathResolver.FullPath);
+            PathUtility.EnsurePathExists(Context.ResultPath.FullPath);
         }
 
         private IEnumerator BuildBinary()
@@ -229,19 +229,19 @@ namespace EDIVE.BuildTool.Runners
             yield return null;
             
             SetContextState(BuildStateType.PipelinePreparation);
-            DebugLite.Log($"[BuildRunner] Starting build (Path: {UserConfig.PathResolver.FullPath})");
+            DebugLite.Log($"[BuildRunner] Starting build (Path: {Context.ResultPath.FullPath})");
             
             TeamCityServiceMessages.MessageSetParameter("UnityBuild.ProductName", PlayerSettings.productName);
             TeamCityServiceMessages.MessageSetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFolderPath", UserConfig.PathResolver.FolderPath);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFileName", UserConfig.PathResolver.FileName);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFullPath", UserConfig.PathResolver.FullPath);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
+            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
             TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
 
             try
             {
                 SetContextState(BuildStateType.PipelineInProgress);
-                _Context.Report = BuildPipeline.BuildPlayer(PlatformConfig.SceneList, UserConfig.PathResolver.FullPath, PlatformConfig.BuildTarget, Context.Options);
+                _Context.Report = BuildPipeline.BuildPlayer(PlatformConfig.SceneList, Context.ResultPath.FullPath, PlatformConfig.BuildTarget, Context.Options);
                 _Context.Result = _Context.Report.summary.result;
             }
             catch (Exception e)
