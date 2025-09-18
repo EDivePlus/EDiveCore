@@ -15,6 +15,12 @@ namespace EDIVE.XRTools.Interactions
         [SerializeField]
         private InteractionLayerMask _InteractionLayers = 1;
         
+        public InteractionLayerMask InteractionLayers
+        {
+            get => _InteractionLayers;
+            set => _InteractionLayers = value;
+        }
+        
         public override void Raycast(PointerEventData eventData, List<RaycastResult> resultAppendList)
         {
             if (eventData is not TrackedDeviceEventData trackedEventData || trackedEventData.interactor is not IXRInteractor xrInteractor)

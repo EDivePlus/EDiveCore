@@ -7,8 +7,8 @@ using UnityEngine;
 
 #if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
 using EDIVE.NativeUtils;
+using EDIVE.XRTools.Interactions;
 using UnityEngine.UI;
-using UnityEngine.XR.Interaction.Toolkit.UI;
 #endif
 
 namespace EDIVE.Utils
@@ -20,7 +20,7 @@ namespace EDIVE.Utils
         private RectTransform _ParentRect;
 
         [SerializeField]
-        private TrackedDeviceGraphicRaycaster _XRRaycaster;
+        private FilteredTrackedDeviceGraphicRaycaster _XRRaycaster;
 
         [SerializeField]
         private bool _OverrideCanvasSorting = true;
@@ -43,7 +43,7 @@ namespace EDIVE.Utils
             {
                 foreach (var raycaster in _panelRect.GetComponentsInChildren<GraphicRaycaster>(true))
                 {
-                    var xrRaycaster = raycaster.GetOrAddComponent<TrackedDeviceGraphicRaycaster>();
+                    var xrRaycaster = raycaster.GetOrAddComponent<FilteredTrackedDeviceGraphicRaycaster>();
                     CopyTrackedDeviceGraphicRaycasterData(xrRaycaster, _XRRaycaster);
                 }
             }
@@ -82,13 +82,14 @@ namespace EDIVE.Utils
             _panelRect.SetParent(prevParent);
         }
 
-        private static void CopyTrackedDeviceGraphicRaycasterData(TrackedDeviceGraphicRaycaster target, TrackedDeviceGraphicRaycaster original)
+        private static void CopyTrackedDeviceGraphicRaycasterData(FilteredTrackedDeviceGraphicRaycaster target, FilteredTrackedDeviceGraphicRaycaster original)
         {
             target.ignoreReversedGraphics = original.ignoreReversedGraphics;
             target.blockingMask = original.blockingMask;
             target.checkFor2DOcclusion = original.checkFor2DOcclusion;
             target.checkFor3DOcclusion = original.checkFor3DOcclusion;
             target.raycastTriggerInteraction = original.raycastTriggerInteraction;
+            target.InteractionLayers = original.InteractionLayers;
         }
 #endif
     }
