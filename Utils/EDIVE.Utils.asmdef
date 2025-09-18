@@ -2,6 +2,7 @@
     "name": "EDIVE.Utils",
     "rootNamespace": "",
     "references": [
+        "Unity.TextMeshPro",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "Whinarn.UnityMeshSimplifier.Runtime",
