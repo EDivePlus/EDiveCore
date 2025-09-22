@@ -231,12 +231,12 @@ namespace EDIVE.BuildTool.Runners
             SetContextState(BuildStateType.PipelinePreparation);
             DebugLite.Log($"[BuildRunner] Starting build (Path: {Context.ResultPath.FullPath})");
             
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ProductName", PlayerSettings.productName);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
-            TeamCityServiceMessages.MessageSetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
+            TeamCityServiceMessages.SetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
 
             try
             {
