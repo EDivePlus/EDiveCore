@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace EDIVE.NativeUtils
 {
@@ -90,6 +91,23 @@ namespace EDIVE.NativeUtils
             }
 
             return c;
+        }
+        
+        private const double DEFAULT_DOUBLE_EPSILON = 1e-10;
+
+        public static bool Approximately(this double a, double b, double epsilon = DEFAULT_DOUBLE_EPSILON)
+        {
+            return Math.Abs(a - b) < epsilon;
+        }
+        
+        public static bool LessOrEqualApproximately(this double a, double b, double epsilon = DEFAULT_DOUBLE_EPSILON)
+        {
+            return a < b || a.Approximately(b, epsilon);
+        }
+        
+        public static bool GreaterOrEqualApproximately(this double a, double b, double epsilon = DEFAULT_DOUBLE_EPSILON)
+        {
+            return a > b || a.Approximately(b, epsilon);
         }
         
         public enum RoundingMode
