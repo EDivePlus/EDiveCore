@@ -1,0 +1,29 @@
+{
+    "name": "EDIVE.EyeTracking",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "EDIVE.Core",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "Oculus.VR",
+        "EDIVE.AppLoading",
+        "EDIVE.External.Promises",
+        "R3.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.meta.xr.sdk.interaction.ovr",
+            "expression": "",
+            "define": "OCULUS_VR"
+        }
+    ],
+    "noEngineReferences": false
+}
