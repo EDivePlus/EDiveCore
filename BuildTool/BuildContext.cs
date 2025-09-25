@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using EDIVE.BuildTool.PathResolving;
+using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
 using UnityEditor;
@@ -36,6 +38,12 @@ namespace EDIVE.BuildTool
         [SerializeField]
         private List<string> _Defines = new();
 
+        [SerializeField]
+        private BuildUserConfig _UserConfig;
+        
+        [SerializeField]
+        private ABuildPlatformConfig _PlatformConfig;
+        
         public AppVersionDefinition VersionDefinition { get => _VersionDefinition; set => _VersionDefinition = value; }
         public BuildStateType State { get => _State; set => _State = value; }
         public BuildOptions Options { get => _Options; set => _Options = value; }
@@ -43,6 +51,8 @@ namespace EDIVE.BuildTool
         public BuildReport Report { get => _Report; set => _Report = value; }
         public List<string> Defines { get => _Defines; set => _Defines = value; }
         public FilePath ResultPath { get => _ResultPath; set => _ResultPath = value; }
+        public BuildUserConfig UserConfig { get => _UserConfig; set => _UserConfig = value; }
+        public ABuildPlatformConfig PlatformConfig { get => _PlatformConfig; set => _PlatformConfig = value; }
 
         public BuildContext(BuildOptions options = BuildOptions.None)
         {

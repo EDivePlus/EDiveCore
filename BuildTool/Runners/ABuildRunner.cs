@@ -9,7 +9,6 @@ using EDIVE.BuildTool.Utils;
 using EDIVE.EditorUtils.DomainReload;
 using EDIVE.NativeUtils;
 using EDIVE.NativeUtils.TeamCity;
-using EDIVE.Utils;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using UnityEditor.Build;
@@ -92,13 +91,20 @@ namespace EDIVE.BuildTool.Runners
         protected ABuildRunner(TPreset preset, BuildOptions options = BuildOptions.None)
         {
             _Preset = preset;
-            _Context = new BuildContext(options);
+            _Context = new BuildContext(options)
+            {
+                PlatformConfig = preset.PlatformConfig,
+                UserConfig = preset.UserConfig
+            };
         }
 
         protected override IEnumerator StartBuildRoutine()
         {
             if (Context.State == BuildStateType.NotStarted)
             {
+                TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
+                TeamCityServiceMessages.SetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
+                
                 if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
                 {
                     Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
@@ -195,6 +201,13 @@ namespace EDIVE.BuildTool.Runners
             _Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
             PlayerSettings.GetScriptingDefineSymbols(PlatformConfig.NamedBuildTarget, out _PrevDefines);
             
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
+            
+            TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.VersionString);
+            
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
             yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnStateCapture(_Context));
@@ -230,13 +243,6 @@ namespace EDIVE.BuildTool.Runners
             
             SetContextState(BuildStateType.PipelinePreparation);
             DebugLite.Log($"[BuildRunner] Starting build (Path: {Context.ResultPath.FullPath})");
-            
-            TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
-            TeamCityServiceMessages.SetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
-            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
-            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
-            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
-            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
 
             try
             {

@@ -19,6 +19,8 @@ namespace EDIVE.BuildTool.PathResolving
         public string FileName => _FileName;
         public string FullPath => System.IO.Path.Combine(FolderPath, FileName);
         
+        public bool IsValid => !string.IsNullOrEmpty(FolderPath) && !string.IsNullOrEmpty(FileName);
+        
         public FilePath(string folderPath, string fileName)
         {
             _FolderPath = folderPath;
