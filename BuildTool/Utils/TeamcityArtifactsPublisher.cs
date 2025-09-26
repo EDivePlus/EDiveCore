@@ -2,10 +2,11 @@
 // Created: 25.09.2025
 
 using System;
+using System.Collections;
 using System.IO;
+using EDIVE.BuildTool.Actions;
 using EDIVE.NativeUtils.TeamCity;
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using File = UnityEngine.Windows.File;
@@ -13,23 +14,27 @@ using File = UnityEngine.Windows.File;
 namespace EDIVE.BuildTool.Utils
 {
     [Serializable]
-    public class TeamcityArtifactsPublisher : IPostprocessBuildWithReport
+    public class TeamcityArtifactsPublisher : ABuildAction
     {
-        public int callbackOrder => 10000;
+        public override int Priority => 10000;
 
-        public void OnPostprocessBuild(BuildReport report)
+        public override IEnumerator OnPostprocess(BuildContext buildContext)
         {
+            Debug.Log("[TeamcityArtifactsPublisher] Attempting to publish artifacts to TeamCity...");
+            
+            var report = buildContext.Report;
             if (report.summary.result != BuildResult.Succeeded)
-                return;
+                yield break;
 
             if (!TryGetArtifactPath(report, out var artifactPath))
             {
-                Debug.LogWarning("[BuildTool] No artifacts to publish.");
-                return;
+                Debug.LogWarning("[TeamcityArtifactsPublisher] No artifacts to publish.");
+                yield break;
             }
 
-            Debug.Log($"[BuildTool] Publishing artifact: {artifactPath}");
+            Debug.Log($"[TeamcityArtifactsPublisher] Publishing artifact: {artifactPath}");
             TeamCityServiceMessages.PublishArtifacts(artifactPath);
+            
         }
 
         private bool TryGetArtifactPath(BuildReport report, out string path)

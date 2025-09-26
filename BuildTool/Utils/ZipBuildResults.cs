@@ -1,18 +1,20 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using EDIVE.BuildTool.Actions;
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 namespace EDIVE.BuildTool.Utils
 {
-    public class ZipResultBuildProcessor : IPostprocessBuildWithReport
+    [Serializable]
+    public class BuildResultArchiver : ABuildAction
     {
-        public int callbackOrder => 9999;
+        public override int Priority => 9999;
         
         private static readonly string[] DONT_INCLUDE =
         {
@@ -20,15 +22,17 @@ namespace EDIVE.BuildTool.Utils
             "_ButDontShipItWithYourGame"
         };
 
-        public void OnPostprocessBuild(BuildReport report)
+        public override IEnumerator OnPostprocess(BuildContext buildContext)
         {
+            Debug.Log("[BuildResultArchiver] Attempting to zip build...");
+            var report = buildContext.Report;
             if (report.summary.result != BuildResult.Succeeded)
-                return;
+                yield break;
 
             if (!ShouldZip(report))
-                return;
+                yield break;
 
-            Debug.Log("[BuildTool] Zipping build...");
+            Debug.Log("[BuildResultArchiver] Zipping build...");
             var summary = report.summary;
             var files = report.GetFiles();
 
@@ -37,8 +41,8 @@ namespace EDIVE.BuildTool.Utils
 
             if (outputZipPath == null || buildFolderPath == null)
             {
-                Debug.LogError("[BuildTool] Zipping build failed! Output path is null.");
-                return;
+                Debug.LogError("[BuildResultArchiver] Zipping build failed! Output path is null.");
+                yield break;
             }
 
             if (File.Exists(outputZipPath))
@@ -58,15 +62,15 @@ namespace EDIVE.BuildTool.Utils
                     var relativePath = Path.GetRelativePath(buildFolderPath, filePath);
                     zip.CreateEntryFromFile(EnsureValidPath(filePath), relativePath, CompressionLevel.Optimal);
                 }
-                Debug.Log($"[BuildTool] Zipped build to {outputZipPath}");
+                Debug.Log($"[BuildResultArchiver] Zipped build to {outputZipPath}");
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                Debug.LogError($"[BuildTool] Zipping build to {outputZipPath} failed with exception.");
+                Debug.LogError($"[BuildResultArchiver] Zipping build to {outputZipPath} failed with exception.");
             }
         }
-
+        
         private static bool ShouldZip(BuildReport report)
         {
             return report.summary.platform is BuildTarget.StandaloneWindows or BuildTarget.StandaloneWindows64 or BuildTarget.StandaloneLinux64;
