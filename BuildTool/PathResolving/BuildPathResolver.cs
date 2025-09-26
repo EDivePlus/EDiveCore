@@ -23,14 +23,14 @@ namespace EDIVE.BuildTool.PathResolving
 
         [Required]
         [ShowIf(nameof(_UseAbsolutePath))]
-        [FolderPath(AbsolutePath = true)]
+        [FolderPath(AbsolutePath = true, UseBackslashes = true)]
         [ShowOpenInExplorer]
         [SerializeField]
         private string _AbsoluteRootPath;
 
         [Required]
         [HideIf(nameof(_UseAbsolutePath))]
-        [FolderPath]
+        [FolderPath(UseBackslashes = true)]
         [ShowOpenInExplorer]
         [SerializeField]
         private string _RelativeRootPath;
