@@ -47,7 +47,7 @@ namespace EDIVE.BuildTool.Presets
                 throw new ArgumentNullException(nameof(UserConfig));
         }
 
-        public IEnumerable<ABuildAction> GetBuildActions(NamedBuildTarget namedTarget, BuildTarget target)
+        public IEnumerable<IBuildAction> GetBuildActions(NamedBuildTarget namedTarget, BuildTarget target)
         {
             return GetSetupData(namedTarget, target)
                 .SelectMany(d => d.Actions)

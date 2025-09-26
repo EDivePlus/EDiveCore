@@ -14,11 +14,12 @@ using File = UnityEngine.Windows.File;
 namespace EDIVE.BuildTool.Utils
 {
     [Serializable]
-    public class TeamcityArtifactsPublisher : ABuildAction
+    public class TeamcityArtifactsPublisher : ABuildAction, IPostprocessBuildAction
     {
         public override int Priority => 10000;
+        public override string Tooltip => "Publishes build artifacts to TeamCity server using TeamCity service messages.";
 
-        public override IEnumerator OnPostprocess(BuildContext buildContext)
+        public IEnumerator OnPostprocess(BuildContext buildContext)
         {
             Debug.Log("[TeamcityArtifactsPublisher] Attempting to publish artifacts to TeamCity...");
             

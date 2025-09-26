@@ -23,11 +23,11 @@ namespace EDIVE.BuildTool.Utils
         [ListDrawerSettings(ShowFoldout = false)]
         [HideReferenceObjectPicker]
         [ValueDropdown(nameof(GetAvailableBuildActions), DrawDropdownForListElements = false, ExcludeExistingValuesInList = true)]
-        private List<ABuildAction> _Actions = new();
+        private List<IBuildAction> _Actions = new();
 
         public IEnumerable<string> Defines => _Defines.ToValueList();
-        public IEnumerable<ABuildAction> Actions => _Actions;
+        public IEnumerable<IBuildAction> Actions => _Actions;
 
-        private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<ABuildAction>();
+        private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<IBuildAction>();
     }
 }

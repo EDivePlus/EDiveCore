@@ -210,7 +210,7 @@ namespace EDIVE.BuildTool.Runners
             
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnStateCapture(_Context));
+            yield return ExecuteBuildActions<IStateCaptureBuildAction>(buildActions, buildAction => buildAction.OnStateCapture(_Context));
             DebugLite.Log("[BuildRunner] StateCapture Actions completed");
 
             DebugLite.Log("[BuildRunner] Applying settings");
@@ -231,7 +231,7 @@ namespace EDIVE.BuildTool.Runners
             SetupSettingsBeforeBuild();
             DebugLite.Log("[BuildRunner] Preprocess Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreprocess(_Context));
+            yield return ExecuteBuildActions<IPreprocessBuildAction>(buildActions, buildAction => buildAction.OnPreprocess(_Context));
             DebugLite.Log("[BuildRunner] Preprocess Actions completed");
             
             PathUtility.EnsurePathExists(Context.ResultPath.FullPath);
@@ -274,7 +274,7 @@ namespace EDIVE.BuildTool.Runners
 
             DebugLite.Log("[BuildRunner] Postprocess Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostprocess(_Context));
+            yield return ExecuteBuildActions<IPostprocessBuildAction>(buildActions, buildAction => buildAction.OnPostprocess(_Context));
             DebugLite.Log("[BuildRunner] Postprocess Actions completed");
 
             if (Application.isBatchMode)
@@ -306,7 +306,7 @@ namespace EDIVE.BuildTool.Runners
 
             DebugLite.Log("[BuildRunner] Actions pre defines executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnStateRestore(_Context));
+            yield return ExecuteBuildActions<IStateRestoreBuildAction>(buildActions, buildAction => buildAction.OnStateRestore(_Context));
             DebugLite.Log("[BuildRunner] Actions pre defines completed");
 
             DebugLite.Log("[BuildRunner] Build Postprocess Completed");
@@ -330,15 +330,16 @@ namespace EDIVE.BuildTool.Runners
             DebugLite.Log($"[BuildRunner] New defines: {string.Join(",", definesArray)}");
         }
 
-        private static IEnumerator ExecuteBuildActions(IEnumerable<ABuildAction> buildActions, Func<ABuildAction, IEnumerator> function)
+        private static IEnumerator ExecuteBuildActions<TBuildAction>(IEnumerable<IBuildAction> buildActions, Func<TBuildAction, IEnumerator> function) 
+            where TBuildAction : IBuildAction
         {
             foreach (var buildAction in buildActions)
             {
-                if (buildAction == null)
+                if (buildAction is not TBuildAction typedAction)
                     continue;
 
                 DebugLite.Log($"[BuildRunner] Executing build action {buildAction.Label}");
-                yield return function(buildAction);
+                yield return function(typedAction);
             }
         }
 
