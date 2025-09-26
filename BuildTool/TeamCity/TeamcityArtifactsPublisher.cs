@@ -54,6 +54,10 @@ namespace EDIVE.BuildTool.TeamCity
             using var zip = ZipFile.Open(outputZipPath, ZipArchiveMode.Create);
             foreach (var file in Directory.GetFiles(buildFolderPath))
             {
+                // Skip the zip file itself
+                if (string.Equals(file, outputZipPath, StringComparison.OrdinalIgnoreCase))
+                    continue; 
+                
                 var fileName = Path.GetFileName(file);
                 if (!CheckIncludePath(fileName)) 
                     continue;
