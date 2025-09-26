@@ -42,41 +42,58 @@ namespace EDIVE.BuildTool.TeamCity
         public static bool TryZipWindowsBuild(BuildContext buildContext, out string outputZipPath)
         {
             outputZipPath = null;
-            var buildPath = buildContext.ResultPath.FolderPath;
-            if (string.IsNullOrEmpty(buildPath))
+            var buildFolderPath = buildContext.ResultPath.FolderPath;
+            if (string.IsNullOrEmpty(buildFolderPath))
                 return false;
             
-            outputZipPath = $"{buildPath}.zip";
+            outputZipPath = Path.ChangeExtension(buildContext.ResultPath.FullPath, ".zip");
             
             if (File.Exists(outputZipPath))
                 File.Delete(outputZipPath);
 
             using var zip = ZipFile.Open(outputZipPath, ZipArchiveMode.Create);
-            foreach (var file in Directory.GetFiles(buildPath))
+            foreach (var file in Directory.GetFiles(buildFolderPath))
             {
                 var fileName = Path.GetFileName(file);
                 if (!CheckIncludePath(fileName)) 
                     continue;
                 
-                zip.CreateEntryFromFile(file, fileName, CompressionLevel.Optimal);
+                zip.CreateEntryFromFile(EnsureValidPath(file), fileName, CompressionLevel.Optimal);
             }
 
-            foreach (var dir in Directory.GetDirectories(buildPath))
+            foreach (var dir in Directory.GetDirectories(buildFolderPath))
             {
                 var dirName = Path.GetFileName(dir);
                 if (!CheckIncludePath(dirName)) 
                     continue;
-                
+
                 foreach (var file in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
                 {
-                    var relativePath = Path.Combine(dirName, Path.GetRelativePath(dir, file));
-                    zip.CreateEntryFromFile(file, relativePath, CompressionLevel.Optimal);
+                    if (!File.Exists(file)) 
+                        continue;
+                    
+                    var relativePath = Path.GetRelativePath(buildFolderPath, file);
+                    zip.CreateEntryFromFile(EnsureValidPath(file), relativePath, CompressionLevel.Optimal);
                 }
             }
 
             return true;
         }
 
+        private static string EnsureValidPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+            
+            var fullPath = Path.GetFullPath(path);
+            
+            // Windows MAX_PATH limitation workaround
+            if (fullPath.Length >= 260 && !fullPath.StartsWith(@"\\?\"))
+                return @"\\?\" + fullPath;
+
+            return fullPath;
+        }
+        
         private static bool CheckIncludePath(string path)
         {
             return WINDOWS_DONT_INCLUDE.All(exclude => !path.Contains(exclude));
