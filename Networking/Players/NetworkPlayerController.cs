@@ -124,6 +124,11 @@ namespace EDIVE.Networking.Players
         private void OnAvatarChanged(string oldValue, string newValue, bool asServer)
         {
             CreateLocalAvatar(newValue);
+            if (IsOwner)
+            {
+                var mgr = AppCore.Services.Get<NetworkPlayerManager>();
+                mgr?.OnLocalAvatarChanged(newValue);
+            }
         }
 
         private void CreateLocalAvatar(string avatarId)
