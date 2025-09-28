@@ -1,15 +1,15 @@
 {
-    "name": "EDIVE.Utils",
+    "name": "EDIVE.EyeTracking",
     "rootNamespace": "",
     "references": [
-        "Unity.TextMeshPro",
-        "EDIVE.OdinExtensions",
-        "EDIVE.NativeUtils",
-        "Whinarn.UnityMeshSimplifier.Runtime",
-        "Unity.Formats.Fbx.Editor",
         "UniTask",
-        "EDIVE.DataStructures",
-        "EDIVE.External.DomainReloadHelper"
+        "EDIVE.Core",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "Oculus.VR",
+        "EDIVE.AppLoading",
+        "EDIVE.External.Promises",
+        "R3.Unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -20,9 +20,9 @@
     "defineConstraints": [],
     "versionDefines": [
         {
-            "name": "com.whinarn.unitymeshsimplifier",
+            "name": "com.meta.xr.sdk.interaction.ovr",
             "expression": "",
-            "define": "MESH_SIMPLIFIER"
+            "define": "OCULUS_VR"
         }
     ],
     "noEngineReferences": false

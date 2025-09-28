@@ -8,6 +8,7 @@ using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.EditorUtils.DomainReload;
 using EDIVE.NativeUtils;
+using EDIVE.NativeUtils.TeamCity;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 using UnityEditor.Build;
@@ -90,41 +91,52 @@ namespace EDIVE.BuildTool.Runners
         protected ABuildRunner(TPreset preset, BuildOptions options = BuildOptions.None)
         {
             _Preset = preset;
-            _Context = new BuildContext(options);
+            _Context = new BuildContext(options)
+            {
+                PlatformConfig = preset.PlatformConfig,
+                UserConfig = preset.UserConfig
+            };
         }
 
         protected override IEnumerator StartBuildRoutine()
         {
             if (Context.State == BuildStateType.NotStarted)
             {
+                TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
+                TeamCityServiceMessages.SetParameter("UnityBuild.UnityEditorVersion", Application.unityVersion);
+                
+                if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
+                {
+                    Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
+                    TeamCityServiceMessages.MessageBuildProblem($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported! Check if it is installed for current version of Unity on building machine!");
+                    yield break;
+                }
+                
+                DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
+                yield return null;
+                while (EditorApplication.isCompiling)
+                    yield return null;
+                DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
+                
+                DebugLite.Log("[BuildRunner] Initial build preparation...");
                 if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                     yield break;
-            }
-
-            var activeScene = SceneManager.GetActiveScene();
-            if (!string.IsNullOrEmpty(activeScene.path))
-            {
-                EditorSceneManager.OpenScene(activeScene.path);
+                
+                var activeScene = SceneManager.GetActiveScene();
+                if (!string.IsNullOrEmpty(activeScene.path))
+                {
+                    EditorSceneManager.OpenScene(activeScene.path);
+                }
+                EditorUtility.DisplayProgressBar("Build", "Build initializing", 0f);
             }
             
-            if (!BuildUtils.IsBuildTargetSupported(PlatformConfig.BuildTarget))
-            {
-                Debug.LogError($"[BuildRunner] Build target {PlatformConfig.BuildTarget} is not supported");
-                yield break;
-            }
-                
-            EditorUtility.DisplayProgressBar("Build", "Build initializing", 0f);
             DebugLite.Log("[BuildRunner] Build prepared for start or resume...");
 
-            yield return null;
-            while (EditorApplication.isCompiling)
-                yield return null;
-            
             if (Context.State != BuildStateType.NotStarted)
             {
                 DebugLite.Log($"[BuildRunner] Resuming build from state {Context.State}");
             }
-
+        
             if (Context.State < BuildStateType.StateCapture)
             {
                 EditorUtility.DisplayProgressBar("Build", "Editor state capture", 0.1f);
@@ -148,7 +160,7 @@ namespace EDIVE.BuildTool.Runners
                 EditorUtility.DisplayProgressBar("Build", "Post processing build", 0.9f);
                 yield return ExecuteBuildSegment(PostProcessAndChangeEditor);
             }
-                
+        
             if (Context.State < BuildStateType.StateRestore)
             {
                 EditorUtility.DisplayProgressBar("Build", "Editor state restoring", 0.9f);
@@ -156,11 +168,13 @@ namespace EDIVE.BuildTool.Runners
             }
 
             EditorUtility.ClearProgressBar();
+            
+            if (Application.isBatchMode)
+                EditorApplication.Exit(_Context.Result == BuildResult.Succeeded ? 0 : 1);
         }
 
         private IEnumerator ExecuteBuildSegment(Func<IEnumerator> segmentFunction)
         {
-            DebugLite.Log($"[BuildRunner] State started {Context.State}");
             EditorApplication.LockReloadAssemblies();
             yield return segmentFunction();
             DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
@@ -168,33 +182,41 @@ namespace EDIVE.BuildTool.Runners
             yield return null;
             while (EditorApplication.isCompiling)
                 yield return null;
-            DebugLite.Log($"[BuildRunner] State completed {Context.State}");
             DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
         }
         
         private IEnumerator CaptureAndChangeEditorState()
         {
-            Context.State = BuildStateType.StateCapture;
+            SetContextState(BuildStateType.StateCapture);
 
             Preset.Validate();
             yield return null;
 
             Context.VersionDefinition = BuildGlobalSettings.Instance.VersionDefinition;
-            Context.VersionDefinition.IncrementCurrentVersion();
+            if (!Application.isBatchMode)
+                Context.VersionDefinition.IncrementCurrentVersion();
             Context.VersionDefinition.ApplyCurrentVersion();
 
-            UserConfig.PathResolver.ResolvePath(Preset);
+            Context.ResultPath = UserConfig.PathResolver.ResolvePath(Preset);
             _Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
             PlayerSettings.GetScriptingDefineSymbols(PlatformConfig.NamedBuildTarget, out _PrevDefines);
             
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
+            
+            TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.VersionString);
+            
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnStateCapture(_Context));
+            yield return ExecuteBuildActions<IStateCaptureBuildAction>(buildActions, buildAction => buildAction.OnStateCapture(_Context));
             DebugLite.Log("[BuildRunner] StateCapture Actions completed");
 
             DebugLite.Log("[BuildRunner] Applying settings");
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _Context.Defines);
 
+            SetContextState(BuildStateType.BuildTargetSwitch);
             _PrevBuildTarget = EditorUserBuildSettings.activeBuildTarget;
             _PrevWasServer = BuildUtils.CurrentNamedBuildTarget == NamedBuildTarget.Server;
             EditorUserBuildSettings.SwitchActiveBuildTarget(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget);
@@ -204,28 +226,28 @@ namespace EDIVE.BuildTool.Runners
 
         private IEnumerator PreprocessBuild()
         {
-            Context.State = BuildStateType.Preprocess;
+            SetContextState(BuildStateType.Preprocess);
 
             SetupSettingsBeforeBuild();
             DebugLite.Log("[BuildRunner] Preprocess Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPreprocess(_Context));
+            yield return ExecuteBuildActions<IPreprocessBuildAction>(buildActions, buildAction => buildAction.OnPreprocess(_Context));
             DebugLite.Log("[BuildRunner] Preprocess Actions completed");
             
-            PathUtility.EnsurePathExists(UserConfig.PathResolver.FullPath);
+            PathUtility.EnsurePathExists(Context.ResultPath.FullPath);
         }
 
         private IEnumerator BuildBinary()
         {
             yield return null;
             
-            Context.State = BuildStateType.PipelinePreparation;
-            DebugLite.Log($"[BuildRunner] Starting build (Path: {UserConfig.PathResolver.FullPath})");
+            SetContextState(BuildStateType.PipelinePreparation);
+            DebugLite.Log($"[BuildRunner] Starting build (Path: {Context.ResultPath.FullPath})");
 
             try
             {
-                Context.State = BuildStateType.PipelineInProgress;
-                _Context.Report = BuildPipeline.BuildPlayer(PlatformConfig.SceneList, UserConfig.PathResolver.FullPath, PlatformConfig.BuildTarget, Context.Options);
+                SetContextState(BuildStateType.PipelineInProgress);
+                _Context.Report = BuildPipeline.BuildPlayer(PlatformConfig.SceneList, Context.ResultPath.FullPath, PlatformConfig.BuildTarget, Context.Options);
                 _Context.Result = _Context.Report.summary.result;
             }
             catch (Exception e)
@@ -235,7 +257,7 @@ namespace EDIVE.BuildTool.Runners
             }
             finally
             {
-                Context.State = BuildStateType.PipelineFinalization;
+                SetContextState(BuildStateType.PipelineFinalization);
             }
 
             if (_Context.Result == BuildResult.Succeeded)
@@ -248,34 +270,47 @@ namespace EDIVE.BuildTool.Runners
 
         private IEnumerator PostProcessAndChangeEditor()
         {
-            Context.State = BuildStateType.Postprocess;
+            SetContextState(BuildStateType.Postprocess);
 
             DebugLite.Log("[BuildRunner] Postprocess Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnPostprocess(_Context));
+            yield return ExecuteBuildActions<IPostprocessBuildAction>(buildActions, buildAction => buildAction.OnPostprocess(_Context));
             DebugLite.Log("[BuildRunner] Postprocess Actions completed");
 
+            if (Application.isBatchMode)
+            {
+                DebugLite.Log("[BuildRunner] Target switch is ignored in batch mode");
+                yield break;
+            }
+            
+            SetContextState(BuildStateType.BuildTargetRevert);
+            
             DebugLite.Log("[BuildRunner] Restoring settings");
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
             var prevNamedBuildTarget =_PrevWasServer ? NamedBuildTarget.Server : NamedBuildTarget.FromBuildTargetGroup(BuildPipeline.GetBuildTargetGroup(_PrevBuildTarget));
+            
             EditorUserBuildSettings.SwitchActiveBuildTarget(prevNamedBuildTarget, _PrevBuildTarget);
-
             CompilationPipeline.RequestScriptCompilation();
         }
-        
+
         private IEnumerator RestoreEditorState()
         {
-            Context.State = BuildStateType.StateRestore;
+            if (Application.isBatchMode)
+            {
+                DebugLite.Log("[BuildRunner] Restore is ignored in batch mode");
+                yield break;
+            }
 
+            SetContextState(BuildStateType.StateRestore);
             RestoreSettingsAfterBuild();
 
             DebugLite.Log("[BuildRunner] Actions pre defines executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
-            yield return ExecuteBuildActions(buildActions, buildAction => buildAction.OnStateRestore(_Context));
+            yield return ExecuteBuildActions<IStateRestoreBuildAction>(buildActions, buildAction => buildAction.OnStateRestore(_Context));
             DebugLite.Log("[BuildRunner] Actions pre defines completed");
 
             DebugLite.Log("[BuildRunner] Build Postprocess Completed");
-            Context.State = BuildStateType.Completed;
+            SetContextState(BuildStateType.Completed);
 
             if (_Context.Result != BuildResult.Unknown)
             {
@@ -284,29 +319,27 @@ namespace EDIVE.BuildTool.Runners
                 else
                     Debug.LogError($"[BuildRunner] {PlatformConfig.NamedBuildTarget} Build result: '{_Context.Report.summary.result}'");
             }
-
-            if (Application.isBatchMode)
-                EditorApplication.Exit(_Context.Result == BuildResult.Succeeded ? 0 : 1);
         }
 
         private void SetDefineSymbols(NamedBuildTarget namedTarget, IEnumerable<string> defines)
         {
-            DebugLite.Log($"[BuildHelper] Previous defines: {PlayerSettings.GetScriptingDefineSymbols(namedTarget)}");
+            DebugLite.Log($"[BuildRunner] Previous defines: {PlayerSettings.GetScriptingDefineSymbols(namedTarget)}");
             var definesArray = defines.ToArray();
             PlayerSettings.SetScriptingDefineSymbols(namedTarget, definesArray);
             AssetDatabase.SaveAssets();
-            DebugLite.Log($"[BuildHelper] New defines: {string.Join(",", definesArray)}");
+            DebugLite.Log($"[BuildRunner] New defines: {string.Join(",", definesArray)}");
         }
 
-        private static IEnumerator ExecuteBuildActions(IEnumerable<ABuildAction> buildActions, Func<ABuildAction, IEnumerator> function)
+        private static IEnumerator ExecuteBuildActions<TBuildAction>(IEnumerable<IBuildAction> buildActions, Func<TBuildAction, IEnumerator> function) 
+            where TBuildAction : IBuildAction
         {
             foreach (var buildAction in buildActions)
             {
-                if (buildAction == null)
+                if (buildAction is not TBuildAction typedAction)
                     continue;
 
                 DebugLite.Log($"[BuildRunner] Executing build action {buildAction.Label}");
-                yield return function(buildAction);
+                yield return function(typedAction);
             }
         }
 
@@ -354,6 +387,25 @@ namespace EDIVE.BuildTool.Runners
             PlayerSettings.gcIncremental = _PrevGCIncremental;
             PlayerSettings.stripEngineCode = _PrevStripEngineCode;
             _PrevLogs.Apply();
+        }
+
+        private void SetContextState(BuildStateType state)
+        {
+            if (Context.State == state)
+                return;
+            
+            if (Context.State != BuildStateType.NotStarted)
+            {
+                DebugLite.Log($"[BuildRunner] State completed {Context.State}");
+                TeamCityServiceMessages.EndMessageBlock($"[BuildRunner] State: {Context.State}");
+            }
+            
+            Context.State = state;
+            if (Context.State != BuildStateType.Completed)
+            {
+                TeamCityServiceMessages.BeginMessageBlock($"[BuildRunner] State: {Context.State}");
+                DebugLite.Log($"[BuildRunner] State started {Context.State}");
+            }
         }
     }
 }

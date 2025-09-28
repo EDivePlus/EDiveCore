@@ -4,7 +4,7 @@
 #if MEMORY_PACK
 using System;
 
-namespace EDIVE.Utils.MemoryPack
+namespace EDIVE.Utils.Cysharp
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
     public class MemoryPackUnionTagAttribute : Attribute

@@ -5,14 +5,16 @@ namespace EDIVE.BuildTool.Utils
 {
     public enum BuildStateType
     {
-        NotStarted = 0,             // Build not started
-        StateCapture = 1,           // Capturing current state of the editor
-        Preprocess  = 2,            // Build target is prepared and defines applied
-        PipelinePreparation = 3,    // Pipeline is prepared and ready to run
-        PipelineInProgress = 4,     // Pipeline is running
-        PipelineFinalization = 5,   // Pipeline completed and finalizing
-        Postprocess = 6,            // Build target and defines are still in build state
-        StateRestore = 7,           // Restoring editor to the original state
-        Completed = 8,              // Build completed
+        NotStarted,             // Build not started
+        StateCapture,           // Capturing current state of the editor
+        BuildTargetSwitch,      // Switching to the desired build target
+        Preprocess,             // Build target is prepared and defines applied
+        PipelinePreparation,    // Pipeline is prepared and ready to run
+        PipelineInProgress,     // Pipeline is running
+        PipelineFinalization,   // Pipeline completed and finalizing
+        Postprocess,            // Build target and defines are still in build state
+        BuildTargetRevert,      // Reverting to the original build target, skipped in batch mode
+        StateRestore,           // Restoring editor to the original state, skipped in batch mode
+        Completed,              // Build completed
     }
 }

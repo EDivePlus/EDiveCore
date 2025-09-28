@@ -145,7 +145,7 @@ namespace EDIVE.BuildTool.Runners
         {
             if (PlatformConfig.BuildAndroidAppBundle && PlatformConfig.ExtractAppBundleApk)
             {
-                BuildUtils.ExtractAAB(UserConfig.PathResolver.FullPath);
+                BuildUtils.ExtractAAB(Context.ResultPath.FullPath);
             }
             yield break;
         }

@@ -2,7 +2,7 @@ using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Utils.ToggleableValues
+namespace EDIVE.DataStructures.ToggleableValues
 {
     [Serializable]
     [InlineProperty]

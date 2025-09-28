@@ -5,8 +5,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using EDIVE.BuildTool.Actions;
+using EDIVE.DataStructures.ToggleableValues;
 using EDIVE.EditorUtils;
-using EDIVE.Utils.ToggleableValues;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -23,11 +23,11 @@ namespace EDIVE.BuildTool.Utils
         [ListDrawerSettings(ShowFoldout = false)]
         [HideReferenceObjectPicker]
         [ValueDropdown(nameof(GetAvailableBuildActions), DrawDropdownForListElements = false, ExcludeExistingValuesInList = true)]
-        private List<ABuildAction> _Actions = new();
+        private List<IBuildAction> _Actions = new();
 
         public IEnumerable<string> Defines => _Defines.ToValueList();
-        public IEnumerable<ABuildAction> Actions => _Actions;
+        public IEnumerable<IBuildAction> Actions => _Actions;
 
-        private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<ABuildAction>();
+        private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<IBuildAction>();
     }
 }

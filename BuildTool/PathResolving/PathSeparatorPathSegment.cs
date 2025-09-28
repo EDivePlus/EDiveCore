@@ -16,6 +16,6 @@ namespace EDIVE.BuildTool.PathResolving
 
         [EnableGUI]
         [ShowInInspector]
-        public string Separator => "/";
+        public string Separator => "\\";
     }
 }
