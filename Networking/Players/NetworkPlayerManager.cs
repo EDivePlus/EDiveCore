@@ -43,7 +43,7 @@ namespace EDIVE.Networking.Players
         [SerializeField]
         private string _UploadUrl = "https://ediveplus.phil.muni.cz:8443/ediveplus/attachment";
         [SerializeField]
-        private string _DefaultAttachmentType = "VIDEO";
+        private string _DefaultAttachmentType = "TABLEAUX";
         [SerializeField]
         private string _BranchId = "2";
         [SerializeField, Min(5)]
@@ -52,8 +52,11 @@ namespace EDIVE.Networking.Players
         [Serializable]
         private class AttachmentMeta
         {
-            public string _Name;
-            public string _AttachmentType;
+            [JsonProperty("name")]
+            public string Name;
+
+            [JsonProperty("attachmentType")]
+            public string AttachmentType;
         }
         
         private string _lastSelectedAvatarId;
@@ -258,8 +261,8 @@ namespace EDIVE.Networking.Players
             // 2) metadata jako v Post_DataFile
             var meta = new AttachmentMeta
             {
-                _Name = string.IsNullOrWhiteSpace(displayName) ? fileName : displayName,
-                _AttachmentType = string.IsNullOrWhiteSpace(_DefaultAttachmentType) ? "VIDEO" : _DefaultAttachmentType
+                Name = string.IsNullOrWhiteSpace(displayName) ? fileName : displayName,
+                AttachmentType = string.IsNullOrWhiteSpace(_DefaultAttachmentType) ? "TABLEAUX" : _DefaultAttachmentType
             };
             string metadataJson = JsonConvert.SerializeObject(meta);
 
