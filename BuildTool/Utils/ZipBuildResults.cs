@@ -57,7 +57,7 @@ namespace EDIVE.BuildTool.Utils
                     var filePath = file.path;
                     var fileName = Path.GetFileName(filePath);
                 
-                    if (!CheckIncludePath(fileName))
+                    if (!CheckIncludePath(filePath))
                         continue;
                 
                     var relativePath = Path.GetRelativePath(buildFolderPath, filePath);
