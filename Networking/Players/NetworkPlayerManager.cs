@@ -43,7 +43,7 @@ namespace EDIVE.Networking.Players
         [SerializeField]
         private string _UploadUrl = "https://ediveplus.phil.muni.cz:8443/ediveplus/attachment";
         [SerializeField]
-        private string _DefaultAttachmentType = "TABLEAUX";
+        private string _DefaultAttachmentType = "VIDEO";
         [SerializeField]
         private string _BranchId = "2";
         [SerializeField, Min(5)]
@@ -58,7 +58,64 @@ namespace EDIVE.Networking.Players
             [JsonProperty("attachmentType")]
             public string AttachmentType;
         }
-        
+
+        [Serializable]
+        private class AttachmentOwner
+        {
+            public string email;
+        }
+
+        [Serializable]
+        private class AttachmentItem
+        {
+            public int id;
+            public string attachmentType;
+            public string createdDate;
+            public AttachmentOwner owner;
+        }
+
+        [Serializable]
+        private class AttachmentListResponse
+        {
+            public List<AttachmentItem> content;
+        }
+
+        [Serializable]
+        private class ProfileFilePayload
+        {
+            public string username;
+            public string avatarId;
+        }
+
+        [Button("GET metod for logged user")]
+        [GUIColor(0.7f, 1f, 0.7f)]
+        private void GetProfileForLoggedUser_Button()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            StartCoroutine(GetProfileForLoggedUser((ok, info) =>
+            {
+                if (!ok || info == null)
+                {
+                    return;
+                }
+
+                Debug.Log($"[GET PROFILE] OK: id={info.AttachmentId}, created={info.Created}, username='{info.Username}', avatarId='{info.AvatarId}'");
+            }));
+        }
+
+        private class LatestProfileInfo
+        {
+            public int AttachmentId;
+            public DateTimeOffset Created;
+            public string Username;
+            public string AvatarId;
+        }
+
+
         private string _lastSelectedAvatarId;
 
 
@@ -132,7 +189,6 @@ namespace EDIVE.Networking.Players
             var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
             promise.Then(r => completionSource.TrySetResult(r));
 
-            // wait for player or timeout
             var timeout = UniTask.Delay(TimeSpan.FromSeconds(3));
             var result = await UniTask.WhenAny(completionSource.Task, timeout);
             _playerRequests.Remove(record);
@@ -150,7 +206,6 @@ namespace EDIVE.Networking.Players
 
         private void OnClientLoadedStartScenes(NetworkConnection conn, bool asServer)
         {
-            // Only run on clients, we need player's profile for connection
             if (asServer)
                 return;
 
@@ -194,7 +249,7 @@ namespace EDIVE.Networking.Players
             };
             return _playerProfile;
         }
-        
+
 
         public string GeneratePlayerName() { return _PlayerNameGenerator ? _PlayerNameGenerator.Generate() : $"Player_{Random.Range(1000, 9999)}"; }
 
@@ -213,7 +268,7 @@ namespace EDIVE.Networking.Players
                 return LocalPlayer.AvatarID;
             return PlayerProfile.avatarId;
         }
-        
+
         private string BuildProfileJson()
         {
             var profile = PlayerProfile;
@@ -244,7 +299,6 @@ namespace EDIVE.Networking.Players
         {
             if (!Application.isPlaying)
             {
-                Debug.LogWarning("Musíš být v Play Mode, aby šel POST provést.");
                 return;
             }
 
@@ -253,16 +307,14 @@ namespace EDIVE.Networking.Players
 
         private System.Collections.IEnumerator PostProfileJson_Coroutine(string displayName)
         {
-            // 1) JSON v paměti (ne na disk)
             string json = BuildProfileJson();
             byte[] fileBytes = System.Text.Encoding.UTF8.GetBytes(json);
             string fileName = "player_profile.json";
 
-            // 2) metadata jako v Post_DataFile
             var meta = new AttachmentMeta
             {
                 Name = string.IsNullOrWhiteSpace(displayName) ? fileName : displayName,
-                AttachmentType = string.IsNullOrWhiteSpace(_DefaultAttachmentType) ? "TABLEAUX" : _DefaultAttachmentType
+                AttachmentType = string.IsNullOrWhiteSpace(_DefaultAttachmentType) ? "VIDEO" : _DefaultAttachmentType
             };
             string metadataJson = JsonConvert.SerializeObject(meta);
 
@@ -289,17 +341,133 @@ namespace EDIVE.Networking.Players
 
                 if (request.result == UnityWebRequest.Result.Success)
                 {
-                    Debug.Log("[PROFILE POST] Úspěch.");
-                    if (!string.IsNullOrEmpty(body))
-                        Debug.Log($"[PROFILE POST] Odpověď serveru: {body}");
+                    Debug.Log($"[PROFILE POST] Odpověď serveru: {body}");
                 }
                 else
                 {
                     Debug.LogError($"[PROFILE POST] Chyba HTTP {request.responseCode}: {request.error}");
                     if (!string.IsNullOrEmpty(body))
-                        Debug.LogError($"[PROFILE POST] Tělo odpovědi: {body}");
+                        Debug.LogError($"[PROFILE POST] Boddy response: {body}");
                 }
             }
+        }
+
+        private System.Collections.IEnumerator GetProfileForLoggedUser(Action<bool, LatestProfileInfo> onDone)
+
+        {
+            var token = EDIVE.Networking.DatabaseManagement.AuthStorage.GetAccessToken(); // PlayerPrefs storage
+            if (string.IsNullOrEmpty(token))
+            {
+                Debug.LogError("[GET PROFILE] Missing access token (není přihlášeno).");
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            var email = EDIVE.Networking.DatabaseManagement.JwtUtils.GetClaim(token, "email"); // z JWT
+            if (string.IsNullOrEmpty(email))
+                email = EDIVE.Networking.DatabaseManagement.AuthStorage.GetLastEmail(); // fallback
+
+            if (string.IsNullOrEmpty(email))
+            {
+                Debug.LogError("[GET PROFILE] Nelze určit uživatele (email v JWT ani v PlayerPrefs).");
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            string listUrl = $"https://ediveplus.phil.muni.cz:8443/ediveplus/attachment?pgSize=250";
+            var listReq = UnityWebRequest.Get(listUrl);
+            listReq.SetRequestHeader("Authorization", "Bearer " + token);
+            listReq.SetRequestHeader("branch-id", _BranchId);
+            yield return listReq.SendWebRequest();
+
+            if (listReq.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[GET ATTACHMENTS] HTTP {listReq.responseCode}: {listReq.error}\n{listReq.downloadHandler.text}");
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            AttachmentListResponse listResp = null;
+            try
+            {
+                listResp = JsonConvert.DeserializeObject<AttachmentListResponse>(listReq.downloadHandler.text);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[GET ATTACHMENTS] JSON parse error: {e.Message}");
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            if (listResp?.content == null || listResp.content.Count == 0)
+            {
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            var candidates = new List<(AttachmentItem item, DateTimeOffset created)>();
+            foreach (var it in listResp.content)
+            {
+                if (!string.Equals(it.attachmentType, "VIDEO", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!string.Equals(it.owner?.email, email, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!DateTimeOffset.TryParse(it.createdDate, out var dto))
+                    dto = DateTimeOffset.MinValue;
+
+                candidates.Add((it, dto));
+            }
+
+            if (candidates.Count == 0)
+            {
+                Debug.LogWarning("[GET PROFILE] Pro uživatele nebyly nalezeny žádné loggy.");
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            candidates.Sort((a, b) => b.created.CompareTo(a.created));
+            var latest = candidates[0];
+
+            string fileUrl = $"https://ediveplus.phil.muni.cz:8443/ediveplus/attachment/{latest.item.id}/file";
+            var fileReq = UnityWebRequest.Get(fileUrl);
+            fileReq.SetRequestHeader("Authorization", "Bearer " + token);
+            fileReq.SetRequestHeader("branch-id", _BranchId);
+            yield return fileReq.SendWebRequest();
+
+            if (fileReq.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[GET FILE] id={latest.item.id} HTTP {fileReq.responseCode}: {fileReq.error}\n{fileReq.downloadHandler.text}");
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            var raw = System.Text.Encoding.UTF8.GetString(fileReq.downloadHandler.data);
+
+            ProfileFilePayload payload = null;
+            try
+            {
+                payload = JsonConvert.DeserializeObject<ProfileFilePayload>(raw);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[GET FILE] JSON payload parse warning: {e.Message}");
+            }
+
+            if (payload == null)
+            {
+                onDone?.Invoke(false, null);
+                yield break;
+            }
+
+            onDone?.Invoke(true, new LatestProfileInfo
+            {
+                AttachmentId = latest.item.id,
+                Created = latest.created,
+                Username = payload.username,
+                AvatarId = payload.avatarId
+            });
         }
     }
 }
