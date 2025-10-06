@@ -44,6 +44,9 @@ namespace EDIVE.BuildTool
         [SerializeField]
         private ABuildPlatformConfig _PlatformConfig;
         
+        [SerializeField]
+        private List<string> _Scenes;
+        
         public AppVersionDefinition VersionDefinition { get => _VersionDefinition; set => _VersionDefinition = value; }
         public BuildStateType State { get => _State; set => _State = value; }
         public BuildOptions Options { get => _Options; set => _Options = value; }
@@ -53,6 +56,7 @@ namespace EDIVE.BuildTool
         public FilePath ResultPath { get => _ResultPath; set => _ResultPath = value; }
         public BuildUserConfig UserConfig { get => _UserConfig; set => _UserConfig = value; }
         public ABuildPlatformConfig PlatformConfig { get => _PlatformConfig; set => _PlatformConfig = value; }
+        public List<string> Scenes { get => _Scenes; set => _Scenes = value; }
 
         public BuildContext(BuildOptions options = BuildOptions.None)
         {

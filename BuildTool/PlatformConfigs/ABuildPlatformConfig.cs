@@ -73,8 +73,10 @@ namespace EDIVE.BuildTool.PlatformConfigs
         private string _ConfigType;
 
         [EnhancedBoxGroup("Data", "@ColorTools.Lime", SpaceBefore = 6)]
+        [Tooltip("Override the scenes defined in the EditorBuildSettings with this Scene List")]
+        [ShowCreateNew]
         [SerializeField]
-        private SceneListDefinition _SceneList;
+        private SceneListDefinition _OverrideSceneList;
 
         [EnhancedBoxGroup("Data")]
         [HideLabel]
@@ -97,7 +99,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public bool UseIncrementalGC => _UseIncrementalGC;
         public LoggingSetup LoggingSetup => _LoggingSetup;
         public BuildSetupData BuildSetupData => _BuildSetupData;
-        public SceneListDefinition SceneList => _SceneList;
+        public SceneListDefinition OverrideSceneList => _OverrideSceneList;
 
         public abstract NamedBuildTarget NamedBuildTarget { get; }
         public abstract BuildTarget BuildTarget { get; }

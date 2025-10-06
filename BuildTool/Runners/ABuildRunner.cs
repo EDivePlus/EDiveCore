@@ -198,7 +198,7 @@ namespace EDIVE.BuildTool.Runners
             Context.VersionDefinition.ApplyCurrentVersion();
 
             Context.ResultPath = UserConfig.PathResolver.ResolvePath(Preset);
-            _Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
+            Context.Defines = Preset.GetDefines(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
             PlayerSettings.GetScriptingDefineSymbols(PlatformConfig.NamedBuildTarget, out _PrevDefines);
             
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
@@ -207,6 +207,10 @@ namespace EDIVE.BuildTool.Runners
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
             
             TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.VersionString);
+            
+            Context.Scenes = PlatformConfig.OverrideSceneList != null && PlatformConfig.OverrideSceneList.Scenes.Count > 0 
+                ? PlatformConfig.OverrideSceneList.Scenes 
+                : EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToList();
             
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             var buildActions = Preset.GetBuildActions(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget).ToList();
@@ -247,7 +251,7 @@ namespace EDIVE.BuildTool.Runners
             try
             {
                 SetContextState(BuildStateType.PipelineInProgress);
-                _Context.Report = BuildPipeline.BuildPlayer(PlatformConfig.SceneList, Context.ResultPath.FullPath, PlatformConfig.BuildTarget, Context.Options);
+                _Context.Report = BuildPipeline.BuildPlayer(Context.Scenes.ToArray(), Context.ResultPath.FullPath, PlatformConfig.BuildTarget, Context.Options);
                 _Context.Result = _Context.Report.summary.result;
             }
             catch (Exception e)

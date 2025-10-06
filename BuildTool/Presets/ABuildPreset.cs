@@ -103,12 +103,6 @@ namespace EDIVE.BuildTool.Presets
             base.Validate();
             if (PlatformConfig == null)
                 throw new ArgumentNullException(nameof(PlatformConfig));
-
-            if (PlatformConfig.SceneList == null)
-                throw new ArgumentNullException(nameof(PlatformConfig.SceneList));
-
-            if (PlatformConfig.SceneList.Scenes.Count == 0)
-                throw new ArgumentException("Scene list is empty", nameof(PlatformConfig.SceneList));
         }
 
         protected override IEnumerable<BuildSetupData> GetSetupData(NamedBuildTarget namedTarget, BuildTarget target)
