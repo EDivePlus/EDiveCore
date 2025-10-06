@@ -25,6 +25,7 @@ namespace EDIVE.VoiceChat
 
             return await completionSource.Task;
 #else
+            await UniTask.CompletedTask;
             return true;
 #endif
 
