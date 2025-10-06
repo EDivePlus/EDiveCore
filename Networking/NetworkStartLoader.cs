@@ -12,10 +12,9 @@ namespace EDIVE.Networking
     [Serializable]
     public class NetworkStartLoader : ILoadable
     {
-        public async UniTask Load(Action<float> progressCallback)
+        public UniTask Load(Action<float> progressCallback)
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:
@@ -36,7 +35,7 @@ namespace EDIVE.Networking
                 default: 
                     throw new ArgumentOutOfRangeException();
             }
-            
+            return UniTask.CompletedTask;
         }
     }
 }
