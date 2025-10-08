@@ -65,8 +65,8 @@ namespace EDIVE.GeoToolkit.Area
         [UsedImplicitly]
         public void RecalculateAreaSize(InspectorProperty property)
         {
-            var xSize = GeoCoordinateUtility.Distance(new DVector2(MinX, MinY), new DVector2(MaxX, MinY), CoordinateSystem, Shape.Ellipsoid);
-            var ySize = GeoCoordinateUtility.Distance(new DVector2(MinX, MinY), new DVector2(MinX, MaxY), CoordinateSystem, Shape.Ellipsoid);
+            var xSize = GeoCoordinateUtility.Distance(new DVector2(MinX, MinY), new DVector2(MaxX, MinY), CoordinateSystem, DistanceMeasureAlgorithm.Vincenty);
+            var ySize = GeoCoordinateUtility.Distance(new DVector2(MinX, MinY), new DVector2(MinX, MaxY), CoordinateSystem, DistanceMeasureAlgorithm.Vincenty);
             _AreaSize = new DVector2(xSize, ySize);
             property.MarkSerializationRootDirty();
         }

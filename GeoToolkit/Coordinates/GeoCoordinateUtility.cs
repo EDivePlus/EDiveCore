@@ -49,7 +49,7 @@ namespace EDIVE.GeoToolkit.Coordinates
             return TryMGRSToCoords(mgrsPos, targetSystem, out var result) ? result : DVector2.Zero;
         }
 
-        public static double Distance(DVector2 posA, DVector2 posB, CoordinateSystemType targetSystem, Shape shape = Shape.Sphere)
+        public static double Distance(DVector2 posA, DVector2 posB, CoordinateSystemType targetSystem, DistanceMeasureAlgorithm alg)
         {
             if (targetSystem != CoordinateSystemType.EPSG_4326)
             {
@@ -57,10 +57,11 @@ namespace EDIVE.GeoToolkit.Coordinates
                 posB = Convert(posB, targetSystem, CoordinateSystemType.EPSG_4326);
             }
             var eagerLoad = new EagerLoad(false);
-            var coordA = new Coordinate(posA.X, posA.Y, eagerLoad);
-            var coordB = new Coordinate(posB.X, posB.Y, eagerLoad);
-            var dist = new Distance(coordA, coordB, shape);
+            var coordA = new Coordinate(posA.Y, posA.X, eagerLoad);
+            var coordB = new Coordinate(posB.Y, posB.X, eagerLoad);
+            var dist = new Distance(coordA, coordB, alg.ToCoordinateSharpShape());
             return dist.Meters;
         }
+  
     }
 }
