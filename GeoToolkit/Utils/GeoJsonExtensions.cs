@@ -1,16 +1,18 @@
-﻿using System;
+﻿#if GEO_JSON
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProtoGIS.Scripts.Utils;
+using UnityEngine;
 using GeoJSON.Net;
 using GeoJSON.Net.Feature;
 using GeoJSON.Net.Geometry;
-using ProtoGIS.Scripts.Utils;
-using UnityEngine;
 
 namespace EDIVE.GeoToolkit.Utils
 {
     public static class GeoJsonExtensions
     {
+
         public static readonly Dictionary<Type, GeoJSONObjectType> CONTAINER_TO_TYPE = new Dictionary<Type, GeoJSONObjectType>
         {
             {typeof(Point), GeoJSONObjectType.Point},
@@ -147,3 +149,4 @@ namespace EDIVE.GeoToolkit.Utils
         }
     }
 }
+#endif

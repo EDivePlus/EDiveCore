@@ -13,6 +13,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "jillejr.newtonsoft.json-for-unity.converters",
+            "expression": "",
+            "define": "JSON_UNITY_CONVERTERS"
+        }
+    ],
     "noEngineReferences": false
 }

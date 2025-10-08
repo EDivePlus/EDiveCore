@@ -3,9 +3,12 @@
 
 using EDIVE.Utils.Json.TypeNames;
 using Newtonsoft.Json;
-using Newtonsoft.Json.UnityConverters;
 using UnityEditor;
 using UnityEngine;
+
+#if JSON_UNITY_CONVERTERS
+using Newtonsoft.Json.UnityConverters;
+#endif
 
 namespace EDIVE.Utils.Json
 {
@@ -19,11 +22,13 @@ namespace EDIVE.Utils.Json
 #endif
         private static void Init()
         {
+#if JSON_UNITY_CONVERTERS
             UnityConverterInitializer.shouldAddConvertsToDefaultSettings = false;
-            CustomJsonSerializerSettings = new JsonSerializerSettings(UnityConverterInitializer.defaultUnityConvertersSettings)
-            {
-                SerializationBinder = new JsonTypeNameSerializationBinder()
-            };
+            CustomJsonSerializerSettings = new JsonSerializerSettings(UnityConverterInitializer.defaultUnityConvertersSettings);
+#else
+            CustomJsonSerializerSettings = new JsonSerializerSettings();
+#endif
+            CustomJsonSerializerSettings.SerializationBinder = new JsonTypeNameSerializationBinder();
             JsonConvert.DefaultSettings = GetCustomJsonSerializerSettings;
         }
         

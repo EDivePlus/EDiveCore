@@ -8,7 +8,6 @@ using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.Json;
 using Newtonsoft.Json;
-using Newtonsoft.Json.UnityConverters;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -22,7 +21,7 @@ namespace EDIVE.Configuration
 
         public void LoadConfigs()
         {
-            var serializerSettings = new JsonSerializerSettings(UnityConverterInitializer.defaultUnityConvertersSettings)
+            var serializerSettings = new JsonSerializerSettings(ConfigUtility.SerializerSettings)
             {
                 TypeNameHandling = TypeNameHandling.Auto
             };

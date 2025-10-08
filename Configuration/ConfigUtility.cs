@@ -3,9 +3,8 @@
 
 using System.IO;
 using EDIVE.NativeUtils;
+using EDIVE.Utils.Json;
 using Newtonsoft.Json;
-using Newtonsoft.Json.UnityConverters;
-using UnityEngine;
 
 namespace EDIVE.Configuration
 {
@@ -22,7 +21,7 @@ namespace EDIVE.Configuration
             Path.Combine(Application.persistentDataPath, "Configs");
 #endif
 
-        public static JsonSerializerSettings SerializerSettings { get; } = new(UnityConverterInitializer.defaultUnityConvertersSettings);
+        public static JsonSerializerSettings SerializerSettings => JsonInitializer.CustomJsonSerializerSettings;
         public static JsonSerializer Serializer { get; } = JsonSerializer.Create(SerializerSettings);
     }
 }
