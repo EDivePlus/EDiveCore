@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using EDIVE.Core.Services;
+using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -43,10 +44,8 @@ namespace EDIVE.XRTools.Controls
         {
             base.Awake();
             _currentControls = XRUtils.XREnabled ? _HeadsetControls : _DesktopControls;
-            foreach (var controls in AllControls)
-            {
-                controls.SetActive(controls == _currentControls);
-            }
+            AllControls.ForEach(c => c.SetActive(false));
+            _currentControls.SetActive(true);
         }
 
         [Button]
