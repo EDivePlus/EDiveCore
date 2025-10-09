@@ -91,22 +91,36 @@ namespace EDIVE.NativeUtils
 
         public static Vector3 Clamp(this Vector3 value, Vector3 min, Vector3 max)
         {
-            return new Vector3(Mathf.Clamp(value.x, min.x, max.x), Mathf.Clamp(value.y, min.y, max.y), Mathf.Clamp(value.z, min.z, max.z));
+            return new Vector3(
+                Mathf.Clamp(value.x, Mathf.Min(min.x, max.x), Mathf.Max(min.x, max.x)),
+                Mathf.Clamp(value.y, Mathf.Min(min.y, max.y), Mathf.Max(min.y, max.y)),
+                Mathf.Clamp(value.z, Mathf.Min(min.z, max.z), Mathf.Max(min.z, max.z))
+            );
         }
 
         public static Vector3 ClampRange(this Vector3 value, Vector2 xRange, Vector2 yRange, Vector2 zRange)
         {
-            return new Vector3(Mathf.Clamp(value.x, xRange.x, xRange.y), Mathf.Clamp(value.y, yRange.x, yRange.y), Mathf.Clamp(value.z, zRange.x, zRange.y));
+            return new Vector3(
+                Mathf.Clamp(value.x, Mathf.Min(xRange.x, xRange.y), Mathf.Max(xRange.x, xRange.y)),
+                Mathf.Clamp(value.y, Mathf.Min(yRange.x, yRange.y), Mathf.Max(yRange.x, yRange.y)),
+                Mathf.Clamp(value.z, Mathf.Min(zRange.x, zRange.y), Mathf.Max(zRange.x, zRange.y))
+            );
         }
 
         public static Vector2 Clamp(this Vector2 value, Vector2 min, Vector2 max)
         {
-            return new Vector3(Mathf.Clamp(value.x, min.x, max.x), Mathf.Clamp(value.y, min.y, max.y));
+            return new Vector2(
+                Mathf.Clamp(value.x, Mathf.Min(min.x, max.x), Mathf.Max(min.x, max.x)),
+                Mathf.Clamp(value.y, Mathf.Min(min.y, max.y), Mathf.Max(min.y, max.y))
+            );
         }
 
         public static Vector2 ClampRange(this Vector2 value, Vector2 xRange, Vector2 yRange)
         {
-            return new Vector3(Mathf.Clamp(value.x, xRange.x, xRange.y), Mathf.Clamp(value.y, yRange.x, yRange.y));
+            return new Vector2(
+                Mathf.Clamp(value.x, Mathf.Min(xRange.x, xRange.y), Mathf.Max(xRange.x, xRange.y)),
+                Mathf.Clamp(value.y, Mathf.Min(yRange.x, yRange.y), Mathf.Max(yRange.x, yRange.y))
+            );
         }
     }
 }

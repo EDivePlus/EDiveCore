@@ -98,5 +98,12 @@ namespace ProtoGIS.Scripts.Utils
             var dy = a.Y - b.Y;
             return dx * dx + dy * dy;
         }
+        
+        public static DVector2 Clamp(this DVector2 value, DVector2 min, DVector2 max)
+        {
+            var clampedX = Math.Min(Math.Max(value.X, min.X), max.X);
+            var clampedY = Math.Min(Math.Max(value.Y, min.Y), max.Y);
+            return new DVector2(clampedX, clampedY);
+        }
     }
 }
