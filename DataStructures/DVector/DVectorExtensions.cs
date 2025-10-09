@@ -84,5 +84,19 @@ namespace ProtoGIS.Scripts.Utils
         {
             return new DVector3(1 / vector.X, 1 / vector.Y, 1 / vector.Z);
         }
+        
+        public static double Distance(this DVector2 a, DVector2 b)
+        {
+            var dx = a.X - b.X;
+            var dy = a.Y - b.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+        
+        public static double SqrDistance(this DVector2 a, DVector2 b)
+        {
+            var dx = a.X - b.X;
+            var dy = a.Y - b.Y;
+            return dx * dx + dy * dy;
+        }
     }
 }

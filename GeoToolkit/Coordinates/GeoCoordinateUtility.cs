@@ -51,6 +51,11 @@ namespace EDIVE.GeoToolkit.Coordinates
 
         public static double Distance(DVector2 posA, DVector2 posB, CoordinateSystemType targetSystem, DistanceMeasureAlgorithm alg)
         {
+            // Calculate raw distance if coordinate system is unknown
+            if (targetSystem == CoordinateSystemType.Unknown)
+                return posA.Distance(posB);
+            
+            // Convert to WGS84 for the CoordinateSharp library
             if (targetSystem != CoordinateSystemType.EPSG_4326)
             {
                 posA = Convert(posA, targetSystem, CoordinateSystemType.EPSG_4326);
