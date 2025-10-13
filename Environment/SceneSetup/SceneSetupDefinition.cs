@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Environment.SceneSetup
@@ -12,6 +13,7 @@ namespace EDIVE.Environment.SceneSetup
     {
         [SceneReference]
         [SerializeField]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<string> _Scenes;
         
         [SerializeField]

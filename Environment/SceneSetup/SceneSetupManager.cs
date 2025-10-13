@@ -100,13 +100,6 @@ namespace EDIVE.Environment.SceneSetup
                         controlsManager.RequestTeleport(position, rotation);
                     }
                 }
-
-                // Todo find better way to disable other controllers
-                var allControllers = FindObjectsByType<SceneSetupController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-                foreach (var sceneController in allControllers)
-                {
-                    sceneController.SetLightsActive(controller == sceneController);
-                }
             }
             
             CurrentSetup = definition;

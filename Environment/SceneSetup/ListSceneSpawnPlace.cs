@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using FishNet.Connection;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Environment.SceneSetup
@@ -11,6 +12,7 @@ namespace EDIVE.Environment.SceneSetup
     public class ListSceneSpawnPlace : ASceneSpawnPlace   
     {
         [SerializeField]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<Transform> _Locations;
 
         public override bool TryGetLocation(NetworkConnection conn, out Vector3 position, out Quaternion? rotation)
