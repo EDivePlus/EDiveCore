@@ -67,6 +67,14 @@ namespace EDIVE.EditorUtils.DomainReload
             SetSurvivors(survivors);
         }
 
+        public static IEnumerator WaitWhileCompiling()
+        {
+            yield return null;
+            while (EditorApplication.isCompiling)
+                yield return null;
+            yield return null;
+        }
+        
         private static List<SurvivorWrapper> GetSurvivors()
         {
             try

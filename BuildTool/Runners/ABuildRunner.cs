@@ -64,6 +64,8 @@ namespace EDIVE.BuildTool.Runners
 
         public void StartBuild()
         {
+            DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
+            TeamCityServiceMessages.MessageLog("[BuildRunner] Starting...");
             _buildCoroutine = EditorCoroutineUtility.StartCoroutineOwnerless(StartBuildRoutine());
         }
 
@@ -100,6 +102,9 @@ namespace EDIVE.BuildTool.Runners
 
         protected override IEnumerator StartBuildRoutine()
         {
+            yield return DomainReloadUtility.WaitWhileCompiling();
+            DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
+            
             if (Context.State == BuildStateType.NotStarted)
             {
                 TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
@@ -113,9 +118,7 @@ namespace EDIVE.BuildTool.Runners
                 }
                 
                 DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
-                yield return null;
-                while (EditorApplication.isCompiling)
-                    yield return null;
+                yield return DomainReloadUtility.WaitWhileCompiling();
                 DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
                 
                 DebugLite.Log("[BuildRunner] Initial build preparation...");
@@ -179,9 +182,7 @@ namespace EDIVE.BuildTool.Runners
             yield return segmentFunction();
             DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
             EditorApplication.UnlockReloadAssemblies();
-            yield return null;
-            while (EditorApplication.isCompiling)
-                yield return null;
+            yield return DomainReloadUtility.WaitWhileCompiling();
             DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
         }
         
