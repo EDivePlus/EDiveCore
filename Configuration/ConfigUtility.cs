@@ -16,9 +16,9 @@ namespace EDIVE.Configuration
 #if UNITY_EDITOR
             PathUtility.GetAbsolutePath("Configs/");
 #elif UNITY_STANDALONE
-            Path.Combine(Application.dataPath, "Configs");
+            Path.Combine(UnityEngine.Application.dataPath, "Configs");
 #else
-            Path.Combine(Application.persistentDataPath, "Configs");
+            Path.Combine(UnityEngine.Application.persistentDataPath, "Configs");
 #endif
 
         public static JsonSerializerSettings SerializerSettings => JsonInitializer.CustomJsonSerializerSettings;
