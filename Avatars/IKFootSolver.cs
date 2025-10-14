@@ -58,8 +58,7 @@ namespace EDIVE.Avatars
         public float _RayLength = 1.5f;
 
         public bool IsMoving => _lerp < 1;
-        public bool IsMovingForward { get; private set; }
-        
+
         private float _footSpacing;
         private Vector3 _oldPosition;
         private Vector3 _currentPosition;
@@ -68,6 +67,8 @@ namespace EDIVE.Avatars
         private Vector3 _currentNormal;
         private Vector3 _newNormal;
         private float _lerp;
+        
+        private readonly RaycastHit[] _rayHits = new RaycastHit[1];
 
         private void Start()
         {
@@ -77,27 +78,29 @@ namespace EDIVE.Avatars
             _lerp = 1;
         }
 
-        private void LateUpdate()
+        private void Update()
         {
             transform.position = _currentPosition + Vector3.up * _FootYPosOffset;
-            transform.localRotation = Quaternion.Euler(_FootRotOffset);
+            // Todo fix rotation by initial rotation
+            //transform.up = _currentNormal; 
+            //transform.localRotation = Quaternion.Euler(_FootRotOffset);
 
-            var ray = new Ray(_Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset, Vector3.down);
+            var rayStart = _Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset;
+            var ray = new Ray(rayStart, Vector3.down);
 
-            Debug.DrawRay(_Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset, Vector3.down);
-            if (Physics.Raycast(ray, out var info, _RayLength, _TerrainLayer.value))
+            // Debug.DrawRay(rayStart, Vector3.down);
+            if (Physics.RaycastNonAlloc(ray, _rayHits,  _RayLength, _TerrainLayer.value) > 0)
             {
-                if (Vector3.Distance(_newPosition, info.point) > _StepDistance && !_OtherFoot.IsMoving && _lerp >= 1)
+                var rayHit = _rayHits[0];
+                if (Vector3.Distance(_newPosition, rayHit.point) > _StepDistance && !_OtherFoot.IsMoving && _lerp >= 1)
                 {
                     _lerp = 0;
-                    var direction = Vector3.ProjectOnPlane(info.point - _currentPosition, Vector3.up).normalized;
+                    var direction = Vector3.ProjectOnPlane(rayHit.point - _currentPosition, Vector3.up).normalized;
                     var angle = Vector3.Angle(_Body.forward, _Body.InverseTransformDirection(direction));
-
-                    IsMovingForward = angle is < 50 or > 130;
-
-                    var stepLength = IsMovingForward ? _StepLength : _SideStepLength;
-                    _newPosition = info.point + direction * stepLength + _FootOffset;
-                    _newNormal = info.normal;
+                    
+                    var stepLength = angle is < 50 or > 130 ? _StepLength : _SideStepLength;
+                    _newPosition = rayHit.point + direction * stepLength + _FootOffset;
+                    _newNormal = rayHit.normal;
                 }
             }
 
@@ -116,11 +119,16 @@ namespace EDIVE.Avatars
                 _oldNormal = _newNormal;
             }
         }
-
+        
         private void OnDrawGizmos()
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawSphere(_newPosition, 0.1f);
+            Gizmos.DrawWireSphere(_newPosition, _StepDistance);
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(_currentPosition, 0.1f);
+            Gizmos.color = Color.blue;
+            var rayHit = _rayHits[0];
+            Gizmos.DrawSphere(rayHit.point, 0.1f);
         }
     }
 }
