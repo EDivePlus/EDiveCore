@@ -7,7 +7,8 @@
         "EDIVE.NativeUtils",
         "EDIVE.EditorUtils",
         "Mirror",
-        "EDIVE.Utils.Json"
+        "EDIVE.Utils.Json",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
