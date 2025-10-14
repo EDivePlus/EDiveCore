@@ -3,6 +3,7 @@ using UnityEngine.Serialization;
 
 namespace EDIVE.Avatars
 {
+    [DefaultExecutionOrder(10)]
     public class IKFootSolver : MonoBehaviour
     {
         [FormerlySerializedAs("terrainLayer")]
@@ -16,34 +17,27 @@ namespace EDIVE.Avatars
         [FormerlySerializedAs("otherFoot")]
         [SerializeField]
         private IKFootSolver _OtherFoot;
-
-        [FormerlySerializedAs("speed")]
+        
         [SerializeField]
-        private float _Speed = 4;
-
-        [FormerlySerializedAs("stepDistance")]
+        private float _Speed = 5;
+        
         [SerializeField]
-        private float _StepDistance = .2f;
-
-        [FormerlySerializedAs("stepLength")]
+        private float _StepDistanceThreshold = 0.3f;
+        
         [SerializeField]
-        private float _StepLength = .2f;
-
-        [FormerlySerializedAs("sideStepLength")]
+        private float _StepRotationThreshold = 90f;
+        
         [SerializeField]
-        private float _SideStepLength = .1f;
-
-        [FormerlySerializedAs("stepHeight")]
+        private float _TeleportDistanceThreshold = 1f;
+        
         [SerializeField]
-        private float _StepHeight = .3f;
-
-        [FormerlySerializedAs("footOffset")]
+        private float _StepLength = 0.3f;
+        
         [SerializeField]
-        private Vector3 _FootOffset;
-
-        [FormerlySerializedAs("footRotOffset")]
+        private float _SideStepLength = 0.1f;
+        
         [SerializeField]
-        public Vector3 _FootRotOffset;
+        private float _StepHeight = 0.3f;
 
         [FormerlySerializedAs("footYPosOffset")]
         [SerializeField]
@@ -56,9 +50,10 @@ namespace EDIVE.Avatars
         [FormerlySerializedAs("rayLength")]
         [SerializeField]
         public float _RayLength = 1.5f;
-
+        
         public bool IsMoving => _lerp < 1;
 
+        [SerializeField]
         private float _footSpacing;
         private Vector3 _oldPosition;
         private Vector3 _currentPosition;
@@ -68,39 +63,58 @@ namespace EDIVE.Avatars
         private Vector3 _newNormal;
         private float _lerp;
         
+        private Quaternion _initialLocalRotation;
+        private Vector3 _lastStepForward;
+        
         private readonly RaycastHit[] _rayHits = new RaycastHit[1];
 
         private void Start()
         {
             _footSpacing = transform.localPosition.x;
             _currentPosition = _newPosition = _oldPosition = transform.position;
-            _currentNormal = _newNormal = _oldNormal = transform.up;
+            _currentNormal = Vector3.up;
+            _initialLocalRotation = transform.localRotation;
             _lerp = 1;
+            
+            _lastStepForward = Vector3.ProjectOnPlane(_Body.forward, Vector3.up).normalized;
         }
 
         private void Update()
         {
-            transform.position = _currentPosition + Vector3.up * _FootYPosOffset;
-            // Todo fix rotation by initial rotation
-            //transform.up = _currentNormal; 
-            //transform.localRotation = Quaternion.Euler(_FootRotOffset);
-
             var rayStart = _Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset;
             var ray = new Ray(rayStart, Vector3.down);
+            var bodyForward = Vector3.ProjectOnPlane(_Body.forward, Vector3.up).normalized;
 
-            // Debug.DrawRay(rayStart, Vector3.down);
             if (Physics.RaycastNonAlloc(ray, _rayHits,  _RayLength, _TerrainLayer.value) > 0)
             {
                 var rayHit = _rayHits[0];
-                if (Vector3.Distance(_newPosition, rayHit.point) > _StepDistance && !_OtherFoot.IsMoving && _lerp >= 1)
+                var distanceStep = Vector3.Distance(_newPosition, rayHit.point) > _StepDistanceThreshold;
+                var rotationStep = Vector3.Angle(_lastStepForward, bodyForward) >= _StepRotationThreshold;
+
+                if ((distanceStep || rotationStep) && !_OtherFoot.IsMoving && _lerp >= 1)
                 {
-                    _lerp = 0;
                     var direction = Vector3.ProjectOnPlane(rayHit.point - _currentPosition, Vector3.up).normalized;
                     var angle = Vector3.Angle(_Body.forward, _Body.InverseTransformDirection(direction));
-                    
                     var stepLength = angle is < 50 or > 130 ? _StepLength : _SideStepLength;
-                    _newPosition = rayHit.point + direction * stepLength + _FootOffset;
-                    _newNormal = rayHit.normal;
+                    if (!distanceStep)
+                        stepLength = 0;
+                        
+                    var targetPosition = rayHit.point + direction * stepLength;
+                    
+                    if (Vector3.Distance(_currentPosition, targetPosition) > _TeleportDistanceThreshold)
+                    {
+                        _lerp = 1;
+                        _newPosition = _oldPosition = _currentPosition = targetPosition;
+                        _newNormal = _oldNormal = _currentNormal = rayHit.normal;
+                    }
+                    else
+                    {
+                        _lerp = 0;
+                        _newPosition = targetPosition;
+                        _newNormal = rayHit.normal;
+                    }
+
+                    _lastStepForward = bodyForward;
                 }
             }
 
@@ -118,12 +132,15 @@ namespace EDIVE.Avatars
                 _oldPosition = _newPosition;
                 _oldNormal = _newNormal;
             }
+            
+            transform.position = _currentPosition + Vector3.up * _FootYPosOffset;
+            transform.rotation =  Quaternion.LookRotation(bodyForward, _currentNormal) * _initialLocalRotation;
         }
         
         private void OnDrawGizmos()
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(_newPosition, _StepDistance);
+            Gizmos.DrawWireSphere(_newPosition, _StepDistanceThreshold);
             Gizmos.color = Color.green;
             Gizmos.DrawSphere(_currentPosition, 0.1f);
             Gizmos.color = Color.blue;

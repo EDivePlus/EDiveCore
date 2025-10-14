@@ -25,7 +25,7 @@ namespace EDIVE.Avatars
         public override Transform LeftHandSource { get => _LeftHand.Source; set => _LeftHand.Source = value; }
         public override Transform RightHandSource { get => _RightHand.Source; set => _RightHand.Source = value; }
 
-        private void LateUpdate()
+        private void Update()
         {
             if (!_Head.IsValid)
                 return;
