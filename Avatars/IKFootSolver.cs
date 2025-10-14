@@ -1,108 +1,126 @@
 ﻿using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.Avatars
 {
     public class IKFootSolver : MonoBehaviour
     {
-        public bool isMovingForward;
+        [FormerlySerializedAs("terrainLayer")]
+        [SerializeField]
+        private LayerMask _TerrainLayer;
 
-        [SerializeField] LayerMask terrainLayer = default;
-        [SerializeField] Transform body = default;
-        [SerializeField] IKFootSolver otherFoot = default;
-        [SerializeField] float speed = 4;
-        [SerializeField] float stepDistance = .2f;
-        [SerializeField] float stepLength = .2f;
-        [SerializeField] float sideStepLength = .1f;
+        [FormerlySerializedAs("body")]
+        [SerializeField]
+        private Transform _Body;
 
-        [SerializeField] float stepHeight = .3f;
-        [SerializeField] Vector3 footOffset = default;
+        [FormerlySerializedAs("otherFoot")]
+        [SerializeField]
+        private IKFootSolver _OtherFoot;
 
-        public Vector3 footRotOffset;
-        public float footYPosOffset = 0.1f;
+        [FormerlySerializedAs("speed")]
+        [SerializeField]
+        private float _Speed = 4;
 
-        public float rayStartYOffset = 0;
-        public float rayLength = 1.5f;
-    
-        float footSpacing;
-        Vector3 oldPosition, currentPosition, newPosition;
-        Vector3 oldNormal, currentNormal, newNormal;
-        float lerp;
+        [FormerlySerializedAs("stepDistance")]
+        [SerializeField]
+        private float _StepDistance = .2f;
+
+        [FormerlySerializedAs("stepLength")]
+        [SerializeField]
+        private float _StepLength = .2f;
+
+        [FormerlySerializedAs("sideStepLength")]
+        [SerializeField]
+        private float _SideStepLength = .1f;
+
+        [FormerlySerializedAs("stepHeight")]
+        [SerializeField]
+        private float _StepHeight = .3f;
+
+        [FormerlySerializedAs("footOffset")]
+        [SerializeField]
+        private Vector3 _FootOffset;
+
+        [FormerlySerializedAs("footRotOffset")]
+        [SerializeField]
+        public Vector3 _FootRotOffset;
+
+        [FormerlySerializedAs("footYPosOffset")]
+        [SerializeField]
+        public float _FootYPosOffset = 0.1f;
+
+        [FormerlySerializedAs("rayStartYOffset")]
+        [SerializeField]
+        public float _RayStartYOffset;
+
+        [FormerlySerializedAs("rayLength")]
+        [SerializeField]
+        public float _RayLength = 1.5f;
+
+        public bool IsMoving => _lerp < 1;
+        public bool IsMovingForward { get; private set; }
+        
+        private float _footSpacing;
+        private Vector3 _oldPosition;
+        private Vector3 _currentPosition;
+        private Vector3 _newPosition;
+        private Vector3 _oldNormal;
+        private Vector3 _currentNormal;
+        private Vector3 _newNormal;
+        private float _lerp;
 
         private void Start()
         {
-            footSpacing = transform.localPosition.x;
-            currentPosition = newPosition = oldPosition = transform.position;
-            currentNormal = newNormal = oldNormal = transform.up;
-            lerp = 1;
+            _footSpacing = transform.localPosition.x;
+            _currentPosition = _newPosition = _oldPosition = transform.position;
+            _currentNormal = _newNormal = _oldNormal = transform.up;
+            _lerp = 1;
         }
 
-        // Update is called once per frame
-
-        void Update()
+        private void LateUpdate()
         {
-            transform.position = currentPosition + Vector3.up * footYPosOffset;
-            transform.localRotation = Quaternion.Euler(footRotOffset);
+            transform.position = _currentPosition + Vector3.up * _FootYPosOffset;
+            transform.localRotation = Quaternion.Euler(_FootRotOffset);
 
-            Ray ray = new Ray(body.position + (body.right * footSpacing) + Vector3.up * rayStartYOffset, Vector3.down);
+            var ray = new Ray(_Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset, Vector3.down);
 
-            Debug.DrawRay(body.position + (body.right * footSpacing) + Vector3.up * rayStartYOffset, Vector3.down);
-            
-            if (Physics.Raycast(ray, out RaycastHit info, rayLength, terrainLayer.value))
+            Debug.DrawRay(_Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset, Vector3.down);
+            if (Physics.Raycast(ray, out var info, _RayLength, _TerrainLayer.value))
             {
-                if (Vector3.Distance(newPosition, info.point) > stepDistance && !otherFoot.IsMoving() && lerp >= 1)
+                if (Vector3.Distance(_newPosition, info.point) > _StepDistance && !_OtherFoot.IsMoving && _lerp >= 1)
                 {
-                    lerp = 0;
-                    Vector3 direction = Vector3.ProjectOnPlane(info.point - currentPosition,Vector3.up).normalized;
+                    _lerp = 0;
+                    var direction = Vector3.ProjectOnPlane(info.point - _currentPosition, Vector3.up).normalized;
+                    var angle = Vector3.Angle(_Body.forward, _Body.InverseTransformDirection(direction));
 
-                    float angle = Vector3.Angle(body.forward, body.InverseTransformDirection(direction));
+                    IsMovingForward = angle is < 50 or > 130;
 
-                    isMovingForward = angle < 50 || angle > 130;
-
-                    if(isMovingForward)
-                    {
-                        newPosition = info.point + direction * stepLength + footOffset;
-                        newNormal = info.normal;
-                    }
-                    else
-                    {
-                        newPosition = info.point + direction * sideStepLength + footOffset;
-                        newNormal = info.normal;
-                    }
-
+                    var stepLength = IsMovingForward ? _StepLength : _SideStepLength;
+                    _newPosition = info.point + direction * stepLength + _FootOffset;
+                    _newNormal = info.normal;
                 }
             }
 
-            if (lerp < 1)
+            if (_lerp < 1)
             {
-                Vector3 tempPosition = Vector3.Lerp(oldPosition, newPosition, lerp);
-                tempPosition.y += Mathf.Sin(lerp * Mathf.PI) * stepHeight;
+                var tempPosition = Vector3.Lerp(_oldPosition, _newPosition, _lerp);
+                tempPosition.y += Mathf.Sin(_lerp * Mathf.PI) * _StepHeight;
 
-                currentPosition = tempPosition;
-                currentNormal = Vector3.Lerp(oldNormal, newNormal, lerp);
-                lerp += Time.deltaTime * speed;
+                _currentPosition = tempPosition;
+                _currentNormal = Vector3.Lerp(_oldNormal, _newNormal, _lerp);
+                _lerp += Time.deltaTime * _Speed;
             }
             else
             {
-                oldPosition = newPosition;
-                oldNormal = newNormal;
+                _oldPosition = _newPosition;
+                _oldNormal = _newNormal;
             }
         }
 
         private void OnDrawGizmos()
         {
-
             Gizmos.color = Color.red;
-            Gizmos.DrawSphere(newPosition, 0.1f);
+            Gizmos.DrawSphere(_newPosition, 0.1f);
         }
-
-
-
-        public bool IsMoving()
-        {
-            return lerp < 1;
-        }
-
-
-
     }
 }
