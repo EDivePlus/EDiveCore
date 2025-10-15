@@ -2,7 +2,6 @@
 // Created: 21.03.2025
 
 using System;
-using EDIVE.BuildTool.Presets;
 using Sirenix.OdinInspector;
 using UnityEditor;
 
@@ -11,7 +10,7 @@ namespace EDIVE.BuildTool.PathResolving
     [Serializable]
     public abstract class ABuildPathSegment
     {
-        public abstract string GetValue(ABuildPreset preset);
+        public abstract string GetValue(BuildPreset preset);
 
         public virtual string Label => ObjectNames.NicifyVariableName(GetType().Name.Replace("PathSegment", ""));
         protected virtual bool HideLabel => false;

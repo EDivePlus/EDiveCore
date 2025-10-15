@@ -2,7 +2,6 @@
 // Created: 21.03.2025
 
 using System;
-using EDIVE.BuildTool.Presets;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -16,7 +15,7 @@ namespace EDIVE.BuildTool.PathResolving
         [LabelText("String")]
         public string _Value;
 
-        public override string GetValue(ABuildPreset preset) => _Value;
+        public override string GetValue(BuildPreset preset) => _Value;
         protected override bool HideLabel => true;
     }
 }

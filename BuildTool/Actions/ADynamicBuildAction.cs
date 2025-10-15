@@ -14,7 +14,7 @@ namespace EDIVE.BuildTool.Actions
         public virtual string Tooltip => null;
         
         private const char TOOLTIP_ICON = '\u24d8';
-
+        
         [OnInspectorGUI]
         [PropertyOrder(-100)]
         private void DrawLabel()
@@ -31,7 +31,7 @@ namespace EDIVE.BuildTool.Actions
             return Priority.CompareTo(other.Priority);
         }
     }
-
+    
     public interface IBuildAction : IComparable<IBuildAction>
     {
         int Priority { get; }

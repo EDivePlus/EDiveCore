@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.Actions;
 using EDIVE.BuildTool.PlatformConfigs;
-using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using EDIVE.EditorUtils.DomainReload;
 using EDIVE.NativeUtils;
@@ -78,19 +77,20 @@ namespace EDIVE.BuildTool.Runners
     }
 
     [Serializable]
-    public abstract class ABuildRunner<TPreset, TPlatformConfig> : ABuildRunner
-        where TPreset : ABuildPreset<TPlatformConfig>
-        where TPlatformConfig : ABuildPlatformConfig
+    public abstract class ABuildRunner<TPlatformConfig> : ABuildRunner where TPlatformConfig : ABuildPlatformConfig
     {
         [SerializeField]
-        protected TPreset _Preset;
+        protected TPlatformConfig _PlatformConfig;
+        
+        [SerializeField]
+        protected BuildPreset _Preset;
 
-        public TPreset Preset => _Preset;
+        public BuildPreset Preset => _Preset;
         public BuildUserConfig UserConfig => Preset.UserConfig;
-        public TPlatformConfig PlatformConfig => Preset.PlatformConfig;
+        public TPlatformConfig PlatformConfig => _PlatformConfig;
 
         protected ABuildRunner() { }
-        protected ABuildRunner(TPreset preset, BuildOptions options = BuildOptions.None)
+        protected ABuildRunner(TPlatformConfig platformConfig, BuildPreset preset, BuildOptions options = BuildOptions.None)
         {
             _Preset = preset;
             _Context = new BuildContext(options)

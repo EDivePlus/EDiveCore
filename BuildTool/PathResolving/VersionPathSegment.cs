@@ -2,7 +2,6 @@
 // Created: 21.03.2025
 
 using System;
-using EDIVE.BuildTool.Presets;
 using EDIVE.Core.Versions;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -22,7 +21,7 @@ namespace EDIVE.BuildTool.PathResolving
         [SerializeField]
         private AppVersionFormat _Format;
 
-        public override string GetValue(ABuildPreset preset)
+        public override string GetValue(BuildPreset preset)
         {
             var version = BuildGlobalSettings.Instance.VersionDefinition;
             return _OverrideFormat ? version.CurrentVersion.GetFormatedString(_Format) : version.VersionString;

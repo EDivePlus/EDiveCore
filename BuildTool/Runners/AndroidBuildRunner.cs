@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using EDIVE.BuildTool.PlatformConfigs;
-using EDIVE.BuildTool.Presets;
 using EDIVE.BuildTool.Utils;
 using UnityEditor;
 using UnityEditor.Build;
@@ -18,7 +17,7 @@ using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;
 namespace EDIVE.BuildTool.Runners
 {
     [Serializable]
-    public class AndroidBuildRunner : ABuildRunner<AndroidBuildPreset, AndroidBuildPlatformConfig>
+    public class AndroidBuildRunner : ABuildRunner<AndroidBuildPlatformConfig>
     {
         [SerializeField]
         private AndroidBuildSystem _PrevSystem;
@@ -62,7 +61,8 @@ namespace EDIVE.BuildTool.Runners
 #endif
 
         public AndroidBuildRunner() { }
-        public AndroidBuildRunner(AndroidBuildPreset buildPreset, BuildOptions options = BuildOptions.None) : base(buildPreset, options) { }
+        public AndroidBuildRunner(AndroidBuildPlatformConfig platformConfig, BuildPreset buildPreset, BuildOptions options = BuildOptions.None) 
+            : base(platformConfig, buildPreset, options) { }
 
         protected override void SetupSettingsBeforeBuild()
         {

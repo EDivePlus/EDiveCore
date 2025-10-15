@@ -61,8 +61,8 @@ namespace EDIVE.BuildTool
             if (arguments.TryGetValue(CMD_VERSION_BUILD, out var vBuildStr) && int.TryParse(vBuildStr, out var vBuild))
                 version.Build = vBuild;
             versionDef.CurrentVersion = version;
-        
-            var preset = platformConfig.CreatePreset(user);
+
+            var preset = new BuildPreset(user, platformConfig);
         
             TeamCityServiceMessages.MessageLog($"[CMDBuild] Preset created: {preset}");
             preset.Build(BuildOptions.None);

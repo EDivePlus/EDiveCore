@@ -1,6 +1,5 @@
 using System;
 using EDIVE.BuildTool.PlatformConfigs;
-using EDIVE.BuildTool.Presets;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -8,7 +7,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool.Runners
 {
     [Serializable]
-    public class StandaloneBuildRunner : ABuildRunner<StandaloneBuildPreset, StandaloneBuildPlatformConfig>
+    public class StandaloneBuildRunner : ABuildRunner<StandaloneBuildPlatformConfig>
     {
         [SerializeField]
         private ScriptingImplementation _PrevBackend;
@@ -25,7 +24,8 @@ namespace EDIVE.BuildTool.Runners
         public Il2CppCodeGeneration PrevIl2CppCodeGeneration { get => _PrevIl2CppCodeGeneration; set => _PrevIl2CppCodeGeneration = value; }
 
         public StandaloneBuildRunner() { }
-        public StandaloneBuildRunner(StandaloneBuildPreset buildPreset, BuildOptions options = BuildOptions.None) : base(buildPreset, options) { }
+        public StandaloneBuildRunner(StandaloneBuildPlatformConfig platformConfig, BuildPreset buildPreset, BuildOptions options = BuildOptions.None) 
+            : base(platformConfig, buildPreset, options) { }
 
         protected override void SetupSettingsBeforeBuild()
         {

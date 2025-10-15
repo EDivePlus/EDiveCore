@@ -1,5 +1,5 @@
 using System;
-using EDIVE.BuildTool.Presets;
+using EDIVE.BuildTool.Runners;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -81,6 +81,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        public override ABuildPreset CreatePreset(BuildUserConfig userConfig) => new StandaloneBuildPreset(userConfig, this);
+        public override ABuildRunner CreateBuildRunner(BuildPreset preset, BuildOptions options) => new StandaloneBuildRunner(this, preset, options);
     }
 }

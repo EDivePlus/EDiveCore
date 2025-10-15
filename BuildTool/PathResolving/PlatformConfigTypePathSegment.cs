@@ -2,13 +2,12 @@
 // Created: 21.03.2025
 
 using System;
-using EDIVE.BuildTool.Presets;
 
 namespace EDIVE.BuildTool.PathResolving
 {
     [Serializable]
     public class PlatformConfigTypePathSegment : ABuildPathSegment
     {
-        public override string GetValue(ABuildPreset preset) => preset.BasePlatformConfig.ConfigType;
+        public override string GetValue(BuildPreset preset) => preset.PlatformConfig.ConfigType;
     }
 }

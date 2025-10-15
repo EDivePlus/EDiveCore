@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using EDIVE.BuildTool.Presets;
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -49,7 +48,7 @@ namespace EDIVE.BuildTool.PathResolving
         
         private string RootPath => _UseAbsolutePath ? _AbsoluteRootPath : _RelativeRootPath;
         
-        public FilePath ResolvePath(ABuildPreset preset)
+        public FilePath ResolvePath(BuildPreset preset)
         {
             var folderPath = string.Empty;
             var fileName = string.Empty;
@@ -71,7 +70,7 @@ namespace EDIVE.BuildTool.PathResolving
                 {
                     builder.Append(segment.GetValue(preset));
                 }
-                builder.Append(preset.BasePlatformConfig.BuildExtension);
+                builder.Append(preset.PlatformConfig.BuildExtension);
                 fileName = builder.ToString();
             }
 

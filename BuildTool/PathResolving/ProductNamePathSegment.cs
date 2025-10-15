@@ -2,7 +2,6 @@
 // Created: 21.03.2025
 
 using System;
-using EDIVE.BuildTool.Presets;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,6 +10,6 @@ namespace EDIVE.BuildTool.PathResolving
     [Serializable]
     public class ProductNamePathSegment : ABuildPathSegment
     {
-        public override string GetValue(ABuildPreset preset) => PlayerSettings.productName.Replace(" ", "");
+        public override string GetValue(BuildPreset preset) => PlayerSettings.productName.Replace(" ", "");
     }
 }

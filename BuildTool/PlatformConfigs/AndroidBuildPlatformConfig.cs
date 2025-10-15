@@ -1,4 +1,4 @@
-using EDIVE.BuildTool.Presets;
+using EDIVE.BuildTool.Runners;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -119,8 +119,8 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public override NamedBuildTarget NamedBuildTarget => NamedBuildTarget.Android;
         public override BuildTarget BuildTarget => BuildTarget.Android;
         public override string BuildExtension => BuildAndroidAppBundle ? ".aab" : ".apk";
-
-        public override ABuildPreset CreatePreset(BuildUserConfig userConfig) => new AndroidBuildPreset(userConfig, this);
+        
+        public override ABuildRunner CreateBuildRunner(BuildPreset preset, BuildOptions options) => new AndroidBuildRunner(this, preset, options);
     }
 
 #if UNITY_6000_0_OR_NEWER

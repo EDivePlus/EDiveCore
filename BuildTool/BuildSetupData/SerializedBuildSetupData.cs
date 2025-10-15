@@ -10,10 +10,10 @@ using EDIVE.EditorUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.BuildTool.Utils
+namespace EDIVE.BuildTool.BuildSetupData
 {
     [Serializable]
-    public class BuildSetupData
+    public class SerializedBuildSetupData : IBuildSetupData
     {
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false)]
@@ -27,7 +27,7 @@ namespace EDIVE.BuildTool.Utils
 
         public IEnumerable<string> Defines => _Defines.ToValueList();
         public IEnumerable<IBuildAction> Actions => _Actions;
-
+        
         private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<IBuildAction>();
     }
 }

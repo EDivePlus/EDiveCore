@@ -2,6 +2,7 @@
 // Created: 17.03.2025
 
 using System.Collections.Generic;
+using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
 using Sirenix.OdinInspector;
@@ -14,7 +15,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool
 {
     [GlobalConfig("Assets/_Shared/Settings/Editor/")]
-    public class BuildGlobalSettings : GlobalConfig<BuildGlobalSettings>
+    public class BuildGlobalSettings : GlobalConfig<BuildGlobalSettings>, IBuildSetupDataProvider
     {
         [SerializeField]
         private AppVersionDefinition _VersionDefinition;
@@ -41,7 +42,7 @@ namespace EDIVE.BuildTool
             set => CurrentUserContext.Value = value != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value)) : null;
         }
 
-        public IEnumerable<BuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);
+        public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);
 
         private const string SETTINGS_PATH = "Project/Build Config";
 

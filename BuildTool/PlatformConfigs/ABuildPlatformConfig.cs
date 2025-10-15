@@ -1,4 +1,6 @@
-using EDIVE.BuildTool.Presets;
+using System.Collections.Generic;
+using EDIVE.BuildTool.BuildSetupData;
+using EDIVE.BuildTool.Runners;
 using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -8,7 +10,7 @@ using UnityEngine;
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {
-    public abstract class ABuildPlatformConfig : ScriptableObject
+    public abstract class ABuildPlatformConfig : ScriptableObject, IBuildSetupDataProvider
     {
         [EnhancedBoxGroup("Build", "@ColorTools.Cyan", SpaceBefore = 6)]
         [SerializeField]
@@ -82,7 +84,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [HideLabel]
         [InlineProperty]
         [SerializeField]
-        private BuildSetupData _BuildSetupData;
+        private SerializedBuildSetupData _BuildSetupData;
 
         public bool DevelopmentBuild => _DevelopmentBuild;
         public bool AllowDebugging => _AllowDebugging;
@@ -98,14 +100,14 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public PlayerCompressionType PlayerCompression => _PlayerCompression;
         public bool UseIncrementalGC => _UseIncrementalGC;
         public LoggingSetup LoggingSetup => _LoggingSetup;
-        public BuildSetupData BuildSetupData => _BuildSetupData;
+        public SerializedBuildSetupData BuildSetupData => _BuildSetupData;
         public SceneListDefinition OverrideSceneList => _OverrideSceneList;
 
         public abstract NamedBuildTarget NamedBuildTarget { get; }
         public abstract BuildTarget BuildTarget { get; }
         public abstract string BuildExtension { get; }
-
-        public abstract ABuildPreset CreatePreset(BuildUserConfig userConfig);
+        
+        public abstract ABuildRunner CreateBuildRunner(BuildPreset preset, BuildOptions options);
 
         [PropertySpace(6)]
         [PropertyOrder(100)]
@@ -116,6 +118,11 @@ namespace EDIVE.BuildTool.PlatformConfigs
                 return;
 
             EditorUtility.CopySerialized(buildPlatformConfig, this);
+        }
+
+        public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target)
+        {
+            yield return BuildSetupData;
         }
     }
 }

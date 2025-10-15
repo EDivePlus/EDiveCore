@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.PlatformConfigs;
-using EDIVE.BuildTool.Presets;
 using EDIVE.EditorUtils;
 using EDIVE.External.ToolbarExtensions;
 using EDIVE.OdinExtensions;
@@ -94,7 +93,7 @@ namespace EDIVE.BuildTool
             [PropertyOrder(10)]
             [SerializeReference]
             [EnhancedTableList(ShowFoldout = false, IsReadOnly = true, OnTitleBarGUI = nameof(OnPresetListTitleBarGUI))]
-            public List<ABuildPreset> _Presets;
+            public List<BuildPreset> _Presets;
 
             [OnInspectorInit]
             private void Initialize()
@@ -104,7 +103,8 @@ namespace EDIVE.BuildTool
 
             private void RefreshPresets()
             {
-                _Presets = EditorAssetUtils.FindAllAssetsOfType<ABuildPlatformConfig>().Select(c => c.CreatePreset(BuildGlobalSettings.Instance.CurrentUser)).ToList();
+                _Presets = EditorAssetUtils.FindAllAssetsOfType<ABuildPlatformConfig>()
+                    .Select(c => new BuildPreset(BuildGlobalSettings.Instance.CurrentUser, c)).ToList();
             }
 
             [PropertyOrder(-1)]
