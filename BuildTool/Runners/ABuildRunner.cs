@@ -93,6 +93,8 @@ namespace EDIVE.BuildTool.Runners
         protected ABuildRunner(TPlatformConfig platformConfig, BuildPreset preset, BuildOptions options = BuildOptions.None)
         {
             _Preset = preset;
+            _PlatformConfig = platformConfig;
+            
             _Context = new BuildContext(options)
             {
                 PlatformConfig = preset.PlatformConfig,
