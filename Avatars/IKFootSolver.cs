@@ -1,20 +1,19 @@
-﻿using UnityEngine;
-using UnityEngine.Serialization;
+﻿// Author: František Holubec
+// Created: 14.10.2025
+
+using UnityEngine;
 
 namespace EDIVE.Avatars
 {
     [DefaultExecutionOrder(10)]
     public class IKFootSolver : MonoBehaviour
     {
-        [FormerlySerializedAs("terrainLayer")]
         [SerializeField]
-        private LayerMask _TerrainLayer;
-
-        [FormerlySerializedAs("body")]
+        private LayerMask _WalkableLayer = 1;
+        
         [SerializeField]
         private Transform _Body;
-
-        [FormerlySerializedAs("otherFoot")]
+        
         [SerializeField]
         private IKFootSolver _OtherFoot;
         
@@ -38,22 +37,18 @@ namespace EDIVE.Avatars
         
         [SerializeField]
         private float _StepHeight = 0.3f;
-
-        [FormerlySerializedAs("footYPosOffset")]
+        
         [SerializeField]
         public float _FootYPosOffset = 0.1f;
-
-        [FormerlySerializedAs("rayStartYOffset")]
+        
         [SerializeField]
         public float _RayStartYOffset;
-
-        [FormerlySerializedAs("rayLength")]
+        
         [SerializeField]
         public float _RayLength = 1.5f;
         
         public bool IsMoving => _lerp < 1;
-
-        [SerializeField]
+        
         private float _footSpacing;
         private Vector3 _oldPosition;
         private Vector3 _currentPosition;
@@ -85,7 +80,7 @@ namespace EDIVE.Avatars
             var ray = new Ray(rayStart, Vector3.down);
             var bodyForward = Vector3.ProjectOnPlane(_Body.forward, Vector3.up).normalized;
 
-            if (Physics.RaycastNonAlloc(ray, _rayHits,  _RayLength, _TerrainLayer.value) > 0)
+            if (Physics.RaycastNonAlloc(ray, _rayHits,  _RayLength, _WalkableLayer.value) > 0)
             {
                 var rayHit = _rayHits[0];
                 var distanceStep = Vector3.Distance(_newPosition, rayHit.point) > _StepDistanceThreshold;
