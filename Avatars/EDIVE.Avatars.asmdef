@@ -1,8 +1,20 @@
 {
-  "name": "EDIVE.Avatars",
-  "references": [
-    "EDIVE.AssetTranslation",
-    "EDIVE.DataStructures",
-    "EDIVE.StateHandling"
-  ]
+    "name": "EDIVE.Avatars",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.AssetTranslation",
+        "EDIVE.DataStructures",
+        "EDIVE.StateHandling",
+        "EDIVE.NativeUtils",
+      "EDIVE.OdinExtensions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
