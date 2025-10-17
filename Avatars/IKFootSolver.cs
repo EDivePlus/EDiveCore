@@ -30,11 +30,15 @@ namespace EDIVE.Avatars
         
         [SerializeField] 
         [Tooltip("Range of body speeds influencing step behavior")]
-        private Vector2 _BodySpeedRange = new(0.5f, 2f);
+        private Vector2 _BodySpeedRange = new(0.1f, 2f);
+        
+        [SerializeField]
+        [Tooltip("Time taken to smooth body speed changes")]
+        public float _SpeedSmoothTime = 0.4f;
         
         [SerializeField] 
         [Tooltip("Distance it takes to trigger a step, relative to body speed")]
-        private Vector2 _StepDistanceThresholdRange = new(0.1f, 0.4f);
+        private Vector2 _StepDistanceThresholdRange = new(0.1f, 0.75f);
         
         [SerializeField]
         [Tooltip("Rotation angle change in degrees required to trigger a step")]
@@ -46,7 +50,7 @@ namespace EDIVE.Avatars
         
         [SerializeField] 
         [Tooltip("Length of a predicted step, relative to body speed. Should be always less than step distance threshold.")]
-        private Vector2 _StepLengthRange = new(0.1f, 0.4f);
+        private Vector2 _StepLengthRange = new(0.08f, 0.7f);
         
         [SerializeField] 
         [Tooltip("Height of a step, relative to body speed.")]
@@ -108,7 +112,7 @@ namespace EDIVE.Avatars
             // Calculate body speed for dynamic scaling
             var bodyDelta = _Body.position - _lastBodyPosition;
             var bodySpeed = bodyDelta.magnitude / Mathf.Max(Time.deltaTime, 0.001f);
-            _smoothBodySpeed = Mathf.SmoothDamp(_smoothBodySpeed, bodySpeed, ref _smoothBodyVelocity, 0.5f);
+            _smoothBodySpeed = Mathf.SmoothDamp(_smoothBodySpeed, bodySpeed, ref _smoothBodyVelocity, _SpeedSmoothTime);
             _lastBodyPosition = _Body.position;
 
             // Adjust step parameters based on speed
