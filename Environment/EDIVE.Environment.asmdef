@@ -17,7 +17,16 @@
   "allowUnsafeCode": false,
   "overrideReferences": false,
   "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
+  "defineConstraints": [
+    "XR_INTERACTION_TOOLKIT",
+    "FISHNET"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.xr.interaction.toolkit",
+      "expression": "",
+      "define": "XR_INTERACTION_TOOLKIT"
+    }
+  ],
   "noEngineReferences": false
 }

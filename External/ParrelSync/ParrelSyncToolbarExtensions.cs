@@ -1,7 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 08.04.2025
 
-#if UNITY_EDITOR && PARREL_SYNC
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Linq;

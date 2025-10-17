@@ -19,7 +19,15 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
+  "defineConstraints": [
+    "UNIVOICE"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.adrenak.univoice",
+      "expression": "",
+      "define": "UNIVOICE"
+    }
+  ],
     "noEngineReferences": false
 }

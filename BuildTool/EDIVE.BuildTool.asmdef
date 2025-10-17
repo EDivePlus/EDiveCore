@@ -27,7 +27,15 @@
         "DOTween.dll"
     ],
     "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
+  "defineConstraints": [
+    "EDITOR_COROUTINES"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.editorcoroutines",
+      "expression": "",
+      "define": "EDITOR_COROUTINES"
+    }
+  ],
     "noEngineReferences": false
 }

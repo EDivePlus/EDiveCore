@@ -28,13 +28,15 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "XR_INTERACTION_TOOLKIT"
+    ],
     "versionDefines": [
-      {
-        "name": "com.unity.xr.interaction.toolkit",
-        "expression": "",
-        "define": "XR_INTERACTION_TOOLKIT"
-      }
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "",
+            "define": "XR_INTERACTION_TOOLKIT"
+        }
     ],
     "noEngineReferences": false
 }

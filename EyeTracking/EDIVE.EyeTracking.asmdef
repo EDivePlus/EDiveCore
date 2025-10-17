@@ -17,12 +17,19 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "R3"
+    ],
     "versionDefines": [
         {
             "name": "com.meta.xr.sdk.interaction.ovr",
             "expression": "",
             "define": "OCULUS_VR"
+        },
+        {
+            "name": "com.cysharp.r3",
+            "expression": "",
+            "define": "R3"
         }
     ],
     "noEngineReferences": false

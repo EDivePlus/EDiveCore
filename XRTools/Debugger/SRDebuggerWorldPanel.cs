@@ -5,7 +5,7 @@ using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-#if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
+#if SR_DEBUGGER
 using EDIVE.NativeUtils;
 using EDIVE.XRTools.Interactions;
 using UnityEngine.UI;
@@ -15,7 +15,7 @@ namespace EDIVE.Utils
 {
     public class SRDebuggerWorldPanel : MonoBehaviour
     {
-#if SR_DEBUGGER && XR_INTERACTION_TOOLKIT
+#if SR_DEBUGGER
         [SerializeField]
         private RectTransform _ParentRect;
 

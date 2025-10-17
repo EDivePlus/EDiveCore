@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 14.03.2025
 
-#if PARREL_SYNC
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -200,4 +199,3 @@ namespace EDIVE.External.ParrelSync
         }
     }
 }
-#endif

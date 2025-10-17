@@ -18,7 +18,9 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "PARREL_SYNC"
+    ],
     "versionDefines": [
         {
             "name": "com.veriorpies.parrelsync",

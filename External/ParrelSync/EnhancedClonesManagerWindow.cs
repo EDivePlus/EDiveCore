@@ -1,5 +1,4 @@
-﻿#if PARREL_SYNC
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.Json;
@@ -132,4 +131,3 @@ namespace EDIVE.External.ParrelSync
         }
     }
 }
-#endif
