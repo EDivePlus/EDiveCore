@@ -1,91 +1,29 @@
-/*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/**
- * @class strange.extensions.signal.impl.Signal
- *
- * This is actually a series of classes defining the Base concrete form for all Signals.
- *
- * Signals are a type-safe approach to communication that essentially replace the
- * standard EventDispatcher model. Signals can be injected/mapped just like any other
- * object -- as Singletons, as instances, or as values. Signals can even be mapped
- * across Contexts to provide an effective and type-safe way of communicating
- * between the parts of your application.
- *
- * Signals in Strange use the Action Class as the underlying mechanism for type safety.
- * Unity's C# implementation currently allows up to FOUR parameters in an Action, therefore
- * SIGNALS ARE LIMITED TO FOUR PARAMETERS. If you require more than four, consider
- * creating a value object to hold additional values.
- *
- * Examples:
-
-        //BASIC SIGNAL CREATION/DISPATCH
-        //Create a new signal
-        Signal signalWithNoParameters = new Signal();
-        //Add a listener
-        signalWithNoParameters.AddListener(callbackWithNoParameters);
-        //This would throw a compile-time error
-        signalWithNoParameters.AddListener(callbackWithOneParameter);
-        //Dispatch
-        signalWithNoParameters.Dispatch();
-        //Remove the listener
-        signalWithNoParameters.RemoveListener(callbackWithNoParameters);
-
-        //SIGNAL WITH PARAMETERS
-        //Create a new signal with two parameters
-        Signal<int, string> signal = new Signal<int, string>();
-        //Add a listener
-        signal.AddListener(callbackWithParamsIntAndString);
-        //Add a listener for the duration of precisely one Dispatch
-        signal.AddOnceListener(anotherCallbackWithParamsIntAndString);
-        //These all throw compile-time errors
-        signal.AddListener(callbackWithParamsStringAndInt);
-        signal.AddListener(callbackWithOneParameter);
-        signal.AddListener(callbackWithNoParameters);
-        //Dispatch
-        signal.Dispatch(42, "zaphod");
-        //Remove the first listener. The listener added by AddOnceListener has been automatically removed.
-        signal.RemoveListener(callbackWithParamsIntAndString);
- *
- * @see strange.extensions.signal.api.IBaseSignal
- * @see strange.extensions.signal.impl.BaseSignal
- */
-
+// Based on https://github.com/strangeioc/strangeioc/tree/master/StrangeIoC/scripts/strange/extensions/signal
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
+using UnityEngine;
 
 namespace EDIVE.External.Signals
 {
     public interface ISignal
     {
-        Delegate listener { get; set; }
         void RemoveAllListeners();
     }
-
-    /// Base concrete form for a Signal with no parameters
-    public class Signal : BaseSignal, ISignal
+    
+    public class Signal : ISignal
     {
-        public event Action Listener = null;
-        public event Action OnceListener = null;
+        public event Action Listener;
+        public event Action OnceListener;
+        
+        public void AddListener(Action callback)
+        {
+            Listener = AddUnique(Listener, callback);
+        }
 
-        public void AddListener(Action callback) { Listener = this.AddUnique(Listener, callback); }
-
-        public void AddOnceListener(Action callback) { OnceListener = this.AddUnique(OnceListener, callback); }
+        public void AddOnceListener(Action callback)
+        {
+            OnceListener = AddUnique(OnceListener, callback);
+        }
 
         public void RemoveListener(Action callback)
         {
@@ -98,61 +36,68 @@ namespace EDIVE.External.Signals
             if (OnceListener != null)
                 OnceListener -= callback;
         }
-
-        public async UniTask Await()
-        {
-            var tcs = new UniTaskCompletionSource();
-            AddOnceListener(() => tcs.TrySetResult());
-            await tcs.Task;
-        }
-
-        public override List<Type> GetTypes() { return new List<Type>(); }
-
-        public virtual void Dispatch()
+        
+        public void Dispatch()
         {
             Listener?.Invoke();
             OnceListener?.Invoke();
             OnceListener = null;
-            base.Dispatch(null);
+        }
+        
+        public void DispatchSafe()
+        {
+            if (Listener != null)
+                InvokeSafe(Listener);
+            if (OnceListener != null)
+                InvokeSafe(OnceListener);
+            OnceListener = null;
         }
 
+        private void InvokeSafe(Action listeners)
+        {
+            var invocationList = listeners.GetInvocationList();
+            foreach (var invocation in invocationList)
+            {
+                try
+                {
+                    if (invocation is Action action) action.Invoke();
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
+            }
+        }
+        
         protected Action AddUnique(Action listeners, Action callback)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
+            if (listeners == null || !listeners.GetInvocationList().Contains(callback)) 
                 listeners += callback;
-            }
-
             return listeners;
         }
 
-        public override void RemoveAllListeners()
+        public void RemoveAllListeners()
         {
             Listener = null;
             OnceListener = null;
-            base.RemoveAllListeners();
         }
-
-        public Delegate listener { get { return Listener ?? (Listener = delegate { }); } set { Listener = (Action) value; } }
     }
-
-    /// Base concrete form for a Signal with one parameter
-    public class Signal<T> : BaseSignal, ISignal
+    
+    public class Signal<T> : ISignal
     {
-        public event Action<T> Listener = null;
-        public event Action<T> OnceListener = null;
+        public event Action<T> Listener;
+        public event Action<T> OnceListener;
 
-        public void AddListener(Action<T> callback) { Listener = this.AddUnique(Listener, callback); }
-
-        public void AddOnceListener(Action<T> callback) { OnceListener = this.AddUnique(OnceListener, callback); }
-
-        public async UniTask<T> Await()
+        public void AddListener(Action<T> callback)
         {
-            var tcs = new UniTaskCompletionSource<T>();
-            AddOnceListener(r => tcs.TrySetResult(r));
-            return await tcs.Task;
+            Listener = AddUnique(Listener, callback);
         }
 
+        public void AddOnceListener(Action<T> callback)
+        {
+            OnceListener = AddUnique(OnceListener, callback);
+        }
+        
         public void RemoveListener(Action<T> callback)
         {
             if (Listener != null)
@@ -165,233 +110,271 @@ namespace EDIVE.External.Signals
                 OnceListener -= callback;
         }
 
-        public override List<Type> GetTypes()
+        public void Dispatch(T t1)
         {
-            List<Type> retv = new List<Type>();
-            retv.Add(typeof(T));
-            return retv;
-        }
-
-        public virtual void Dispatch(T type1)
-        {
-            Listener?.Invoke(type1);
-            OnceListener?.Invoke(type1);
+            Listener?.Invoke(t1);
+            OnceListener?.Invoke(t1);
             OnceListener = null;
-            object[] outv = {type1};
-            base.Dispatch(outv);
+        }
+        
+        public void DispatchSafe(T t1)
+        {
+            if (Listener != null)
+                InvokeSafe(Listener, t1);
+            if (OnceListener != null)
+                InvokeSafe(OnceListener, t1);
+            OnceListener = null;
         }
 
+        private void InvokeSafe(Action<T> listeners, T t1)
+        {
+            var invocationList = listeners.GetInvocationList();
+            foreach (var invocation in invocationList)
+            {
+                try
+                {
+                    if (invocation is Action<T> action) action.Invoke(t1);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
+            }
+        }
+        
         protected Action<T> AddUnique(Action<T> listeners, Action<T> callback)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
+            if (listeners == null || !listeners.GetInvocationList().Contains(callback)) 
                 listeners += callback;
-            }
-
             return listeners;
         }
 
-        public override void RemoveAllListeners()
+        public void RemoveAllListeners()
         {
             Listener = null;
             OnceListener = null;
-            base.RemoveAllListeners();
         }
-
-        public Delegate listener { get { return Listener ?? (Listener = delegate { }); } set { Listener = (Action<T>) value; } }
     }
 
     /// Base concrete form for a Signal with two parameters
-    public class Signal<T, U> : BaseSignal, ISignal
+    public class Signal<T, T2> : ISignal
     {
-        public event Action<T, U> Listener = null;
-        public event Action<T, U> OnceListener = null;
+        public event Action<T, T2> Listener;
+        public event Action<T, T2> OnceListener;
 
-        public void AddListener(Action<T, U> callback) { Listener = this.AddUnique(Listener, callback); }
-
-        public void AddOnceListener(Action<T, U> callback) { OnceListener = this.AddUnique(OnceListener, callback); }
-
-        public async UniTask<(T, U)> Await()
+        public void AddListener(Action<T, T2> callback)
         {
-            var tcs = new UniTaskCompletionSource<(T, U)>();
-            AddOnceListener((t, u) => tcs.TrySetResult((t, u)));
-            return await tcs.Task;
+            Listener = AddUnique(Listener, callback);
         }
 
-        public void RemoveListener(Action<T, U> callback)
+        public void AddOnceListener(Action<T, T2> callback)
+        {
+            OnceListener = AddUnique(OnceListener, callback);
+        }
+
+        public void RemoveListener(Action<T, T2> callback)
         {
             if (Listener != null)
                 Listener -= callback;
         }
 
-        public void RemoveOnceListener(Action<T, U> callback)
+        public void RemoveOnceListener(Action<T, T2> callback)
         {
             if (OnceListener != null)
                 OnceListener -= callback;
         }
 
-        public override List<Type> GetTypes()
+        public void Dispatch(T t1, T2 t2)
         {
-            List<Type> retv = new List<Type>();
-            retv.Add(typeof(T));
-            retv.Add(typeof(U));
-            return retv;
-        }
-
-        public void Dispatch(T type1, U type2)
-        {
-            Listener?.Invoke(type1, type2);
-            OnceListener?.Invoke(type1, type2);
+            Listener?.Invoke(t1, t2);
+            OnceListener?.Invoke(t1, t2);
             OnceListener = null;
-            object[] outv = {type1, type2};
-            base.Dispatch(outv);
+        }
+        
+        public void DispatchSafe(T t1, T2 t2)
+        {
+            if (Listener != null)
+                InvokeSafe(Listener, t1, t2);
+            if (OnceListener != null)
+                InvokeSafe(OnceListener, t1, t2);
+            OnceListener = null;
         }
 
-        private Action<T, U> AddUnique(Action<T, U> listeners, Action<T, U> callback)
+        private void InvokeSafe(Action<T, T2> listeners, T t1, T2 t2)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
+            var invocationList = listeners.GetInvocationList();
+            foreach (var invocation in invocationList)
             {
-                listeners += callback;
+                try
+                {
+                    if (invocation is Action<T, T2> action) action.Invoke(t1, t2);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
             }
+        }
 
+        private Action<T, T2> AddUnique(Action<T, T2> listeners, Action<T, T2> callback)
+        {
+            if (listeners == null || !listeners.GetInvocationList().Contains(callback)) 
+                listeners += callback;
             return listeners;
         }
 
-        public override void RemoveAllListeners()
+        public void RemoveAllListeners()
         {
             Listener = null;
             OnceListener = null;
-            base.RemoveAllListeners();
         }
-
-        public Delegate listener { get { return Listener ?? (Listener = delegate { }); } set { Listener = (Action<T, U>) value; } }
     }
 
     /// Base concrete form for a Signal with three parameters
-    public class Signal<T, U, V> : BaseSignal, ISignal
+    public class Signal<T, T2, T3> :  ISignal
     {
-        public event Action<T, U, V> Listener = null;
-        public event Action<T, U, V> OnceListener = null;
+        public event Action<T, T2, T3> Listener;
+        public event Action<T, T2, T3> OnceListener;
 
-        public void AddListener(Action<T, U, V> callback) { Listener = this.AddUnique(Listener, callback); }
-
-        public void AddOnceListener(Action<T, U, V> callback) { OnceListener = this.AddUnique(OnceListener, callback); }
-
-        public async UniTask<(T, U, V)> Await()
+        public void AddListener(Action<T, T2, T3> callback)
         {
-            var tcs = new UniTaskCompletionSource<(T, U, V)>();
-            AddOnceListener((t, u, v) => tcs.TrySetResult((t, u, v)));
-            return await tcs.Task;
+            Listener = AddUnique(Listener, callback);
         }
 
-        public void RemoveListener(Action<T, U, V> callback)
+        public void AddOnceListener(Action<T, T2, T3> callback)
+        {
+            OnceListener = AddUnique(OnceListener, callback);
+        }
+
+        public void RemoveListener(Action<T, T2, T3> callback)
         {
             if (Listener != null)
                 Listener -= callback;
         }
 
-        public void RemoveOnceListener(Action<T, U, V> callback)
+        public void RemoveOnceListener(Action<T, T2, T3> callback)
         {
             if (OnceListener != null)
                 OnceListener -= callback;
         }
 
-        public override List<Type> GetTypes()
+        public void Dispatch(T t1, T2 t2, T3 t3)
         {
-            var retv = new List<Type> {typeof(T), typeof(U), typeof(V)};
-            return retv;
-        }
-
-        public void Dispatch(T type1, U type2, V type3)
-        {
-            Listener?.Invoke(type1, type2, type3);
-            OnceListener?.Invoke(type1, type2, type3);
+            Listener?.Invoke(t1, t2, t3);
+            OnceListener?.Invoke(t1, t2, t3);
             OnceListener = null;
-            object[] outv = {type1, type2, type3};
-            base.Dispatch(outv);
+        }
+        
+        public void DispatchSafe(T t1, T2 t2, T3 t3)
+        {
+            if (Listener != null)
+                InvokeSafe(Listener, t1, t2, t3);
+            if (OnceListener != null)
+                InvokeSafe(OnceListener, t1, t2, t3);
+            OnceListener = null;
         }
 
-        private Action<T, U, V> AddUnique(Action<T, U, V> listeners, Action<T, U, V> callback)
+        private void InvokeSafe(Action<T, T2, T3> listeners, T t1, T2 t2, T3 t3)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
+            var invocationList = listeners.GetInvocationList();
+            foreach (var invocation in invocationList)
             {
-                listeners += callback;
+                try
+                {
+                    if (invocation is Action<T, T2, T3> action) action.Invoke(t1, t2, t3);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
             }
+        }
 
+        private Action<T, T2, T3> AddUnique(Action<T, T2, T3> listeners, Action<T, T2, T3> callback)
+        {
+            if (listeners == null || !listeners.GetInvocationList().Contains(callback)) 
+                listeners += callback;
             return listeners;
         }
 
-        public override void RemoveAllListeners()
+        public void RemoveAllListeners()
         {
             Listener = null;
             OnceListener = null;
-            base.RemoveAllListeners();
         }
-
-        public Delegate listener { get { return Listener ?? (Listener = delegate { }); } set { Listener = (Action<T, U, V>) value; } }
     }
 
     /// Base concrete form for a Signal with four parameters
-    public class Signal<T, U, V, W> : BaseSignal, ISignal
+    public class Signal<T, T2, T3, T4> : ISignal
     {
-        public event Action<T, U, V, W> Listener = null;
-        public event Action<T, U, V, W> OnceListener = null;
+        public event Action<T, T2, T3, T4> Listener;
+        public event Action<T, T2, T3, T4> OnceListener;
 
-        public void AddListener(Action<T, U, V, W> callback) { Listener = this.AddUnique(Listener, callback); }
-
-        public void AddOnceListener(Action<T, U, V, W> callback) { OnceListener = this.AddUnique(OnceListener, callback); }
-
-        public async UniTask<(T, U, V, W)> Await()
+        public void AddListener(Action<T, T2, T3, T4> callback)
         {
-            var tcs = new UniTaskCompletionSource<(T, U, V, W)>();
-            AddOnceListener((t, u, v, w) => tcs.TrySetResult((t, u, v, w)));
-            return await tcs.Task;
+            Listener = AddUnique(Listener, callback);
         }
 
-        public void RemoveListener(Action<T, U, V, W> callback)
+        public void AddOnceListener(Action<T, T2, T3, T4> callback)
+        {
+            OnceListener = AddUnique(OnceListener, callback);
+        }
+
+        public void RemoveListener(Action<T, T2, T3, T4> callback)
         {
             if (Listener != null)
                 Listener -= callback;
         }
 
-        public void RemoveOnceListener(Action<T, U, V, W> callback)
+        public void RemoveOnceListener(Action<T, T2, T3, T4> callback)
         {
             if (OnceListener != null)
                 OnceListener -= callback;
         }
 
-        public override List<Type> GetTypes()
+        public void Dispatch(T t1, T2 t2, T3 t3, T4 t4)
         {
-            var retv = new List<Type> {typeof(T), typeof(U), typeof(V), typeof(W)};
-            return retv;
-        }
-
-        public void Dispatch(T type1, U type2, V type3, W type4)
-        {
-            Listener?.Invoke(type1, type2, type3, type4);
-            OnceListener?.Invoke(type1, type2, type3, type4);
+            Listener?.Invoke(t1, t2, t3, t4);
+            OnceListener?.Invoke(t1, t2, t3, t4);
             OnceListener = null;
-            object[] outv = {type1, type2, type3, type4};
-            base.Dispatch(outv);
+        }
+        
+        public void DispatchSafe(T t1, T2 t2, T3 t3, T4 t4)
+        {
+            if (Listener != null)
+                InvokeSafe(Listener, t1, t2, t3, t4);
+            if (OnceListener != null)
+                InvokeSafe(OnceListener, t1, t2, t3, t4);
+            OnceListener = null;
         }
 
-        private Action<T, U, V, W> AddUnique(Action<T, U, V, W> listeners, Action<T, U, V, W> callback)
+        private void InvokeSafe(Action<T, T2, T3, T4> listeners, T t1, T2 t2, T3 t3, T4 t4)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
+            var invocationList = listeners.GetInvocationList();
+            foreach (var invocation in invocationList)
             {
-                listeners += callback;
+                try
+                {
+                    if (invocation is Action<T, T2, T3, T4> action) action.Invoke(t1, t2, t3, t4);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
             }
+        }
 
+        private Action<T, T2, T3, T4> AddUnique(Action<T, T2, T3, T4> listeners, Action<T, T2, T3, T4> callback)
+        {
+            if (listeners == null || !listeners.GetInvocationList().Contains(callback)) 
+                listeners += callback;
             return listeners;
         }
 
-        public override void RemoveAllListeners()
+        public void RemoveAllListeners()
         {
             Listener = null;
             OnceListener = null;
-            base.RemoveAllListeners();
         }
-
-        public Delegate listener { get { return Listener ?? (Listener = delegate { }); } set { Listener = (Action<T, U, V, W>) value; } }
     }
 }
