@@ -64,6 +64,14 @@ namespace EDIVE.Avatars
         [Tooltip("Offset added to foot Y position to avoid clipping with the ground")]
         public float _FootYPosOffset = 0.1f;
         
+        [SerializeField]
+        [Tooltip("Offset applied to foot position when no ground is detected")]
+        public Vector3 _OffGroundPosition = new(0, -1f, 0);
+        
+        [SerializeField]
+        [Tooltip("Smooth time for foot movement when off the ground")]
+        public float _OffGroundSmoothTime = 0.1f;
+        
         [Title("Raycast settings", HorizontalLine = false)]
         [SerializeField]
         [Tooltip("Vertical offset for the raycast start position")]
@@ -92,6 +100,8 @@ namespace EDIVE.Avatars
 
         private float _smoothBodySpeed;
         private float _smoothBodyVelocity;
+        
+        private Vector3 _smoothOffGroundVelocity;
         
         private readonly RaycastHit[] _rayHits = new RaycastHit[1];
 
@@ -122,9 +132,10 @@ namespace EDIVE.Avatars
             var stepDistanceThreshold = Mathf.Lerp(_StepDistanceThresholdRange.x, _StepDistanceThresholdRange.y, speedRatio);
             
             var bodyForward = Vector3.ProjectOnPlane(_Body.forward, Vector3.up).normalized;
+            var bodyAttachPosition = _Body.position + (_Body.right * _footSpacing);
             
             // Raycast to find ground position
-            var rayStart = _Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset;
+            var rayStart = bodyAttachPosition + Vector3.up * _RayStartYOffset;
             var ray = new Ray(rayStart, Vector3.down);
             if (Physics.RaycastNonAlloc(ray, _rayHits,  _RayLength, _WalkableLayer.value) > 0)
             {
@@ -160,6 +171,26 @@ namespace EDIVE.Avatars
 
                     _lastStepForward = bodyForward;
                 }
+            }
+            else
+            {
+                var targetPosition = bodyAttachPosition + _OffGroundPosition;
+                
+                // Check for teleportation
+                if (Vector3.Distance(_currentPosition, targetPosition) > _TeleportDistanceThreshold)
+                {
+                    _newPosition = _oldPosition = _currentPosition = targetPosition;
+                    _smoothOffGroundVelocity = Vector3.zero;
+                }
+                else
+                {
+                    _newPosition = _oldPosition = _currentPosition = Vector3.SmoothDamp(_currentPosition, targetPosition, ref _smoothOffGroundVelocity, _OffGroundSmoothTime);
+                }
+                
+                _newNormal = _oldNormal = _currentNormal = Vector3.up;
+                _smoothBodyVelocity = 0;
+                _smoothBodySpeed = 0;
+                _lerp = 1;
             }
 
             // Step animation
