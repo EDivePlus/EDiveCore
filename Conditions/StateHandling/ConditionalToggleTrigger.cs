@@ -10,6 +10,7 @@ namespace EDIVE.Conditions.StateHandling
 {
     public class ConditionalToggleTrigger : MonoBehaviour
     {
+        [BoxGroup("Condition")]
         [SerializeReference] 
         [InlineProperty] 
         [HideLabel]

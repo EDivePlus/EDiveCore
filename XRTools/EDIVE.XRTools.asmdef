@@ -20,7 +20,8 @@
         "Unity.InputSystem",
         "EDIVE.ScriptableArchitecture",
         "EDIVE.Utils",
-        "StompyRobot.SRDebugger"
+        "StompyRobot.SRDebugger",
+        "EDIVE.Conditions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -3,12 +3,13 @@
 
 using EDIVE.XRTools.DeviceSimulator;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace EDIVE.XRTools
 {
     public static class XRUtils
     {
-        public static bool XREnabled => UnityEngine.XR.XRSettings.enabled || XRDeviceSimulatorUtils.SimulatorEnabled;
+        public static bool XREnabled => XRSettings.enabled || XRDeviceSimulatorUtils.SimulatorEnabled;
 
         public static bool IsTargetInView(Transform source, Transform target, float maxDistance = 2f, float frontThreshold = 0.5f, float facingThreshold = 0.5f)
         {
