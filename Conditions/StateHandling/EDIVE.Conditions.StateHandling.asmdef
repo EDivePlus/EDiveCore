@@ -1,9 +1,10 @@
 ﻿{
-  "name": "EDIVE.Conditions",
+  "name": "EDIVE.Conditions.StateHandling",
   "rootNamespace": "",
   "references": [
-    "EDIVE.OdinExtensions",
-    "EDIVE.StateHandling"
+    "EDIVE.StateHandling",
+    "EDIVE.Conditions",
+    "EDIVE.OdinExtensions"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
