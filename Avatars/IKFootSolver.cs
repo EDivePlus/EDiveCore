@@ -216,6 +216,9 @@ namespace EDIVE.Avatars
         
         private void OnDrawGizmos()
         {
+            if (_Body == null)
+                return;
+            
             var speedRatio = Mathf.Clamp01(Mathf.InverseLerp(_BodySpeedRange.x, _BodySpeedRange.y, _smoothBodySpeed));
             var stepDistanceThreshold = Mathf.Lerp(_StepDistanceThresholdRange.x, _StepDistanceThresholdRange.y, speedRatio);
             
