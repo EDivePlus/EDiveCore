@@ -140,6 +140,27 @@ namespace EDIVE.NativeUtils
                 .Where(baseType.IsAssignableFrom)
                 .Where(type => type.IsClass && !type.IsAbstract && !type.IsGenericType);
         }
+        
+        
+        public static IEnumerable<T> GetAssignableClassesOfType<T>() where T : class
+        {
+            foreach (var type in GetAssignableTypes(typeof(T)))
+            {
+                if (type.GetConstructor(Type.EmptyTypes) != null)
+                    yield return (T) Activator.CreateInstance(type);
+            }
+        }
+        
+        public static IEnumerable<T> GetAssignableClassesOfType<T>(params object[] constructorArgs) where T : class
+        {
+            var argTypes = constructorArgs.Select(a => a.GetType()).ToArray();
+            foreach (var type in GetAssignableTypes(typeof(T)))
+            {
+                var ctor = type.GetConstructor(argTypes);
+                if (ctor != null)
+                    yield return (T) Activator.CreateInstance(type, constructorArgs);
+            }
+        }
 
         private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
         {

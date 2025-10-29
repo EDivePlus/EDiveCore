@@ -1,0 +1,34 @@
+// Author: František Holubec
+// Created: 11.11.2025
+
+using System;
+using EDIVE.VisualPresets.Presets;
+using EDIVE.VisualPresets.VisualIDs;
+using Sirenix.OdinInspector;
+using UnityEngine;
+using UnityEngine.Scripting;
+using UnityEngine.UI;
+
+namespace EDIVE.VisualPresets.Switchers
+{
+    [Serializable]
+    public class ImageSpriteVisualSwitcherRecord : AVisualSwitcherRecord<SpriteVisualID>
+    {
+        [VerticalGroup("Value")]
+        [SerializeField]
+        private Image _Image;
+        public Image Image => _Image;
+    }
+    
+    [Preserve]
+    public class ImageSpriteTextVisualSwitcherStrategy : AVisualSwitcherStrategy<SpriteVisualID, SpriteVisualPresetRecord, ImageSpriteVisualSwitcherRecord>
+    {
+        protected override void Apply(SpriteVisualPresetRecord presetRecord, ImageSpriteVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.Image == null) 
+                return;
+            
+            switcherRecord.Image.sprite = presetRecord.Sprite;
+        }
+    }
+}

@@ -1,0 +1,33 @@
+// Author: František Holubec
+// Created: 11.11.2025
+
+using System;
+using EDIVE.VisualPresets.Presets;
+using EDIVE.VisualPresets.VisualIDs;
+using Sirenix.OdinInspector;
+using UnityEngine;
+using UnityEngine.Scripting;
+
+namespace EDIVE.VisualPresets.Switchers
+{
+    [Serializable]
+    public class SpriteRendererColorVisualSwitcherRecord : AVisualSwitcherRecord<ColorVisualID>
+    {
+        [VerticalGroup("Value")]
+        [SerializeField]
+        private SpriteRenderer _SpriteRenderer;
+        public SpriteRenderer SpriteRenderer => _SpriteRenderer;
+    }
+    
+    [Preserve]
+    public class SpriteRendererColorTextVisualSwitcherStrategy : AVisualSwitcherStrategy<ColorVisualID, ColorVisualPresetRecord, SpriteRendererColorVisualSwitcherRecord>
+    {
+        protected override void Apply(ColorVisualPresetRecord presetRecord, SpriteRendererColorVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.SpriteRenderer == null) 
+                return;
+            
+            switcherRecord.SpriteRenderer.color = presetRecord.Color;
+        }
+    }
+}
