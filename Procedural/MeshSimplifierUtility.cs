@@ -2,16 +2,18 @@
 // Created: 19.10.2021
 
 #if MESH_SIMPLIFIER
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Sirenix.OdinInspector;
-using UnityEditor;
-using UnityEditor.Formats.Fbx.Exporter;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityMeshSimplifier;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.Formats.Fbx.Exporter;
+#endif
 
 namespace EDIVE.Procedural
 {
