@@ -5,7 +5,7 @@ using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Utils.MeshScaling
+namespace EDIVE.Procedural.MeshScaling
 {
     [Serializable]
     public class MeshComponent : AMeshScalerComponent
@@ -44,7 +44,7 @@ namespace EDIVE.Utils.MeshScaling
                 return false;
             }
 
-            bounds = MeshSlicingUtility.CalculateBounds(_OriginalMesh, _MeshFilter.transform, root);
+            bounds = MeshUtility.CalculateBounds(_OriginalMesh, _MeshFilter.transform, root);
             return true;
         }
         
@@ -53,7 +53,7 @@ namespace EDIVE.Utils.MeshScaling
             if (_OriginalMesh == null || _SlicedMesh == null) 
                 return;
             
-            MeshSlicingUtility.SliceMesh(_OriginalMesh, _SlicedMesh, details.TargetSize, _OriginalMesh.bounds, details.SliceStart, details.SliceEnd);
+            MeshUtility.SliceMesh(_OriginalMesh, _SlicedMesh, details.TargetSize, _OriginalMesh.bounds, details.SliceStart, details.SliceEnd);
         }
     }
 }

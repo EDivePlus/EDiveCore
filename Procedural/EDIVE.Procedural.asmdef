@@ -1,0 +1,34 @@
+{
+    "name": "EDIVE.Procedural",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils",
+        "Whinarn.UnityMeshSimplifier.Runtime",
+        "Unity.Formats.Fbx.Editor",
+        "UniTask",
+        "EDIVE.DataStructures",
+        "Unity.Splines",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.whinarn.unitymeshsimplifier",
+            "expression": "",
+            "define": "MESH_SIMPLIFIER"
+        },
+        {
+            "name": "com.unity.splines",
+            "expression": "",
+            "define": "UNITY_SPLINES"
+        }
+    ],
+    "noEngineReferences": false
+}

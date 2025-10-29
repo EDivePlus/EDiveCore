@@ -3,7 +3,7 @@
 
 using System;
 
-namespace EDIVE.Utils.MeshScaling
+namespace EDIVE.Procedural.MeshScaling
 {
     [Serializable]
     public abstract class AMeshScalerComponent

@@ -4,7 +4,7 @@
 using System;
 using UnityEngine;
 
-namespace EDIVE.Utils.MeshScaling
+namespace EDIVE.Procedural.MeshScaling
 {
     [Serializable]
     public class MeshScalerDetails
