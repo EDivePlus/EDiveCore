@@ -28,7 +28,9 @@ namespace EDIVE.BuildTool
         public static void Build()
         {
             TeamCityServiceMessages.MessageLog("[CMDBuild] Initializing command line build...");
-        
+#if NUGET_FOR_UNITY
+            NugetForUnity.PackageRestorer.Restore(false);
+#endif
             var arguments = GetArguments();
             if (!arguments.TryGetValue(CMD_PLATFORM_CONFIG, out var platformConfigName))
             {
