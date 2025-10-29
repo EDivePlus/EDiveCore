@@ -9,8 +9,6 @@ using UnityEngine.Splines;
 
 namespace EDIVE.Procedural.SplineMesh
 {
-    [DisallowMultipleComponent]
-    [RequireComponent(typeof(MeshFilter))]
     [ExecuteInEditMode]
     public class SplineMeshBender : MonoBehaviour
     {
@@ -78,6 +76,9 @@ namespace EDIVE.Procedural.SplineMesh
 
         private void Recalculate()
         {
+            if (_SplineContainer == null)
+                return;
+            
             var newHash = HashCode.Combine(_SplineContainer, _SourceMesh, _DistanceInterval, _Mode);
             if (_ResultMesh == null || newHash != _ResultMeshHash)
             {

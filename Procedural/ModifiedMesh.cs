@@ -5,7 +5,7 @@ using UnityEngine;
 namespace EDIVE.Procedural
 {
     [Serializable]
-    public struct ModifiedMesh : IEquatable<ModifiedMesh>
+    public class ModifiedMesh : IEquatable<ModifiedMesh>
     {
         [SerializeField]
         private Mesh _Mesh;
@@ -17,7 +17,7 @@ namespace EDIVE.Procedural
         private Quaternion _Rotation;
         
         [SerializeField]
-        private Vector3 _Scale;
+        private Vector3 _Scale = Vector3.one;
         
         public Mesh Mesh => _Mesh;
         public Vector3 Position => _Position;
@@ -75,14 +75,6 @@ namespace EDIVE.Procedural
         public ModifiedMesh(Mesh mesh)
         {
             _Mesh = mesh;
-            _Position = default;
-            _Rotation = default;
-            _Scale = default;
-            _vertices = null;
-            _triangles = null;
-            _minZ = 0;
-            _length = 0;
-            _prevHash = null;
         }
 
         public ModifiedMesh(ModifiedMesh other)
@@ -91,11 +83,6 @@ namespace EDIVE.Procedural
             _Position = other._Position;
             _Rotation = other._Rotation;
             _Scale = other._Scale;
-            _vertices = null;
-            _triangles = null;
-            _minZ = 0;
-            _length = 0;
-            _prevHash = null;
         }
 
         public void RecalculateIfNeeded()
