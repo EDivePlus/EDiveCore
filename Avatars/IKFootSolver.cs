@@ -15,6 +15,7 @@ namespace EDIVE.Avatars
         [Tooltip("Mask defining walkable surfaces, used for ray-casting")]
         private LayerMask _WalkableLayer = 1;
         
+        [Required]
         [SerializeField]
         [Tooltip("Body transform for movement tracking")]
         private Transform _Body;
@@ -102,11 +103,15 @@ namespace EDIVE.Avatars
         private float _smoothBodyVelocity;
         
         private Vector3 _smoothOffGroundVelocity;
-        
         private readonly RaycastHit[] _rayHits = new RaycastHit[1];
+        private bool _initialized = false;
 
         private void Start()
         {
+            if (_Body == null)
+                return;
+
+            _initialized = true;
             _footSpacing = transform.localPosition.x;
             _currentPosition = _newPosition = _oldPosition = transform.position;
             _currentNormal = Vector3.up;
@@ -119,6 +124,9 @@ namespace EDIVE.Avatars
 
         private void Update()
         {
+            if (!_initialized)
+                return;
+            
             // Calculate body speed for dynamic scaling
             var bodyDelta = _Body.position - _lastBodyPosition;
             var bodySpeed = bodyDelta.magnitude / Mathf.Max(Time.deltaTime, 0.001f);
