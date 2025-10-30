@@ -8,6 +8,7 @@ using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 namespace EDIVE.XRTools.Controls
 {
+    [DisallowMultipleComponent]
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(XRBaseInteractable))]
     public class InteractionManagerAssigner : MonoBehaviour
