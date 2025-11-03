@@ -21,6 +21,10 @@ namespace EDIVE.Networking.Players
 
         [SerializeField]
         private IKTargetAssigner _IKAssigner;
+        
+        [SerializeField] private BillboardNameTag _NameTagPrefab; 
+        private BillboardNameTag _nameTagInstance;
+        [SerializeField] private Transform _HeadOverride;
 
         private readonly SyncVar<Color> _color = new(Color.white);
         private readonly SyncVar<string> _username = new();
@@ -119,6 +123,11 @@ namespace EDIVE.Networking.Players
         private void OnUsernameChanged(string oldValue, string newValue, bool asServer)
         {
             RefreshGameObjectName();
+
+            if (_nameTagInstance != null)
+                _nameTagInstance.SetText(newValue);
+            else
+                TrySetupNameTag();
         }
 
         private void OnAvatarChanged(string oldValue, string newValue, bool asServer)
@@ -141,6 +150,11 @@ namespace EDIVE.Networking.Players
                 Debug.LogError($"Invalid avatar ID {avatarId}");
                 return;
             }
+            if (_nameTagInstance != null)
+            {
+                Destroy(_nameTagInstance.gameObject);
+                _nameTagInstance = null;
+            }
 
             if (_avatarInstance != null)
             {
@@ -154,6 +168,20 @@ namespace EDIVE.Networking.Players
 
             if (_IKAssigner != null)
                 _IKAssigner.Assign(_avatarInstance);
+            TrySetupNameTag();
         }
+        private void TrySetupNameTag()
+        {
+            if (_nameTagInstance != null) return;
+            if (_avatarInstance == null) return;
+            if (string.IsNullOrWhiteSpace(Username)) return;
+            
+            Transform head = _HeadOverride;
+
+            _nameTagInstance = Instantiate(_NameTagPrefab, head, false);
+            _nameTagInstance.SetIsOwner(IsOwner);
+            _nameTagInstance.SetText(Username);
+        }
+        
     }
 }
