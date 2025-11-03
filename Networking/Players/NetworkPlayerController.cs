@@ -179,6 +179,7 @@ namespace EDIVE.Networking.Players
             Transform head = _HeadOverride;
 
             _nameTagInstance = Instantiate(_NameTagPrefab, head, false);
+            _nameTagInstance.BindHead(head);
             _nameTagInstance.SetIsOwner(IsOwner);
             _nameTagInstance.SetText(Username);
         }
