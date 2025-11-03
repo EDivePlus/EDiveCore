@@ -37,11 +37,12 @@ namespace EDIVE.NativeUtils
             tr.localScale = Vector3.one;
         }
         
-        public static void ResetLocal(this Transform tr)
+        public static void ResetLocal(this Transform tr, bool resetScale = true)
         {
             tr.localPosition = Vector3.zero;
             tr.localRotation = Quaternion.identity;
-            tr.localScale = Vector3.one;
+            if (resetScale)
+                tr.localScale = Vector3.one;
         }
         
         public static string GetPath(this Transform transform)
