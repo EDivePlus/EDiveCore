@@ -8,10 +8,16 @@ using Sirenix.Utilities.Editor;
 
 namespace EDIVE.NativeUtils
 {
+    [ExecuteAlways]
     public class TransformChangeMonitor : MonoBehaviour
     {
         public event Action<Transform> TransformChanged;
-   
+
+        private void Awake()
+        {
+            transform.hasChanged = false;
+        }
+
         private void LateUpdate()
         {
             if (!transform.hasChanged) 

@@ -26,7 +26,16 @@ namespace EDIVE.Procedural.SplineMesh
         [SerializeField]
         private bool _Continuous;
 
-        private void Update()
+        private void OnEnable()
+        {
+            transform.AddChangeListener(OnTransformChanged);
+        }
+        private void OnDisable()
+        {
+            transform.RemoveChangeListener(OnTransformChanged);
+        }
+        
+        private void OnTransformChanged(Transform tr)
         {
             if (_Continuous)
                 Apply();

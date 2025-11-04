@@ -26,24 +26,30 @@ namespace EDIVE.Procedural.SplineMesh
         }
 
         [SerializeField]
+        [OnValueChanged(nameof(Recalculate))]
         private SplineContainer _SplineContainer;
         
         [BoxGroup("Source Mesh")]
         [HideLabel]
         [InlineProperty]
         [SerializeField]
+        [OnValueChanged(nameof(Recalculate), true)]
         private ModifiedMesh _SourceMesh;
-
+        
         [SerializeField]
+        [OnValueChanged(nameof(Recalculate))]
         private MeshFilter _MeshFilter;
 
         [SerializeField]
+        [OnValueChanged(nameof(Recalculate))]
         private MeshCollider _MeshCollider;
 
         [SerializeField]
+        [OnValueChanged(nameof(Recalculate))]
         private Vector2 _DistanceInterval;
 
         [SerializeField]
+        [OnValueChanged(nameof(Recalculate))]
         private FillingMode _Mode = FillingMode.StretchOnce;
         
         [ReadOnly]
@@ -56,12 +62,7 @@ namespace EDIVE.Procedural.SplineMesh
 
         [NonSerialized]
         private readonly Dictionary<float, CurveSample> _sampleCache = new();
-
-        private void OnValidate()
-        {
-            Recalculate();
-        }
-
+        
         private void OnEnable()
         {
             Spline.Changed += OnSplineChanged;
@@ -79,12 +80,13 @@ namespace EDIVE.Procedural.SplineMesh
             Recalculate();
         }
 
+        [Button]
         private void Recalculate()
         {
             if (_SplineContainer == null)
                 return;
             
-            var newHash = HashCode.Combine(_SplineContainer, _SourceMesh, _DistanceInterval, _Mode);
+            var newHash = HashCode.Combine(_SplineContainer, _SourceMesh, this);
             if (_ResultMesh == null || newHash != _ResultMeshHash)
             {
                 _ResultMesh = new Mesh();
@@ -106,6 +108,13 @@ namespace EDIVE.Procedural.SplineMesh
 
             if (_MeshCollider != null)
                 _MeshCollider.sharedMesh = _ResultMesh;
+        }
+
+        [Button]
+        private void ForceNewMesh()
+        {
+            _ResultMesh = null;
+            Recalculate();
         }
 
         private Mesh FillOnce()
