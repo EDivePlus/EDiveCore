@@ -7,6 +7,11 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Splines;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+
 namespace EDIVE.Procedural.SplineMesh
 {
     [ExecuteInEditMode]
@@ -126,6 +131,10 @@ namespace EDIVE.Procedural.SplineMesh
                 _SourceMesh.Triangles,
                 bent.Select(b => b.Position),
                 bent.Select(b => b.Normal));
+            
+#if UNITY_EDITOR
+            Unwrapping.GenerateSecondaryUVSet(_ResultMesh);
+#endif
             return _ResultMesh;
         }
 
@@ -169,7 +178,10 @@ namespace EDIVE.Procedural.SplineMesh
                 bent.Select(b => b.Position),
                 bent.Select(b => b.Normal),
                 uv, uv2, uv3, uv4, uv5, uv6, uv7, uv8);
-
+            
+#if UNITY_EDITOR
+            Unwrapping.GenerateSecondaryUVSet(_ResultMesh);
+#endif
             return _ResultMesh;
         }
 
@@ -201,6 +213,10 @@ namespace EDIVE.Procedural.SplineMesh
                 _SourceMesh.Triangles,
                 bent.Select(b => b.Position),
                 bent.Select(b => b.Normal));
+            
+#if UNITY_EDITOR
+            Unwrapping.GenerateSecondaryUVSet(_ResultMesh);
+#endif
             return _ResultMesh;
         }
 
@@ -246,6 +262,9 @@ namespace EDIVE.Procedural.SplineMesh
                 bent.Select(b => b.Normal),
                 uv, uv2, uv3, uv4, uv5, uv6, uv7, uv8);
 
+#if UNITY_EDITOR
+            Unwrapping.GenerateSecondaryUVSet(_ResultMesh);
+#endif
             return _ResultMesh;
         }
 
