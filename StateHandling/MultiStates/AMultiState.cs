@@ -51,6 +51,8 @@ namespace EDIVE.StateHandling.MultiStates
             }
         }
 
+        public string Description => _Description;
+
         private string _state = string.Empty;
 
         public bool SetState(string state, bool immediate = false)

@@ -43,6 +43,8 @@ namespace EDIVE.StateHandling.ToggleStates
 #endif
             }
         }
+        
+        public string Description => _Description;
 
         private bool _state;
 
