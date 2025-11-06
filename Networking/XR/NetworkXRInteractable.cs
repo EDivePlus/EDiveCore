@@ -12,6 +12,16 @@ namespace EDIVE.Networking.XR
     [RequireComponent(typeof(XRBaseInteractable))]
     public class NetworkXRInteractable : NetworkBehaviour
     {
+        private enum ForceKinematicMode
+        {
+            UsePrevious,
+            ForceKinematic,
+            ForceNonKinematic
+        }
+        
+        [SerializeField]
+        private ForceKinematicMode _KinematicMode = ForceKinematicMode.UsePrevious;
+        
         private bool _wasKinematic;
         private Rigidbody _rigidbody;
         private XRBaseInteractable _interactable;
@@ -45,7 +55,13 @@ namespace EDIVE.Networking.XR
         {
             if (_rigidbody)
             {
-                _rigidbody.isKinematic = _wasKinematic;
+                _rigidbody.isKinematic = _KinematicMode switch
+                {
+                    ForceKinematicMode.UsePrevious => _wasKinematic,
+                    ForceKinematicMode.ForceKinematic => true,
+                    ForceKinematicMode.ForceNonKinematic => false,
+                    _ => _rigidbody.isKinematic
+                };
             }
         }
         
