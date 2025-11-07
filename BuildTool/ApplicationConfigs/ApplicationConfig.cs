@@ -119,7 +119,7 @@ namespace EDIVE.BuildTool.ApplicationConfigs
         private IEnumerator ApplyWithProgress()
         {
             EditorUtility.DisplayProgressBar("Application Config", "Applying...", 0);
-            yield return LoadCurrent();
+            yield return Apply();
             EditorUtility.ClearProgressBar();
         }
     }
