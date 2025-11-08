@@ -139,7 +139,7 @@ namespace EDIVE.NativeUtils.TeamCity
         /// <param name="text">Build number text</param>
         public static void SetBuildNumber(string text)
         {
-            Console.WriteLine($"##teamcity[buildNumber text='{ReformatText(text)}']");
+            Console.WriteLine($"##teamcity[buildNumber '{ReformatText(text)}']");
         }
         
         /// <summary>
@@ -148,7 +148,7 @@ namespace EDIVE.NativeUtils.TeamCity
         /// <param name="value">Tag to add</param>
         public static void AddTag(string value)
         {
-            Console.WriteLine($"##teamcity[addBuildTag text='{ReformatText(value)}']");
+            Console.WriteLine($"##teamcity[addBuildTag '{ReformatText(value)}']");
         }
 
         /// <summary>
@@ -157,7 +157,7 @@ namespace EDIVE.NativeUtils.TeamCity
         /// <param name="value">Tag to remove</param>
         public static void RemoveTag(string value)
         {
-            Console.WriteLine($"##teamcity[removeBuildTag text='{ReformatText(value)}']");
+            Console.WriteLine($"##teamcity[removeBuildTag '{ReformatText(value)}']");
         }
         
         /// <summary>
