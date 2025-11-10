@@ -6,7 +6,8 @@
         "EDIVE.DataStructures",
         "EDIVE.StateHandling",
         "EDIVE.NativeUtils",
-      "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

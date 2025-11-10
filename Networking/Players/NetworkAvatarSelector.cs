@@ -10,11 +10,8 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace EDIVE.Networking.Players
 {
-    public class NetworkAvatarSelector : MonoBehaviour
+    public class NetworkAvatarSelector : AAvatarSelector
     {
-        [SerializeField]
-        private AvatarDefinition _Definition;
-
         [SerializeField]
         private XRBaseInteractable _XRInteractable;
 
@@ -48,7 +45,7 @@ namespace EDIVE.Networking.Players
 
         private void SelectAvatar()
         {
-            if (_Definition == null)
+            if (Definition == null)
                 return;
             
             var localPlayer = InstanceFinder.ClientManager.Connection.FirstObject;
@@ -59,7 +56,7 @@ namespace EDIVE.Networking.Players
             }
 
             if (localPlayer.TryGetComponent<NetworkPlayerController>(out var playerController))
-                playerController.SetAvatar(_Definition);
+                playerController.SetAvatar(Definition);
         }
     }
 }
