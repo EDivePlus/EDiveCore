@@ -26,10 +26,25 @@ namespace EDIVE.NativeUtils
         {
             if (gameObj.TryGetComponent<T>(out var component))
             {
-                Object.Destroy(component);
+                SafeDestroy(component);
                 return true;
             }
             return false;
+        }
+        
+        public static void SafeDestroy(this Object go, bool immediate = false)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                Object.DestroyImmediate(go);
+                return;
+            }
+#endif
+            if (immediate)
+                Object.DestroyImmediate(go);
+            else
+                Object.Destroy(go);
         }
 
         public static void SetAllActive(this IEnumerable<GameObject> gameObjects, bool active)

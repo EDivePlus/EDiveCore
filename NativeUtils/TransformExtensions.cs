@@ -8,13 +8,20 @@ namespace EDIVE.NativeUtils
     {
         public static void DestroyChildrenImmediate(this Transform t)
         {
-            while (t.childCount > 0)
+            for (var i = t.childCount - 1; i >= 0; i--)
             {
-                var child = t.GetChild(0);
-                Object.DestroyImmediate(child.gameObject);
+                Object.DestroyImmediate(t.GetChild(i).gameObject);
             }
         }
-
+        
+        public static void DestroyChildren(this Transform t, bool immediate = false)
+        {
+            for (var i = t.childCount - 1; i >= 0; i--)
+            {
+                t.GetChild(i).gameObject.SafeDestroy(immediate);
+            }
+        }
+        
         public static void SortChildren(this Transform transform, System.Comparison<Transform> comparison)
         {
             var children = new List<Transform>();
