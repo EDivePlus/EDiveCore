@@ -75,9 +75,8 @@ namespace EDIVE.XRTools.Tablet
         private bool _isOpen;
         private Tween _animTween;
 
-        protected override void Awake()
+        protected void Awake()
         {
-            base.Awake();
             _isOpen = true;
             if (_RepositionAction)
                 _RepositionAction.action.performed += OnRepositionPerformed;
@@ -89,9 +88,8 @@ namespace EDIVE.XRTools.Tablet
                 RepositionTablet();
         }
 
-        protected override void OnDestroy()
+        protected void OnDestroy()
         {
-            base.OnDestroy();
             if (_RepositionAction)
                 _RepositionAction.action.performed -= OnRepositionPerformed;
             _animTween?.Kill();

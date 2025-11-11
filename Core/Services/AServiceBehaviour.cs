@@ -3,12 +3,12 @@
     public abstract class AServiceBehaviour<T> : ABaseServiceBehaviour<T>
         where T : class, IService
     {
-        protected virtual void Awake()
+        protected virtual void OnEnable()
         {
             RegisterService();
         }
 
-        protected virtual void OnDestroy()
+        protected virtual void OnDisable()
         {
             UnregisterService();
         }

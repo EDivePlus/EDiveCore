@@ -28,9 +28,8 @@ namespace EDIVE.Environment.SceneSetup
         private NetworkManager _networkManager;
         private bool _switchInProgress;
 
-        protected override void Awake()
+        protected void Awake()
         {
-            base.Awake();
             _networkManager = InstanceFinder.NetworkManager;
             if (_networkManager == null)
                 return;
@@ -38,9 +37,8 @@ namespace EDIVE.Environment.SceneSetup
             _networkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
         }
 
-        protected override void OnDestroy()
+        protected void OnDestroy()
         {
-            base.OnDestroy();
             if (_networkManager != null)
             {
                 _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;

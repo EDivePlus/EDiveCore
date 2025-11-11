@@ -40,8 +40,9 @@ namespace EDIVE.Networking.Scenes
         
         public IReadOnlyList<Scene> LoadedScenes => _loadedScenes;
 
-        private void OnEnable()
+        protected override void OnEnable()
         {
+            base.OnEnable();
             _networkManager = InstanceFinder.NetworkManager;
             if (_networkManager == null || !_networkManager.Initialized)
                 return;
@@ -62,8 +63,9 @@ namespace EDIVE.Networking.Scenes
             UnloadOnlineScenes();
         }
 
-        private void OnDisable()
+        protected override void OnDisable()
         {
+            base.OnDisable();
             if (!ApplicationState.IsQuitting() && _networkManager != null && _networkManager.Initialized)
             {
                 _networkManager.ClientManager.OnClientConnectionState -= OnClientConnectionState;

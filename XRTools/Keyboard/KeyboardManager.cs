@@ -36,9 +36,8 @@ namespace EDIVE.XRTools.Keyboard
 
         private GameObject _lastFocusedObject;
 
-        protected override void Awake()
+        protected void Awake()
         {
-            base.Awake();
             _Keyboard.gameObject.SetActive(false);
         }
 

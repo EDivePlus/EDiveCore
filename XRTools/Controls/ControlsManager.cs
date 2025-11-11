@@ -40,9 +40,8 @@ namespace EDIVE.XRTools.Controls
             }
         }
 
-        protected override void Awake()
+        protected void Awake()
         {
-            base.Awake();
             _currentControls = XRUtils.XREnabled ? _HeadsetControls : _DesktopControls;
             AllControls.ForEach(c => c.SetActive(false));
             _currentControls.SetActive(true);
