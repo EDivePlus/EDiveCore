@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 10.11.2025
 
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -62,6 +63,9 @@ namespace EDIVE.Utils
 
         private void Awake()
         {
+            if (_GradientTexture == null)
+                GenerateGradientTexture();
+            
             RefreshMaterial();
         }
 
