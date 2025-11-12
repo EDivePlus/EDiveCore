@@ -61,6 +61,18 @@ namespace EDIVE.Networking.Players
             public long userId;
             public long branchId;
             public string userUuid;
+            public UserBasicPojo userBasicPojo;
+        }
+        
+        [Serializable]
+        private class UserBasicPojo
+        {
+            public string uuid;
+            public string firstName;
+            public string surname;
+            public string username;
+            public string userType;
+            public string email;
         }
 
 
@@ -325,7 +337,9 @@ namespace EDIVE.Networking.Players
                 }
                 var myUuid = EDIVE.Networking.DatabaseManagement.AuthStorage.GetUserId();
                 if (!string.IsNullOrEmpty(myUuid))
-                    rows = rows.FindAll(r => string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase));
+                    rows = rows.FindAll(r =>
+                        string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(r.userBasicPojo?.uuid, myUuid, StringComparison.OrdinalIgnoreCase));
 
 
                 var rec = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
@@ -407,7 +421,9 @@ namespace EDIVE.Networking.Players
                     {
                         var myUuid = EDIVE.Networking.DatabaseManagement.AuthStorage.GetUserId();
                         if (!string.IsNullOrEmpty(myUuid))
-                            rows = rows.FindAll(r => string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase));
+                            rows = rows.FindAll(r =>
+                                string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(r.userBasicPojo?.uuid, myUuid, StringComparison.OrdinalIgnoreCase));
 
                         existing = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
                     }
@@ -548,7 +564,16 @@ namespace EDIVE.Networking.Players
                         }
                     }
 
-                    if (rows != null) existing = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
+                    if (rows != null)
+                    {
+                        var myUuid = EDIVE.Networking.DatabaseManagement.AuthStorage.GetUserId();
+                        if (!string.IsNullOrEmpty(myUuid))
+                            rows = rows.FindAll(r =>
+                                string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(r.userBasicPojo?.uuid, myUuid, StringComparison.OrdinalIgnoreCase));
+
+                        existing = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
+                    }
                 }
             }
 
