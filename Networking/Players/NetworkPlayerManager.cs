@@ -60,6 +60,7 @@ namespace EDIVE.Networking.Players
             public string description;
             public long userId;
             public long branchId;
+            public string userUuid;
         }
 
 
@@ -265,6 +266,7 @@ namespace EDIVE.Networking.Players
                 return baseu + "/" + string.Join("/", segments);
             return baseu;
         }
+        
 
 
         public System.Collections.IEnumerator LoadProfileFromSavedataAndApply(Action<bool, string> onDone = null)
@@ -321,6 +323,10 @@ namespace EDIVE.Networking.Players
                     onDone?.Invoke(true, "empty");
                     yield break;
                 }
+                var myUuid = EDIVE.Networking.DatabaseManagement.AuthStorage.GetUserId();
+                if (!string.IsNullOrEmpty(myUuid))
+                    rows = rows.FindAll(r => string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase));
+
 
                 var rec = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
                 if (rec == null || string.IsNullOrEmpty(rec.description))
@@ -398,7 +404,13 @@ namespace EDIVE.Networking.Players
                     }
 
                     if (rows != null)
+                    {
+                        var myUuid = EDIVE.Networking.DatabaseManagement.AuthStorage.GetUserId();
+                        if (!string.IsNullOrEmpty(myUuid))
+                            rows = rows.FindAll(r => string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase));
+
                         existing = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
+                    }
                 }
             }
 
@@ -429,9 +441,16 @@ namespace EDIVE.Networking.Players
             {
                 // 3) CREATE (POST)
                 var postUrl = SavedataUrl();
-                var body = new {key = _ProfileKey, description = descriptionJson};
+                var uuid = EDIVE.Networking.DatabaseManagement.AuthStorage.GetUserId();
+
+                object body = string.IsNullOrEmpty(uuid)
+                    ? new { key = _ProfileKey, description = descriptionJson }
+                    : new { key = _ProfileKey, description = descriptionJson, userUuid = uuid };
+
                 using (var preq = BuildJsonReq(UnityWebRequest.kHttpVerbPOST, postUrl, body))
                 {
+                    preq.SetRequestHeader("Accept", "application/json"); // pomáhá některým backendům
+
                     Debug.Log($"[PROFILE/SAVEDATA][CREATE] POST {postUrl} body={JsonConvert.SerializeObject(body)}");
                     yield return preq.SendWebRequest();
 

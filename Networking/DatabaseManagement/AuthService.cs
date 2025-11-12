@@ -76,6 +76,11 @@ namespace EDIVE.Networking.DatabaseManagement
                         var emailFromJwt = JwtUtils.GetClaim(jwt, "email");
                         var refreshFromJwt = JwtUtils.GetClaim(jwt, "refresh_token");
                         
+                        var userUuid = JwtUtils.GetClaim(jwt, "uuid") ?? JwtUtils.GetClaim(jwt, "userUuid");
+                        var chosenUserId = !string.IsNullOrEmpty(userUuid)
+                            ? userUuid
+                            : (!string.IsNullOrEmpty(sub) ? sub : emailFromJwt);
+                        
                         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                         var expiresIn = expUnix.HasValue ? (int) Mathf.Max(0, (int) (expUnix.Value - now)) : 0;
                         
@@ -83,7 +88,7 @@ namespace EDIVE.Networking.DatabaseManagement
                         {
                             _AccessToken = jwt,
                             _RefreshToken = refreshFromJwt,
-                            _UserId = !string.IsNullOrEmpty(sub) ? sub : emailFromJwt,
+                            _UserId = chosenUserId,
                             _ExpiresIn = expiresIn
                         };
                         
