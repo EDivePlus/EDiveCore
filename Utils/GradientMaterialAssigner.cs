@@ -1,10 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 10.11.2025
 
-using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.UI;
 
 #if UNITY_EDITOR
 using System.IO;
@@ -13,11 +13,16 @@ using UnityEditor;
 
 namespace EDIVE.Utils
 {
+    [ExecuteAlways]
     public class GradientMaterialAssigner : MonoBehaviour
     {
         [SerializeField]
         [OnValueChanged(nameof(GenerateGradientTexture), true)]
         private Gradient _Gradient;
+        
+        [SerializeField]
+        [OnValueChanged(nameof(RefreshMaterial), true)]
+        private RawImage _RawImage;
         
         [SerializeField]
         [OnValueChanged(nameof(RefreshMaterial), true)]
@@ -71,19 +76,24 @@ namespace EDIVE.Utils
 
         private void RefreshMaterial()
         {
-            if (_Renderer == null)
-                return;
-
-            var materials = _Renderer.materials;
+            if (_Renderer != null)
+            {
+                var materials = _Renderer.materials;
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
-                materials = _Renderer.sharedMaterials;
+                if (!Application.isPlaying)
+                    materials = _Renderer.sharedMaterials;
 #endif
-            if (_MaterialIndex < 0 || _MaterialIndex >= materials.Length)
-                return;
-            
-            var material = materials[_MaterialIndex];
-            material.SetTexture(_TexturePropertyName, _GradientTexture);
+                if (_MaterialIndex < 0 || _MaterialIndex >= materials.Length)
+                    return;
+
+                var material = materials[_MaterialIndex];
+                material.SetTexture(_TexturePropertyName, _GradientTexture);
+            }
+
+            if (_RawImage != null)
+            {
+                _RawImage.texture = _GradientTexture;
+            }
         }
 
         [Button]
