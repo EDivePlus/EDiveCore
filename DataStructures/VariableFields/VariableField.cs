@@ -8,6 +8,7 @@ using UnityEngine;
 namespace EDIVE.DataStructures.VariableFields
 {
     [Serializable]
+    [InlineProperty]
     public class VariableField<T>
     {
         [HideLabel]

@@ -2,6 +2,7 @@
 // Created: 20.10.2025
 
 using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.DataStructures.VariableFields
@@ -9,6 +10,7 @@ namespace EDIVE.DataStructures.VariableFields
     [Serializable]
     public class TransformPositionVariableFieldData : IVariableFieldData<Vector3>
     {
+        [HideLabel]
         [SerializeField]
         private Transform _Target;
         
