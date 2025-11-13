@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 10.11.2025
 
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -27,6 +28,9 @@ namespace EDIVE.Utils
         [SerializeField]
         [OnValueChanged(nameof(RefreshMaterial), true)]
         private Renderer _Renderer;
+        
+        [SerializeField]
+        private bool _UseSharedMaterial;
         
         [SerializeField]
         [OnValueChanged(nameof(RefreshMaterial), true)]
@@ -78,11 +82,8 @@ namespace EDIVE.Utils
         {
             if (_Renderer != null)
             {
-                var materials = _Renderer.materials;
-#if UNITY_EDITOR
-                if (!Application.isPlaying)
-                    materials = _Renderer.sharedMaterials;
-#endif
+                var useSharedMaterials = !Application.isPlaying || _UseSharedMaterial;
+                var materials = useSharedMaterials ? _Renderer.sharedMaterials : _Renderer.materials;
                 if (_MaterialIndex < 0 || _MaterialIndex >= materials.Length)
                     return;
 

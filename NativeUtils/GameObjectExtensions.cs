@@ -34,14 +34,7 @@ namespace EDIVE.NativeUtils
         
         public static void SafeDestroy(this Object go, bool immediate = false)
         {
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                Object.DestroyImmediate(go);
-                return;
-            }
-#endif
-            if (immediate)
+            if (!Application.isPlaying || immediate)
                 Object.DestroyImmediate(go);
             else
                 Object.Destroy(go);
