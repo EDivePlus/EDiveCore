@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using EDIVE.OdinExtensions;
 using JetBrains.Annotations;
@@ -11,10 +12,13 @@ using UnityEditor;
 
 namespace EDIVE.StateHandling
 {
-    [System.Serializable]
+    [HideLabel]
+    [InlineProperty]
+    [Serializable]
     public class ObjectStatePresetField
     {
         [PropertyOrder(10)]
+        [LabelText("@$property.Parent.NiceName")]
         [ListDrawerSettings(OnTitleBarGUI = "OnObjectPresetsTitleBarGUI")]
         [SerializeField]
         private List<ObjectStatePresetRecord> _ObjectPresets = new();
