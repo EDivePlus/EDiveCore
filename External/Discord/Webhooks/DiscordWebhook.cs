@@ -7,7 +7,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace EDIVE.External.DiscordWebhooks
+namespace EDIVE.External.Discord.Webhooks
 {
     public class DiscordWebhook : ScriptableObject
     {
@@ -56,54 +56,47 @@ namespace EDIVE.External.DiscordWebhooks
         
 
 #if UNITY_EDITOR
-        public static DiscordMessage CreateTestMessage()
+        [Button]
+        public void SendTestMessage()
         {
-            return new DiscordMessage
+            SendMessage(new DiscordMessage
             {
-                Username = "Main UserName",
+                Username = "Unknown User",
                 AvatarUrl = new Uri("https://upload.wikimedia.org/wikipedia/commons/b/bc/Unknown_person.jpg"),
-                Content = "TEST MESSAGE FROM UNITY - Content *Italic* **bold** __underline__ ~~strikeout~~ [hyperlink](https://google.com) `code`",
+                Content = "This is a test message sent from Unity project\n*Italic* **bold** __underline__ ~~strikeout~~ [hyperlink](https://google.com) `code`",
                 Embeds = new List<DiscordEmbed>
                 {
                     new()
                     {
                         Author = new EmbedAuthor
                         {
-                            Name = "Author name (with url link)",
-                            Url = new Uri("https://www.youtube.com/watch?v=FavUpD_IjVY&ab_channel=cyriak"),
-                            IconUrl = new Uri("https://ryanharveyauthor.files.wordpress.com/2018/09/clydeeghost.png")
+                            Name = "Unknown Author",
+                            Url = new Uri("https://en.wikipedia.org/wiki/John_Doe"),
+                            IconUrl = new Uri("https://upload.wikimedia.org/wikipedia/commons/b/bc/Unknown_person.jpg")
                         },
                         Color = Color.green,
-                        Title = "Embed Title (with url link)",
-                        Url = new Uri("https://www.youtube.com/watch?v=oHg5SJYRHA0&ab_channel=cotter548"),
+                        Title = "Embed",
+                        Url = new Uri("https://en.wikipedia.org/wiki/Embedded"),
                         Description = "Embed Description",
-                        Image = new EmbedMedia(new Uri("https://mixed-news.com/en/wp-content/uploads/2022/10/Into-the-Radius-Artwork-3.png")),
-                        Thumbnail = new EmbedMedia(new Uri("https://static.wikia.nocookie.net/satisfactory_gamepedia_en/images/7/79/Overclocking_Icon.png/revision/latest?cb=20200301112223")),
+                        Timestamp = DateTime.UnixEpoch,
+                        Image = new EmbedMedia(new Uri("https://t3.ftcdn.net/jpg/01/10/25/70/360_F_110257004_PLp6DNqDdup6AyThxyraiAdgTgwVrle7.jpg")),
+                        Thumbnail = new EmbedMedia(new Uri("https://static.thenounproject.com/png/3022241-200.png")),
                         Footer = new EmbedFooter
                         {
-                            Text = "Footer Text",
-                            IconUrl = new Uri("https://media.tenor.com/images/f4eb1739c0451110c0285920477a5a8f/tenor.png")
+                            Text = "Footer",
+                            IconUrl = new Uri("https://static.thenounproject.com/png/1364707-200.png")
                         },
                         Fields = new List<EmbedField>
                         {
-                            new("Field 0", "Value 0", false),
-                            new("Field 1", "Value 1", true),
-                            new("Field 2", "Value 2", true),
-                            new("Field 3", "Value 3", true)
+                            new("Identifier", "#0123", false),
+                            new("Location", "Czechia", true),
+                            new("Device", "Oculus Quest 3Pro", true),
                         }
                     }
                 }
-            };
-        }
-
-        [Button]
-        public void SendTestMessage()
-        {
-            SendMessage(CreateTestMessage(), new List<DiscordFileAttachment>
+            }, new List<DiscordFileAttachment>
             {
-                new("TextFile1.txt", Encoding.UTF8.GetBytes("data data data data data data data data data data data data data data")),
-                new("TextFile2.txt", Encoding.UTF8.GetBytes("data data data data data data data data data data data data data data")),
-                new("XmlFile.xml", Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"UTF-8\"?><metadata><groupId>com.google.games</groupId></metadata>"))
+                new("TextAttachment.txt", Encoding.UTF8.GetBytes("This is special text attachment"))
             });
         }
 #endif

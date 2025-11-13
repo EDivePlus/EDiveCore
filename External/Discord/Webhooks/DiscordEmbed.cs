@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.External.DiscordWebhooks
+namespace EDIVE.External.Discord.Webhooks
 {
     [JsonObject(MemberSerialization.OptIn)]
     public class DiscordEmbed
@@ -29,7 +29,7 @@ namespace EDIVE.External.DiscordWebhooks
         /// <summary>
         /// Timestamp of embed content
         /// </summary>
-        public DateTime Timestamp { get; set; } = DateTime.UnixEpoch;
+        public DateTime Timestamp { get; set; }
 
         /// <summary>
         /// Color code of embed

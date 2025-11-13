@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace EDIVE.External.DiscordWebhooks
+namespace EDIVE.External.Discord.Webhooks
 {
     [JsonObject(MemberSerialization.OptIn)]
     public class DiscordFileAttachment
@@ -9,7 +9,7 @@ namespace EDIVE.External.DiscordWebhooks
         public byte[] Data { get; }
         public string ContentType { get; }
 
-        public bool IsValid => !string.IsNullOrEmpty(Filename) && Data == null && ContentType != null;
+        public bool IsValid => !string.IsNullOrEmpty(Filename) && Data != null && ContentType != null;
 
         public DiscordFileAttachment(string filename, byte[] data)
         {

@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace EDIVE.External.DiscordWebhooks
+namespace EDIVE.External.Discord.Webhooks
 {
     public class EmbedAuthor
     {
