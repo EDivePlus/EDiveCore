@@ -264,7 +264,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 				LogInformation("Stopped advertising server.");
 			}
-			catch (Exception exception)
+			catch (Exception exception) when (exception is not TaskCanceledException)
 			{
 				Debug.LogException(exception, this);
 			}
