@@ -80,6 +80,7 @@ namespace EDIVE.Networking.ServerCodes
             {
                 InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionState;
             }
+            Application.logMessageReceivedThreaded -= OnLog;
         }
 
         private void DisposeServer()
@@ -121,12 +122,28 @@ namespace EDIVE.Networking.ServerCodes
                 });
             StartCoroutine(_serverRefreshCoroutine);
 
+            
+            Application.logMessageReceivedThreaded += OnLog;
             UniTask.Void(async () =>
             {
                 await AppCore.AwaitLoaded();
-                await UniTask.Delay(TimeSpan.FromSeconds(1));
-                DebugLite.Log($"[ServerCodeManager] The server code is {RegisteredWithCode}");
+                while (RegisteredWithCode != null)
+                {
+                    await UniTask.WaitUntil(() => _logTriggered);
+                    _logTriggered = false;
+                    await UniTask.Delay(TimeSpan.FromSeconds(2));
+
+                    DebugLite.Log($"[ServerCodeManager] The server code is {RegisteredWithCode}");
+                    await UniTask.Delay(TimeSpan.FromSeconds(20));
+                }
             });
+        }
+        
+        private bool _logTriggered;
+
+        private void OnLog(string condition, string stacktrace, LogType type)
+        {
+            _logTriggered = true;
         }
 
         private IEnumerator ServerRegistrationRefresh(ServerRefreshRequest request)
