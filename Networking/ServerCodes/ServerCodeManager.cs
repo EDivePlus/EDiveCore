@@ -37,15 +37,26 @@ namespace EDIVE.Networking.ServerCodes
         private const string CODE_CHARS = "AB0123456789";
         private const float REFRESH_TIME = 10;
         private static readonly HttpClient CLIENT = new();
-        private List<int> _startedTransports = new();
 
-        protected override UniTask LoadRoutine(Action<float> progressCallback)
+        protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
-            if (_Config.AutoRegisterServer && InstanceFinder.ServerManager != null)
+            if (!_Config.AutoRegisterServer)
             {
-                InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionState;
+                Debug.Log("[ServerCodeManager] Auto registration disabled");
+                return;
             }
-            return UniTask.CompletedTask;
+
+            await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
+            await UniTask.Yield();
+            
+            if (InstanceFinder.ServerManager == null)
+            {
+                Debug.Log("[ServerCodeManager] ServerManager not found");
+                return;
+            }
+                
+            Debug.Log("[ServerCodeManager] ServerManager initialized");
+            InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionState;
         }
         
         private void OnServerConnectionState(ServerConnectionStateArgs args)
@@ -53,16 +64,12 @@ namespace EDIVE.Networking.ServerCodes
             // Connection can change for each transport, so we need to track them
             if (args.ConnectionState == LocalConnectionState.Started)
             {
-                var wasStarted = _startedTransports.Count != 0;
-                _startedTransports.Add(args.TransportIndex);
-                if (!wasStarted) 
+                if (InstanceFinder.ServerManager.IsOnlyOneServerStarted()) 
                     RegisterServerByCode();
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped)
             {
-                
-                _startedTransports.Remove(args.TransportIndex);
-                if(_startedTransports.Count == 0)
+                if (!InstanceFinder.ServerManager.IsAnyServerStarted())
                     DisposeServer();
             }
         }
@@ -85,6 +92,7 @@ namespace EDIVE.Networking.ServerCodes
 
         private void DisposeServer()
         {
+            Debug.Log("[ServerCodeManager] Disposing server registration");
             if (!string.IsNullOrEmpty(_serverSecret))
             {
                 DisposeServer(new ServerDisposeRequest { secret = _serverSecret }).Forget();
@@ -93,6 +101,7 @@ namespace EDIVE.Networking.ServerCodes
 
         private void RegisterServerByCode()
         {
+            Debug.Log("[ServerCodeManager] Registering server by code");
             var code = !string.IsNullOrEmpty(_Config.ServerCode) ? _Config.ServerCode : GetRandomCode(4);
             var port = InstanceFinder.TransportManager.Transport.GetPort();
             RegisterServerByCode(
