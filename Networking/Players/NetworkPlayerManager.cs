@@ -100,7 +100,9 @@ namespace EDIVE.Networking.Players
 
         public NetworkPlayerController LocalPlayer { get; private set; }
         private readonly List<NetworkPlayerController> _currentPlayers = new();
+        
         private readonly List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
+        private Promise<NetworkPlayerController> _localPlayerRequest;
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -117,8 +119,12 @@ namespace EDIVE.Networking.Players
         public void RegisterPlayer(NetworkPlayerController player)
         {
             if (player.IsOwner)
+            {
                 LocalPlayer = player;
-
+                _localPlayerRequest?.Dispatch(player);
+                _localPlayerRequest = null;
+            }
+            
             if (_currentPlayers.Contains(player))
                 return;
 
@@ -147,6 +153,17 @@ namespace EDIVE.Networking.Players
                 _networkManager.ServerManager.OnRemoteConnectionState -= OnServerRemoteConnectionState;
                 _networkManager.ServerManager.UnregisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
             }
+        }
+        
+        public async UniTask<NetworkPlayerController> AwaitLocalPlayerController()
+        {
+            if (LocalPlayer != null)
+                return LocalPlayer;
+
+            _localPlayerRequest ??= new Promise<NetworkPlayerController>();
+            var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
+            _localPlayerRequest.Then(r => completionSource.TrySetResult(r));
+            return await completionSource.Task;
         }
 
         public async UniTask<NetworkPlayerController> AwaitPlayerController(int clientID)
