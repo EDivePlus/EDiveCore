@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 27.08.2025
 
+using System;
 using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -47,7 +48,14 @@ namespace EDIVE.Environment.SceneSetup
 
         private void OnClientAuthenticated()
         {
-            SetCurrentContext(_DefaultSetup);
+            try
+            {
+                SetCurrentContext(_DefaultSetup);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
         
         [Button]
