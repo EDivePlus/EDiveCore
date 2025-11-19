@@ -130,7 +130,6 @@ namespace EDIVE.Networking.ServerCodes
                     secret = _serverSecret
                 });
             StartCoroutine(_serverRefreshCoroutine);
-
             
             Application.logMessageReceivedThreaded += OnLog;
             UniTask.Void(async () =>
@@ -142,7 +141,9 @@ namespace EDIVE.Networking.ServerCodes
                     _logTriggered = false;
                     await UniTask.Delay(TimeSpan.FromSeconds(2));
 
+                    Application.logMessageReceivedThreaded -= OnLog;
                     DebugLite.Log($"[ServerCodeManager] The server code is {RegisteredWithCode}");
+                    Application.logMessageReceivedThreaded += OnLog;
                     await UniTask.Delay(TimeSpan.FromSeconds(20));
                 }
             });
