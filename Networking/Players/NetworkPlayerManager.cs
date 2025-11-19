@@ -178,7 +178,7 @@ namespace EDIVE.Networking.Players
             var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
             promise.Then(r => completionSource.TrySetResult(r));
 
-            var timeout = UniTask.Delay(TimeSpan.FromSeconds(3));
+            var timeout = UniTask.Delay(TimeSpan.FromMinutes(1));
             var result = await UniTask.WhenAny(completionSource.Task, timeout);
             _playerRequests.Remove(record);
             return result.result;
