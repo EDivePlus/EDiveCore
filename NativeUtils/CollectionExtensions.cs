@@ -266,15 +266,19 @@ namespace EDIVE.NativeUtils
 
         public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
         {
+            if (action == null)
+                return;
             foreach (var obj in source)
-                action(obj);
+                action.Invoke(obj);
         }
 
         public static void ForEach<T>(this IEnumerable<T> source, Action<T, int> action)
         {
+            if (action == null)
+                return;
             var num = 0;
             foreach (var obj in source)
-                action(obj, num++);
+                action.Invoke(obj, num++);
         }
 
         public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> source) { return source ?? Enumerable.Empty<T>(); }
