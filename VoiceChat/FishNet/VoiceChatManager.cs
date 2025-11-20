@@ -36,7 +36,7 @@ namespace EDIVE.VoiceChat
         
         public override int MicFrameDurationMS
         {
-            get => PlayerPrefs.GetInt("VoiceChat_FrameDuration", 60);
+            get => PlayerPrefs.GetInt("VoiceChat_FrameDuration", 40);
             set
             {
                 if (MicFrameDurationMS == value)
@@ -140,29 +140,26 @@ namespace EDIVE.VoiceChat
 
             // We want the incoming audio from peers to be played via the StreamedAudioSourceOutput
             // implementation of IAudioSource interface. So we get the factory for it.
-            IAudioOutputFactory outputFactory = new StreamedAudioSourceOutput.Factory();
             Debug.unityLogger.Log(LogType.Log, TAG, "Using StreamedAudioSourceOutput.Factory as output factory");
 
             // With the client, input and output factory ready, we create create the client session
-            _session = new ClientSession<int>(client, input, outputFactory);
+            _session = new ClientSession<int>(client, input, () =>
+            {
+                var audioOutput = StreamedAudioSourceOutput.New();
+                audioOutput.Stream.TargetLatency = 0.3f;
+                audioOutput.Stream.PitchMaxCorrection = 0.05f;
+                audioOutput.Stream.PitchProportionalGain = 0.2f;
+                audioOutput.Stream.DownwardPitchCorrectionScale = 1f;
+                return audioOutput;
+            });
             Debug.unityLogger.Log(LogType.Log, TAG, "Created session");
-
-            // We add some filters to the input audio
-            // - The first is audio blur, so that the audio that's been captured by this client
-            // has lesser noise
-
-            //_session.InputFilters.Add(new GaussianAudioBlur());
-            _session.InputFilters.Add(new RNNoiseFilter()); // Note: To be made available in Univoice later
-            Debug.unityLogger.Log(LogType.Log, TAG, "Registered GaussianAudioBlur as an input filter");
-
-            // - The next one is the Opus encoder filter. This is VERY important. Without this the
-            // outgoing data would be very large, usually by a factor of 10 or more.
+            
+            _session.InputFilters.Add(new RNNoiseFilter());
+            _session.InputFilters.Add(new SimpleVadFilter(new SimpleVad()));
             _session.InputFilters.Add(new ConcentusEncodeFilter());
-            Debug.unityLogger.Log(LogType.Log, TAG, "Registered ConcentusEncodeFilter as an input filter");
-
-            // Next, for incoming audio we register the Concentus decode filter as the audio we'd
-            // receive from other clients would be encoded and not readily playable
+            
             _session.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter());
+            
             Debug.unityLogger.Log(LogType.Log, TAG, "Registered ConcentusDecodeFilter as an output filter");
 
             // We subscribe to some client events to show updates on the UI when you join or leave
