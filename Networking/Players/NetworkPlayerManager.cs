@@ -104,6 +104,10 @@ namespace EDIVE.Networking.Players
         private readonly List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
         private Promise<NetworkPlayerController> _localPlayerRequest;
 
+        private readonly Dictionary<int, PlayerProfile> _playerProfiles = new();
+        
+        public event Action<int, PlayerProfile> ServerPlayerJoined;
+
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
             _networkManager = InstanceFinder.NetworkManager;
@@ -214,9 +218,16 @@ namespace EDIVE.Networking.Players
 
             var playerController = netObj.GetComponent<NetworkPlayerController>();
             playerController.ApplyProfile(request.profile);
+            _playerProfiles[conn.ClientId] = request.profile;
             _currentPlayers.Add(playerController);
 
+            ServerPlayerJoined?.Invoke(conn.ClientId, request.profile);
             DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
+        }
+        
+        public bool TryGetPlayerProfile(int clientId, out PlayerProfile profile)
+        {
+            return _playerProfiles.TryGetValue(clientId, out profile);
         }
 
         private PlayerProfile CreatePlayerProfile()
