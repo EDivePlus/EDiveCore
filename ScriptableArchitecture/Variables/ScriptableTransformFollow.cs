@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 12.06.2025
 
-using EDIVE.NativeUtils;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
 using UnityEngine;
 
@@ -11,7 +10,13 @@ namespace EDIVE.ScriptableArchitecture.Variables
     {
         [SerializeField]
         private AScriptableVariable<Transform> _Source;
+        
+        [SerializeField]
+        private Vector3 _PositionOffset = Vector3.zero;
 
+        [SerializeField]
+        private Quaternion _RotationOffset = Quaternion.identity;
+        
         public AScriptableVariable<Transform> Source
         {
             get => _Source;
@@ -20,11 +25,19 @@ namespace EDIVE.ScriptableArchitecture.Variables
         
         private void LateUpdate()
         {
-            if (_Source?.Value)
+            if (_Source != null)
             {
-                transform.position = _Source.Value.position;
-                transform.rotation = _Source.Value.rotation;
+                ApplyTransform(_Source.Value);
             }
+        }
+        
+        private void ApplyTransform(Transform target)
+        {
+            if (target == null)
+                return;
+            
+            transform.position = target.TransformPoint(_PositionOffset);
+            transform.rotation = target.rotation * _RotationOffset;
         }
       
         // This does not work for some reason, i guess networking, or execution order...
