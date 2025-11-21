@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 13.06.2025
 
+using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EnhancedUI.EnhancedScroller;
 using TMPro;
@@ -24,9 +25,9 @@ namespace EDIVE.Networking.ServerManagement.UI
         [SerializeField]
         private Button _ConnectButton;
 
-        private ServerRecord _serverRecord;
+        private AServerRecord _serverRecord;
 
-        public void SetRoom(ServerRecord serverRecord)
+        public void SetRoom(AServerRecord serverRecord)
         {
             _serverRecord = serverRecord;
 
@@ -49,8 +50,13 @@ namespace EDIVE.Networking.ServerManagement.UI
         private void OnConnectClicked()
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            networkManager.SetAddress(_serverRecord.Address);
-            networkManager.StartRuntime(NetworkRuntimeMode.Client);
+            _serverRecord.PrepareForConnect().ContinueWith(success =>
+            {
+                if (!success) 
+                    return;
+                
+                networkManager.StartRuntime(NetworkRuntimeMode.Client);
+            });
         }
     }
 }

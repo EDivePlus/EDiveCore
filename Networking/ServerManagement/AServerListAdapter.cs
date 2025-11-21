@@ -11,23 +11,35 @@ namespace EDIVE.Networking.ServerManagement
 {
     public abstract class AServerListAdapter : MonoBehaviour
     {
-        public Dictionary<long, ServerRecord> Servers { get; } = new();
+        public Dictionary<long, AServerRecord> Servers { get; } = new();
         public Signal ServerListUpdated { get; } = new();
+
+        protected ServerConfig _serverConfig;
         
         [ShowInInspector]
-        private IEnumerable<ServerRecord> ServersPreview => Servers.Values;
-        
-        public abstract UniTask Initialize(ServerConfig serverConfig);
-        public abstract void StartSearch();
-        public abstract void StopSearch();
+        private IEnumerable<AServerRecord> ServersPreview => Servers.Values;
 
-        protected void AddServer(ServerRecord serverRecord)
+        public async UniTask Initialize(ServerConfig serverConfig)
+        {
+            _serverConfig = serverConfig;
+            await Initialize();
+        }
+        
+        public virtual UniTask Initialize() => UniTask.CompletedTask;
+
+        public virtual void StartServer(){}
+        public virtual void StopServer(){}
+        
+        public virtual void StartSearch(){}
+        public virtual void StopSearch(){}
+
+        protected void AddServer(AServerRecord serverRecord)
         {
             Servers[serverRecord.ServerID] = serverRecord;
             ServerListUpdated.Dispatch();
         }
         
-        protected void AddServers(IEnumerable<ServerRecord> serverRecords)
+        protected void AddServers(IEnumerable<AServerRecord> serverRecords)
         {
             foreach (var serverRecord in serverRecords)
             {

@@ -8,6 +8,9 @@ using EDIVE.AppLoading;
 using EDIVE.External.Signals;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
+using FishNet;
+using FishNet.Transporting;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
@@ -23,55 +26,103 @@ namespace EDIVE.Networking.ServerManagement
         private AWordGenerator _ServerNameGenerator;
         
         [SerializeField]
+        [InfoBox("Adapters are ordered by their priority. Higher priority adapters will be used first.")]
         private List<AServerListAdapter> _Adapters = new();
 
-        public IEnumerable<ServerRecord> ServerList => _servers.Values;
+        public IEnumerable<AServerRecord> ServerList => _servers.Values;
         public Signal ServerListUpdated { get; } = new();
         public ServerConfig ServerConfig => _ServerConfig;
         
-        private readonly Dictionary<long, ServerRecord> _servers = new();
+        private readonly Dictionary<long, AServerRecord> _servers = new();
+
+        private bool _serverRunning;
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             _ServerConfig.ServerID = GenerateServerID();
             _ServerConfig.ServerName = _ServerNameGenerator.Generate();
-
+            
             foreach (var adapter in _Adapters)
-            {
+            { 
+                if (adapter ==null)
+                    continue;
                 await adapter.Initialize(_ServerConfig);
             }
+            InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
+        }
+        
+        public void EnumerateAdapters(Action<AServerListAdapter> action)
+        {
+            foreach (var adapter in _Adapters)
+            {
+                if (adapter ==null)
+                    continue;
+                action(adapter);
+            }
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionStateChanged;
+        }
+
+        private void OnServerConnectionStateChanged(ServerConnectionStateArgs args)
+        {
+            if (args.ConnectionState == LocalConnectionState.Starting && !_serverRunning)
+            {
+                _serverRunning = true;
+                EnumerateAdapters(adapter => adapter.StopSearch());
+            }
+            else if (args.ConnectionState == LocalConnectionState.Started && InstanceFinder.ServerManager.IsOnlyOneServerStarted())
+            {
+                EnumerateAdapters(adapter => adapter.StartServer());
+            }
+            else if (args.ConnectionState == LocalConnectionState.Stopped && !InstanceFinder.ServerManager.IsAnyServerStarted())
+            {
+                EnumerateAdapters(adapter => adapter.StopServer());
+            }
+        }
+
+        protected override void PopulateDependencies(HashSet<Type> dependencies)
+        {
+            base.PopulateDependencies(dependencies);
+            dependencies.Add(typeof(MasterNetworkManager));
         }
 
         public void StartSearch()
         {
+            if (_serverRunning)
+                return;
+            
             _servers.Clear();
-            foreach (var adapter in _Adapters)
+            EnumerateAdapters(adapter =>
             {
                 adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
                 adapter.ServerListUpdated.AddListener(OnAdapterServerListUpdated);
                 adapter.StartSearch();
-            }
+            });
         }
         
         public void StopSearch()
         {
-            foreach (var adapter in _Adapters)
+            EnumerateAdapters(adapter =>
             {
                 adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
                 adapter.StopSearch();
-            }
+            });
         }
 
         private void OnAdapterServerListUpdated()
         {
             _servers.Clear();
-            foreach (var adapter in _Adapters)
+            EnumerateAdapters(adapter =>
             {
                 foreach (var (id, server) in adapter.Servers)
-                { 
-                    _servers[id] = server;
+                {
+                    _servers.TryAdd(id, server);
                 }
-            }
+            });
             ServerListUpdated.Dispatch();
         }
         

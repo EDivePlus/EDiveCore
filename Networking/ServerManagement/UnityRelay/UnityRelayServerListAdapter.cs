@@ -1,7 +1,9 @@
 ﻿// Author: František Holubec
 // Created: 08.08.2025
 
+using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using FishNet;
 using FishNet.Transporting.UTP;
@@ -17,101 +19,133 @@ namespace EDIVE.Networking.ServerManagement.UnityRelay
 {
     public class UnityRelayServerListAdapter : AServerListAdapter
     {
-        public override UniTask Initialize(ServerConfig serverConfig)
+        private CancellationTokenSource _searchCancellation;
+        private CancellationTokenSource _heartbeatCancellation;
+        
+        private Lobby _hostLobby;
+        private float _lastQueryTime;
+
+        public override async UniTask Initialize()
         {
-            throw new System.NotImplementedException();
+            await UnityServices.InitializeAsync();
+            if (!AuthenticationService.Instance.IsSignedIn)
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
+
+        public override void StartServer()
+        {
+            base.StartServer();
+            RegisterRelay().Forget();
+        }
+
+        public override void StopServer()
+        {
+            base.StopServer();
+            StopRelay().Forget();
         }
 
         public override void StartSearch()
         {
-            throw new System.NotImplementedException();
+            if (_searchCancellation != null)
+                return;
+            
+            _searchCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            SearchTask(_searchCancellation.Token).Forget();
         }
-
+        
         public override void StopSearch()
         {
-            throw new System.NotImplementedException();
+            _searchCancellation?.Cancel();
+            _searchCancellation?.Dispose();
+            _searchCancellation = null;
+        }
+
+        private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
+        {
+            if (Time.realtimeSinceStartup - _lastQueryTime < 2f)
+                await UniTask.Delay(TimeSpan.FromSeconds(2), true, cancellationToken: cancellationToken);
+                
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Servers.Clear();
+                var options = new QueryLobbiesOptions
+                {
+                    Count = 5,
+                    Filters = new List<QueryFilter>
+                    {
+                        new(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
+                    }
+                };
+                
+                _lastQueryTime = Time.realtimeSinceStartup;
+                var response = await LobbyService.Instance.QueryLobbiesAsync(options);
+                foreach (var lobby in response.Results)
+                {
+                    if (!lobby.Data.TryGetValue("joinCode", out var joinCode) || 
+                        !lobby.Data.TryGetValue("uniqueID", out var uniqueID) || 
+                        !long.TryParse(uniqueID.Value, out var serverID))
+                        continue;
+                
+                    AddServer(new UnityRelayServerRecord
+                    {
+                        ServerID = serverID,
+                        ServerName = lobby.Name,
+                        CurrentPlayers = lobby.Players.Count,
+                        MaxPlayers = lobby.MaxPlayers,
+                        Lobby = lobby,
+                        RelayJoinCode = joinCode.Value,
+                        ConnectType = "Unity Relay"
+                    });
+                }
+                await UniTask.Delay(TimeSpan.FromSeconds(4), true, cancellationToken: cancellationToken);
+            }
         }
         
-        public async UniTask<string> StartHostWithRelay(int maxConnections, string connectionType)
+        private async UniTask RegisterRelay()
         {
             var networkManager = InstanceFinder.NetworkManager;
+
             await UnityServices.InitializeAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
-            {
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            }
-
-            // Request allocation and join code
-            var allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections);
-            var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            // Configure transport
-            var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
-            unityTransport.SetRelayServerData(allocation.ToRelayServerData(connectionType));
-
             
-            var lobbyName = "new lobby";
-            var maxPlayers = 4;
+            var allocation = await RelayService.Instance.CreateAllocationAsync(_serverConfig.MaxPlayers);
+            var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+            var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
+            unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
+
             var options = new CreateLobbyOptions
             {
-                IsPrivate = false
-            };
-
-            var lobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
-            Debug.Log($"Lobby created: {lobby.Id}");
-        
-            // Start host
-            if (networkManager.ServerManager.StartConnection()) // Server is successfully started.
-            {
-                networkManager.ClientManager.StartConnection(); // You can choose not to call this method. Then only the server will start.
-                return joinCode;
-            }
-            return null;
-        }
-        
-        public async UniTask<bool> StartClientWithRelay(string joinCode, string connectionType)
-        {
-            var networkManager = InstanceFinder.NetworkManager;
-            
-            await UnityServices.InitializeAsync();
-            if (!AuthenticationService.Instance.IsSignedIn)
-            {
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            }
-
-            var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode: joinCode);
-            networkManager.GetComponent<UnityTransport>().SetRelayServerData(allocation.ToRelayServerData(connectionType));
-            return !string.IsNullOrEmpty(joinCode) && networkManager.ClientManager.StartConnection();;
-        }
-        
-        public async UniTask ListLobbies()
-        {
-            var options = new QueryLobbiesOptions
-            {
-                Count = 25,
-                Filters = new List<QueryFilter>()
+                IsPrivate = false,
+                Data = new Dictionary<string, DataObject>
                 {
-                    new(field: QueryFilter.FieldOptions.AvailableSlots,
-                        op: QueryFilter.OpOptions.GT,
-                        value: "0")
-                },
-                Order = new List<QueryOrder>()
-                {
-                    new(asc: false,
-                        field: QueryOrder.FieldOptions.Created)
+                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
+                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) }
                 }
             };
 
-            var response = await LobbyService.Instance.QueryLobbiesAsync(options);
-            foreach (var lobby in response.Results)
+            _hostLobby = await LobbyService.Instance.CreateLobbyAsync(_serverConfig.ServerName, _serverConfig.MaxPlayers + 1, options);
+            
+            _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            UniTask.Void(async cancellationToken =>
             {
-                Debug.Log($"Lobby: {lobby.Name}, Players: {lobby.Players.Count}/{lobby.MaxPlayers}");
-            }
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    await UniTask.Delay(TimeSpan.FromSeconds(25), true, cancellationToken: cancellationToken);
+                    if (_hostLobby == null) 
+                        break;
+                    await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
+                }
+            }, _heartbeatCancellation.Token);
         }
         
-        public async UniTask JoinLobby(string lobbyId)
+        private async UniTask StopRelay()
         {
-            var lobby = await LobbyService.Instance.JoinLobbyByIdAsync(lobbyId);
-            Debug.Log($"Joined Lobby: {lobby.Name}");
+            _heartbeatCancellation?.Cancel();
+            _heartbeatCancellation?.Dispose();
+            _heartbeatCancellation = null;
+            await LobbyService.Instance.DeleteLobbyAsync(_hostLobby.Id);
         }
     }
 }

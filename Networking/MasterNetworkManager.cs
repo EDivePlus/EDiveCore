@@ -40,6 +40,9 @@ namespace EDIVE.Networking
                 Debug.LogError("NetworkManager is not initialized. Make sure FishNet is set up correctly.");
                 return;
             }
+            
+            var multiPass = InstanceFinder.TransportManager.GetTransport<Multipass>();
+            if (multiPass != null) multiPass.SetClientTransport<Tugboat>();
 
             _networkManager.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
             _networkManager.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
@@ -167,13 +170,6 @@ namespace EDIVE.Networking
             if (runtimeMode == NetworkRuntimeMode.Offline)
                 return;
             
-            var multiPass = InstanceFinder.TransportManager.GetTransport<Multipass>();
-            if (multiPass != null)
-            {
-                // Set correct transport
-                multiPass.SetClientTransport<Tugboat>();
-            }
-
             switch (runtimeMode)
             {
                 case NetworkRuntimeMode.Client:

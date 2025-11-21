@@ -13,7 +13,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         [SerializeField]
         private NetworkDiscovery _NetworkDiscovery;
 
-        public override UniTask Initialize(ServerConfig serverConfig)
+        public override UniTask Initialize()
         {
             _NetworkDiscovery.ServerListUpdated += OnServerListUpdated;
             return UniTask.CompletedTask;
@@ -42,15 +42,16 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             
         }
 
-        private static ServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
+        private static AddressServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
         {
-            return new ServerRecord()
+            return new AddressServerRecord()
             {
                 Address = endPoint.Address.ToString(),
                 ServerID = response.ServerID,
                 ServerName = response.ServerName,
                 MaxPlayers = response.MaxPlayers,
-                CurrentPlayers = response.CurrentPlayers
+                CurrentPlayers = response.CurrentPlayers,
+                ConnectType = "Local"
             };
         }
     }
