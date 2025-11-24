@@ -50,8 +50,9 @@ namespace EDIVE.Networking.ServerManagement.UI
         private void OnConnectClicked()
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            _serverRecord.PrepareForConnect().ContinueWith(success =>
+            UniTask.Void(async () =>
             {
+                var success = await _serverRecord.PrepareForConnect();
                 if (!success) 
                     return;
                 

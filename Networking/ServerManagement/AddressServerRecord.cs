@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using FishNet;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
 {
@@ -24,6 +25,8 @@ namespace EDIVE.Networking.ServerManagement
                 return UniTask.FromResult(false);
             
             tugboat.SetClientAddress(Address);
+            
+            Debug.Log($"[ServerRecord] Connect using direct address {Address}");
             return UniTask.FromResult(true);
         }
     }

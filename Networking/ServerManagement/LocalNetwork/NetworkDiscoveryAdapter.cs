@@ -27,14 +27,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         
         public override void StartSearch()
         {
-            /*
-            Servers.Clear();
-            if (_NetworkDiscovery.IsSearching)
-            {
-                _NetworkDiscovery.StopSearchingOrAdvertising();
-                _NetworkDiscovery.SearchForServers();
-            }
-            */
+
         }
 
         public override void StopSearch()
@@ -51,7 +44,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 ServerName = response.ServerName,
                 MaxPlayers = response.MaxPlayers,
                 CurrentPlayers = response.CurrentPlayers,
-                ConnectType = "Local"
             };
         }
     }

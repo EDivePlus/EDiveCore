@@ -8,16 +8,16 @@ using Cysharp.Threading.Tasks;
 using FishNet;
 using FishNet.Transporting.UTP;
 using Unity.Services.Authentication;
-using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
+using UnityEngine.Networking;
 
-namespace EDIVE.Networking.ServerManagement.UnityRelay
+namespace EDIVE.Networking.ServerManagement.UnityServices
 {
-    public class UnityRelayServerListAdapter : AServerListAdapter
+    public class UnityLobbyServerListAdapter : AServerListAdapter
     {
         private CancellationTokenSource _searchCancellation;
         private CancellationTokenSource _heartbeatCancellation;
@@ -27,7 +27,7 @@ namespace EDIVE.Networking.ServerManagement.UnityRelay
 
         public override async UniTask Initialize()
         {
-            await UnityServices.InitializeAsync();
+            await Unity.Services.Core.UnityServices.InitializeAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
@@ -81,20 +81,18 @@ namespace EDIVE.Networking.ServerManagement.UnityRelay
                 var response = await LobbyService.Instance.QueryLobbiesAsync(options);
                 foreach (var lobby in response.Results)
                 {
-                    if (!lobby.Data.TryGetValue("joinCode", out var joinCode) || 
-                        !lobby.Data.TryGetValue("uniqueID", out var uniqueID) || 
-                        !long.TryParse(uniqueID.Value, out var serverID))
+                    if (!lobby.Data.TryGetValue("uniqueID", out var uniqueID) || !long.TryParse(uniqueID.Value, out var serverID))
                         continue;
                 
-                    AddServer(new UnityRelayServerRecord
+                    AddServer(new UnityLobbyServerRecord
                     {
                         ServerID = serverID,
                         ServerName = lobby.Name,
                         CurrentPlayers = lobby.Players.Count,
                         MaxPlayers = lobby.MaxPlayers,
                         Lobby = lobby,
-                        RelayJoinCode = joinCode.Value,
-                        ConnectType = "Unity Relay"
+                        RelayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty,
+                        DirectConnectAddress = lobby.Data.TryGetValue("publicIP", out var publicIP) ? publicIP.Value : string.Empty,
                     });
                 }
                 await UniTask.Delay(TimeSpan.FromSeconds(4), true, cancellationToken: cancellationToken);
@@ -105,7 +103,7 @@ namespace EDIVE.Networking.ServerManagement.UnityRelay
         {
             var networkManager = InstanceFinder.NetworkManager;
 
-            await UnityServices.InitializeAsync();
+            await Unity.Services.Core.UnityServices.InitializeAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
             
@@ -115,13 +113,15 @@ namespace EDIVE.Networking.ServerManagement.UnityRelay
             var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
             unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
 
+            var publicIP = await GetPublicIPAsync();
             var options = new CreateLobbyOptions
             {
                 IsPrivate = false,
                 Data = new Dictionary<string, DataObject>
                 {
+                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) },
                     { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
-                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) }
+                    { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) }
                 }
             };
 
@@ -146,6 +146,13 @@ namespace EDIVE.Networking.ServerManagement.UnityRelay
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
             await LobbyService.Instance.DeleteLobbyAsync(_hostLobby.Id);
+        }
+        
+        private static async UniTask<string> GetPublicIPAsync()
+        {
+            using var www = UnityWebRequest.Get("https://api.ipify.org");
+            var request = await www.SendWebRequest();
+            return request.result == UnityWebRequest.Result.Success ? www.downloadHandler.text.Trim() : string.Empty;
         }
     }
 }
