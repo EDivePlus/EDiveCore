@@ -27,6 +27,12 @@ namespace EDIVE.Networking.ServerManagement
         
         public virtual UniTask Initialize() => UniTask.CompletedTask;
 
+        public virtual UniTask PrepareServerStart()
+        {
+            StopSearch();
+            return UniTask.CompletedTask;
+        }
+        
         public virtual void StartServer(){}
         public virtual void StopServer(){}
         

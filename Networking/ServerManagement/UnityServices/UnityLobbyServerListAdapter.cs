@@ -31,13 +31,13 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
-
-        public override void StartServer()
+        
+        public override async UniTask PrepareServerStart()
         {
-            base.StartServer();
-            RegisterRelay().Forget();
+            await base.PrepareServerStart();
+            await RegisterRelay();
         }
-
+        
         public override void StopServer()
         {
             base.StopServer();
@@ -111,7 +111,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
             var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
-            unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
+            var serverData = allocation.ToRelayServerData("dtls");
+            unityTransport.SetRelayServerData(serverData);
 
             var publicIP = await GetPublicIPAsync();
             var options = new CreateLobbyOptions
@@ -145,7 +146,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _heartbeatCancellation?.Cancel();
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
-            await LobbyService.Instance.DeleteLobbyAsync(_hostLobby.Id);
+            if (_hostLobby != null)
+                await LobbyService.Instance.DeleteLobbyAsync(_hostLobby.Id);
         }
         
         private static async UniTask<string> GetPublicIPAsync()

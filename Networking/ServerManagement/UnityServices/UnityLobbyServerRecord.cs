@@ -45,20 +45,20 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             var unityTransport = transportManager.GetTransport<UnityTransport>();
             if (unityTransport == null)
                 return false;
-
+            
             try
             {
                 var allocation = await RelayService.Instance.JoinAllocationAsync(RelayJoinCode);
                 unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
+                multiPass.SetClientTransport<UnityTransport>();
+                Debug.Log($"[ServerRecord] Connect using relay code {RelayJoinCode}");
+                return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
                 return false;
             }
-            
-            Debug.Log($"[ServerRecord] Connect using relay code {RelayJoinCode}");
-            return true;
         }
         
         public static async UniTask<bool> IsServerReachable(string ip, int port, int timeoutMs = 1000)

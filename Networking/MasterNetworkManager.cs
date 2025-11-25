@@ -2,6 +2,8 @@
 // Created: 22.03.2025
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
@@ -13,6 +15,7 @@ using FishNet.Managing;
 using FishNet.Transporting;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace EDIVE.Networking
@@ -29,7 +32,13 @@ namespace EDIVE.Networking
         
         private LocalConnectionState _serverConnectionState = LocalConnectionState.Stopped;
         private LocalConnectionState _clientConnectionState = LocalConnectionState.Stopped;
-
+        
+        public Signal BeforeHostStarted { get; } = new();
+        public Signal BeforeServerStarted { get; } = new();
+        public Signal BeforeClientStarted { get; } = new();
+        
+        public event Func<UniTask> ServerPrepareHandlers;
+        
         public async UniTask Load(Action<float> progressCallback)
         {
             // Wait one frame for FishNet to initialize
@@ -134,6 +143,7 @@ namespace EDIVE.Networking
 
         public void StartHost()
         {
+            BeforeHostStarted?.Dispatch();
             StartServer();
             StartClient();
         }
@@ -141,12 +151,29 @@ namespace EDIVE.Networking
         // The server can be started directly from the ServerManager or Transport
         public void StartServer()
         {
+            StartServerAsync().Forget();
+        }
+        
+        private async UniTaskVoid StartServerAsync()
+        {
+            if (ServerPrepareHandlers != null)
+            {
+                var tasks = ServerPrepareHandlers.GetInvocationList()
+                    .Cast<Func<UniTask>>()
+                    .Where(h => h != null)
+                    .Select(h => h());
+
+                await UniTask.WhenAll(tasks);
+            }
+   
+            BeforeServerStarted?.Dispatch();
             InstanceFinder.ServerManager.StartConnection();
         }
 
         // The client can be started directly from the ClientManager or Transport
         public void StartClient()
         {
+            BeforeClientStarted?.Dispatch();
             InstanceFinder.ClientManager.StartConnection();
         }
         

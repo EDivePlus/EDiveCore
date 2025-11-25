@@ -254,7 +254,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 					catch (Exception exception)
 					{
 						Debug.LogException(exception, this);
-						udpClient.Close();
+						udpClient?.Close();
 						udpClient = null;
 					}
 					
@@ -310,7 +310,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 							{
 								LogInformation($"Received response from {result.RemoteEndPoint}.");
 								var response = DeserializeResponse(result.Buffer);
-								_mainThreadSynchronizationContext.Post(_ => UpdateServerList(result.RemoteEndPoint, response), null);
+								_mainThreadSynchronizationContext?.Post(_ => UpdateServerList(result.RemoteEndPoint, response), null);
 							}
 							catch (Exception ex)
 							{
@@ -323,12 +323,12 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 							udpClient.Close();
 							udpClient = null;
 						}
-						_mainThreadSynchronizationContext.Post(_ => RemoveExpiredServers(), null);
+						_mainThreadSynchronizationContext?.Post(_ => RemoveExpiredServers(), null);
 					}
 					catch (Exception exception)
 					{
 						Debug.LogException(exception, this);
-						udpClient.Close();
+						udpClient?.Close();
 						udpClient = null;
 					}
 				}

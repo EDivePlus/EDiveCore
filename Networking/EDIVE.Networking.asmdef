@@ -33,7 +33,8 @@
         "Unity.Services.Relay.RelayService",
         "Unity.Networking.Transport",
         "FishyUnityTransport",
-        "GameKit.Dependencies"
+        "GameKit.Dependencies",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

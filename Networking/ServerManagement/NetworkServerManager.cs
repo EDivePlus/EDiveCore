@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.Core;
 using EDIVE.External.Signals;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
@@ -49,6 +50,20 @@ namespace EDIVE.Networking.ServerManagement
                 await adapter.Initialize(_ServerConfig);
             }
             InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
+            var masterNetworkManager = await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
+            masterNetworkManager.ServerPrepareHandlers += OnServerPrepareHandlers;
+        }
+
+        protected override void PopulateDependencies(HashSet<Type> dependencies)
+        {
+            base.PopulateDependencies(dependencies);
+            dependencies.Add(typeof(MasterNetworkManager));
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionStateChanged;
         }
         
         public void EnumerateAdapters(Action<AServerListAdapter> action)
@@ -60,34 +75,29 @@ namespace EDIVE.Networking.ServerManagement
                 action(adapter);
             }
         }
-
-        protected override void OnDestroy()
+        
+        private async UniTask OnServerPrepareHandlers()
         {
-            base.OnDestroy();
-            InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionStateChanged;
+            _serverRunning = true;
+            foreach (var adapter in _Adapters)
+            { 
+                if (adapter ==null)
+                    continue;
+                await adapter.PrepareServerStart();
+            }
         }
-
+        
         private void OnServerConnectionStateChanged(ServerConnectionStateArgs args)
         {
-            if (args.ConnectionState == LocalConnectionState.Starting && !_serverRunning)
-            {
-                _serverRunning = true;
-                EnumerateAdapters(adapter => adapter.StopSearch());
-            }
-            else if (args.ConnectionState == LocalConnectionState.Started && InstanceFinder.ServerManager.IsOnlyOneServerStarted())
+            if (args.ConnectionState == LocalConnectionState.Started && InstanceFinder.ServerManager.IsOnlyOneServerStarted())
             {
                 EnumerateAdapters(adapter => adapter.StartServer());
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped && !InstanceFinder.ServerManager.IsAnyServerStarted())
             {
+                _serverRunning = false;
                 EnumerateAdapters(adapter => adapter.StopServer());
             }
-        }
-
-        protected override void PopulateDependencies(HashSet<Type> dependencies)
-        {
-            base.PopulateDependencies(dependencies);
-            dependencies.Add(typeof(MasterNetworkManager));
         }
 
         public void StartSearch()
