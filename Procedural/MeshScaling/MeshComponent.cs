@@ -8,14 +8,14 @@ using UnityEngine;
 namespace EDIVE.Procedural.MeshScaling
 {
     [Serializable]
-    public class MeshComponent : AMeshScalerComponent
+    public class MeshComponent : AMeshSliceScalerComponent
     {
         [SerializeField]
         private Mesh _OriginalMesh;
         
         [ReadOnly]
         [SerializeField]
-        private Mesh _SlicedMesh;
+        private Mesh _TargetMesh;
         
         [SerializeField]
         private MeshFilter _MeshFilter;
@@ -23,37 +23,88 @@ namespace EDIVE.Procedural.MeshScaling
         [SerializeField]
         private MeshCollider _MeshCollider;
         
-        public void Initialize()
+        [SerializeField]
+        private bool _ContributeToBounds = true;
+        
+        [HideInInspector]
+        [SerializeField]
+        private int _SlicedMeshHash;
+        
+        [HideInInspector]
+        [SerializeField]
+        private int _ModificationsHash;
+
+        public override bool TryCalculateBounds(Transform root, out Bounds bounds)
         {
-            if (_OriginalMesh == null) 
-                return;
-            
-            _SlicedMesh = UnityEngine.Object.Instantiate(_OriginalMesh);
-            _SlicedMesh.name = $"{_OriginalMesh.name}(sliced)";
-            if (_MeshFilter != null) 
-                _MeshFilter.sharedMesh = _SlicedMesh;
+            bounds = default;
+            if (!_ContributeToBounds || _OriginalMesh == null)
+                return false;
+
+            if (TryGetTransform(out var tr))
+            {
+                bounds = MeshUtility.CalculateBounds(_OriginalMesh, tr, root);
+                return true;
+            }
+            return false;
+        }
+
+        private bool TryGetTransform(out Transform root)
+        {
+            root = null;
+            if (_MeshFilter != null)
+            {
+                root = _MeshFilter.transform;
+                return true;
+            }
+
             if (_MeshCollider != null)
-                _MeshCollider.sharedMesh = _SlicedMesh;
+            {
+                root = _MeshCollider.transform;
+                return true;
+            }
+
+            return false;
         }
         
-        public bool TryCalculateBounds(Transform root, out Bounds bounds)
+        public override bool Recalculate(MeshSliceScaleDetails details, Component container, Transform root, bool force = false)
         {
             if (_OriginalMesh == null)
             {
-                bounds = default;
+                if (_SlicedMeshHash != 0)
+                {
+                    _SlicedMeshHash = 0;
+                    _ModificationsHash = 0;
+                    return true;
+                }
                 return false;
             }
 
-            bounds = MeshUtility.CalculateBounds(_OriginalMesh, _MeshFilter.transform, root);
-            return true;
-        }
-        
-        public void RecalculateSlicedMesh(MeshScalerDetails details)
-        {
-            if (_OriginalMesh == null || _SlicedMesh == null) 
-                return;
+            if (!TryGetTransform(out var tr)) 
+                return false;
+
+            var modified = false;
+            var newHash = HashCode.Combine(container, _OriginalMesh);
+            if (_TargetMesh == null || newHash != _SlicedMeshHash || force)
+            {
+                _TargetMesh = UnityEngine.Object.Instantiate(_OriginalMesh);
+                _TargetMesh.name = $"{_OriginalMesh.name} (sliced)";
+                _SlicedMeshHash = newHash;
+                modified = true;
+            }
             
-            MeshUtility.SliceMesh(_OriginalMesh, _SlicedMesh, details.TargetSize, _OriginalMesh.bounds, details.SliceStart, details.SliceEnd);
+            var newModsHash = HashCode.Combine(_OriginalMesh, details);
+            if (newModsHash != _ModificationsHash || force)
+            {
+                MeshUtility.SliceScaleMesh(_OriginalMesh, _TargetMesh, details.Bounds.size, details.TargetScale, details.SliceMin, details.SliceMax, tr, root);
+                _ModificationsHash = newModsHash;
+                modified = true;
+            }
+            
+            if (_MeshFilter != null) 
+                _MeshFilter.sharedMesh = _TargetMesh;
+            if (_MeshCollider != null)
+                _MeshCollider.sharedMesh = _TargetMesh;
+            return  modified;
         }
     }
 }

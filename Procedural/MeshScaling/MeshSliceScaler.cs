@@ -11,74 +11,86 @@ using UnityEngine;
 namespace EDIVE.Procedural.MeshScaling
 {
     [ExecuteAlways]
-    public class MeshScaler : MonoBehaviour
+    public class MeshSliceScaler : MonoBehaviour
     {
         [HideLabel]
         [InlineProperty]
         [SerializeField]
-        private MeshScalerDetails _Details = new();
+        [OnValueChanged(nameof(Recalculate), true)]
+        private MeshSliceScaleDetails _Details = new();
         
         [PropertySpace]
-        [SerializeField]
-        private List<MeshComponent> _Components = new();
+        [SerializeReference]
+        [HideReferenceObjectPicker]
+        [OnValueChanged(nameof(Recalculate), true)]
+        private List<AMeshSliceScalerComponent> _Components = new();
         
         public Vector3 TargetSize
         {
-            get => _Details.TargetSize;
+            get => _Details.TargetScale;
             set
             {
-                _Details.TargetSize = value;
-                RecalculateSlicedMesh();
+                _Details.TargetScale = value;
+                Recalculate();
             }
         }
         
-        private void Update()
+        private void OnEnable()
         {
-            RecalculateSlicedMesh();
+            Recalculate();
         }
+        
+        private void RecalculateBounds()
+        {
+            var hasBounds = false;
+            var bounds = new Bounds(Vector3.zero, Vector3.one);
+            foreach (var component in _Components)
+            {
+                if (component == null)
+                    continue;
+                component.TryCalculateBounds(transform, out var componentBounds);
+                if (!hasBounds)
+                {
+                    bounds = componentBounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(componentBounds);
+                }
+            }
 
+            _Details.Bounds = bounds;
+            _Details.SliceMin = _Details.SliceMin.Clamp(_Details.Bounds.min, _Details.Bounds.max);
+            _Details.SliceMax = _Details.SliceMax.Clamp(_Details.SliceMin, _Details.Bounds.max);
+        }
+        
+        private void Recalculate(bool force = false)
+        {
+            var modified = false;
+            foreach (var component in _Components)
+            {
+                if (component == null)
+                    continue;
+                modified |= component.Recalculate(_Details, this, transform, force);
+            }
+            if (modified)
+                RecalculateBounds();
+        }
+        
+#if UNITY_EDITOR
+        [Button]
+        private void ForceRecalculate()
+        {
+            Recalculate(true);
+        }
+        
         [OnInspectorInit]
         private void OnInspectorInit()
         {
-            InitializeMesh();
+            Recalculate();
         }
         
-        [PropertySpace]
-        [Button]
-        private void InitializeMesh()
-        {
-            foreach (var component in _Components)
-            {
-                component.Initialize();
-            }
-        }
-
-        [Button]
-        private void RecalculateBounds()
-        {
-            Bounds? bounds = null;
-            foreach (var component in _Components)
-            {
-                component.TryCalculateBounds(transform, out var componentBounds);
-                if (!bounds.HasValue)
-                    bounds = componentBounds;
-                else
-                    bounds.Value.Encapsulate(componentBounds);
-            }
-            _Details.Bounds = bounds ?? new Bounds(Vector3.zero, Vector3.one);
-            _Details.SliceStart = _Details.SliceStart.Clamp(_Details.Bounds.min, _Details.Bounds.max);
-            _Details.SliceEnd = _Details.SliceEnd.Clamp(_Details.SliceStart, _Details.Bounds.max);
-        }
-        
-        [Button]
-        private void RecalculateSlicedMesh()
-        {
-            foreach (var component in _Components)
-            {
-                component.RecalculateSlicedMesh(_Details);
-            }
-        }
-#if UNITY_EDITOR
         [OnSceneGUI]
         private void OnSceneGUI()
         {
@@ -93,14 +105,14 @@ namespace EDIVE.Procedural.MeshScaling
         
         private void DrawSliceHandles()
         {
-            DrawPlaneHandle(ref _Details.SliceStart.x, ref _Details.SliceEnd.x, -Vector3.right, Vector3.up, Vector3.forward, _Details.Bounds, Color.red);
-            DrawPlaneHandle(ref _Details.SliceEnd.x, ref _Details.SliceStart.x, Vector3.right, Vector3.up, Vector3.forward, _Details.Bounds, Color.red);
+            DrawPlaneHandle(ref _Details.SliceMin.x, ref _Details.SliceMax.x, -Vector3.right, Vector3.up, Vector3.forward, _Details.Bounds, Color.red);
+            DrawPlaneHandle(ref _Details.SliceMax.x, ref _Details.SliceMin.x, Vector3.right, Vector3.up, Vector3.forward, _Details.Bounds, Color.red);
 
-            DrawPlaneHandle(ref _Details.SliceStart.y, ref _Details.SliceEnd.y, -Vector3.up, Vector3.right, Vector3.forward, _Details.Bounds, Color.green);
-            DrawPlaneHandle(ref _Details.SliceEnd.y, ref _Details.SliceStart.y, Vector3.up, Vector3.right, Vector3.forward, _Details.Bounds, Color.green);
+            DrawPlaneHandle(ref _Details.SliceMin.y, ref _Details.SliceMax.y, -Vector3.up, Vector3.right, Vector3.forward, _Details.Bounds, Color.green);
+            DrawPlaneHandle(ref _Details.SliceMax.y, ref _Details.SliceMin.y, Vector3.up, Vector3.right, Vector3.forward, _Details.Bounds, Color.green);
 
-            DrawPlaneHandle(ref _Details.SliceStart.z, ref _Details.SliceEnd.z, -Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
-            DrawPlaneHandle(ref _Details.SliceEnd.z, ref _Details.SliceStart.z,Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
+            DrawPlaneHandle(ref _Details.SliceMin.z, ref _Details.SliceMax.z, -Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
+            DrawPlaneHandle(ref _Details.SliceMax.z, ref _Details.SliceMin.z,Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
         }
 
         private void DrawPlaneHandle(ref float value, ref float otherValue, Vector3 axis, Vector3 extendA, Vector3 extendB, Bounds bounds, Color color)
