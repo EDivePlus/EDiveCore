@@ -2,6 +2,7 @@
 // Created: 22.10.2025
 
 using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Procedural.MeshScaling
@@ -18,6 +19,9 @@ namespace EDIVE.Procedural.MeshScaling
         [SerializeField]
         private Vector3 _SliceEnd = Vector3.zero;
 
+        [Header("Bounds")]
+        [HideLabel]
+        [InlineProperty]
         [SerializeField]
         private Bounds _Bounds;
 

@@ -16,9 +16,12 @@ namespace EDIVE.Procedural.MeshScaling
         [HideLabel]
         [InlineProperty]
         [SerializeField]
-        private MeshScalerDetails _Details;
+        private MeshScalerDetails _Details = new();
         
-        [ShowInInspector]
+        [PropertySpace]
+        [SerializeField]
+        private List<MeshComponent> _Components = new();
+        
         public Vector3 TargetSize
         {
             get => _Details.TargetSize;
@@ -28,9 +31,6 @@ namespace EDIVE.Procedural.MeshScaling
                 RecalculateSlicedMesh();
             }
         }
-        
-        [SerializeField]
-        private List<MeshComponent> _Components;
         
         private void Update()
         {
@@ -43,6 +43,7 @@ namespace EDIVE.Procedural.MeshScaling
             InitializeMesh();
         }
         
+        [PropertySpace]
         [Button]
         private void InitializeMesh()
         {
