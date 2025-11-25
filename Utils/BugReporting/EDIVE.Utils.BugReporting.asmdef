@@ -1,0 +1,18 @@
+{
+    "name": "EDIVE.Utils.BugReporting",
+    "rootNamespace": "",
+    "references": [
+        "GUID:7b58570e35a341a3b6470e9b3704a5fb",
+        "GUID:40e6101d703a07b4f832468200e08069",
+        "GUID:6b9e81fb234740d3b349739715b3494b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

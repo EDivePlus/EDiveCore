@@ -9,11 +9,14 @@ using UnityEngine.Networking;
 
 namespace EDIVE.External.Discord.Webhooks
 {
-    public class DiscordWebhook : ScriptableObject
+    [Serializable]
+    public class DiscordWebhook
     {
         [SerializeField]
         [Required]
         private string _WebHook;
+        
+        public bool IsValid => Uri.IsWellFormedUriString(_WebHook, UriKind.Absolute);
 
         [Button]
         public void SendMessage(DiscordMessage message, List<DiscordFileAttachment> textFiles = null)
@@ -54,7 +57,6 @@ namespace EDIVE.External.Discord.Webhooks
             return (webRequest.result, webRequest.downloadHandler?.text);
         }
         
-
 #if UNITY_EDITOR
         [Button]
         public void SendTestMessage()
