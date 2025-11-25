@@ -79,8 +79,8 @@ namespace EDIVE.Utils.BugReporting
         {
             if (!_DiscordWebhook.IsValid) 
                 return;
-            
-            _DiscordWebhook.SendMessage(new DiscordMessage
+
+            var message = new DiscordMessage
             {
                 Username = "Reporter",
                 AvatarUrl = new Uri("https://cdn-icons-png.flaticon.com/512/1320/1320452.png"),
@@ -99,11 +99,15 @@ namespace EDIVE.Utils.BugReporting
                         }
                     }
                 }
-            }, new List<DiscordFileAttachment>
-            {
-                new("Logs.txt", Encoding.UTF8.GetBytes(string.Join("\n", _logs))),
-                new("Errors.txt", Encoding.UTF8.GetBytes(string.Join("\n", _errors)))
-            });
+            };
+            
+            var attachments = new List<DiscordFileAttachment>();
+            if(_logs.Count > 0) 
+                attachments.Add(new DiscordFileAttachment("Logs.txt", Encoding.UTF8.GetBytes(string.Join("\n", _logs))));
+            if (_errors.Count > 0) 
+                attachments.Add(new DiscordFileAttachment("Errors.txt", Encoding.UTF8.GetBytes(string.Join("\n", _errors))));
+
+            _DiscordWebhook.SendMessage(message, attachments);
             ReportSent?.Invoke();
         }
     }
