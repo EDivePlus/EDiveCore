@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,6 +17,17 @@ namespace EDIVE.Procedural.MeshScaling
         [InlineProperty]
         [SerializeField]
         private MeshScalerDetails _Details;
+        
+        [ShowInInspector]
+        public Vector3 TargetSize
+        {
+            get => _Details.TargetSize;
+            set
+            {
+                _Details.TargetSize = value;
+                RecalculateSlicedMesh();
+            }
+        }
         
         [SerializeField]
         private List<MeshComponent> _Components;
@@ -40,6 +50,23 @@ namespace EDIVE.Procedural.MeshScaling
             {
                 component.Initialize();
             }
+        }
+
+        [Button]
+        private void RecalculateBounds()
+        {
+            Bounds? bounds = null;
+            foreach (var component in _Components)
+            {
+                component.TryCalculateBounds(transform, out var componentBounds);
+                if (!bounds.HasValue)
+                    bounds = componentBounds;
+                else
+                    bounds.Value.Encapsulate(componentBounds);
+            }
+            _Details.Bounds = bounds ?? new Bounds(Vector3.zero, Vector3.one);
+            _Details.SliceStart = _Details.SliceStart.Clamp(_Details.Bounds.min, _Details.Bounds.max);
+            _Details.SliceEnd = _Details.SliceEnd.Clamp(_Details.SliceStart, _Details.Bounds.max);
         }
         
         [Button]

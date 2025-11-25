@@ -13,10 +13,10 @@ namespace EDIVE.Procedural.MeshScaling
         private Vector3 _TargetSize = Vector3.one;
 
         [SerializeField]
-        private Vector3 _SliceStart = -Vector3.one;
+        private Vector3 _SliceStart = Vector3.zero;
 
         [SerializeField]
-        private Vector3 _SliceEnd = Vector3.one;
+        private Vector3 _SliceEnd = Vector3.zero;
 
         [SerializeField]
         private Bounds _Bounds;

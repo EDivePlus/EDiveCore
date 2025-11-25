@@ -128,5 +128,19 @@ namespace EDIVE.NativeUtils
                 Mathf.Clamp(value.y, Mathf.Min(yRange.x, yRange.y), Mathf.Max(yRange.x, yRange.y))
             );
         }
+        
+        public static Vector3 Abs(this Vector3 v)
+        {
+            v.x = Mathf.Abs(v.x);
+            v.y = Mathf.Abs(v.y);
+            v.z = Mathf.Abs(v.z);
+            return v;
+        }
+        
+        public static Vector3 Sign(this Vector3 v)
+        {
+            return new Vector3(Mathf.Sign(v.x), Mathf.Sign(v.y), Mathf.Sign(v.z));
+        }
+
     }
 }
