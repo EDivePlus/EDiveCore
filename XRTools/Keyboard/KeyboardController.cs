@@ -19,6 +19,7 @@ namespace EDIVE.XRTools.Keyboard
         [ValidateMultiState(typeof(KeyboardLayout))]
         private AMultiState _LayoutState;
 
+        /*
         public TMP_InputField CurrentInputField
         {
             get => _currentInputField;
@@ -34,6 +35,7 @@ namespace EDIVE.XRTools.Keyboard
                 FocusChanged.Dispatch();
             }
         }
+        */
 
         public string Text
         {
@@ -76,7 +78,7 @@ namespace EDIVE.XRTools.Keyboard
         public Signal FocusChanged { get; } = new();
         public Signal CharacterLimitReached { get; } = new();
 
-        private TMP_InputField _currentInputField;
+        //private TMP_InputField _currentInputField;
         private List<KeyboardKey> _keys;
         private string _text = string.Empty;
 
