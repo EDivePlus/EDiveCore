@@ -13,11 +13,15 @@ namespace EDIVE.XRTools.Keyboard
         [SerializeField]
         private bool _HideKeyboardOnAwake = true;
 
-        public KeyboardController Keyboard => _Keyboard;
+        public KeyboardController Keyboard
+        {
+            get => _Keyboard;
+            set => _Keyboard = value;
+        }
 
         private void Awake()
         {
-            if (_HideKeyboardOnAwake)
+            if (_Keyboard != null && _HideKeyboardOnAwake)
             {
                 _Keyboard.gameObject.SetActive(false);
             }

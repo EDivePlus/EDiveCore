@@ -3,6 +3,7 @@ using EDIVE.ScriptableArchitecture.Variables.Impl;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
 namespace EDIVE.XRTools.Keyboard
@@ -51,22 +52,35 @@ namespace EDIVE.XRTools.Keyboard
             _lastFocusedObject = current;
         }
 
-        private static bool TryGetInputField(GameObject go, out TMP_InputField inputField)
+        private static bool TryGetInputField(GameObject go, out AInputFieldWrapper inputField)
         {
             inputField = null;
-            return go != null && go.TryGetComponent(out inputField);
+            if (go == null)
+                return false;
+
+            if (go.TryGetComponent<TMP_InputField>(out var tmpInputField))
+            {
+                inputField = new TMPInputFieldWrapper(tmpInputField);
+                return true;
+            }
+            if (go.TryGetComponent<InputField>(out var nativeInputField))
+            {
+                inputField = new NativeInputFieldWrapper(nativeInputField);
+                return true;
+            }
+            return false;
         }
 
-        private void OnInputFieldFocused(TMP_InputField inputField)
+        private void OnInputFieldFocused(AInputFieldWrapper inputField)
         {
-            if (_AutoAddKeyboardDisplay && !inputField.TryGetComponent<KeyboardDisplay>(out _))
+            if (_AutoAddKeyboardDisplay && !inputField.GameObject.TryGetComponent<KeyboardDisplay>(out _))
             {
-                var keyboardDisplay = inputField.gameObject.AddComponent<KeyboardDisplay>();
+                var keyboardDisplay = inputField.GameObject.AddComponent<KeyboardDisplay>();
                 keyboardDisplay.ManualSelect();
             }
         }
-
-        public KeyboardController ShowKeyboard(TMP_InputField inputField, bool observeCharacterLimit = false)
+        
+        public KeyboardController ShowKeyboard(AInputFieldWrapper inputField, bool observeCharacterLimit = false)
         {
             if (_Keyboard == null)
                 return null;

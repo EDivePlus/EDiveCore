@@ -238,7 +238,7 @@ namespace EDIVE.XRTools.Keyboard
             UpdateText(text);
             if (_ClearTextOnSubmit)
             {
-                InputField.text = string.Empty;
+                _InputField.Text = string.Empty;
             }
         }
 
@@ -254,18 +254,18 @@ namespace EDIVE.XRTools.Keyboard
         {
             var updatedText = text;
 
-            if (_MonitorCharacterLimit && updatedText.Length >= InputField.characterLimit)
-                updatedText = updatedText.Substring(0, InputField.characterLimit);
+            if (_MonitorCharacterLimit && updatedText.Length >= _InputField.CharacterLimit)
+                updatedText = updatedText[.._InputField.CharacterLimit];
 
             _InputField.Text = updatedText;
             _InputField.CaretPosition = _activeKeyboard.CaretPosition;
-            _InputField.selectionAnchorPosition = _activeKeyboard.SelectStartIndex;
-            _InputField.selectionFocusPosition = _activeKeyboard.SelectEndIndex;
+            _InputField.SelectionAnchorPosition = _activeKeyboard.SelectStartIndex;
+            _InputField.SelectionFocusPosition = _activeKeyboard.SelectEndIndex;
         }
 
         private void KeyboardOpening()
         {
-            if (!InputField.isFocused && !_AlwaysObserveKeyboard)
+            if (!_InputField.IsFocused && !_AlwaysObserveKeyboard)
                 StopObservingKeyboard(_activeKeyboard);
         }
 
@@ -277,7 +277,7 @@ namespace EDIVE.XRTools.Keyboard
 
         private void KeyboardFocusChanged()
         {
-            if (!InputField.isFocused && !_AlwaysObserveKeyboard)
+            if (!_InputField.IsFocused && !_AlwaysObserveKeyboard)
                 StopObservingKeyboard(_activeKeyboard);
         }
     }

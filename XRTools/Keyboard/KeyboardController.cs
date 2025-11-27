@@ -4,6 +4,7 @@ using EDIVE.External.Signals;
 using EDIVE.StateHandling.MultiStates;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace EDIVE.XRTools.Keyboard
 {
@@ -19,8 +20,7 @@ namespace EDIVE.XRTools.Keyboard
         [ValidateMultiState(typeof(KeyboardLayout))]
         private AMultiState _LayoutState;
 
-        /*
-        public TMP_InputField CurrentInputField
+        public AInputFieldWrapper CurrentInputField
         {
             get => _currentInputField;
             set
@@ -35,7 +35,6 @@ namespace EDIVE.XRTools.Keyboard
                 FocusChanged.Dispatch();
             }
         }
-        */
 
         public string Text
         {
@@ -78,7 +77,7 @@ namespace EDIVE.XRTools.Keyboard
         public Signal FocusChanged { get; } = new();
         public Signal CharacterLimitReached { get; } = new();
 
-        //private TMP_InputField _currentInputField;
+        private AInputFieldWrapper _currentInputField;
         private List<KeyboardKey> _keys;
         private string _text = string.Empty;
 
@@ -193,13 +192,26 @@ namespace EDIVE.XRTools.Keyboard
             CaretPosition = Text.Length;
         }
 
+        public virtual void Open(InputField inputField, bool observeCharacterLimit = false)
+        {
+            Open(new NativeInputFieldWrapper(inputField), observeCharacterLimit);
+        }
+        
         public virtual void Open(TMP_InputField inputField, bool observeCharacterLimit = false)
         {
-            CurrentInputField = inputField;
-            _monitorCharacterLimit = observeCharacterLimit;
-            _characterLimit = observeCharacterLimit ? CurrentInputField.characterLimit : -1;
+            Open(new TMPInputFieldWrapper(inputField), observeCharacterLimit);
+        }
+        
+        public virtual void Open(AInputFieldWrapper inputField, bool observeCharacterLimit = false)
+        {
+            if (inputField != null && inputField.IsValid())
+            {
+                CurrentInputField = inputField;
+                _monitorCharacterLimit = observeCharacterLimit;
+                _characterLimit = observeCharacterLimit ? CurrentInputField.CharacterLimit : -1;
+            }
 
-            Open(CurrentInputField.text);
+            Open(CurrentInputField.Text);
         }
 
         public void Open()
@@ -254,16 +266,18 @@ namespace EDIVE.XRTools.Keyboard
             _isOpen = false;
         }
 
-        private void StopObservingInputField(TMP_InputField inputField)
+        private void StopObservingInputField(AInputFieldWrapper inputField)
         {
-            if (!inputField) return;
-            CurrentInputField.onValueChanged.RemoveListener(OnInputFieldValueChange);
+            if (inputField == null || !inputField.IsValid())
+                return;
+            CurrentInputField.ValueChanged += OnInputFieldValueChange;
         }
 
-        private void StartObservingInputField(TMP_InputField inputField)
+        private void StartObservingInputField(AInputFieldWrapper inputField)
         {
-            if (!inputField) return;
-            CurrentInputField.onValueChanged.AddListener(OnInputFieldValueChange);
+            if (inputField == null || !inputField.IsValid()) 
+                return;
+            CurrentInputField.ValueChanged -= OnInputFieldValueChange;
         }
 
         private void OnInputFieldValueChange(string updatedText)
