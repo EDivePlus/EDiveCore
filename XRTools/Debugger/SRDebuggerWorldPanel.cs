@@ -8,6 +8,7 @@ using UnityEngine;
 #if SR_DEBUGGER
 using EDIVE.NativeUtils;
 using EDIVE.XRTools.Interactions;
+using EDIVE.XRTools.Keyboard;
 using UnityEngine.UI;
 #endif
 
@@ -24,6 +25,9 @@ namespace EDIVE.Utils
 
         [SerializeField]
         private bool _OverrideCanvasSorting = true;
+        
+        [SerializeField]
+        private KeyboardProvider _KeyboardProvider;
 
         [ShowIf(nameof(_OverrideCanvasSorting))]
         [SortingLayer]
@@ -46,6 +50,12 @@ namespace EDIVE.Utils
                     var xrRaycaster = raycaster.GetOrAddComponent<FilteredTrackedDeviceGraphicRaycaster>();
                     CopyTrackedDeviceGraphicRaycasterData(xrRaycaster, _XRRaycaster);
                 }
+            }
+
+            if (_KeyboardProvider != null)
+            {
+                var keyboardProvider = _panelRect.gameObject.GetOrAddComponent<KeyboardProvider>();
+                keyboardProvider.Keyboard = _KeyboardProvider.Keyboard;
             }
 
             if (_OverrideCanvasSorting)
