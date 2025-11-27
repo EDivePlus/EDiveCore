@@ -1,8 +1,11 @@
+using System.Collections.Generic;
+using System.Linq;
 using EDIVE.Core.Services;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
@@ -29,6 +32,9 @@ namespace EDIVE.XRTools.Keyboard
         [SerializeField]
         private TransformScriptableVariable _CameraTransformVariable;
 
+        [SerializeField]
+        private List<InputActionAsset> _InputActions;
+
         public KeyboardController Keyboard => _Keyboard;
         private Transform CameraTransform =>
             _CameraTransformVariable != null && _CameraTransformVariable.Value != null
@@ -36,19 +42,28 @@ namespace EDIVE.XRTools.Keyboard
                 : Camera.main?.transform;
 
         private GameObject _lastFocusedObject;
+        private readonly List<InputAction> _keyboardActions = new();
+        private readonly List<InputAction> _disabledKeyboardActions = new();
+        private bool _inputActionsBlocked;
 
         protected void Awake()
         {
             _Keyboard.gameObject.SetActive(false);
+            CacheKeyboardActions();
         }
 
         private void Update()
         {
             var current = EventSystem.current?.currentSelectedGameObject;
-            if (current != _lastFocusedObject && TryGetInputField(current, out var inputField))
+            if (current != _lastFocusedObject)
             {
-                OnInputFieldFocused(inputField);
+                if (TryGetInputField(current, out var inputField))
+                    OnInputFieldFocused(inputField);
+                else
+                    OnInputFieldFocusLost();
+
             }
+
             _lastFocusedObject = current;
         }
 
@@ -63,11 +78,13 @@ namespace EDIVE.XRTools.Keyboard
                 inputField = new TMPInputFieldWrapper(tmpInputField);
                 return true;
             }
+
             if (go.TryGetComponent<InputField>(out var nativeInputField))
             {
                 inputField = new NativeInputFieldWrapper(nativeInputField);
                 return true;
             }
+
             return false;
         }
 
@@ -78,8 +95,15 @@ namespace EDIVE.XRTools.Keyboard
                 var keyboardDisplay = inputField.GameObject.AddComponent<KeyboardDisplay>();
                 keyboardDisplay.ManualSelect();
             }
+
+            BlockPhysicalKeyboard();
         }
-        
+
+        private void OnInputFieldFocusLost()
+        {
+            UnblockPhysicalKeyboard();
+        }
+
         public KeyboardController ShowKeyboard(AInputFieldWrapper inputField, bool observeCharacterLimit = false)
         {
             if (_Keyboard == null)
@@ -142,9 +166,9 @@ namespace EDIVE.XRTools.Keyboard
                 return;
 
             var position = target.position +
-                target.right * _KeyboardOffset.x +
-                target.forward * _KeyboardOffset.z +
-                Vector3.up * _KeyboardOffset.y;
+                           target.right * _KeyboardOffset.x +
+                           target.forward * _KeyboardOffset.z +
+                           Vector3.up * _KeyboardOffset.y;
             _Keyboard.transform.position = position;
             _Keyboard.transform.localScale = Vector3.one;
             FaceKeyboardAtTarget(CameraTransform);
@@ -167,6 +191,53 @@ namespace EDIVE.XRTools.Keyboard
 
             var dotProduct = Vector3.Dot(CameraTransform.forward, (_Keyboard.transform.position - CameraTransform.position).normalized);
             return dotProduct < _FacingKeyboardThreshold;
+        }
+
+        public void BlockPhysicalKeyboard()
+        {
+            if (_inputActionsBlocked || !InputSystem.devices.OfType<UnityEngine.InputSystem.Keyboard>().Any())
+                return;
+            
+            foreach (var keyboardAction in _keyboardActions)
+            {
+                if (!keyboardAction.enabled)
+                    continue;
+                
+                _disabledKeyboardActions.Add(keyboardAction);
+                keyboardAction.Disable();
+            }
+            _inputActionsBlocked = true;
+        }
+
+        public void UnblockPhysicalKeyboard()
+        {
+            if (!_inputActionsBlocked) 
+                return;
+
+            foreach (var keyboardAction in _disabledKeyboardActions)
+                keyboardAction.Enable();
+
+            _inputActionsBlocked = false;
+        }
+
+        private void CacheKeyboardActions()
+        {
+            foreach (var inputAction in _InputActions)
+            foreach (var map in inputAction.actionMaps)
+            foreach (var action in map.actions)
+            {
+                var hasKeyboard = false;
+                foreach (var binding in action.bindings)
+                {
+                    if (binding.effectivePath != null && binding.effectivePath.Contains("<Keyboard>"))
+                    {
+                        hasKeyboard = true;
+                        break;
+                    }
+                }
+                if (hasKeyboard)
+                    _keyboardActions.Add(action);
+            }
         }
     }
 }
