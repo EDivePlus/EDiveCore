@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿#if UNITY_EDITOR
+using System.Linq;
 using Meta.XR.Editor.UserInterface;
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
@@ -150,3 +151,4 @@ namespace EDIVE.External.Oculus
         }
     }
 }
+#endif
