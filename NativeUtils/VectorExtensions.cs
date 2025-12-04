@@ -16,7 +16,6 @@ namespace EDIVE.NativeUtils
         public static Vector3 WithX(this Vector3 v, float x) => new(x, v.y, v.z);
         public static Vector3 WithY(this Vector3 v, float y) => new(v.x, y, v.z);
         public static Vector3 WithZ(this Vector3 v, float z) => new(v.x, v.y, z);
-
         public static Vector3 WithAxis(this Vector3 v, int axisIndex, float axisValue)
         { 
             v[axisIndex] = axisValue; 
@@ -30,6 +29,11 @@ namespace EDIVE.NativeUtils
         public static Vector2 WithX(this Vector2 v, float x) => new(x, v.y);
         public static Vector2 WithY(this Vector2 v, float y) => new(v.x, y);
         public static Vector3 WithZ(this Vector2 v, float z) => new(v.x, v.y, z);
+        public static Vector2 WithAxis(this Vector2 v, int axisIndex, float a)
+        {
+            v[axisIndex] = a;
+            return v;
+        }
 
         public static Vector4 WithX(this Vector4 v, float x) => new(x, v.y, v.z, v.w);
         public static Vector4 WithY(this Vector4 v, float y) => new(v.x, y, v.z, v.w);
