@@ -1,0 +1,25 @@
+{
+    "name": "EDIVE.External.OpenXR",
+    "rootNamespace": "",
+    "references": [
+        "Unity.XR.OpenXR",
+        "EDIVE.NativeUtils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_OPEN_XR"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.openxr",
+            "expression": "",
+            "define": "UNITY_OPEN_XR"
+        }
+    ],
+    "noEngineReferences": false
+}
