@@ -12,6 +12,7 @@ using EDIVE.Networking.Players;
 using FishNet;
 using FishNet.Managing;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace EDIVE.VoiceChat
 {
@@ -103,9 +104,19 @@ namespace EDIVE.VoiceChat
             UnregisterService<VoiceChatManager>();
         }
 
+        public static bool IsHeadless() =>
+#if UNITY_SERVER && !UNITY_EDITOR
+            true;
+#else
+            SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
+#endif
+        
         private void InitializeSession()
         {
-            InitializeClient();
+            if (!IsHeadless())
+            {
+                InitializeClient();
+            }
             InitializeServer();
         }
 
