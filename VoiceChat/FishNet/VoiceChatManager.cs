@@ -80,7 +80,14 @@ namespace EDIVE.VoiceChat
 
             if (voicePermissionGranted)
             {
-                InitializeSession();
+                try
+                {
+                    InitializeSession();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
         }
 
