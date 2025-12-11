@@ -36,8 +36,8 @@ namespace EDIVE.Networking.ServerCodes
         private string _serverSecret;
 
         private const string CODE_CHARS = "AB0123456789";
-        private const float REFRESH_TIME = 10;
-        private static readonly HttpClient CLIENT = new();
+        private const float HEARTBEAT_INTERVAL = 10;
+        private readonly HttpClient _client = new();
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -49,31 +49,30 @@ namespace EDIVE.Networking.ServerCodes
 
             await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
             await UniTask.Yield();
-            
+
             if (InstanceFinder.ServerManager == null)
             {
                 Debug.Log("[ServerCodeManager] ServerManager not found");
                 return;
             }
-                
-            Debug.Log("[ServerCodeManager] ServerManager initialized");
+
             InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionState;
         }
-        
+
         private void OnServerConnectionState(ServerConnectionStateArgs args)
         {
             if (args.ConnectionState == LocalConnectionState.Started)
             {
-                if (InstanceFinder.ServerManager.IsOnlyOneServerStarted()) 
-                    RegisterServerByCode();
+                if (InstanceFinder.ServerManager.IsOnlyOneServerStarted())
+                    RegisterServerByCodeAsync().Forget();
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped)
             {
                 if (!InstanceFinder.ServerManager.IsAnyServerStarted())
-                    DisposeServer();
+                    DisposeServerAsync().Forget();
             }
         }
-        
+
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
@@ -87,57 +86,44 @@ namespace EDIVE.Networking.ServerCodes
             {
                 InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionState;
             }
-        }
-
-        private void DisposeServer()
-        {
-            Debug.Log("[ServerCodeManager] Disposing server registration");
-            if (!string.IsNullOrEmpty(_serverSecret))
-            {
-                DisposeServer(new ServerDisposeRequest { secret = _serverSecret }).Forget();
-            }
-        }
-
-        private void RegisterServerByCode()
-        {
-            RegisterServerByCodeAsync().Forget();
+            
+            _client?.Dispose();
         }
         
-        private async UniTaskVoid ServerRegistrationHeartbeat(ServerRefreshRequest request, CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                await ServerRefreshRequest(request);
-                await UniTask.WaitForSeconds(REFRESH_TIME, true, cancellationToken: cancellationToken);
-            }
-        }
 
-        private async UniTask ServerRefreshRequest(ServerRefreshRequest req)
+        private async UniTask ServerRegistrationHeartbeat(ServerRefreshRequest request, CancellationToken cancellationToken)
         {
             var serverManagerURL = GetServerManager();
             if (serverManagerURL == null) return;
             
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                const string endpoint = "server/refresh";
-                var response = await CLIENT.PostAsync(Path.Combine(serverManagerURL, endpoint), ToJsonContent(req));
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    Debug.LogError($"Server refresh failed: '{response.StatusCode}'.");
-                    RegisterServerAgain();
-                    return;
+                    const string endpoint = "server/refresh";
+                    var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(request), cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Debug.LogError($"Server refresh failed: '{response.StatusCode}'.");
+                        RegisterServerAgain();
+                        return;
+                    }
+
+                    var responseObject = await FromJson(response, new ServerRefreshResponse());
+                    if (responseObject.status != 0)
+                    {
+                        Debug.LogError($"Server refresh failed: '{responseObject.message}'. Trying to register server again.");
+                        RegisterServerAgain();
+                    }
+                    
+                    await UniTask.WaitForSeconds(HEARTBEAT_INTERVAL, true, cancellationToken: cancellationToken);
                 }
-                
-                var responseObject = await FromJson(response, new ServerRefreshResponse());
-                if (responseObject.status != 0)
+                catch (Exception e)
                 {
-                    Debug.LogError($"Server refresh failed: '{responseObject.message}'. Trying to register server again.");
-                    RegisterServerAgain();
+                    Debug.LogException(e);
+                    await UniTask.Delay(TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
+
                 }
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
             }
         }
 
@@ -145,18 +131,25 @@ namespace EDIVE.Networking.ServerCodes
         {
             _heartbeatCts?.Cancel();
             _heartbeatCts?.Dispose();
-            RegisterServerByCode();
+            _heartbeatCts = null;
+            RegisterServerByCodeAsync().Forget();
         }
 
-        private async UniTaskVoid DisposeServer(ServerDisposeRequest req)
+        private async UniTask DisposeServerAsync()
         {
+            if (string.IsNullOrEmpty(_serverSecret))
+                return;
+            
+            Debug.Log("[ServerCodeManager] Disposing server registration");
             var serverManagerURL = GetServerManager();
-            if (serverManagerURL == null) return;
-
+            if (serverManagerURL == null)
+                return;
+            
             try
             {
+                var req = new ServerDisposeRequest {secret = _serverSecret};
                 const string endpoint = "server/dispose";
-                var response = await CLIENT.PostAsync(Path.Combine(serverManagerURL, endpoint), ToJsonContent(req));
+                var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(req));
                 if (!response.IsSuccessStatusCode)
                 {
                     Debug.LogError($"Server dispose failed: '{response.StatusCode}'.");
@@ -175,19 +168,20 @@ namespace EDIVE.Networking.ServerCodes
             }
         }
 
-        private async UniTaskVoid RegisterServerByCodeAsync()
+        private async UniTask RegisterServerByCodeAsync()
         {
             try
             {
                 Debug.Log("[ServerCodeManager] Registering server by code");
                 var code = !string.IsNullOrEmpty(_Config.ServerCode) ? _Config.ServerCode : GetRandomCode(4);
                 var port = InstanceFinder.TransportManager.Transport.GetPort();
+                var ip = _Config.RegisterLocalIP ? GetLocalIp() : await GetExternalIp();
 
                 var req = new ServerRegisterRequest
                 {
                     code = code,
                     org = "", // TODO
-                    address = GetIp(),
+                    address = ip,
                     port = port,
                     flavour = Application.productName,
                     version = Application.version,
@@ -200,14 +194,13 @@ namespace EDIVE.Networking.ServerCodes
                 const string endpoint = "server/register";
                 const string errorMessage = "Server code registration failed, but the server will still be accessible via its IP.";
                 
-                var response = await CLIENT.PostAsync(Path.Combine(serverManagerURL, endpoint), ToJsonContent(req));
+                var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(req));
                 if (!response.IsSuccessStatusCode)
                 {
                     PrintErrorMsg(errorMessage, response.StatusCode.ToString());
                     return;
                 }
                 var responseObject = await FromJson(response, new ServerRegisterResponse());
-
                 if (responseObject.status != 0)
                 {
                     PrintErrorMsg(errorMessage, responseObject.message);
@@ -219,6 +212,9 @@ namespace EDIVE.Networking.ServerCodes
 
                 RegisteredWithCode = responseData.code;
                 _serverSecret = responseData.secret;
+                
+                _heartbeatCts?.Cancel();
+                _heartbeatCts?.Dispose();
                 _heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
                 ServerRegistrationHeartbeat(new ServerRefreshRequest
                 {
@@ -237,29 +233,29 @@ namespace EDIVE.Networking.ServerCodes
             Debug.LogError($"{errorMessage} Error '{error}'.");
         }
         
-        public async UniTaskVoid GetServerByCode(string org, string code, UnityAction<QueryServerResponse.Data> callback)
+        public async UniTask GetServerByCode(string org, string code, UnityAction<QueryServerResponse.Data> callback)
         {
+            if (string.IsNullOrEmpty(code))
+                return;
+
+            var serverManagerURL = GetServerManager();
+            if (serverManagerURL == null) 
+                return;
+            
+            var url = CombineUrl(serverManagerURL, $"query/server?org={org}&code={code}");
+            if (url == null) 
+                return;
+            
             try
             {
-                if (string.IsNullOrEmpty(code))
-                {
-                    Debug.LogError("No code provided.");
-                    return;
-                }
-
-                var serverManagerURL = GetServerManager();
-                if (serverManagerURL == null) return;
-
-                var url = Path.Combine(serverManagerURL, $"query/server?org={org}&code={code}");
                 Debug.Log("Request url: " + url);
-                var response = await CLIENT.GetAsync(url);
+                var response = await _client.GetAsync(url);
                 if (!response.IsSuccessStatusCode)
                 {
                     Debug.LogError($"Client request failed for server from code failed: '{response.StatusCode}'.");
                     return;
                 }
                 var responseObject = await FromJson(response, new QueryServerResponse());
-
                 if (responseObject.status != 0)
                 {
                     Debug.LogError($"Client request for server from code failed: '{responseObject.message}'");
@@ -284,6 +280,13 @@ namespace EDIVE.Networking.ServerCodes
             return serverManagerURL;
         }
         
+        private string CombineUrl(string baseUrl, string endpoint)
+        {
+            if (baseUrl == null) return null;
+            return $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+        }
+
+        
         public static StringContent ToJsonContent(object o)
         {
             return new StringContent(o == null ? "{}" : JsonUtility.ToJson(o), Encoding.UTF8, "application/json");
@@ -291,24 +294,30 @@ namespace EDIVE.Networking.ServerCodes
 
         public static async UniTask<T> FromJson<T>(HttpResponseMessage response, T definition)
         {
-            if (response == null) return definition;
-            var responseString = await response.Content.ReadAsStringAsync();
-            if (responseString == null) return definition;
-            return JsonUtility.FromJson<T>(responseString);
+            try
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                return string.IsNullOrWhiteSpace(text) ? default : JsonUtility.FromJson<T>(text);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"JSON parse failed: {e}");
+                return default;
+            }
         }
 
-        private string GetIp()
+        public async UniTask<string> GetExternalIp()
         {
-            return _Config.RegisterLocalIP ? GetLocalIp() : GetExternalIp();
-        }
-
-        public static string GetExternalIp()
-        {
-            return new WebClient()
-                .DownloadString("http://ipv4.icanhazip.com")
-                .Replace("\n", "")
-                .Replace("\r", "")
-                .Replace(" ", "");
+            try
+            {
+                var s = await _client.GetStringAsync("http://ipv4.icanhazip.com");
+                return new string(s.Where(c => !char.IsWhiteSpace(c)).ToArray());
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return "0.0.0.0";
+            }
         }
 
         public static string GetLocalIp()
@@ -321,12 +330,13 @@ namespace EDIVE.Networking.ServerCodes
                     return ip.ToString();
                 }
             }
-            throw new Exception("No network adapters with an IPv4 address in the system!");
+            Debug.LogError("No IPv4 adapter found!");
+            return "0.0.0.0";
         }
 
-        private static string GetRandomCode(int lenght)
+        private static string GetRandomCode(int length)
         {
-            return new string(Enumerable.Repeat(CODE_CHARS, lenght).Select(s => s[UnityEngine.Random.Range(0, CODE_CHARS.Length)]).ToArray());
+            return new string(Enumerable.Range(0, length).Select(_ => CODE_CHARS[UnityEngine.Random.Range(0, CODE_CHARS.Length)]).ToArray());
         }
     }
 }
