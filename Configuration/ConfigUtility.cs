@@ -10,13 +10,16 @@ namespace EDIVE.Configuration
 {
     public static class ConfigUtility
     {
-        public static string GetConfigPath(string configName) { return Path.Combine(ConfigFolderPath, $"{configName}.json"); }
+        public static string GetConfigPath(string configName)
+        {
+            return Path.Combine(ConfigFolderPath, $"{configName}.json");
+        }
 
         public static string ConfigFolderPath =>
-#if UNITY_EDITOR
+#if fUNITY_EDITOR
             PathUtility.GetAbsolutePath("Configs/");
 #elif UNITY_STANDALONE
-            Path.Combine(UnityEngine.Application.dataPath, "Configs");
+            Path.Combine(Directory.GetParent(UnityEngine.Application.dataPath)!.FullName, "Configs");
 #else
             Path.Combine(UnityEngine.Application.persistentDataPath, "Configs");
 #endif
