@@ -16,19 +16,23 @@ namespace EDIVE.EditorUtils.TextureTools
         
         [EnhancedPreviewField]
         [SerializeField]
-        private Texture2D _RoughnessTexture;
+        private Texture2D _SmoothnessTexture;
+        
+        [Tooltip("Use Roughness instead of Smoothness texture")]
+        [SerializeField]
+        private bool _InvertSmoothness;
         
         [Button]
         private void GeneratePackedTexture()
         {
-            if (!_MetallicTexture || !_RoughnessTexture)
+            if (!_MetallicTexture || !_SmoothnessTexture)
             {
-                EditorUtility.DisplayDialog("Missing Textures", "Please assign both Metallic and Roughness textures.", "OK");
+                EditorUtility.DisplayDialog("Missing Textures", "Please assign both Metallic and Smoothness textures.", "OK");
                 return;
             }
 
             var mTex = GetReadable(_MetallicTexture);
-            var rTex = GetReadable(_RoughnessTexture);
+            var rTex = GetReadable(_SmoothnessTexture);
 
             var width = mTex.width;
             var height = mTex.height;
@@ -38,10 +42,11 @@ namespace EDIVE.EditorUtils.TextureTools
             {
                 for (var x = 0; x < width; x++)
                 {
-                    var metal = mTex.GetPixel(x, y).r;
-                    var rough = rTex.GetPixel(x, y).r;
-                    var smooth = 1f - rough; // invert roughness to smoothness
-                    packed.SetPixel(x, y, new Color(metal, 0, 0, smooth));
+                    var metal = mTex.GetPixel(x, y);
+                    var smooth  = rTex.GetPixel(x, y).r;
+                    if (_InvertSmoothness) 
+                        smooth = 1f - smooth; // convert roughness to smoothness
+                    packed.SetPixel(x, y, new Color(metal.r, metal.g, metal.b, smooth));
                 }
             }
 
