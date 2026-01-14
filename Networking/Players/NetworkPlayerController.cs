@@ -96,7 +96,7 @@ namespace EDIVE.Networking.Players
             if (_avatarID.Value != avatarId)
             {
                 _avatarID.Value = avatarId;
-                CreateLocalAvatar(avatarId);
+                //CreateLocalAvatar(avatarId); // Will be created on OnAvatarChanged
             }
         }
 
@@ -144,30 +144,34 @@ namespace EDIVE.Networking.Players
         {
             if (string.IsNullOrEmpty(avatarId))
                 return;
-
+            
             if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(avatarId, out var def) || !def.IsValid())
             {
                 Debug.LogError($"Invalid avatar ID {avatarId}");
                 return;
             }
+            
+            if (_avatarInstance != null && _avatarInstance.Definition != def)
+            {
+                Destroy(_avatarInstance.gameObject);
+                _avatarInstance = null;
+            }
+            if (_avatarInstance == null)
+            {
+                _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
+                _avatarInstance.Definition = def;
+                _avatarInstance.gameObject.name = def.AvatarPrefab.name;
+                _avatarInstance.IsLocalPlayer = IsOwner;
+            }
+
+            if (_IKAssigner != null)
+                _IKAssigner.Assign(_avatarInstance);
+            
             if (_nameTagInstance != null)
             {
                 Destroy(_nameTagInstance.gameObject);
                 _nameTagInstance = null;
             }
-
-            if (_avatarInstance != null)
-            {
-                Destroy(_avatarInstance.gameObject);
-                _avatarInstance = null;
-            }
-
-            _avatarInstance = Instantiate(def.AvatarPrefab, _AvatarRoot, false);
-            _avatarInstance.gameObject.name = def.AvatarPrefab.name;
-            _avatarInstance.IsLocalPlayer = IsOwner;
-
-            if (_IKAssigner != null)
-                _IKAssigner.Assign(_avatarInstance);
             TrySetupNameTag();
         }
         private void TrySetupNameTag()

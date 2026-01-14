@@ -15,6 +15,8 @@ namespace EDIVE.Avatars
         private AToggleState _LocalPlayerToggle;
 
         public ARigFollow RigFollow => _RigFollow;
+        
+        public AvatarDefinition Definition { get; set; }
 
         public bool IsLocalPlayer
         {
