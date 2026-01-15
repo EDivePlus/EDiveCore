@@ -20,6 +20,8 @@ using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine.Networking;
 using System.Text;
+using System.Linq;
+using UnityEngine.SceneManagement;
 
 namespace EDIVE.Networking.Players
 {
@@ -117,6 +119,7 @@ namespace EDIVE.Networking.Players
             _networkManager.SceneManager.OnClientLoadedStartScenes += OnClientLoadedStartScenes;
             _networkManager.ServerManager.OnRemoteConnectionState += OnServerRemoteConnectionState;
             _networkManager.ServerManager.RegisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
+            _networkManager.ServerManager.RegisterBroadcast<SummonPlayersToMeRequest>(OnServerSummonPlayersToMeRequest);
             return UniTask.CompletedTask;
         }
 
@@ -156,6 +159,7 @@ namespace EDIVE.Networking.Players
                 _networkManager.SceneManager.OnClientLoadedStartScenes -= OnClientLoadedStartScenes;
                 _networkManager.ServerManager.OnRemoteConnectionState -= OnServerRemoteConnectionState;
                 _networkManager.ServerManager.UnregisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
+                _networkManager.ServerManager.UnregisterBroadcast<SummonPlayersToMeRequest>(OnServerSummonPlayersToMeRequest);
             }
         }
         
@@ -634,6 +638,90 @@ namespace EDIVE.Networking.Players
                     onDone?.Invoke(false, ptext);
                 }
             }
+        }
+        private void OnServerSummonPlayersToMeRequest(NetworkConnection sender, SummonPlayersToMeRequest request, Channel channel)
+        {
+            if (_networkManager == null || !_networkManager.IsServerStarted)
+                return;
+
+            if (!_currentPlayers.TryGetFirst(p => p != null && p.OwnerId == sender.ClientId, out var summoner))
+            {
+                Debug.LogWarning($"[SUMMON] No player controller for sender={sender.ClientId}. " +
+                                 $"Players on server: {string.Join(", ", _currentPlayers.Select(p => p != null ? p.OwnerId.ToString() : "null"))}");
+                return;
+            }
+
+            var sceneName = request.SceneName;
+
+            bool InScene(NetworkConnection c) =>
+                c != null && c.Scenes != null && c.Scenes.Any(s => s.IsValid() && s.name == sceneName);
+
+            var targets = _currentPlayers
+                .Where(p => p != null &&
+                            p.Owner != null &&
+                            p.Owner != sender &&
+                            InScene(p.Owner))
+                .ToList();
+
+            int count = targets.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var t = targets[i];
+                var offset = ComputeCircleOffset(i, count, Mathf.Max(0f, request.Radius));
+                
+                t.ServerRequestTeleportOwner(request.Position + offset, request.Rotation);
+            }
+
+            Debug.Log($"[SUMMON] Requested teleport for {count} players in scene '{sceneName}' to sender {sender.ClientId}.");
+        }
+
+        private static Vector3 ComputeCircleOffset(int index, int total, float radius)
+        {
+            if (total <= 1 || radius <= 0f) return Vector3.zero;
+            float angle = (Mathf.PI * 2f) * (index / (float)total);
+            return new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+        }
+
+        [SerializeField, Min(0f)]
+        private float _SummonRadius = 0.75f;
+
+        [Button("SUMMON: Players in my scene to me")]
+        [GUIColor(0.95f, 0.55f, 0.25f)]
+        public void Btn_SummonPlayersInMySceneToMe()
+        {
+            if (!Application.isPlaying)
+                return;
+
+            if (_networkManager == null || !_networkManager.IsClientStarted)
+            {
+                Debug.LogWarning("Client isnt connected.");
+                return;
+            }
+
+            if (LocalPlayer == null)
+            {
+                Debug.LogWarning("LocalPlayer not ready");
+                return;
+            }
+
+            var t = LocalPlayer.GetWorldPoseTransform();
+            if (t == null)
+            {
+                Debug.LogWarning("LocalPlayer world pose transform not ready yet");
+                return;
+            }
+
+            var sceneName = SceneManager.GetActiveScene().name;
+
+            var msg = new SummonPlayersToMeRequest(
+                sceneName,
+                t.position,
+                t.rotation,
+                _SummonRadius
+            );
+
+            _networkManager.ClientManager.Broadcast(msg);
+            Debug.Log($"[SUMMON] Request sent. scene='{sceneName}' pos={msg.Position}");
         }
     }
 }

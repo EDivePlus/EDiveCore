@@ -8,6 +8,11 @@ using EDIVE.StateHandling.ToggleStates;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
+using FishNet.Connection;
+using EDIVE.XRTools.Controls;
+using FishNet.Connection;
+using FishNet.Object;
+using UnityEngine;
 
 namespace EDIVE.Networking.Players
 {
@@ -21,10 +26,12 @@ namespace EDIVE.Networking.Players
 
         [SerializeField]
         private IKTargetAssigner _IKAssigner;
-        
-        [SerializeField] private BillboardNameTag _NameTagPrefab; 
+
+        [SerializeField]
+        private BillboardNameTag _NameTagPrefab;
         private BillboardNameTag _nameTagInstance;
-        [SerializeField] private Transform _HeadOverride;
+        [SerializeField]
+        private Transform _HeadOverride;
 
         private readonly SyncVar<Color> _color = new(Color.white);
         private readonly SyncVar<string> _username = new();
@@ -39,7 +46,10 @@ namespace EDIVE.Networking.Players
         public string Role => _role.Value;
         public Color Color => _color.Value;
         public string AvatarID => _avatarID.Value;
-        
+
+        [SerializeField]
+        private Transform _TeleportRootOverride;
+
         private void Awake()
         {
             _username.OnChange += OnUsernameChanged;
@@ -190,6 +200,33 @@ namespace EDIVE.Networking.Players
                 _nameTagInstance.SetText(Username);
             }
         }
-        
+
+        public Transform GetWorldPoseTransform()
+        {
+            if (_avatarInstance != null)
+                return _avatarInstance.transform;
+
+            if (_AvatarRoot != null && _AvatarRoot.childCount > 0)
+                return _AvatarRoot.GetChild(0);
+
+            return _AvatarRoot != null ? _AvatarRoot : transform;
+        }
+
+        [Server]
+        public void ServerRequestTeleportOwner(Vector3 position, Quaternion rotation) { TargetRequestTeleport(Owner, position, rotation); }
+
+        [TargetRpc]
+        private void TargetRequestTeleport(NetworkConnection conn, Vector3 position, Quaternion rotation)
+        {
+
+            if (AppCore.Services.TryGet<ControlsManager>(out var cm))
+            {
+                cm.RequestTeleport(position, rotation);
+            }
+            else
+            {
+                Debug.LogWarning("[SUMMON] ControlsManager service not found - cannot teleport.");
+            }
+        }
     }
 }
