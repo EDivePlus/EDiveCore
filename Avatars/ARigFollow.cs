@@ -10,5 +10,7 @@ namespace EDIVE.Avatars
         public abstract Transform HeadSource { get; set; }
         public abstract Transform LeftHandSource { get; set; }
         public abstract Transform RightHandSource { get; set; }
+
+        public abstract void UpdatePositions();
     }
 }

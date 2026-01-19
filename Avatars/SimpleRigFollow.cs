@@ -23,6 +23,11 @@ namespace EDIVE.Avatars
 
         private void LateUpdate()
         {
+            UpdatePositions();
+        }
+
+        public override void UpdatePositions()
+        {
             _Head.Map();
             _LeftHand.Map();
             _RightHand.Map();

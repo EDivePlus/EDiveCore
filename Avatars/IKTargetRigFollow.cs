@@ -27,16 +27,21 @@ namespace EDIVE.Avatars
 
         private void Update()
         {
+            UpdatePositions();
+        }
+        
+        public override void UpdatePositions()
+        {
             if (!_Head.IsValid)
                 return;
-
-            transform.position = _Head.Target.position + _HeadBodyPositionOffset;
-            var yaw = _Head.Source.eulerAngles.y;
-            transform.rotation = Quaternion.Lerp(transform.rotation,Quaternion.Euler(transform.eulerAngles.x, yaw, transform.eulerAngles.z),_TurnSmoothness);
-
+            
             _Head.Map();
             _LeftHand.Map();
             _RightHand.Map();
+            
+            transform.position = _Head.Target.position + _HeadBodyPositionOffset;
+            var yaw = _Head.Source.eulerAngles.y;
+            transform.rotation = Quaternion.Euler(transform.eulerAngles.x, yaw, transform.eulerAngles.z);
         }
 
         [Serializable]
