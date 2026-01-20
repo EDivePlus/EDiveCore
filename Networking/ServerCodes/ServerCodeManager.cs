@@ -118,11 +118,10 @@ namespace EDIVE.Networking.ServerCodes
                     
                     await UniTask.WaitForSeconds(HEARTBEAT_INTERVAL, true, cancellationToken: cancellationToken);
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not OperationCanceledException)
                 {
                     Debug.LogException(e);
                     await UniTask.Delay(TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
-
                 }
             }
         }
