@@ -10,9 +10,6 @@ using FishNet.Object.Synchronizing;
 using UnityEngine;
 using FishNet.Connection;
 using EDIVE.XRTools.Controls;
-using FishNet.Connection;
-using FishNet.Object;
-using UnityEngine;
 
 namespace EDIVE.Networking.Players
 {
@@ -70,11 +67,12 @@ namespace EDIVE.Networking.Players
                 _IKAssigner.Assign(_avatarInstance);
             }
             RefreshGameObjectName();
+            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
         }
 
-        public override void OnStartNetwork()
+        public override void OnStartServer()
         {
-            base.OnStartNetwork();
+            base.OnStartServer();
             AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
         }
 
@@ -213,7 +211,10 @@ namespace EDIVE.Networking.Players
         }
 
         [Server]
-        public void ServerRequestTeleportOwner(Vector3 position, Quaternion rotation) { TargetRequestTeleport(Owner, position, rotation); }
+        public void ServerRequestTeleportOwner(Vector3 position, Quaternion rotation)
+        {
+            TargetRequestTeleport(Owner, position, rotation);
+        }
 
         [TargetRpc]
         private void TargetRequestTeleport(NetworkConnection conn, Vector3 position, Quaternion rotation)
