@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 18.05.2025
 
+using Cysharp.Threading.Tasks;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -40,7 +41,7 @@ namespace EDIVE.Utils
 
         private RectTransform _panelRect;
 
-        private void Start()
+        private async UniTaskVoid Start()
         {
             _panelRect = SRDebug.Instance.EnableWorldSpaceMode();
             if (_XRRaycaster)
@@ -57,21 +58,31 @@ namespace EDIVE.Utils
                 var keyboardProvider = _panelRect.gameObject.GetOrAddComponent<KeyboardProvider>();
                 keyboardProvider.Keyboard = _KeyboardProvider.Keyboard;
             }
-
-            if (_OverrideCanvasSorting)
-            {
-                var panelCanvas = _panelRect.GetComponentInChildren<Canvas>();
-                if (panelCanvas)
-                {
-                    panelCanvas.sortingLayerID = _CanvasSortingLayer;
-                    panelCanvas.sortingOrder = _CanvasSortingOrder;
-                }
-            }
-
+            
             transform.AddChangeListener(OnTransformChanged);
             RepositionPanel();
 
             SRDebug.Instance?.HideDebugPanel();
+
+            await UniTask.WaitForEndOfFrame();
+            if (_OverrideCanvasSorting)
+            {
+                var panelCanvas = _panelRect.GetComponentInChildren<Canvas>(true);
+                if (panelCanvas)
+                {
+                    panelCanvas.sortingLayerID = _CanvasSortingLayer;
+                    panelCanvas.sortingOrder = _CanvasSortingOrder;
+                    
+                    var panelCanvasChildren = _panelRect.GetComponentsInChildren<Canvas>(true);
+                    foreach (var childCanvas in panelCanvasChildren)
+                    {
+                        if (childCanvas == panelCanvas)
+                            continue;
+                        childCanvas.sortingLayerID = _CanvasSortingLayer;
+                        childCanvas.sortingOrder = _CanvasSortingOrder + 1;
+                    }
+                }
+            }
         }
 
         private void OnDisable()
