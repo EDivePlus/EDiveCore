@@ -11,7 +11,9 @@
         "UniTask",
         "Unity.TextMeshPro",
         "Unity.InputSystem",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "EDIVE.Utils",
+        "EDIVE.StateHandling"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
@@ -12,11 +13,6 @@ using UnityEngine;
 
 namespace EDIVE.VoiceRecording
 {
-    // Class responsible for creating voice recordings as a form of notes.
-    // When the recording process starts, the player is muted.
-    // When the process ends, the player is muted/unmuted - the same he was before recording.
-    // The recording process is shown on the UI slider
-    // Maximum time of one recording is 60 seconds. This can be adjusted by changing the "maxClipDurationSec"
     public class VoiceRecordingManager : ALoadableServiceBehaviour<VoiceRecordingManager>
     {
         private AVoiceChatManager _voiceChatManager;
@@ -83,16 +79,15 @@ namespace EDIVE.VoiceRecording
         public void ToggleVoiceRecording()
         {
             if (!Recording)
-                StartVoiceRecording();
+                StartRecording();
             else
-                EndVoiceRecording();
+                StopRecording();
         }
         
         [Button]
-        public void StartVoiceRecording()
+        public void StartRecording()
         {
-            DebugLite.Log("[VoiceRecordingManager] Starting voice recording.");
-            Recording = true;
+            
             _recordingStartTime = UnityEngine.Time.time;
 
             DebugLite.Log("[VoiceRecordingManager]Starting microphone.");
@@ -108,9 +103,15 @@ namespace EDIVE.VoiceRecording
             RecordingStateChanged.Dispatch(Recording);
             DebugLite.Log("[VoiceRecordingManager] Voice recording started.");
         }
+        
+        private UniTask StartRecordingAsync(CancellationToken ct)
+        {
+            StartRecording();
+            return UniTask.CompletedTask;
+        }
 
         [Button]
-        public void EndVoiceRecording()
+        public void StopRecording()
         {
             DebugLite.Log("[VoiceRecordingManager] Ending voice recording.");
 

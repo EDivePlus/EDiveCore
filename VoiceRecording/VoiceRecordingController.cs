@@ -3,9 +3,10 @@
 
 using System.Collections;
 using EDIVE.Core;
+using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.Activations;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Sirenix.OdinInspector;
 
@@ -13,21 +14,17 @@ namespace EDIVE.VoiceRecording
 {
     public class VoiceRecordingController : MonoBehaviour
     {
-        [SerializeField]
-        private InputActionReference _ToggleRecordingAction;
-
-        // Extensibility: we may want to have voice recording triggered by a UI element in the future
-        //[SerializeField]
-        //private Button _ToggleRecordingButton;
+        [SerializeReference]
+        private IActivation _ToggleRecordingActivation = new InputActionActivation();
 
         [SerializeField]
         private Slider _TimerSlider;
 
         [SerializeField]
-        private TextMeshProUGUI _TimerText;
+        private TMP_Text _TimerText;
         
         [SerializeField]
-        private Transform _RecordingDescriptions;
+        private AToggleState _RecordingState;
 
         private Coroutine _recordingRoutine;
         private VoiceRecordingManager _voiceRecordingManager;
@@ -35,60 +32,49 @@ namespace EDIVE.VoiceRecording
         private void OnEnable()
         {
             HideRecordingUI();
-            AppCore.Services.WhenRegistered<VoiceRecordingManager>(Initialize);
+            _ToggleRecordingActivation?.RegisterActivationListener(ToggleRecording);
         }
-
-        private void Initialize(VoiceRecordingManager voiceRecordingManager)
+        
+        private void OnDisable()
         {
-            _voiceRecordingManager = voiceRecordingManager;
-
-            if (_ToggleRecordingAction)
-                _ToggleRecordingAction.action.performed += RecordingActionPerformed;
-
-            // Extensibility: we may want to have voice recording triggered by a UI element in the future
-            //if (_ToggleRecordingButton)
-            //    _ToggleRecordingButton.onClick.AddListener(ToggleRecording);
-
+            _ToggleRecordingActivation?.UnregisterActivationListener(ToggleRecording);
         }
-
-        private void RecordingActionPerformed(InputAction.CallbackContext ctx)
-        {
-            ToggleRecording();
-        }
-
+        
         [Button]
         private void ToggleRecording()
         {
-            Debug.Log(gameObject.name);
-            Debug.Log("VoiceRecordingController.ToggleRecording entered.");
-            _voiceRecordingManager.ToggleVoiceRecording();
+            if (!AppCore.Services.TryGet(out _voiceRecordingManager))
+            {
+                Debug.LogError("VoiceRecordingManager not found!");
+                return;
+            }
             
-            Debug.Log("_voiceRecordingManager.ToggleVoiceRecording() called.");
+            _voiceRecordingManager.ToggleVoiceRecording();
             if (_voiceRecordingManager.Recording)
             {
-                Debug.Log("Recording is ON. Showing UI...");
                 ShowRecordingUI();
             }
             else
             {
-                Debug.Log("Recording is OFF. Hiding UI...");
                 HideRecordingUI();
             }
         }
-
-        private void OnDisable()
+        
+        private void StopRecording()
         {
-            if (_ToggleRecordingAction)
-                _ToggleRecordingAction.action.performed -= RecordingActionPerformed;
-
-            // Extensibility: we may want to have voice recording triggered by a UI element in the future
-            //if (_ToggleRecordingButton)
-            //    _ToggleRecordingButton.onClick.RemoveListener(ToggleRecording);
+            if (!AppCore.Services.TryGet(out _voiceRecordingManager))
+            {
+                Debug.LogError("VoiceRecordingManager not found!");
+                return;
+            }
+            
+            _voiceRecordingManager.StopRecording();
+            HideRecordingUI();
         }
         
         private void ShowRecordingUI()
         {
-            _RecordingDescriptions.gameObject.SetActive(true);
+            _RecordingState.SetState(true);
             if (_TimerSlider)
             {
                 _TimerSlider.minValue = 0;
@@ -101,6 +87,16 @@ namespace EDIVE.VoiceRecording
 
             if (_recordingRoutine != null) StopCoroutine(_recordingRoutine);
             _recordingRoutine = StartCoroutine(UpdateRecordingUI());
+        }
+        
+        private void HideRecordingUI()
+        {
+            if (_recordingRoutine != null)
+            {
+                StopCoroutine(_recordingRoutine);
+                _recordingRoutine = null;
+                _RecordingState.SetState(false);
+            }
         }
 
         private IEnumerator UpdateRecordingUI()
@@ -115,27 +111,16 @@ namespace EDIVE.VoiceRecording
 
                 if (_TimerSlider)
                 {
-                    // the recording should be stopped with voiceRecording = false
                     if (currTimespan >= maxClipDuration)
                     {
                         _TimerSlider.value = (int) maxClipDuration.TotalSeconds;
-                        ToggleRecording();
+                        StopRecording();
                     }
                     else
                         _TimerSlider.value = (int) currTimespan.TotalSeconds;
                 }
 
                 yield return null;
-            }
-        }
-
-        private void HideRecordingUI()
-        {
-            if (_recordingRoutine != null)
-            {
-                StopCoroutine(_recordingRoutine);
-                _recordingRoutine = null;
-                _RecordingDescriptions.gameObject.SetActive(false);
             }
         }
     }

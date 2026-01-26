@@ -2,14 +2,14 @@
     "name": "EDIVE.Utils",
     "rootNamespace": "",
     "references": [
+        "UniTask",
         "Unity.TextMeshPro",
+        "Unity.InputSystem",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "Whinarn.UnityMeshSimplifier.Runtime",
-        "Unity.Formats.Fbx.Editor",
-        "UniTask",
         "EDIVE.DataStructures",
-        "EDIVE.External.DomainReloadHelper"
+        "EDIVE.External.DomainReloadHelper",
+        "Whinarn.UnityMeshSimplifier.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -23,6 +23,11 @@
             "name": "com.whinarn.unitymeshsimplifier",
             "expression": "",
             "define": "MESH_SIMPLIFIER"
+        },
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "",
+            "define": "INPUT_SYSTEM"
         }
     ],
     "noEngineReferences": false
