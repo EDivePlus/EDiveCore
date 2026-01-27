@@ -16,7 +16,7 @@ namespace EDIVE.Configuration
         }
 
         public static string ConfigFolderPath =>
-#if fUNITY_EDITOR
+#if UNITY_EDITOR
             PathUtility.GetAbsolutePath("Configs/");
 #elif UNITY_STANDALONE
             Path.Combine(Directory.GetParent(UnityEngine.Application.dataPath)!.FullName, "Configs");
