@@ -13,7 +13,8 @@
         "Unity.InputSystem",
         "EDIVE.NativeUtils",
         "EDIVE.Utils",
-        "EDIVE.StateHandling"
+        "EDIVE.StateHandling",
+        "EDIVE.Audio"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.IO;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.Audio;
 using EDIVE.Core;
 using EDIVE.External.Signals;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Time.TimeSpanUtils;
 using EDIVE.VoiceChat;
@@ -28,24 +30,31 @@ namespace EDIVE.VoiceRecording
         [SerializeField]
         private int _MicrophoneBufferSize = 2;
 
-        private AudioClip _micRecording;
-
-        // If the player was muted before the recording, they will stay muted after
-        private bool _mutedPreviously = false;
-
-        private float _recordingStartTime;
-
-        [ShowInInspector]
-        public bool Recording { get; private set; }
-        public Signal<bool> RecordingStateChanged { get; } = new();
-
-        public TimeSpan MaxClipDuration => _MaxClipDuration;
-
         [ShowInInspector]
         [KeepRefreshing]
         [TimeSpanDrawerSettings(TimeUnit.Minutes)]
         public TimeSpan CurrentRecordingTime => Recording ? TimeSpan.FromSeconds(UnityEngine.Time.time - _recordingStartTime) : TimeSpan.Zero;
 
+        public TimeSpan MaxClipDuration => _MaxClipDuration;
+        
+        [ShowInInspector]
+        public bool Recording { get; private set; }
+        
+        public static string RecordingsFolderPath =>
+#if UNITY_EDITOR
+            PathUtility.GetAbsolutePath("VoiceRecordings/");
+#elif UNITY_STANDALONE
+            Path.Combine(Directory.GetParent(UnityEngine.Application.dataPath)!.FullName, "VoiceRecordings");
+#else
+            Path.Combine(UnityEngine.Application.persistentDataPath, "VoiceRecordings");
+#endif
+        
+        public Signal<bool> RecordingStateChanged { get; } = new();
+
+        private AudioClip _micRecording;
+        private float _recordingStartTime;
+        private bool _voiceChatMutedPreviously = false;
+        
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
@@ -87,53 +96,42 @@ namespace EDIVE.VoiceRecording
         [Button]
         public void StartRecording()
         {
+            DebugLite.Log("[VoiceRecordingManager] Starting recording");
             
             _recordingStartTime = UnityEngine.Time.time;
-
-            DebugLite.Log("[VoiceRecordingManager]Starting microphone.");
             _micRecording = Microphone.Start(null, true, (int) MaxClipDuration.TotalSeconds * _MicrophoneBufferSize, _Frequency);
-
-            // Todo End voice recording after max duration
-            // Test overriding audio clip when loop = true
-
-            // this creates a dependency on voiceChatManager. Do we want a case when
-            // voice chat doesn't exist? Or do we want to make this command go to AppCore?
-            _mutedPreviously = _voiceChatManager.IsMicMuted();
+            
+            // Todo refactor to remove dependency on VoiceChatManager
+            _voiceChatMutedPreviously = _voiceChatManager.IsMicMuted();
             _voiceChatManager.SetMicMuted(Recording);
+            
             RecordingStateChanged.Dispatch(Recording);
-            DebugLite.Log("[VoiceRecordingManager] Voice recording started.");
-        }
-        
-        private UniTask StartRecordingAsync(CancellationToken ct)
-        {
-            StartRecording();
-            return UniTask.CompletedTask;
+            DebugLite.Log("[VoiceRecordingManager] Recording started");
         }
 
         [Button]
         public void StopRecording()
         {
-            DebugLite.Log("[VoiceRecordingManager] Ending voice recording.");
-
-            // end recording
+            DebugLite.Log("[VoiceRecordingManager] Stopping recording");
+            
             Recording = false;
             Microphone.End(null);
+            
             SaveVoiceRecording(_micRecording);
-
-            // unmute player unless they were muted before the recording
-            _voiceChatManager.SetMicMuted(_mutedPreviously);
+            
+            // Todo refactor to remove dependency on VoiceChatManager
+            _voiceChatManager.SetMicMuted(_voiceChatMutedPreviously);
+            
             RecordingStateChanged.Dispatch(Recording);
-            DebugLite.Log("[VoiceRecordingManager] Voice recording ended.");
+            DebugLite.Log("[VoiceRecordingManager] Recording stopped");
         }
 
-        private void SaveVoiceRecording(AudioClip currRecording)
+        private static void SaveVoiceRecording(AudioClip currRecording)
         {
             DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
-
-            // Specific name of the recording - makes sure recording names are unique by adding the time they were created
-            string name = "/VoiceRecording_" + System.DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss");
-
-            SavWav.Save(name, currRecording);
+            var recordingName = Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyy-MM-dd_HH:mm:ss}");
+            
+            SavWav.Save(recordingName, currRecording);
         }
     }
 }

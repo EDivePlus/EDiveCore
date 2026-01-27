@@ -1,0 +1,28 @@
+{
+    "name": "EDIVE.Audio",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "Adrenak.UniVoice.Runtime",
+        "Adrenak.UniMic.Runtime",
+        "Adrenak.BRW",
+        "EDIVE.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNIVOICE"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.adrenak.univoice",
+            "expression": "",
+            "define": "UNIVOICE"
+        }
+    ],
+    "noEngineReferences": false
+}
