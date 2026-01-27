@@ -4,8 +4,8 @@
 using System.Collections;
 using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Time.TimeSpanUtils;
 using EDIVE.Utils.Activations;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Sirenix.OdinInspector;
@@ -21,7 +21,7 @@ namespace EDIVE.VoiceRecording
         private Slider _TimerSlider;
 
         [SerializeField]
-        private TMP_Text _TimerText;
+        private TimeSpanDisplay _TimerDisplay;
         
         [SerializeField]
         private AToggleState _RecordingState;
@@ -48,33 +48,31 @@ namespace EDIVE.VoiceRecording
                 Debug.LogError("VoiceRecordingManager not found!");
                 return;
             }
-            
-            _voiceRecordingManager.ToggleVoiceRecording();
-            if (_voiceRecordingManager.Recording)
+
+            if (!_voiceRecordingManager.Recording)
             {
+                _voiceRecordingManager.StartRecording();
                 ShowRecordingUI();
             }
             else
             {
+                _voiceRecordingManager.RecordingStateChanged.RemoveListener(OnVoiceRecordingStateChanged);
+                _voiceRecordingManager.StopRecording();
                 HideRecordingUI();
             }
         }
-        
-        private void StopRecording()
+
+        private void OnVoiceRecordingStateChanged(bool state)
         {
-            if (!AppCore.Services.TryGet(out _voiceRecordingManager))
-            {
-                Debug.LogError("VoiceRecordingManager not found!");
-                return;
-            }
-            
-            _voiceRecordingManager.StopRecording();
-            HideRecordingUI();
+            _voiceRecordingManager.RecordingStateChanged.RemoveListener(OnVoiceRecordingStateChanged);
+            if (!state)
+                HideRecordingUI();
         }
         
         private void ShowRecordingUI()
         {
-            _RecordingState.SetState(true);
+            if (_RecordingState)
+                _RecordingState.SetState(true);
             if (_TimerSlider)
             {
                 _TimerSlider.minValue = 0;
@@ -82,8 +80,8 @@ namespace EDIVE.VoiceRecording
                 _TimerSlider.value = 0;
             }
 
-            if (_TimerText)
-                _TimerText.text = string.Format("{0:0}:{1:00}", 0, 0);
+            if (_TimerDisplay)
+                _TimerDisplay.SetTimeSpan(System.TimeSpan.Zero);
 
             if (_recordingRoutine != null) StopCoroutine(_recordingRoutine);
             _recordingRoutine = StartCoroutine(UpdateRecordingUI());
@@ -95,30 +93,23 @@ namespace EDIVE.VoiceRecording
             {
                 StopCoroutine(_recordingRoutine);
                 _recordingRoutine = null;
-                _RecordingState.SetState(false);
             }
+            
+            if (_RecordingState)
+                _RecordingState.SetState(false);
         }
 
         private IEnumerator UpdateRecordingUI()
         {
             while (_voiceRecordingManager.Recording)
             {
-                var maxClipDuration = _voiceRecordingManager.MaxClipDuration;
                 var currTimespan = _voiceRecordingManager.CurrentRecordingTime;
+                
+                if (_TimerDisplay)
+                    _TimerDisplay.SetTimeSpan(currTimespan);
 
-                if (_TimerText)
-                    _TimerText.text = $"{currTimespan.Minutes:0}:{currTimespan.Seconds:00}";
-
-                if (_TimerSlider)
-                {
-                    if (currTimespan >= maxClipDuration)
-                    {
-                        _TimerSlider.value = (int) maxClipDuration.TotalSeconds;
-                        StopRecording();
-                    }
-                    else
-                        _TimerSlider.value = (int) currTimespan.TotalSeconds;
-                }
+                if (_TimerSlider) 
+                    _TimerSlider.value = (int) currTimespan.TotalSeconds;
 
                 yield return null;
             }

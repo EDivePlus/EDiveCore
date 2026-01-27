@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Audio;
@@ -37,7 +38,7 @@ namespace EDIVE.VoiceRecording
 
         public TimeSpan MaxClipDuration => _MaxClipDuration;
         
-        [ShowInInspector]
+        [ShowInInspector][ReadOnly]
         public bool Recording { get; private set; }
         
         public static string RecordingsFolderPath =>
@@ -54,6 +55,7 @@ namespace EDIVE.VoiceRecording
         private AudioClip _micRecording;
         private float _recordingStartTime;
         private bool _voiceChatMutedPreviously = false;
+        private CancellationTokenSource _recordingCancellation = new();
         
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
@@ -83,30 +85,38 @@ namespace EDIVE.VoiceRecording
             DebugLite.Log("[VoiceRecordingManager] Loaded");
             return UniTask.CompletedTask;
         }
-
-        [Button]
-        public void ToggleVoiceRecording()
-        {
-            if (!Recording)
-                StartRecording();
-            else
-                StopRecording();
-        }
         
         [Button]
         public void StartRecording()
         {
-            DebugLite.Log("[VoiceRecordingManager] Starting recording");
+            if (Recording)
+            {
+                DebugLite.Log("[VoiceRecordingManager] Recording is already in progress");
+                return;
+            }
             
+            DebugLite.Log("[VoiceRecordingManager] Starting recording");
+            Recording = true;
             _recordingStartTime = UnityEngine.Time.time;
-            _micRecording = Microphone.Start(null, true, (int) MaxClipDuration.TotalSeconds * _MicrophoneBufferSize, _Frequency);
+            
+            // Todo replace with UniMic
+            _micRecording = Microphone.Start(null, false, (int) MaxClipDuration.TotalSeconds * _MicrophoneBufferSize, _Frequency);
             
             // Todo refactor to remove dependency on VoiceChatManager
             _voiceChatMutedPreviously = _voiceChatManager.IsMicMuted();
-            _voiceChatManager.SetMicMuted(Recording);
+            _voiceChatManager.SetMicMuted(true);
             
             RecordingStateChanged.Dispatch(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording started");
+            
+            _recordingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            RecordingTask(_recordingCancellation.Token).Forget();
+        }
+        
+        private async UniTask RecordingTask(CancellationToken ct)
+        {
+            await UniTask.Delay(MaxClipDuration, DelayType.Realtime, cancellationToken: ct);
+            StopRecording();
         }
 
         [Button]
@@ -115,6 +125,11 @@ namespace EDIVE.VoiceRecording
             DebugLite.Log("[VoiceRecordingManager] Stopping recording");
             
             Recording = false;
+            _recordingCancellation.Cancel();
+            _recordingCancellation.Dispose();
+            _recordingCancellation = null;
+            
+            // Todo replace with UniMic
             Microphone.End(null);
             
             SaveVoiceRecording(_micRecording);
