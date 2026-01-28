@@ -53,5 +53,16 @@ namespace EDIVE.NativeUtils
             if (!string.IsNullOrEmpty(dirPath))
                 Directory.CreateDirectory(dirPath);
         }
+
+        public static string GetRootAppDataPath(string folderName)
+        {
+#if UNITY_EDITOR
+            return GetAbsolutePath(folderName);
+#elif UNITY_STANDALONE
+            return Path.Combine(Directory.GetParent(Application.dataPath)!.FullName, folderName);
+#else
+            return Path.Combine(Application.persistentDataPath, folderName);
+#endif
+        }
     }
 }

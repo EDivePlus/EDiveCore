@@ -40,15 +40,8 @@ namespace EDIVE.VoiceRecording
         
         [ShowInInspector][ReadOnly]
         public bool Recording { get; private set; }
-        
-        public static string RecordingsFolderPath =>
-#if UNITY_EDITOR
-            PathUtility.GetAbsolutePath("VoiceRecordings/");
-#elif UNITY_STANDALONE
-            Path.Combine(Directory.GetParent(UnityEngine.Application.dataPath)!.FullName, "VoiceRecordings");
-#else
-            Path.Combine(UnityEngine.Application.persistentDataPath, "VoiceRecordings");
-#endif
+
+        private static string RecordingsFolderPath => PathUtility.GetRootAppDataPath("VoiceRecordings");
         
         public Signal<bool> RecordingStateChanged { get; } = new();
 

@@ -10,20 +10,9 @@ namespace EDIVE.Configuration
 {
     public static class ConfigUtility
     {
-        public static string GetConfigPath(string configName)
-        {
-            return Path.Combine(ConfigFolderPath, $"{configName}.json");
-        }
-
-        public static string ConfigFolderPath =>
-#if UNITY_EDITOR
-            PathUtility.GetAbsolutePath("Configs/");
-#elif UNITY_STANDALONE
-            Path.Combine(Directory.GetParent(UnityEngine.Application.dataPath)!.FullName, "Configs");
-#else
-            Path.Combine(UnityEngine.Application.persistentDataPath, "Configs");
-#endif
-
+        public static string GetConfigPath(string configName) => Path.Combine(ConfigFolderPath, $"{configName}.json");
+        public static string ConfigFolderPath => PathUtility.GetRootAppDataPath("Configs");
+        
         public static JsonSerializerSettings SerializerSettings => JsonInitializer.CustomJsonSerializerSettings;
         public static JsonSerializer Serializer { get; } = JsonSerializer.Create(SerializerSettings);
     }
