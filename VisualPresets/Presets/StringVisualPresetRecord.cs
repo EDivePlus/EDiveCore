@@ -20,5 +20,8 @@ namespace EDIVE.VisualPresets.Presets
             get => _Text;
             set => _Text = value;
         }
+        
+        public override string EditorLabel => "String";
+
     }
 }

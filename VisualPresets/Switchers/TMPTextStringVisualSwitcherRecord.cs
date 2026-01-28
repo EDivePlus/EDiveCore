@@ -12,18 +12,21 @@ using UnityEngine.Scripting;
 namespace EDIVE.VisualPresets.Switchers
 {
     [Serializable]
-    public class StringVisualSwitcherRecord : AVisualSwitcherRecord<StringVisualID>
+    public class TMPTextStringVisualSwitcherRecord : AVisualSwitcherRecord<StringVisualID>
     {
         [VerticalGroup("Value")]
         [SerializeField]
         private TMP_Text _Text;
         public TMP_Text Text => _Text;
+        
+        public override string EditorLabel => "TMP Text";
+        public override Type EditorIconTargetType => typeof(TextMeshProUGUI);
     }
     
     [Preserve]
-    public class StringTextVisualSwitcherStrategy : AVisualSwitcherStrategy<StringVisualID, StringVisualPresetRecord, StringVisualSwitcherRecord>
+    public class TMPTextStringVisualSwitcherStrategy : AVisualSwitcherStrategy<StringVisualID, StringVisualPresetRecord, TMPTextStringVisualSwitcherRecord>
     {
-        protected override void Apply(StringVisualPresetRecord presetRecord, StringVisualSwitcherRecord switcherRecord)
+        protected override void Apply(StringVisualPresetRecord presetRecord, TMPTextStringVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.Text == null) 
                 return;

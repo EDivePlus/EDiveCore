@@ -18,6 +18,9 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private Graphic _Graphic;
         public Graphic Graphic => _Graphic;
+        
+        public override string EditorLabel => "Graphic Color";
+        public override Type EditorIconTargetType => typeof(RawImage);
     }
     
     [Preserve]

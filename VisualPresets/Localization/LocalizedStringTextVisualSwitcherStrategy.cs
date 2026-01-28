@@ -11,9 +11,9 @@ using UnityEngine.Scripting;
 namespace EDIVE.VisualPresets.Localization
 {
     [Preserve]
-    public class LocalizedStringTextVisualSwitcherStrategy : AVisualSwitcherStrategy<StringVisualID, LocalizedStringVisualPresetRecord, StringVisualSwitcherRecord>
+    public class LocalizedStringTextVisualSwitcherStrategy : AVisualSwitcherStrategy<StringVisualID, LocalizedStringVisualPresetRecord, TMPTextStringVisualSwitcherRecord>
     {
-        protected override void Apply(LocalizedStringVisualPresetRecord presetRecord, StringVisualSwitcherRecord switcherRecord)
+        protected override void Apply(LocalizedStringVisualPresetRecord presetRecord, TMPTextStringVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.Text == null) 
                 return;
@@ -23,7 +23,7 @@ namespace EDIVE.VisualPresets.Localization
             localizeStringEvent.StringReference = presetRecord.LocalizedText;
         }
 
-        protected override void CleanUp(StringVisualSwitcherRecord switcherRecord)
+        protected override void CleanUp(TMPTextStringVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.Text == null)
                 return;

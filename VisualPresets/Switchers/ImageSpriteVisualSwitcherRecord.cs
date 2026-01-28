@@ -18,6 +18,9 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private Image _Image;
         public Image Image => _Image;
+        
+        public override string EditorLabel => "Image Sprite";
+        public override Type EditorIconTargetType => typeof(Image);
     }
     
     [Preserve]

@@ -20,5 +20,8 @@ namespace EDIVE.VisualPresets.Presets
             get => _Sprite;
             set => _Sprite = value;
         }
+        
+        public override string EditorLabel => "Sprite";
+
     }
 }

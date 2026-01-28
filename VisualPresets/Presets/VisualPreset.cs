@@ -26,7 +26,7 @@ namespace EDIVE.VisualPresets.Presets
         [EnhancedTableList]
         [HideReferenceObjectPicker]
         [LabelText("@$property.Parent.NiceName")]
-        [EnhancedValueDropdown("GetAvailableRecords", DrawDropdownForListElements = false)]
+        [EnhancedValueDropdown("GetAvailableRecords", DrawDropdownForListElements = false, SortDropdownItems = true)]
         private List<AVisualPresetRecord> _Records = new();
 
         public VisualPreset() { }
@@ -63,7 +63,8 @@ namespace EDIVE.VisualPresets.Presets
 #if UNITY_EDITOR
         private IEnumerable GetAvailableRecords()
         {
-            return TypeCacheUtils.GetDerivedClassesOfType<AVisualPresetRecord>();
+            return TypeCacheUtils.GetDerivedClassesOfType<AVisualPresetRecord>()
+                .Select(r => new ValueDropdownItem<AVisualPresetRecord>(r.EditorLabel, r));
         }
 #endif
     }

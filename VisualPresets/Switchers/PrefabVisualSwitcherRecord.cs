@@ -20,10 +20,13 @@ namespace EDIVE.VisualPresets.Switchers
         [VerticalGroup("Value")]
         [SerializeField]
         private Transform _Root;
-        
+
         [VerticalGroup("Value")]
         [SerializeField]
         private bool _CheckIfSamePrefab;
+
+        public override string EditorLabel => "Prefab";
+        public override Type EditorIconTargetType => typeof(GameObject);
         
         public Transform Root => _Root;
         public bool CheckIfSamePrefab => _CheckIfSamePrefab;

@@ -20,5 +20,8 @@ namespace EDIVE.VisualPresets.Presets
             get => _Material;
             set => _Material = value;
         }
+        
+        public override string EditorLabel => "Material";
+
     }
 }

@@ -6,6 +6,7 @@ using System;
 using EDIVE.Localization;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.VisualPresets.Localization
@@ -13,6 +14,7 @@ namespace EDIVE.VisualPresets.Localization
     [Serializable]
     public class LocalizedStringVisualPresetRecord : AVisualPresetRecord<StringVisualID>
     {
+        [VerticalGroup("Value")]
         [SerializeField]
         private SafeLocalizedString _LocalizedText;
         
@@ -21,6 +23,8 @@ namespace EDIVE.VisualPresets.Localization
             get => _LocalizedText;
             set => _LocalizedText = value;
         }
+        
+        public override string EditorLabel => "Localized String";
 
         protected bool Equals(LocalizedStringVisualPresetRecord other)
         {

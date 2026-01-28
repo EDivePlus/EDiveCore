@@ -17,6 +17,9 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private SpriteRenderer _SpriteRenderer;
         public SpriteRenderer SpriteRenderer => _SpriteRenderer;
+        
+        public override string EditorLabel => "SpriteRenderer Color";
+        public override Type EditorIconTargetType => typeof(SpriteRenderer);
     }
     
     [Preserve]

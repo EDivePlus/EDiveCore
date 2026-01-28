@@ -20,5 +20,8 @@ namespace EDIVE.VisualPresets.Presets
             get => _Prefab;
             set => _Prefab = value;
         }
+        
+        public override string EditorLabel => "Prefab";
+
     }
 }

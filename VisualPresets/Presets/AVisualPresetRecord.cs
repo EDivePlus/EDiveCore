@@ -12,6 +12,7 @@ namespace EDIVE.VisualPresets.Presets
     [Serializable]
     public abstract class AVisualPresetRecord
     {
+        public abstract string EditorLabel { get; }
         public abstract ABaseVisualID BaseVisualID { get; }
         public virtual bool IsValid() => BaseVisualID != null;
     }

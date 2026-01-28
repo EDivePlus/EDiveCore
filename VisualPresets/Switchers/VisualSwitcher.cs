@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.VisualPresets.Presets;
 using Sirenix.OdinInspector;
@@ -11,6 +12,7 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
+using Sirenix.Utilities.Editor;
 #endif
 
 namespace EDIVE.VisualPresets.Switchers
@@ -24,7 +26,7 @@ namespace EDIVE.VisualPresets.Switchers
         [EnhancedTableList]
         [HideReferenceObjectPicker]
         [LabelText("@$property.Parent.NiceName")]
-        [EnhancedValueDropdown("GetAvailableRecords", DrawDropdownForListElements = false)]
+        [EnhancedValueDropdown("GetAvailableRecords", DrawDropdownForListElements = false, IconGetter = "GetRecordIcon", SortDropdownItems = true)]
         private List<AVisualSwitcherRecord> _Records = new();
                 
         public void Apply(AVisualPresetRecord record)
@@ -66,8 +68,11 @@ namespace EDIVE.VisualPresets.Switchers
 #if UNITY_EDITOR
         private IEnumerable GetAvailableRecords()
         {
-            return TypeCacheUtils.GetDerivedClassesOfType<AVisualSwitcherRecord>();
+            return TypeCacheUtils.GetDerivedClassesOfType<AVisualSwitcherRecord>()
+                .Select(r => new ValueDropdownItem<AVisualSwitcherRecord>(r.EditorLabel, r));
         }
+        
+        private Texture2D GetRecordIcon(AVisualSwitcherRecord record) => GUIHelper.GetAssetThumbnail(null, record.EditorIconTargetType, false);
 #endif
     }
 }

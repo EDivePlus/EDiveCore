@@ -15,6 +15,9 @@ namespace EDIVE.VisualPresets.Switchers
     [Serializable]
     public abstract class AVisualSwitcherRecord
     {
+        public abstract string EditorLabel { get; }
+        public abstract Type EditorIconTargetType { get; }
+        
         public abstract ABaseVisualID BaseVisualID { get;}
         public virtual bool IsValid() => BaseVisualID != null;
 

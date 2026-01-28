@@ -20,5 +20,8 @@ namespace EDIVE.VisualPresets.Presets
             get => _Color;
             set => _Color = value;
         }
+        
+        public override string EditorLabel => "Color";
+
     }
 }

@@ -26,6 +26,9 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private bool _UseSharedMaterial;
         
+        public override string EditorLabel => "Renderer Material";
+        public override Type EditorIconTargetType => typeof(MeshRenderer);
+
         public Renderer Renderer => _Renderer;
         public int MaterialIndex => _MaterialIndex;
         public bool UseSharedMaterial => _UseSharedMaterial;
