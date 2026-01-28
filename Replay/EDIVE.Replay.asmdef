@@ -1,0 +1,29 @@
+{
+    "name": "EDIVE.Replay",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "Unity.TextMeshPro",
+        "EDIVE.Utils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.AssetTranslation",
+        "EDIVE.EditorUtils",
+        "EDIVE.NativeUtils",
+        "EDIVE.Time",
+        "EDIVE.External.Signals",
+        "EDIVE.StateHandling",
+        "NativeFilePicker.Runtime",
+        "EDIVE.DataStructures",
+        "FishNet.Runtime",
+        "EDIVE.Utils.Cysharp"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
