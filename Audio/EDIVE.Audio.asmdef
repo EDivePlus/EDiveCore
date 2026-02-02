@@ -6,7 +6,17 @@
         "Adrenak.UniVoice.Runtime",
         "Adrenak.UniMic.Runtime",
         "Adrenak.BRW",
-        "EDIVE.Core"
+        "Unity.TextMeshPro",
+        "EDIVE.Core",
+        "EDIVE.AppLoading",
+        "EDIVE.NativeUtils",
+        "EDIVE.Networking",
+        "FishNet.Runtime",
+        "EDIVE.Utils",
+        "EDIVE.Time",
+        "EDIVE.StateHandling",
+        "EDIVE.OdinExtensions",
+        "EDIVE.External.Signals"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

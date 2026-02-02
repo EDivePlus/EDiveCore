@@ -1,11 +1,22 @@
 ﻿using System;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace EDIVE.NativeUtils
 {
     public static class PlatformUtils
     {
+        public static bool IsHeadless() =>
+#if UNITY_SERVER && !UNITY_EDITOR
+            true;
+#else
+            SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
+#endif
+        
         public static RuntimePlatform GetCurrentBuildTarget()
         {
 #if UNITY_EDITOR

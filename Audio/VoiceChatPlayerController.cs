@@ -4,7 +4,7 @@
 using EDIVE.Networking.Players;
 using UnityEngine;
 
-namespace EDIVE.VoiceChat
+namespace EDIVE.Audio
 {
     public class VoiceChatPlayerController : MonoBehaviour
     {

@@ -6,11 +6,11 @@ using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Time.TimeSpanUtils;
 using EDIVE.Utils.Activations;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
-using Sirenix.OdinInspector;
 
-namespace EDIVE.VoiceRecording
+namespace EDIVE.Audio.VoiceRecording
 {
     public class VoiceRecordingController : MonoBehaviour
     {
