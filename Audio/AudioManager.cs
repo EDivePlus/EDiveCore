@@ -31,9 +31,10 @@ namespace EDIVE.Audio
         
         private ClientSession<int> _voiceChatSession;
         private bool _microphonePermissionGranted = false;
+        private bool _muteVoiceChat;
         
         private readonly List<object> _voiceChatMuteRequests = new();
-        public bool VoiceChatMuted => _voiceChatMuteRequests.Any();
+        public bool VoiceChatMuted => _muteVoiceChat || _voiceChatMuteRequests.Any();
         
         public bool EnableSpatialAudio
         {
@@ -59,6 +60,16 @@ namespace EDIVE.Audio
         {
             get => PlayerPrefs.GetString("Audio_MicName", string.Empty);
             private set => PlayerPrefs.SetString("Audio_MicName", value);
+        }
+        
+        public bool MuteVoiceChat
+        {
+            get => _muteVoiceChat;
+            set
+            {
+                _muteVoiceChat = value;
+                RefreshVoiceChatMuted();
+            }
         }
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
@@ -199,16 +210,22 @@ namespace EDIVE.Audio
             {
                 _voiceChatMuteRequests.Add(requester);
             }
-            // TODO mute
+            RefreshVoiceChatMuted();
         }
-        
+
         public void RemoveVoiceChatMuteRequest(object requester)
         {
             if (_voiceChatMuteRequests.Contains(requester))
             {
                 _voiceChatMuteRequests.Remove(requester);
             }
-            // TODO unmute if no more requests
+            RefreshVoiceChatMuted();
+        }
+
+        private void RefreshVoiceChatMuted()
+        {
+            if (_voiceChatSession != null) 
+                _voiceChatSession.InputEnabled = VoiceChatMuted;
         }
         
         public void RefreshSpatialAudio()
@@ -266,7 +283,7 @@ namespace EDIVE.Audio
             {
                 Debug.Log("[AudioManager] No microphone will be used.");
             }
-            return micDevice != null ? new UniMicInput(micDevice) : new UniVoiceEmptyAudioInput();
+            return micDevice != null ? new UniMicInput(micDevice) : new EmptyAudioInput();
         }
         
         private Mic.Device ResolveMicrophone()
