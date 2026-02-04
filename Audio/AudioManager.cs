@@ -31,10 +31,12 @@ namespace EDIVE.Audio
         
         private ClientSession<int> _voiceChatSession;
         private bool _microphonePermissionGranted = false;
-        private bool _muteVoiceChat;
         
         private readonly List<object> _voiceChatMuteRequests = new();
-        public bool VoiceChatMuted => _muteVoiceChat || _voiceChatMuteRequests.Any();
+        public bool VoiceChatMuted => _voiceChatMuteRequests.Any();
+        
+        private IAudioInput _currentAudioInput;
+        public event Action<AudioFrame> AudioFrameReady;
         
         public bool EnableSpatialAudio
         {
@@ -52,7 +54,7 @@ namespace EDIVE.Audio
             set
             {
                 PlayerPrefs.SetInt("Audio_AllowMic", value ? 1 : 0);
-                RefreshMicrophone();
+                RefreshAudioInput();
             }
         }
 
@@ -61,58 +63,45 @@ namespace EDIVE.Audio
             get => PlayerPrefs.GetString("Audio_MicName", string.Empty);
             private set => PlayerPrefs.SetString("Audio_MicName", value);
         }
-        
-        public bool MuteVoiceChat
-        {
-            get => _muteVoiceChat;
-            set
-            {
-                _muteVoiceChat = value;
-                RefreshVoiceChatMuted();
-            }
-        }
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            InitializeMicrophone();
+            InitializeAudioInput();
             InitializeVoiceChat();
             
             return UniTask.CompletedTask;
         }
 
-        private void InitializeMicrophone()
+        private void InitializeAudioInput()
         {
-            if (!PlatformUtils.IsHeadless())
-            {
-                Mic.Init();
-            }
+            // No microphone needed in headless mode
+            if (PlatformUtils.IsHeadless()) 
+                return;
             
+            Mic.Init();
+            RefreshAudioInput();
+                
             AudioUtils.CheckMicrophonePermission(micPermissionGranted =>
             {
                 _microphonePermissionGranted = micPermissionGranted;
-                if (_voiceChatSession != null && micPermissionGranted && _voiceChatSession.Input is not UniMicInput)
+                if (micPermissionGranted)
                 {
-                    _voiceChatSession.Input = ResolveAndCreateAudioInput();
+                    RefreshAudioInput();
                 }
             });
         }
 
         private void InitializeVoiceChat()
         {
-            if (!PlatformUtils.IsHeadless())
-            {
+            if (!PlatformUtils.IsHeadless()) 
                 InitializeClient();
-            }
             InitializeServer();
         }
       
         private void InitializeClient()
         {
             var client = new FishNetClient();
-            Mic.Init();
-            
-            var audioInput = ResolveAndCreateAudioInput();
-            _voiceChatSession = new ClientSession<int>(client, audioInput, () =>
+            _voiceChatSession = new ClientSession<int>(client, _currentAudioInput, () =>
             {
                 var audioOutput = StreamedAudioSourceOutput.New();
                 audioOutput.Stream.TargetLatency = 0.3f;
@@ -203,22 +192,22 @@ namespace EDIVE.Audio
         {
             Debug.Log("[AudioManager] Voice chat server stopped");
         }
-
+        
+        public bool HasVoiceChatMuteRequest(object requester)
+        {
+            return _voiceChatMuteRequests.Contains(requester);
+        }
+        
         public void AddVoiceChatMuteRequest(object requester)
         {
-            if (!_voiceChatMuteRequests.Contains(requester))
-            {
+            if (!HasVoiceChatMuteRequest(requester)) 
                 _voiceChatMuteRequests.Add(requester);
-            }
             RefreshVoiceChatMuted();
         }
 
         public void RemoveVoiceChatMuteRequest(object requester)
         {
-            if (_voiceChatMuteRequests.Contains(requester))
-            {
-                _voiceChatMuteRequests.Remove(requester);
-            }
+            _voiceChatMuteRequests.Remove(requester);
             RefreshVoiceChatMuted();
         }
 
@@ -256,24 +245,20 @@ namespace EDIVE.Audio
                 return false;
             
             CurrentMicrophoneName = micName;
-            RefreshMicrophone();
+            RefreshAudioInput();
             return true;
         }
-        
-        private void RefreshMicrophone()
-        {
-            if (_voiceChatSession == null)
-                return;
-            
-            if (_voiceChatSession.Input is UniMicInput micInput)
-                micInput.Device.StopRecording();
 
-            _voiceChatSession.Input = ResolveAndCreateAudioInput();
-        }
-
-        private IAudioInput ResolveAndCreateAudioInput()
+        private void RefreshAudioInput()
         {
             var micDevice = ResolveMicrophone();
+            if (_currentAudioInput is UniMicInput uniMicInput)
+            {
+                if (uniMicInput.Device == micDevice)
+                    return;
+                uniMicInput.Device.StopRecording();
+            }
+
             if (micDevice != null)
             {
                 Debug.Log($"[AudioManager] Using microphone: {micDevice.Name}");
@@ -283,7 +268,22 @@ namespace EDIVE.Audio
             {
                 Debug.Log("[AudioManager] No microphone will be used.");
             }
-            return micDevice != null ? new UniMicInput(micDevice) : new EmptyAudioInput();
+
+            if (_currentAudioInput != null)
+            {
+                _currentAudioInput.Dispose();
+                _currentAudioInput.OnFrameReady -= OnAudioFrameReady;
+            }
+            
+            _currentAudioInput = micDevice != null ? new UniMicInput(micDevice) : new EmptyAudioInput();
+            _currentAudioInput.OnFrameReady += OnAudioFrameReady;
+            if (_voiceChatSession != null)
+                _voiceChatSession.Input = _currentAudioInput;
+        }
+        
+        private void OnAudioFrameReady(AudioFrame frame)
+        {
+            AudioFrameReady?.Invoke(frame);
         }
         
         private Mic.Device ResolveMicrophone()
