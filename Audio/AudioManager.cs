@@ -38,6 +38,8 @@ namespace EDIVE.Audio
         private IAudioInput _currentAudioInput;
         public event Action<AudioFrame> AudioFrameReady;
         
+        [DisableInEditorMode]
+        [ShowInInspector]
         public bool EnableSpatialAudio
         {
             get => PlayerPrefs.GetInt("Audio_SpatialAudio", 1) > 0;
@@ -48,6 +50,8 @@ namespace EDIVE.Audio
             }
         }
 
+        [DisableInEditorMode]
+        [ShowInInspector]
         public bool AllowMic
         {
             get => PlayerPrefs.GetInt("Audio_AllowMic", 1) > 0;
@@ -57,7 +61,7 @@ namespace EDIVE.Audio
                 RefreshAudioInput();
             }
         }
-
+        
         public string CurrentMicrophoneName
         {
             get => PlayerPrefs.GetString("Audio_MicName", string.Empty);
@@ -231,9 +235,10 @@ namespace EDIVE.Audio
             }
         }
         
-        public List<string> GetAvailableMicrophones()
+        public IEnumerable<string> GetAvailableMicrophones()
         {
-            return Mic.AvailableDevices.Select(m => m.Name).ToList();
+            if (!Application.isPlaying) return Enumerable.Empty<string>();
+            return Mic.AvailableDevices.Select(m => m.Name);
         }
         
         public bool TrySetMicrophone(string micName)
@@ -283,6 +288,7 @@ namespace EDIVE.Audio
         
         private void OnAudioFrameReady(AudioFrame frame)
         {
+            frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             AudioFrameReady?.Invoke(frame);
         }
         
@@ -317,5 +323,17 @@ namespace EDIVE.Audio
 
             return availableMics.TryGetFirst(m => m.Name.Equals(micName), out micDevice);
         }
+
+#if UNITY_EDITOR
+        [DisableInEditorMode]
+        [ShowInInspector]
+        [ValueDropdown("GetAvailableMicrophones")]
+        [LabelText("Current Microphone")]
+        private string CurrentMicrophoneDropdown
+        {
+            get => CurrentMicrophoneName;
+            set => TrySetMicrophone(value);
+        }
+#endif
     }
 }

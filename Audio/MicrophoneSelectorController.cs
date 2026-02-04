@@ -2,6 +2,7 @@
 // Created: 02.06.2025
 
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.Core;
 using TMPro;
 using UnityEngine;
@@ -28,7 +29,7 @@ namespace EDIVE.Audio
         private void Initialize(AudioManager audioManager)
         {
             _audioManager = audioManager;
-            _microphones = _audioManager.GetAvailableMicrophones();
+            _microphones = _audioManager.GetAvailableMicrophones().ToList();
             _microphones.Insert(0, "None");
             var currentIndex = Mathf.Max(0, _microphones.IndexOf(_audioManager.CurrentMicrophoneName));
             
