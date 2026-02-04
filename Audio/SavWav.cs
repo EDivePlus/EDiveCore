@@ -37,6 +37,18 @@ namespace EDIVE.Audio
 
         public static bool Save(string filePath, AudioClip clip)
         {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                Debug.LogError("[SavWav] File path is empty or whitespace.");
+                return false;
+            }
+
+            if (clip == null)
+            {
+                Debug.LogError("[SavWav] AudioClip is null.");
+                return false;
+            }
+
             if (!filePath.ToLower().EndsWith(".wav"))
             {
                 filePath += ".wav";
@@ -44,9 +56,9 @@ namespace EDIVE.Audio
         
             Debug.Log($"[SavWav] Saving to {filePath}");
             var directory = Path.GetDirectoryName(filePath);
-            if (string.IsNullOrEmpty(directory))
+            if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
             {
-                Debug.LogError($"[SavWav] File path does not exist! '{filePath}'");
+                Debug.LogError($"[SavWav] Directory does not exist! '{directory}'");
                 return false;
             }
 
