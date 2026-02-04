@@ -62,6 +62,7 @@ namespace EDIVE.Utils
             transform.AddChangeListener(OnTransformChanged);
             RepositionPanel();
 
+            SRDebug.Instance?.HideDebugPanel();
             await UniTask.WaitForEndOfFrame();
             if (_OverrideCanvasSorting)
             {
@@ -81,6 +82,9 @@ namespace EDIVE.Utils
                     }
                 }
             }
+            
+            // Fix panels not hiding properly when enabled at start
+            SRDebug.Instance?.ShowDebugPanel();
             SRDebug.Instance?.HideDebugPanel();
         }
 
