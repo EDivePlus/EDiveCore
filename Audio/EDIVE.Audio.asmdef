@@ -16,7 +16,10 @@
         "EDIVE.Time",
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions",
-        "EDIVE.External.Signals"
+        "EDIVE.External.Signals",
+        "EDIVE.Replay",
+        "EDIVE.Utils.Cysharp",
+        "EDIVE.External.Promises"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

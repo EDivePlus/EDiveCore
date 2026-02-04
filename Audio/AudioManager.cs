@@ -107,7 +107,7 @@ namespace EDIVE.Audio
             var client = new FishNetClient();
             _voiceChatSession = new ClientSession<int>(client, _currentAudioInput, () =>
             {
-                var audioOutput = StreamedAudioSourceOutput.New();
+                var audioOutput = EnhancedStreamedAudioSourceOutput.New();
                 audioOutput.Stream.TargetLatency = 0.3f;
                 audioOutput.Stream.PitchMaxCorrection = 0.05f;
                 audioOutput.Stream.PitchProportionalGain = 0.2f;
@@ -144,7 +144,7 @@ namespace EDIVE.Audio
         {
             Debug.Log($"[AudioManager] Peer '{id}' joined the chatroom");
 
-            var output = _voiceChatSession.PeerOutputs[id] as StreamedAudioSourceOutput;
+            var output = _voiceChatSession.PeerOutputs[id] as EnhancedStreamedAudioSourceOutput;
             if (output == null)
             {
                 Debug.LogError($"[AudioManager] Could not get StreamedAudioSourceOutput for peer {id}");
@@ -154,7 +154,7 @@ namespace EDIVE.Audio
             InitializePeerSpatialAudioAsync(id, output).Forget();
         }
         
-        private async UniTask InitializePeerSpatialAudioAsync(int id, StreamedAudioSourceOutput output)
+        private async UniTask InitializePeerSpatialAudioAsync(int id, EnhancedStreamedAudioSourceOutput output)
         {
             var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
             var playerController = await playerManager.AwaitPlayerController(id);
@@ -170,13 +170,13 @@ namespace EDIVE.Audio
                 Debug.LogWarning($"[AudioManager] Player controller for peer {id} does not have a VoiceChatPlayerController component");
                 return;
             }
-
+            
             var audioSource = output.Stream.UnityAudioSource;
-            audioSource.transform.SetParent(peerAvatar.PeerRoot); // Parent the AudioSource to the avatar
-            audioSource.transform.localPosition = Vector3.zero; // Reset position
-
             audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; 
             audioSource.maxDistance = _VoiceChatDistance;
+            
+            peerAvatar.InitializePeerAudioOutput(output);
+            
             Debug.Log($"[AudioManager] AudioSource of player '{id}' ");
         }
 

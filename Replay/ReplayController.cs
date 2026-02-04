@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.Signals;
+using EDIVE.Replay.Agents;
 using MemoryPack;
 using MemoryPack.Compression;
 using Sirenix.OdinInspector;
@@ -187,7 +188,7 @@ namespace EDIVE.Replay
             StopRecordingInternal();
             foreach (var agent in CurrentAgents)
             {
-                agent.ClearFrames();
+                agent.ClearData();
             }
             _currentDuration = CurrentTime = 0;
             TimeChanged.Dispatch();
@@ -213,14 +214,14 @@ namespace EDIVE.Replay
                 {
                     foreach (var agent in CurrentAgents)
                     {
-                        agent.ClearFrames();
+                        agent.ClearData();
                     }
                 }
                 else
                 {
                     foreach (var agent in CurrentAgents)
                     {
-                        agent.ClearFrames(f => f.Time >= time);
+                        agent.ClearData(time);
                     }  
                 }
                 _currentDuration = time;
@@ -337,10 +338,15 @@ namespace EDIVE.Replay
             StateChanged.Dispatch();
             
             ApplyPlaybackTime(CurrentTime);
-            while (CurrentTime >= 0 && CurrentTime < ReplayRecord.Duration)
+            foreach (var agent in CurrentAgents)
             {
-                var newTime = Mathf.Clamp(CurrentTime + UnityEngine.Time.deltaTime * _PlaybackSpeed, 0, ReplayRecord.Duration);
-                ApplyPlaybackTime(newTime);
+                agent.StartPlayback(CurrentTime, cancellationToken);
+            }
+            
+            while (!cancellationToken.IsCancellationRequested && CurrentTime >= 0 && CurrentTime < ReplayRecord.Duration)
+            {
+                CurrentTime = Mathf.Clamp(CurrentTime + UnityEngine.Time.deltaTime * _PlaybackSpeed, 0, ReplayRecord.Duration);
+                TimeChanged.Dispatch();
                 await UniTask.Yield(cancellationToken);
             }
 

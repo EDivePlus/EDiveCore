@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using EDIVE.Replay.Agents;
 using MemoryPack;
 using UnityEngine;
 

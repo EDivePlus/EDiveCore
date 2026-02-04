@@ -4,12 +4,13 @@
 using System;
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
+using EDIVE.Replay.Components;
 using MemoryPack;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.Agents
 {
     [Serializable]
     [MemoryPackable]
@@ -34,10 +35,10 @@ namespace EDIVE.Replay
         private ReplayAgentDefinition _Definition;
         
         [PropertySpace(4)]
-        [SerializeField]
+        [SerializeReference]
         [MemoryPackInclude]
-        [JsonProperty("TargetTracks")]
-        private List<ReplayAgentComponentData> _TargetTracks;
+        [JsonProperty("ComponentData")]
+        private List<AReplayAgentComponentData> _ComponentData;
 
         [MemoryPackIgnore]
         public string ID => _ID;
@@ -46,22 +47,22 @@ namespace EDIVE.Replay
         [MemoryPackIgnore]
         public ReplayAgentDefinition Definition => _Definition;
         [MemoryPackIgnore]
-        public List<ReplayAgentComponentData> TargetTracks => _TargetTracks;
+        public List<AReplayAgentComponentData> ComponentData => _ComponentData;
         
         [MemoryPackConstructor]
         [JsonConstructor]
         public ReplayAgentData() { }
-        public ReplayAgentData(string id, ReplaySpawnMode spawnMode, ReplayAgentDefinition definition, List<ReplayAgentComponentData> targetTracks)
+        public ReplayAgentData(string id, ReplaySpawnMode spawnMode, ReplayAgentDefinition definition, List<AReplayAgentComponentData> componentData)
         {
             _ID = id;
             _SpawnMode = spawnMode;
             _Definition = definition;
-            _TargetTracks = targetTracks ?? new List<ReplayAgentComponentData>();
+            _ComponentData = componentData ?? new List<AReplayAgentComponentData>();
         }
         
-        public ReplayAgentComponentData GetTrackData(string id)
+        public AReplayAgentComponentData GetComponentData(string id)
         {
-            return TargetTracks.TryGetFirst(t => t.ID == id, out var trackData) ? trackData : null;
+            return _ComponentData.TryGetFirst(t => t.ID == id, out var componentData) ? componentData : null;
         }
     }
 }

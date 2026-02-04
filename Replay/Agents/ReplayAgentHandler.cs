@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.Agents
 {
     // MonoBehaviour handler for ReplayAgent, separation required because the object can get destroyed.
     public class ReplayAgentHandler : MonoBehaviour

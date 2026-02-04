@@ -3,7 +3,7 @@
 
 using EDIVE.AssetTranslation;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.Agents
 {
     public class ReplayAgentDefinitionTranslator : ADefinitionTranslator<ReplayAgentDefinition> { }
 }

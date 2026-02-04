@@ -5,6 +5,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
+using EDIVE.Replay.Agents;
 using Sirenix.OdinInspector;
 
 namespace EDIVE.Replay

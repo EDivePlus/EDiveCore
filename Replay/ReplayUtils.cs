@@ -4,7 +4,8 @@
 using System.IO;
 using EDIVE.AssetTranslation;
 using EDIVE.NativeUtils;
-using EDIVE.Replay.Frames;
+using EDIVE.Replay.Agents;
+using EDIVE.Replay.Components;
 using EDIVE.Utils.Cysharp;
 using UnityEngine;
 
@@ -18,7 +19,7 @@ namespace EDIVE.Replay
 #endif
         private static void Initialize()
         {
-            MemoryPackUtility.RegisterDynamicUnionFormatter<AFrameSequence>();
+            MemoryPackUtility.RegisterDynamicUnionFormatter<AReplayAgentComponentData>();
             AssetTranslationMemoryPackUtils.RegisterTranslator<ReplayAgentDefinition>();
         }
         

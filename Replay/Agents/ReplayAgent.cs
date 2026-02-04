@@ -2,27 +2,30 @@
 // Created: 23.07.2025
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
-using EDIVE.Replay.Frames;
+using EDIVE.Replay.Components;
 using EDIVE.StateHandling.MultiStates;
-using EDIVE.StateHandling.ToggleStates;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
 #endif
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.Agents
 {
     [Serializable]
-    public class ReplayAgent
+    public class ReplayAgent : ISerializationCallbackReceiver
     {
         [Required]
         [SerializeField]
@@ -60,9 +63,16 @@ namespace EDIVE.Replay
         public PlaybackParticipation CurrentPlaybackParticipation { get; private set; }
         
         [PropertySpace]
-        [SerializeField]
+        [SerializeReference]
+        [HideReferenceObjectPicker]
         [EnhancedValidate("ValidateComponents")]
         [ListDrawerSettings(DefaultExpandedState = true, OnTitleBarGUI = "OnComponentsTitleBarGUI")]
+        [EnhancedValueDropdown("GetComponentsDropdown", IconGetter = "GetComponentIcon", DrawDropdownForListElements = false, SortDropdownItems = true)]
+        private List<AReplayAgentComponent> _ComponentList = new();
+        
+        [HideInInspector]
+        [Obsolete]
+        [SerializeField]
         private List<ReplayAgentComponent> _Components;
 
         public string BaseID => _BaseID;
@@ -76,10 +86,10 @@ namespace EDIVE.Replay
         public ReplayAgentDefinition Definition => _Definition;
         public ReplayRecordingConfig RecordingConfig => _RecordingConfig;
         public ReplayScope ReplayScope => _ReplayScope;
-        public List<ReplayAgentComponent> Components => _Components;
+        public List<AReplayAgentComponent> Components => _ComponentList;
 
-        public float MinTime => _Components != null && _Components.Any() ? _Components.Min(s => s.MinTime) : 0f;
-        public float MaxTime => _Components != null && _Components.Any() ? _Components.Max(s => s.MaxTime) : 0f;
+        public float MinTime => _ComponentList != null && _ComponentList.Any() ? _ComponentList.Min(s => s.MinTime) : 0f;
+        public float MaxTime => _ComponentList != null && _ComponentList.Any() ? _ComponentList.Max(s => s.MaxTime) : 0f;
 
         private CancellationTokenSource _cancellationTokenSource;
         private ReplayAgentHandler _handler;
@@ -89,7 +99,7 @@ namespace EDIVE.Replay
         
         private List<Rigidbody> _ownRigidbodies;
         private IEnumerable<Rigidbody> _nonKinematicRigidbodies;
-        
+
         public void Initialize(ReplayAgentHandler handler)
         {
             _handler = handler;
@@ -131,7 +141,7 @@ namespace EDIVE.Replay
         
         public ReplayAgentData GetData()
         {
-            return new ReplayAgentData(ID, _SpawnMode, _Definition, _Components.Select(t => t.GetData()).ToList());
+            return new ReplayAgentData(ID, _SpawnMode, _Definition, _ComponentList.Select(t => t.GetDataCopy()).ToList());
         }
 
         public void SetData(ReplayAgentData agentData)
@@ -139,9 +149,11 @@ namespace EDIVE.Replay
             if (agentData == null)
                 return;
             
-            foreach (var track in _Components)
+            foreach (var component in _ComponentList)
             {
-                track.SetFrames(agentData.GetTrackData(track.ID)?.FrameSequences);
+                var data = agentData.GetComponentData(component.ID);
+                if (data != null)
+                    component.SetData(data);
             }
         }
         
@@ -163,26 +175,50 @@ namespace EDIVE.Replay
                 _cancellationTokenSource = null;
             });
             
-            foreach (var targetRecord in _Components)
+            foreach (var component in _ComponentList)
             {
-                targetRecord.StartRecording(startTime, _RecordingConfig, _cancellationTokenSource.Token);
+                component.StartRecording(startTime, _RecordingConfig, _cancellationTokenSource.Token);
             }
         }
         
-        public void ClearFrames(Predicate<AFramePreset> predicate = null)
+        public void ClearData(float startTime = 0f)
         {
-            foreach (var targetRecord in _Components)
+            foreach (var component in _ComponentList)
             {
-                targetRecord?.ClearFrames(predicate);
+                component?.ClearData(startTime);
+            }
+        }
+        
+        public void StartPlayback(float startTime, CancellationToken cancellationToken)
+        {
+            if (_cancellationTokenSource != null)
+            {
+                Debug.LogError("Playback already in progress!");
+                return;
+            }
+            
+            if (cancellationToken.IsCancellationRequested)
+                return;
+            
+            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _cancellationTokenSource.Token.Register(() =>
+            {
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+            });
+            
+            foreach (var component in _ComponentList)
+            {
+                component.StartPlayback(startTime, _cancellationTokenSource.Token);
             }
         }
         
         public void ApplyTime(float value)
         {
-            if (_Components == null)
+            if (_ComponentList == null)
                 return;
 
-            foreach (var record in _Components)
+            foreach (var record in _ComponentList)
             {
                 record.ApplyTime(value);
             }
@@ -221,12 +257,34 @@ namespace EDIVE.Replay
             }
         }
 
+    #region Migration
+        [Obsolete]
+        public void OnBeforeSerialize() => Migrate();
+        [Obsolete]
+        public void OnAfterDeserialize() => Migrate();
+
+        [Obsolete]
+        private void Migrate()
+        {
+            if (_Components == null || _Components.Count == 0)
+                return;
+            
+            _ComponentList = _Components
+                .Where(c => c?.FrameSequences != null)
+                .SelectMany(c => c.FrameSequences
+                    .Where(f => f != null)
+                    .Select(f => f.Migrate(c)))
+                .ToList();
+            
+            _Components = null;
+        }
+    #endregion
+
 #if UNITY_EDITOR
         [ShowInInspector]
         [PropertyRange(nameof(MinTime), nameof(MaxTime))]
         [OnValueChanged(nameof(ApplyTime))]
         private float _preview;
-
         
         [UsedImplicitly]
         private IEnumerable<PlaybackParticipation> GetAllowedPlaybackParticipationStates()
@@ -257,45 +315,48 @@ namespace EDIVE.Replay
         {
             if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.BrushSolid, "Clear frames"))
             {
-                ClearFrames();
+                ClearData();
                 property.MarkSerializationRootDirty();
             }
         }
-
-        [UsedImplicitly]
-        private void ValidateComponents(List<ReplayAgentComponent> value, SelfValidationResult result, InspectorProperty property)
+        
+        private IEnumerable GetComponentsDropdown()
         {
-            if (_Components == null || _Components.Count == 0)
+            return TypeCacheUtils.GetAssignableClassesOfType<AReplayAgentComponent>()
+                .Select(c => new ValueDropdownItem<AReplayAgentComponent>(c.ComponentLabel, c));
+        }
+        
+        private Texture2D GetComponentIcon(AReplayAgentComponent component) => GUIHelper.GetAssetThumbnail(null, component.TargetType, false);
+        
+        [UsedImplicitly]
+        private void ValidateComponents(List<AReplayAgentComponent> value, SelfValidationResult result, InspectorProperty property)
+        {
+            if (_ComponentList == null || _ComponentList.Count == 0)
             {
-                result.AddWarning("No tracks assigned.");
+                result.AddWarning("No components assigned.");
             }
 
             if (property.TryGetParentObject<ReplayAgentHandler>(out var handler))
             {
-                var gameObject = handler.gameObject;
                 if (SpawnMode != ReplaySpawnMode.FindOnly && 
-                    (_Components == null || !_Components.Any(t => t.Target == gameObject && t.FrameSequences.Any(f => f is GameObjectActiveFrameSequence))))
+                    (_ComponentList == null || !_ComponentList.Any(t => t is GameObjectActiveComponent)))
                 {
                     result.AddError("Current spawn mode requires to track main GameObject's Active state.")
-                        .WithFix(() =>
-                        {
-                            if (!_Components.TryGetFirst(t => t.Target == gameObject, out var component))
-                            {
-                                component = new ReplayAgentComponent(gameObject, "GameObject");
-                                _Components.Add(component);
-                            }
-                            component.InsertSequence(new GameObjectActiveFrameSequence());
+                        .WithFix(() => 
+                        { 
+                            _ComponentList ??= new List<AReplayAgentComponent>();
+                            _ComponentList.Insert(0, new GameObjectActiveComponent());
                             property.MarkSerializationRootDirty();
                         });
                 }
             }
             
-            if (_Components == null)
+            if (_ComponentList == null)
                 return;
             
-            if (_Components.Any(t => t == null))
+            if (_ComponentList.Any(t => t == null))
             {
-                result.AddError("One or more target tracks are null.")
+                result.AddError("One or more components are null.")
                     .WithFix(() =>
                     {
                         value.RemoveAll(t => t == null);
@@ -303,13 +364,13 @@ namespace EDIVE.Replay
                     });
             }
             
-            var duplicateItems = _Components.GroupBy(i => i.ID)
+            var duplicateItems = _ComponentList.GroupBy(i => i.ID)
                 .Where(g => g.Count() > 1)
                 .ToList();
 
             if (duplicateItems.Count > 0)
             {
-                result.AddError($"Duplicate target tracks found: {string.Join(", ", duplicateItems.Select(g => g.Key))}");
+                result.AddError($"Duplicate components found: {string.Join(", ", duplicateItems.Select(g => g.Key))}");
             }
         }
         

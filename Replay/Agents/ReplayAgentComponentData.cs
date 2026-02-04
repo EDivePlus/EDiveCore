@@ -34,10 +34,9 @@ namespace EDIVE.Replay
         [JsonConstructor]
         public ReplayAgentComponentData() { }
 
-        public ReplayAgentComponentData(string id, List<AFrameSequence> frameSequences)
+        public ReplayAgentComponentData(string id)
         {
             _ID = id;
-            _FrameSequences = frameSequences ?? new List<AFrameSequence>();
         }
     }
 }

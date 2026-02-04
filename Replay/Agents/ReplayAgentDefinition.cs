@@ -4,7 +4,7 @@
 using EDIVE.AssetTranslation;
 using UnityEngine;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.Agents
 {
     public class ReplayAgentDefinition : AUniqueDefinition
     {

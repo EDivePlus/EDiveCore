@@ -6,7 +6,7 @@ using MemoryPack;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.Replay.Frames
+namespace EDIVE.Replay.Components
 {
     [Serializable]
     [MemoryPackable(GenerateType.NoGenerate)]
