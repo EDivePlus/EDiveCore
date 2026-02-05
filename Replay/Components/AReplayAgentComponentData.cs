@@ -7,8 +7,11 @@ using EDIVE.OdinExtensions.Attributes;
 using MemoryPack;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Replay.Components
 {

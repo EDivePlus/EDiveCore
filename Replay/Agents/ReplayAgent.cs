@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
@@ -15,9 +14,9 @@ using EDIVE.StateHandling.MultiStates;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 #if UNITY_EDITOR
+using EDIVE.EditorUtils;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 #endif
