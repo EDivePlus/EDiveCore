@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace EDIVE.Audio.Replay
 {
-    public class ReplayAudioProxy : NetworkBehaviour
+    public class VoiceChatReplayProxy : NetworkBehaviour
     {
         [SerializeField]
         private StreamedAudioSourceOutput _AudioOutput;

@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
+using UnityEditor;
 #endif
 
 namespace EDIVE.Replay.Components
@@ -34,9 +38,20 @@ namespace EDIVE.Replay.Components
 #if UNITY_EDITOR
         public string GenerateID(InspectorProperty property)
         {
-            var root = ((Component) property.SerializationRoot.ValueEntry.WeakSmartValue).gameObject.transform;
-            var path = BaseTarget.TryGetComponent<Transform>(out var targetTr) ? targetTr.GetPathIn(root) : string.Empty;
-            return string.IsNullOrEmpty(path) ? TargetID : $"{path}-{TargetID}";
+            if (!BaseTarget.TryGetComponent<Transform>(out var targetTr))
+                return TargetID;
+
+            var resultID = $"{targetTr.gameObject.name}{TargetID}";
+            if (!property.TryGetParentObject<IEnumerable<AReplayAgentComponent>>(out var parentList))
+                return resultID;
+
+            var existingIds = parentList
+                .Where(c => !ReferenceEquals(c, this))
+                .Select(c => c.ID)
+                .Where(id => id != null)
+                .ToArray();
+            
+            return ObjectNames.GetUniqueName(existingIds, resultID);
         }
         
         [PropertyOrder(-100)]
