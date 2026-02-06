@@ -19,7 +19,7 @@ namespace EDIVE.Configuration
 
         public UniTask Load(Action<float> progressCallback)
         {
-            if (IsHeadless())
+            if (IsStandalone())
             {
                 // Load existing settings
                 _Settings.LoadConfigs();
@@ -31,11 +31,11 @@ namespace EDIVE.Configuration
             return UniTask.CompletedTask;
         }
 
-        public static bool IsHeadless() =>
-#if UNITY_SERVER && !UNITY_EDITOR
+        public static bool IsStandalone() =>
+#if (UNITY_SERVER || UNITY_STANDALONE) && !UNITY_EDITOR
             true;
 #else
-            SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
+            false;
 #endif
     }
 }

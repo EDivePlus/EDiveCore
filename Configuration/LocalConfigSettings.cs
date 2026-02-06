@@ -35,7 +35,7 @@ namespace EDIVE.Configuration
 
         public void SaveConfigs()
         {
-            var serializerSettings = new JsonSerializerSettings(JsonConvert.DefaultSettings!.Invoke())
+            var serializerSettings = new JsonSerializerSettings(ConfigUtility.SerializerSettings)
             {
                 TypeNameHandling = TypeNameHandling.Auto
             };

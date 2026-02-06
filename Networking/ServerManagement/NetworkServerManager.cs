@@ -40,8 +40,11 @@ namespace EDIVE.Networking.ServerManagement
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
-            _ServerConfig.ServerID = GenerateServerID();
-            _ServerConfig.ServerName = _ServerNameGenerator.Generate();
+            if (_ServerConfig.ServerID == 0)
+                _ServerConfig.ServerID = GenerateServerID();
+            
+            if (string.IsNullOrWhiteSpace(_ServerConfig.ServerName))
+                _ServerConfig.ServerName = _ServerNameGenerator.Generate();
             
             foreach (var adapter in _Adapters)
             { 
