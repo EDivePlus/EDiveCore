@@ -28,6 +28,7 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
+        "FISHNET",
         "UNIVOICE"
     ],
     "versionDefines": [

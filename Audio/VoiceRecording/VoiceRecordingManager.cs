@@ -71,7 +71,7 @@ namespace EDIVE.Audio.VoiceRecording
             
             _recordedFrames.Clear();
             _audioManager.AddVoiceChatMuteRequest(this);
-            _audioManager.AudioFrameReady += OnAudioFrameReady;
+            _audioManager.LocalAudioFrameReady += OnAudioFrameReady;
             
             DebugLite.Log("[VoiceRecordingManager] Starting recording");
             Recording = true;
@@ -114,7 +114,7 @@ namespace EDIVE.Audio.VoiceRecording
             _recordingCancellation.Dispose();
             _recordingCancellation = null;
             
-            _audioManager.AudioFrameReady -= OnAudioFrameReady;
+            _audioManager.LocalAudioFrameReady -= OnAudioFrameReady;
             _audioManager.RemoveVoiceChatMuteRequest(this);
 
             _micRecording = AudioUtils.CreateAudioClip(_recordedFrames);

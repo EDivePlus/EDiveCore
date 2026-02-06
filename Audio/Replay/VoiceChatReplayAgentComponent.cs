@@ -18,7 +18,7 @@ using UnityEngine;
 namespace EDIVE.Audio.Replay
 {
     [Serializable]
-    public partial class VoiceChatReplayAgentComponent : AReplayAgentComponent<VoiceChatReplayProxy, VoiceChatReplayAgentComponent.ComponentData>
+    public partial class VoiceChatReplayAgentComponent : AReplayAgentComponent<GameObject, VoiceChatReplayAgentComponent.ComponentData>
     {
         public override string ComponentLabel => "Voice Chat Audio";
         protected override string TargetID => "VCAudio";
@@ -27,27 +27,33 @@ namespace EDIVE.Audio.Replay
         private int _playbackIndex;
         
         private const long AUDIO_LOOKAHEAD_MS = 100; // Lookahead for buffering
+        private VoiceChatReplayProxy _proxy;
         
         public override void StartRecording(float startTime, ReplayRecordingConfig config, CancellationToken cancellationToken = default)
         {
             if (_Data == null || _Target == null)
                 return;
+
+            _proxy = _Target.GetComponentInParent<VoiceChatReplayProxy>();
+            if (_proxy == null)
+                return;
             
-            _Target.UnityAudioSource.volume = 0f;
+            var unityAudioOutput = _proxy.AudioOutput.Stream.UnityAudioSource;
+            unityAudioOutput.volume = 0f;
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             _Data.SetMetadata(0, 0);
-            _Target.AudioFrameReceived += WriteAudioFrame;
-            _Target.AudioFrameReceived += WriteMetadata;
+            _proxy.AudioFrameReceived += WriteAudioFrame;
+            _proxy.AudioFrameReceived += WriteMetadata;
             cancellationToken.Register(() =>
             {
-                _Target.AudioFrameReceived -= WriteAudioFrame;
-                _Target.AudioFrameReceived -= WriteMetadata;
+                _proxy.AudioFrameReceived -= WriteAudioFrame;
+                _proxy.AudioFrameReceived -= WriteMetadata;
             });
         }
         
         private void WriteMetadata(AudioFrame audioFrame)
         {
-            _Target.AudioFrameReceived -= WriteMetadata;
+            _proxy.AudioFrameReceived -= WriteMetadata;
             _Data?.SetMetadata(audioFrame.frequency, audioFrame.channelCount);
         }
 
@@ -61,6 +67,10 @@ namespace EDIVE.Audio.Replay
             if (_Data == null || _Target == null)
                 return;
 
+            _proxy = _Target.GetComponentInParent<VoiceChatReplayProxy>();
+            if (_proxy == null)
+                return;
+            
             var frames = _Data.AudioFrames;
             if (frames.Count == 0)
                 return;
@@ -68,11 +78,12 @@ namespace EDIVE.Audio.Replay
             var timelineOffsetMs = (long) startTime;
             _playbackIndex = _Data.BinarySearchFrame(timelineOffsetMs);
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            
-            _Target.UnityAudioSource.volume = 1f;
+
+            var unityAudioOutput = _proxy.AudioOutput.Stream.UnityAudioSource;
+            unityAudioOutput.volume = 1f;
             cancellationToken.Register(() =>
             {
-                _Target.UnityAudioSource.volume = 0f;
+                //unityAudioOutput.volume = 0f;
             });
             
             Observable
@@ -94,9 +105,8 @@ namespace EDIVE.Audio.Replay
                             frequency = _Data.Frequency,
                             channelCount = _Data.ChannelCount,
                             samples = sample._Samples,
-                           
                         };
-                        _Target.FeedAudioFrame(audioFrame);
+                        _proxy.FeedAudioFrame(audioFrame);
                         _playbackIndex++;
                     }
                 })

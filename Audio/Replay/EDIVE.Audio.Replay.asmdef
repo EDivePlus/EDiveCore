@@ -1,31 +1,32 @@
-﻿{
-  "name": "EDIVE.Audio.Replay",
-  "rootNamespace": "",
-  "references": [
-    "EDIVE.Core",
-    "EDIVE.Audio",
-    "EDIVE.Replay",
-    "Adrenak.UniVoice.Runtime",
-    "Adrenak.UniMic.Runtime",
-    "EDIVE.Utils.Cysharp",
-    "EDIVE.External.Promises",
-    "FishNet.Runtime"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [
-    "UNIVOICE"
-  ],
-  "versionDefines": [
-    {
-      "name": "com.adrenak.univoice",
-      "expression": "",
-      "define": "UNIVOICE"
-    }
-  ],
-  "noEngineReferences": false
+{
+    "name": "EDIVE.Audio.Replay",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.Core",
+        "EDIVE.Audio",
+        "EDIVE.Replay",
+        "EDIVE.AppLoading",
+        "EDIVE.Utils.Cysharp",
+        "Adrenak.UniVoice.Runtime",
+        "Adrenak.UniMic.Runtime",
+        "FishNet.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "FISHNET",
+        "UNIVOICE"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.adrenak.univoice",
+            "expression": "",
+            "define": "UNIVOICE"
+        }
+    ],
+    "noEngineReferences": false
 }

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Adrenak.BRW;
 using Adrenak.UniMic;
 using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
@@ -15,8 +16,11 @@ using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
+using FishNet;
+using FishNet.Connection;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using Channel = FishNet.Transporting.Channel;
 
 namespace EDIVE.Audio
 {
@@ -35,8 +39,13 @@ namespace EDIVE.Audio
         private readonly List<object> _voiceChatMuteRequests = new();
         public bool VoiceChatMuted => _voiceChatMuteRequests.Any();
         
+        private FishNetClient _uniVoiceClient;
+        private FishNetServer _uniVoiceServer;
         private IAudioInput _currentAudioInput;
-        public event Action<AudioFrame> AudioFrameReady;
+        public event Action<AudioFrame> LocalAudioFrameReady;
+        
+        public event Action<int, AudioFrame> ServerReceivedPeerAudioFrame;
+        public event Action<int, AudioFrame> ClientReceivedPeerAudioFrame;
         
         [DisableInEditorMode]
         [ShowInInspector]
@@ -104,10 +113,10 @@ namespace EDIVE.Audio
       
         private void InitializeClient()
         {
-            var client = new FishNetClient();
-            _voiceChatSession = new ClientSession<int>(client, _currentAudioInput, () =>
+            _uniVoiceClient = new FishNetClient();
+            _voiceChatSession = new ClientSession<int>(_uniVoiceClient, _currentAudioInput, () =>
             {
-                var audioOutput = EnhancedStreamedAudioSourceOutput.New();
+                var audioOutput = StreamedAudioSourceOutput.New();
                 audioOutput.Stream.TargetLatency = 0.3f;
                 audioOutput.Stream.PitchMaxCorrection = 0.05f;
                 audioOutput.Stream.PitchProportionalGain = 0.2f;
@@ -119,12 +128,34 @@ namespace EDIVE.Audio
             _voiceChatSession.InputFilters.Add(new ConcentusEncodeFilter()); // Opus encoding
             _voiceChatSession.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter()); // Opus decoding
             
-            client.OnJoined += OnVoiceChatClientJoined;
-            client.OnLeft += OnVoiceChatClientLeft;
-            client.OnPeerJoined += OnVoiceChatPeerJoined;
-            client.OnPeerLeft += OnVoiceChatPeerLeft;
+            _uniVoiceClient.OnJoined += OnVoiceChatClientJoined;
+            _uniVoiceClient.OnLeft += OnVoiceChatClientLeft;
+            _uniVoiceClient.OnPeerJoined += OnVoiceChatPeerJoined;
+            _uniVoiceClient.OnPeerLeft += OnVoiceChatPeerLeft;
+            
+            InstanceFinder.ClientManager.RegisterBroadcast<FishNetBroadcast>(OnClientReceivedAudioMessage);
         }
-        
+
+        private void OnClientReceivedAudioMessage(FishNetBroadcast message, Channel channel)
+        {
+            var reader = new BytesReader(message.data);
+            var messageTag = reader.ReadString();
+
+            if (!messageTag.Equals(FishNetBroadcastTags.AUDIO_FRAME)) 
+                return;
+            
+            var sender = reader.ReadInt();
+            var frame = new AudioFrame
+            {
+                timestamp = reader.ReadLong(),
+                frequency = reader.ReadInt(),
+                channelCount = reader.ReadInt(),
+                samples = reader.ReadByteArray()
+            };
+            
+            ClientReceivedPeerAudioFrame?.Invoke(sender, frame);
+        }
+
         private void OnVoiceChatClientLeft()
         {
             Debug.Log("[AudioManager] You left the chatroom");
@@ -144,7 +175,7 @@ namespace EDIVE.Audio
         {
             Debug.Log($"[AudioManager] Peer '{id}' joined the chatroom");
 
-            var output = _voiceChatSession.PeerOutputs[id] as EnhancedStreamedAudioSourceOutput;
+            var output = _voiceChatSession.PeerOutputs[id] as StreamedAudioSourceOutput;
             if (output == null)
             {
                 Debug.LogError($"[AudioManager] Could not get StreamedAudioSourceOutput for peer {id}");
@@ -154,7 +185,7 @@ namespace EDIVE.Audio
             InitializePeerSpatialAudioAsync(id, output).Forget();
         }
         
-        private async UniTask InitializePeerSpatialAudioAsync(int id, EnhancedStreamedAudioSourceOutput output)
+        private async UniTask InitializePeerSpatialAudioAsync(int id, StreamedAudioSourceOutput output)
         {
             var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
             var playerController = await playerManager.AwaitPlayerController(id);
@@ -182,11 +213,32 @@ namespace EDIVE.Audio
 
         private void InitializeServer()
         {
-            var server = new FishNetServer();
-            server.OnServerStart += OnVoiceChatServerStarted;
-            server.OnServerStop += OnVoiceChatServerStopped;
+            _uniVoiceServer = new FishNetServer();
+            _uniVoiceServer.OnServerStart += OnVoiceChatServerStarted;
+            _uniVoiceServer.OnServerStop += OnVoiceChatServerStopped;
+            
+            InstanceFinder.ServerManager.RegisterBroadcast<FishNetBroadcast>(OnServerReceivedAudioMessage, false);
         }
-        
+
+        private void OnServerReceivedAudioMessage(NetworkConnection connection, FishNetBroadcast message, Channel channel)
+        {
+            var reader = new BytesReader(message.data);
+            var messageTag = reader.ReadString();
+
+            if (!messageTag.Equals(FishNetBroadcastTags.AUDIO_FRAME)) 
+                return;
+            
+            var sender = reader.ReadInt();
+            var frame = new AudioFrame
+            {
+                timestamp = reader.ReadLong(),
+                frequency = reader.ReadInt(),
+                channelCount = reader.ReadInt(),
+                samples = reader.ReadByteArray()
+            };
+            ServerReceivedPeerAudioFrame?.Invoke(sender, frame);
+        }
+
         private void OnVoiceChatServerStarted()
         {
             Debug.Log("[AudioManager] Voice chat server started");
@@ -289,7 +341,7 @@ namespace EDIVE.Audio
         private void OnAudioFrameReady(AudioFrame frame)
         {
             frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            AudioFrameReady?.Invoke(frame);
+            LocalAudioFrameReady?.Invoke(frame);
         }
         
         private Mic.Device ResolveMicrophone()
