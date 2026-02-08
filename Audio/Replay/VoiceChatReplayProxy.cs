@@ -49,11 +49,19 @@ namespace EDIVE.Audio.Replay
             AudioOutput.transform.SetParent(_AudioSourceRoot, false);
             AudioOutput.transform.localPosition = Vector3.zero;
             
-            _decodeFilters = new List<IAudioFilter>{ new ConcentusDecodeFilter() };
+            _decodeFilters = new List<IAudioFilter>
+            {
+                new ConcentusDecodeFilter()
+            };
 
             if (NetworkObject.IsOwner)
             {
-                _encodeFilters = new List<IAudioFilter>{ new ConcentusEncodeFilter() };
+                _encodeFilters = new List<IAudioFilter>
+                {
+                    new RNNoiseFilter(),
+                    new SimpleVadFilter(new SimpleVad()),
+                    new ConcentusEncodeFilter()
+                };
                 audioManager.LocalAudioFrameReady += OnReceivedLocalAudioFrame;
             }
             else
