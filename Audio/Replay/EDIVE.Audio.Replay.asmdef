@@ -7,6 +7,7 @@
         "EDIVE.Replay",
         "EDIVE.AppLoading",
         "EDIVE.Utils.Cysharp",
+        "UniTask",
         "Adrenak.UniVoice.Runtime",
         "Adrenak.UniMic.Runtime",
         "FishNet.Runtime"
