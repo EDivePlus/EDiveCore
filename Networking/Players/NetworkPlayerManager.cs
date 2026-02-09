@@ -21,6 +21,7 @@ using Sirenix.OdinInspector;
 using UnityEngine.Networking;
 using System.Text;
 using System.Linq;
+using EDIVE.AssetTranslation;
 using UnityEngine.SceneManagement;
 
 namespace EDIVE.Networking.Players
@@ -143,7 +144,10 @@ namespace EDIVE.Networking.Players
             }
         }
 
-        public void UnregisterPlayer(NetworkPlayerController player) { _currentPlayers.Remove(player); }
+        public void UnregisterPlayer(NetworkPlayerController player)
+        {
+            _currentPlayers.Remove(player);
+        }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
@@ -239,35 +243,27 @@ namespace EDIVE.Networking.Players
             if (_playerProfile != null)
                 return _playerProfile;
 
-            _playerProfile = new PlayerProfile()
+            _playerProfile = new PlayerProfile
             {
                 username = GeneratePlayerName(),
                 password = "",
                 role = "guest",
                 color = Color.HSVToRGB(Random.Range(0f, 1f), .75f, .75f),
-                avatarId = _DefaultAvatar.UniqueID,
+                avatar = _DefaultAvatar,
             };
             return _playerProfile;
         }
 
         public string GeneratePlayerName() { return _PlayerNameGenerator ? _PlayerNameGenerator.Generate() : $"Player_{Random.Range(1000, 9999)}"; }
-
-        public void OnLocalAvatarChanged(string avatarId)
-        {
-            _lastSelectedAvatarId = avatarId;
-            if (_playerProfile != null)
-                _playerProfile.avatarId = avatarId;
-        }
-
+        
         public string GetAvatarId()
         {
             if (!string.IsNullOrEmpty(_lastSelectedAvatarId))
                 return _lastSelectedAvatarId;
-            if (LocalPlayer != null && !string.IsNullOrEmpty(LocalPlayer.AvatarID))
-                return LocalPlayer.AvatarID;
-            return PlayerProfile.avatarId;
+            if (LocalPlayer != null && !string.IsNullOrEmpty(LocalPlayer.AvatarDefinition.UniqueID))
+                return LocalPlayer.AvatarDefinition.UniqueID;
+            return PlayerProfile.avatar.UniqueID;
         }
-
 
         private System.Collections.IEnumerator LoadProfileAndBroadcast()
         {
@@ -403,10 +399,13 @@ namespace EDIVE.Networking.Players
                 if (!string.IsNullOrWhiteSpace(pj.avatarId))
                 {
                     _lastSelectedAvatarId = pj.avatarId;
-                    prof.avatarId = pj.avatarId;
+                    if (DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(pj.avatarId, out var avatarDef))
+                    {
+                        prof.avatar = avatarDef; 
+                    }
                 }
 
-                Debug.Log($"[PROFILE/SAVEDATA] Applied username='{prof.username}', avatarId='{prof.avatarId}'");
+                Debug.Log($"[PROFILE/SAVEDATA] Applied username='{prof.username}', avatarId='{prof.avatar.UniqueID}'");
                 onDone?.Invoke(true, "ok");
             }
         }

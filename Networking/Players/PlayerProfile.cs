@@ -2,6 +2,7 @@
 // Created: 23.04.2025
 
 using System;
+using EDIVE.Avatars;
 using UnityEngine;
 
 namespace EDIVE.Networking.Players
@@ -13,6 +14,6 @@ namespace EDIVE.Networking.Players
         public Color color;
         public string role;
         public string password;
-        public string avatarId;
+        public AvatarDefinition avatar;
     }
 }

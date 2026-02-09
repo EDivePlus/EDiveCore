@@ -2,9 +2,9 @@
 // Created: 23.04.2025
 
 using System;
-using EDIVE.AssetTranslation;
 using EDIVE.Avatars;
 using EDIVE.Core;
+using EDIVE.Networking.UI;
 using EDIVE.StateHandling.ToggleStates;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
@@ -26,30 +26,27 @@ namespace EDIVE.Networking.Players
         private IKTargetAssigner _IKAssigner;
 
         [SerializeField]
-        private BillboardNameTag _NameTagPrefab;
-        
-        [SerializeField]
-        private Transform _HeadOverride;
+        private BillboardNameTag _NameTag;
         
         public AvatarController AvatarInstance { get; private set; }
-        public event Action<AvatarController> AvatarInstanceChanged;
 
         public string Username => _username.Value;
         public string Role => _role.Value;
         public Color Color => _color.Value;
-        public string AvatarID => _avatarID.Value;
-
-        private BillboardNameTag _nameTagInstance;
+        public AvatarDefinition AvatarDefinition => _avatarDefinition.Value;
+        
+        public event Action<AvatarController> AvatarInstanceChanged;
+        public event Action<AvatarDefinition> AvatarChanged;
         
         private readonly SyncVar<Color> _color = new(Color.white);
         private readonly SyncVar<string> _username = new();
         private readonly SyncVar<string> _role = new();
-        private readonly SyncVar<string> _avatarID = new();
+        private readonly SyncVar<AvatarDefinition> _avatarDefinition = new();
         
         private void Awake()
         {
             _username.OnChange += OnUsernameChanged;
-            _avatarID.OnChange += OnAvatarChanged;
+            _avatarDefinition.OnChange += OnAvatarChanged;
         }
 
         public override void OnStartClient()
@@ -65,7 +62,7 @@ namespace EDIVE.Networking.Players
                 _IKAssigner.InitializeFollow();
                 _IKAssigner.Assign(AvatarInstance);
             }
-            RefreshGameObjectName();
+            RefreshUserName();
             AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
         }
 
@@ -90,69 +87,58 @@ namespace EDIVE.Networking.Players
             _username.Value = profile.username;
             _role.Value = profile.role;
             _color.Value = profile.color;
-            ApplyAvatar(profile.avatarId);
-            RefreshGameObjectName();
+            ApplyAvatar(profile.avatar);
+            RefreshUserName();
         }
 
         [Server]
-        private void ApplyAvatar(string avatarId)
+        private void ApplyAvatar(AvatarDefinition avatarDef)
         {
-            if (string.IsNullOrEmpty(avatarId))
-                return;
-
-            if (_avatarID.Value != avatarId)
-            {
-                _avatarID.Value = avatarId;
-                //CreateLocalAvatar(avatarId); // Will be created on OnAvatarChanged
-            }
+            _avatarDefinition.Value = avatarDef;
         }
 
         [ServerRpc]
-        private void CmdSetAvatar(string avatarId)
+        private void CmdSetAvatar(AvatarDefinition avatarDef)
         {
-            ApplyAvatar(avatarId);
+            ApplyAvatar(avatarDef);
         }
 
         [Client]
-        public void SetAvatar(AvatarDefinition avatarDefinition)
+        public void SetAvatar(AvatarDefinition avatarDef)
         {
-            CmdSetAvatar(avatarDefinition.UniqueID);
+            CmdSetAvatar(avatarDef);
         }
 
-        private void RefreshGameObjectName()
+        private void RefreshUserName()
         {
             var username = string.IsNullOrEmpty(Username) ? "Unknown" : Username;
             var objName = $"Player '{username}' ({OwnerId})";
             if (IsOwner) objName += " [Local]";
             gameObject.name = objName;
+            
+            if (_NameTag != null)
+            {
+                _NameTag.SetIsOwner(IsOwner);
+                _NameTag.SetText(Username);
+            }
         }
         
         private void OnUsernameChanged(string oldValue, string newValue, bool asServer)
         {
-            RefreshGameObjectName();
-
-            if (_nameTagInstance != null)
-                _nameTagInstance.SetText(newValue);
-            else
-                TrySetupNameTag();
+            RefreshUserName();
         }
 
-        private void OnAvatarChanged(string oldValue, string newValue, bool asServer)
+        private void OnAvatarChanged(AvatarDefinition oldValue, AvatarDefinition newValue, bool asServer)
         {
+            AvatarChanged?.Invoke(newValue);
             CreateLocalAvatar(newValue);
-            
-            if (IsOwner && AppCore.Services.TryGet<NetworkPlayerManager>(out var networkPlayerManager)) 
-                networkPlayerManager.OnLocalAvatarChanged(newValue);
         }
 
-        private void CreateLocalAvatar(string avatarId)
+        private void CreateLocalAvatar(AvatarDefinition def)
         {
-            if (string.IsNullOrEmpty(avatarId))
-                return;
-            
-            if (!DefinitionTranslationUtils.TryGetDefinition<AvatarDefinition>(avatarId, out var def) || !def.IsValid())
+            if (def == null || !def.IsValid())
             {
-                Debug.LogError($"Invalid avatar ID {avatarId}");
+                Debug.LogError($"Invalid avatar ID {def.UniqueID}");
                 return;
             }
             
@@ -172,29 +158,6 @@ namespace EDIVE.Networking.Players
 
             if (_IKAssigner != null)
                 _IKAssigner.Assign(AvatarInstance);
-            
-            if (_nameTagInstance != null)
-            {
-                Destroy(_nameTagInstance.gameObject);
-                _nameTagInstance = null;
-            }
-            TrySetupNameTag();
-        }
-        private void TrySetupNameTag()
-        {
-            if (_nameTagInstance != null) return;
-            if (AvatarInstance == null) return;
-            if (string.IsNullOrWhiteSpace(Username)) return;
-            
-            Transform head = _HeadOverride;
-
-            if (_NameTagPrefab != null)
-            {
-                _nameTagInstance = Instantiate(_NameTagPrefab, head, false);
-                _nameTagInstance.BindHead(head);
-                _nameTagInstance.SetIsOwner(IsOwner);
-                _nameTagInstance.SetText(Username);
-            }
         }
 
         public Transform GetWorldPoseTransform()
