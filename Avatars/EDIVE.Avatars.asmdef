@@ -7,7 +7,8 @@
         "EDIVE.StateHandling",
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
