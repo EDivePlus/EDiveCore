@@ -5,17 +5,18 @@ using System;
 using System.Collections;
 using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
-using Newtonsoft.Json.Linq;
 
-namespace EDIVE.Networking.DatabaseManagement
+namespace EDIVE.UserCenter
 {
     public class AuthService : MonoBehaviour
     {
         [Header("Config")]
         [SerializeField]
         private string _BaseUrl = "https://ediveplus.phil.muni.cz:8443/ediveplus";
+        
         [SerializeField]
         private float _TimeoutSeconds = 20f;
 

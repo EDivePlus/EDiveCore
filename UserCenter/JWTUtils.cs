@@ -1,21 +1,22 @@
 ﻿// Author: Radim Holub
 // Created: 08.09.2025
+
 using System;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
-namespace EDIVE.Networking.DatabaseManagement
+namespace EDIVE.UserCenter
 {
     public static class JwtUtils
     {
         public static JObject DecodePayloadToJson(string jwt)
         {
             if (string.IsNullOrWhiteSpace(jwt))
-                throw new ArgumentException("JWT is null/empty");
+                throw new ArgumentException("JWT is null or empty");
 
             var parts = jwt.Split('.');
             if (parts.Length != 3)
-                throw new ArgumentException($"Invalid JWT (expected 3 parts, got {parts.Length}).");
+                throw new ArgumentException($"Invalid JWT, expected 3 parts, got {parts.Length}.");
 
             var payloadB64Url = parts[1];
             var json = Encoding.UTF8.GetString(Base64UrlDecode(payloadB64Url));

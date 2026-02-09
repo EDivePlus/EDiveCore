@@ -26,7 +26,7 @@ namespace EDIVE.Networking.Players
         {
             if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
             {
-                playerManager.Btn_SummonPlayersInMySceneToMe();
+                playerManager.SummonPlayersToMe();
             }
         }
     }

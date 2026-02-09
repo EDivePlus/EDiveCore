@@ -1,9 +1,10 @@
 ﻿// Author: Radim Holub
 // Created: 08.09.2025
+
 using System;
 using UnityEngine;
 
-namespace EDIVE.Networking.DatabaseManagement
+namespace EDIVE.UserCenter
 {
     public static class AuthStorage
     {
