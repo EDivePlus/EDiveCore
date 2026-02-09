@@ -33,15 +33,13 @@ namespace EDIVE.Audio.VoiceRecording
         public bool Recording { get; private set; }
 
         private static string RecordingsFolderPath => PathUtility.GetRootAppDataPath("VoiceRecordings");
-        
         public Signal<bool> RecordingStateChanged { get; } = new();
 
         private AudioManager _audioManager;
-        private AudioClip _micRecording;
         private float _recordingStartTime;
+        private WavFileWriter _wavFileWriter;
         private CancellationTokenSource _recordingCancellation = new();
         private readonly List<AudioFrame> _recordedFrames = new();
-        
         private readonly List<IAudioFilter> _audioFilters = new();
         
         protected override UniTask LoadRoutine(Action<float> progressCallback)
@@ -59,7 +57,8 @@ namespace EDIVE.Audio.VoiceRecording
             base.PopulateDependencies(dependencies);
             dependencies.Add(typeof(AudioManager));
         }
-        
+
+
         [Button]
         public void StartRecording()
         {
@@ -70,12 +69,13 @@ namespace EDIVE.Audio.VoiceRecording
             }
             
             _recordedFrames.Clear();
+            _recordingStartTime = UnityEngine.Time.time;
+            _wavFileWriter = new WavFileWriter(Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}"));
             _audioManager.AddVoiceChatMuteRequest(this);
             _audioManager.LocalAudioFrameReady += OnAudioFrameReady;
             
             DebugLite.Log("[VoiceRecordingManager] Starting recording");
             Recording = true;
-            _recordingStartTime = UnityEngine.Time.time;
             
             RecordingStateChanged.Dispatch(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording started");
@@ -95,7 +95,10 @@ namespace EDIVE.Audio.VoiceRecording
             }
 
             if (frame.samples != null && frame.samples.Length > 0)
+            {
                 _recordedFrames.Add(frame);
+                _wavFileWriter.Write(frame.frequency, frame.channelCount,  Adrenak.UniVoice.Utils.Bytes.BytesToFloats(frame.samples));
+            }
         }
 
         private async UniTask RecordingTask(CancellationToken ct)
@@ -116,21 +119,18 @@ namespace EDIVE.Audio.VoiceRecording
             
             _audioManager.LocalAudioFrameReady -= OnAudioFrameReady;
             _audioManager.RemoveVoiceChatMuteRequest(this);
-
-            _micRecording = AudioUtils.CreateAudioClip(_recordedFrames);
+            
+            DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
+            PathUtility.EnsurePathExists(RecordingsFolderPath);
+            _wavFileWriter?.Dispose();
+            
+            var micRecording = AudioUtils.CreateAudioClip(_recordedFrames);
+            var recordingName = Path.Combine(RecordingsFolderPath, $"VoiceRecording2_{DateTime.Now:yyyyMMddHHmmss}");
+            SavWav.Save(recordingName, micRecording);
             _recordedFrames.Clear();
-            SaveVoiceRecording(_micRecording);
             
             RecordingStateChanged.Dispatch(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording stopped");
-        }
-
-        private static void SaveVoiceRecording(AudioClip currRecording)
-        {
-            DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
-            var recordingName = Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}");
-            PathUtility.EnsurePathExists(RecordingsFolderPath);
-            SavWav.Save(recordingName, currRecording);
         }
     }
 }
