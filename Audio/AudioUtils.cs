@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Adrenak.UniVoice;
 using UnityEngine;
 using ZLinq;
@@ -50,42 +49,73 @@ namespace EDIVE.Audio
             // Sort frames by timestamp
             audioFrames.Sort((a, b) => a.timestamp.CompareTo(b.timestamp));
 
-            // Calculate frame duration in ms based on first frame
-            var samplesPerFrame = firstFrame.samples.Length / sizeof(float);
-            var frameDurationMs = (float)samplesPerFrame / channels / frequency * 1000f;
+            // Calculate expected frame duration in ms
+            var floatsPerFrame = firstFrame.samples.Length / sizeof(float);
+            var samplesPerChannelPerFrame = floatsPerFrame / channels;
+            var frameDurationMs = (double)samplesPerChannelPerFrame / frequency * 1000.0;
+            
+            // Threshold: if gap is more than 1.5x frame duration, it's a real gap (VAD silence)
+            var gapThresholdMs = frameDurationMs * 1.5;
 
-            // Calculate total duration based on timestamps
-            var startTimestamp = audioFrames[0].timestamp;
-            var endTimestamp = audioFrames[^1].timestamp;
-            var totalDurationMs = endTimestamp - startTimestamp + (long)frameDurationMs;
+            // First pass: calculate total samples needed (including real gaps)
+            var totalFloatSamples = 0;
+            long lastFrameEndTimestamp = audioFrames[0].timestamp;
+            
+            foreach (var frame in audioFrames)
+            {
+                var gapMs = frame.timestamp - lastFrameEndTimestamp;
+                
+                // If there's a significant gap, add silence for it
+                if (gapMs > gapThresholdMs)
+                {
+                    var gapSamples = (int)((gapMs / 1000.0) * frequency) * channels;
+                    totalFloatSamples += gapSamples;
+                }
+                
+                // Add this frame's samples
+                var frameFloatCount = frame.samples.Length / sizeof(float);
+                totalFloatSamples += frameFloatCount;
+                
+                // Update end timestamp for next iteration
+                lastFrameEndTimestamp = frame.timestamp + (long)frameDurationMs;
+            }
 
-            // Calculate total samples needed (including gaps)
-            var totalSamplesPerChannel = (int)(totalDurationMs / 1000f * frequency);
-            if (totalSamplesPerChannel <= 0)
+            if (totalFloatSamples <= 0)
                 return null;
-            var totalSamples = totalSamplesPerChannel * channels;
 
             // Create buffer initialized with silence (zeros)
-            var allSamples = new float[totalSamples];
+            var allSamples = new float[totalFloatSamples];
+            var currentOffset = 0;
+            lastFrameEndTimestamp = audioFrames[0].timestamp;
 
-            // Place each frame at its correct position based on timestamp
-            foreach (var frame in audioFrames.AsValueEnumerable())
+            // Second pass: copy frames sequentially, inserting gaps where needed
+            foreach (var frame in audioFrames)
             {
-                // Calculate offset in samples from start
-                var offsetMs = frame.timestamp - startTimestamp;
-                var offsetSamples = (int)(offsetMs / 1000f * frequency * channels);
-                if (offsetSamples < 0 || offsetSamples >= totalSamples)
-                    continue;
-
-                // Copy raw bytes directly into the float buffer to avoid per-frame allocations
-                var destByteOffset = offsetSamples * sizeof(float);
-                var availableBytes = (totalSamples - offsetSamples) * sizeof(float);
-                var copyBytes = Math.Min(frame.samples.Length, availableBytes);
-                if (copyBytes > 0)
-                    Buffer.BlockCopy(frame.samples, 0, allSamples, destByteOffset, copyBytes);
+                var gapMs = frame.timestamp - lastFrameEndTimestamp;
+                
+                // If there's a significant gap, skip ahead (silence is already zeros)
+                if (gapMs > gapThresholdMs)
+                {
+                    var gapSamples = (int)((gapMs / 1000.0) * frequency) * channels;
+                    currentOffset += gapSamples;
+                }
+                
+                // Copy this frame's samples
+                var frameFloats = Adrenak.UniVoice.Utils.Bytes.BytesToFloats(frame.samples);
+                var copyCount = Math.Min(frameFloats.Length, totalFloatSamples - currentOffset);
+                
+                if (copyCount > 0)
+                {
+                    Array.Copy(frameFloats, 0, allSamples, currentOffset, copyCount);
+                    currentOffset += copyCount;
+                }
+                
+                // Update end timestamp for next iteration
+                lastFrameEndTimestamp = frame.timestamp + (long)frameDurationMs;
             }
 
             // Create AudioClip
+            var totalSamplesPerChannel = totalFloatSamples / channels;
             var clip = AudioClip.Create("RecordedAudio", totalSamplesPerChannel, channels, frequency, false);
             clip.SetData(allSamples, 0);
 

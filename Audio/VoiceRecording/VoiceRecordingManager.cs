@@ -39,7 +39,6 @@ namespace EDIVE.Audio.VoiceRecording
         private float _recordingStartTime;
         private WavFileWriter _wavFileWriter;
         private CancellationTokenSource _recordingCancellation = new();
-        private readonly List<AudioFrame> _recordedFrames = new();
         private readonly List<IAudioFilter> _audioFilters = new();
         
         protected override UniTask LoadRoutine(Action<float> progressCallback)
@@ -68,9 +67,8 @@ namespace EDIVE.Audio.VoiceRecording
                 return;
             }
             
-            _recordedFrames.Clear();
             _recordingStartTime = UnityEngine.Time.time;
-            _wavFileWriter = new WavFileWriter(Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}"));
+            _wavFileWriter = new WavFileWriter(Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}.wav"));
             _audioManager.AddVoiceChatMuteRequest(this);
             _audioManager.LocalAudioFrameReady += OnAudioFrameReady;
             
@@ -96,7 +94,6 @@ namespace EDIVE.Audio.VoiceRecording
 
             if (frame.samples != null && frame.samples.Length > 0)
             {
-                _recordedFrames.Add(frame);
                 _wavFileWriter.Write(frame.frequency, frame.channelCount,  Adrenak.UniVoice.Utils.Bytes.BytesToFloats(frame.samples));
             }
         }
@@ -123,11 +120,6 @@ namespace EDIVE.Audio.VoiceRecording
             DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
             PathUtility.EnsurePathExists(RecordingsFolderPath);
             _wavFileWriter?.Dispose();
-            
-            var micRecording = AudioUtils.CreateAudioClip(_recordedFrames);
-            var recordingName = Path.Combine(RecordingsFolderPath, $"VoiceRecording2_{DateTime.Now:yyyyMMddHHmmss}");
-            SavWav.Save(recordingName, micRecording);
-            _recordedFrames.Clear();
             
             RecordingStateChanged.Dispatch(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording stopped");

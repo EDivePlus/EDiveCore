@@ -38,8 +38,6 @@ namespace EDIVE.Audio.Replay
             if (_proxy == null)
                 return;
             
-            var unityAudioOutput = _proxy.AudioOutput.Stream.UnityAudioSource;
-            unityAudioOutput.volume = 0f;
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             _Data.SetMetadata(0, 0);
             _proxy.AudioFrameReceived += WriteAudioFrame;
@@ -78,12 +76,10 @@ namespace EDIVE.Audio.Replay
             var timelineOffsetMs = (long) startTime;
             _playbackIndex = _Data.BinarySearchFrame(timelineOffsetMs);
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-            var unityAudioOutput = _proxy.AudioOutput.Stream.UnityAudioSource;
-            unityAudioOutput.volume = 1f;
+            
             cancellationToken.Register(() =>
             {
-                //unityAudioOutput.volume = 0f;
+                _proxy.StopAudioOutput();
             });
             
             Observable

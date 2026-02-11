@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
-using Adrenak.UniVoice.Outputs;
 using EDIVE.Core;
 using FishNet.Object;
 using UnityEngine;
@@ -15,9 +14,9 @@ namespace EDIVE.Audio.Replay
     public class VoiceChatReplayProxy : NetworkBehaviour
     {
         [SerializeField]
-        private Transform _AudioSourceRoot;
+        public BufferedAudioOutput _AudioOutput;
+        public BufferedAudioOutput AudioOutput => _AudioOutput;
         
-        public StreamedAudioSourceOutput AudioOutput { get; private set; }
         public event Action<AudioFrame> AudioFrameReceived;
 
         private List<IAudioFilter> _encodeFilters;
@@ -43,11 +42,6 @@ namespace EDIVE.Audio.Replay
         {
             if (!AppCore.Services.TryGet<AudioManager>(out var audioManager)) 
                 return;
-            
-            AudioOutput = StreamedAudioSourceOutput.New();
-            AudioOutput.gameObject.name = "ReplayAudioOutput";
-            AudioOutput.transform.SetParent(_AudioSourceRoot, false);
-            AudioOutput.transform.localPosition = Vector3.zero;
             
             _decodeFilters = new List<IAudioFilter>
             {
@@ -124,7 +118,7 @@ namespace EDIVE.Audio.Replay
         }
 
         [ObserversRpc]
-        private void ClientFeedAudioFrame(AudioFrame frame)
+        private void ClientFeedAudioFrame(NetAudioFrame frame)
         {
             FeedAudioFrameInternal(frame);
         }
@@ -133,7 +127,12 @@ namespace EDIVE.Audio.Replay
         private void FeedAudioFrameInternal(AudioFrame frame)
         {
             if (TryProcessAudioFrame(ref frame, _decodeFilters)) 
-                AudioOutput.Feed(frame);
+                _AudioOutput.Feed(frame.frequency, frame.channelCount, frame.samples, frame.timestamp);
+        }
+
+        public void StopAudioOutput()
+        {
+            _AudioOutput.Stop();
         }
     }
 }
