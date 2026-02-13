@@ -17,7 +17,7 @@ namespace EDIVE.Time.DateTimeUtils
         [PropertySpace]
         [ShowInInspector]
         [CustomValueDrawer(nameof(PreviewValueDrawer))]
-        private DateTime _formatPreview = DateTime.Now;
+        private DateTime FormatPreview => DateTime.Now;
         
         private void PreviewValueDrawer(DateTime value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {

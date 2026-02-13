@@ -20,7 +20,7 @@ namespace EDIVE.Time.TimeSpanUtils
         [PropertySpace]
         [ShowInInspector]
         [CustomValueDrawer(nameof(PreviewValueDrawer))]
-        private TimeSpan _formatPreview = DateTime.Now.TimeOfDay;
+        private TimeSpan FormatPreview => DateTime.Now.TimeOfDay;
         
         private void PreviewValueDrawer(TimeSpan value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
