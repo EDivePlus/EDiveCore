@@ -5,7 +5,8 @@
         "EDIVE.Utils.Json",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
