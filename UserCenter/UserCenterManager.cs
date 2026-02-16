@@ -70,7 +70,7 @@ namespace EDIVE.UserCenter
         
         public System.Collections.IEnumerator LoadProfileFromSavedataAndApply(Action<bool, string> onDone = null)
         {
-            // vezmeme list všech záznamů pro přihlášeného uživatele v branchi
+            // Get list of all records for the logged-in user in the branch
             var listUrl = SavedataUrl() + "?pgSize=250";
             using (var req = BuildJsonReq(UnityWebRequest.kHttpVerbGET, listUrl, null))
             {
@@ -81,7 +81,7 @@ namespace EDIVE.UserCenter
 
                 if (req.responseCode == 404)
                 {
-                    Debug.Log("[PROFILE/SAVEDATA][LIST] 404 → žádný uložený profil; ponechávám výchozí hodnoty.");
+                    Debug.Log("[PROFILE/SAVEDATA][LIST] 404 → no saved profile; keeping defaults.");
                     onDone?.Invoke(true, "empty");
                     yield break;
                 }
@@ -95,7 +95,7 @@ namespace EDIVE.UserCenter
 
                 List<SavedataRecord> rows = null;
 
-                // API může vracet buď prosté pole, nebo stránkované { content: [...] }
+                // API may return either a plain array or a paged { content: [...] }
                 try
                 {
                     rows = JsonConvert.DeserializeObject<List<SavedataRecord>>(text);
@@ -118,7 +118,7 @@ namespace EDIVE.UserCenter
 
                 if (rows == null || rows.Count == 0)
                 {
-                    Debug.Log("[PROFILE/SAVEDATA][LIST] prázdné – ponechávám výchozí.");
+                    Debug.Log("[PROFILE/SAVEDATA][LIST] empty – keeping defaults.");
                     onDone?.Invoke(true, "empty");
                     yield break;
                 }
@@ -132,7 +132,7 @@ namespace EDIVE.UserCenter
                 var rec = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
                 if (rec == null || string.IsNullOrEmpty(rec.description))
                 {
-                    Debug.Log("[PROFILE/SAVEDATA][LIST] nenalezen klíč – ponechávám výchozí.");
+                    Debug.Log("[PROFILE/SAVEDATA][LIST] key not found – keeping defaults.");
                     onDone?.Invoke(true, "empty");
                     yield break;
                 }
@@ -174,7 +174,7 @@ namespace EDIVE.UserCenter
             
             var descriptionJson = JsonConvert.SerializeObject(pj);
 
-            // 1) LIST → najdi existující záznam podle _ProfileKey
+            // 1) LIST → find existing record by _ProfileKey
             SavedataRecord existing = null;
             var listUrl = SavedataUrl() + "?pgSize=250";
             using (var sreq = BuildJsonReq(UnityWebRequest.kHttpVerbGET, listUrl, null))
@@ -254,7 +254,7 @@ namespace EDIVE.UserCenter
 
                 using (var preq = BuildJsonReq(UnityWebRequest.kHttpVerbPOST, postUrl, body))
                 {
-                    preq.SetRequestHeader("Accept", "application/json"); // pomáhá některým backendům
+                    preq.SetRequestHeader("Accept", "application/json"); // helps some backends
 
                     Debug.Log($"[PROFILE/SAVEDATA][CREATE] POST {postUrl} body={JsonConvert.SerializeObject(body)}");
                     yield return preq.SendWebRequest();
@@ -281,7 +281,7 @@ namespace EDIVE.UserCenter
         {
             if (!Application.isPlaying)
             {
-                Debug.LogWarning("Spusť Play Mode.");
+                Debug.LogWarning("Start Play Mode.");
                 return;
             }
 
@@ -294,7 +294,7 @@ namespace EDIVE.UserCenter
         {
             if (!Application.isPlaying)
             {
-                Debug.LogWarning("Spusť Play Mode.");
+                Debug.LogWarning("Start Play Mode.");
                 return;
             }
 
@@ -312,7 +312,7 @@ namespace EDIVE.UserCenter
         {
             if (!Application.isPlaying)
             {
-                Debug.LogWarning("Spusť Play Mode.");
+                Debug.LogWarning("Start Play Mode.");
                 return;
             }
 
@@ -324,7 +324,7 @@ namespace EDIVE.UserCenter
             // Todo Feed profile as param
             ProfileJson pj = null; 
             
-            // LIST → najdi key
+            // LIST → find key
             SavedataRecord existing = null;
             var listUrl = SavedataUrl() + "?pgSize=250";
             using (var sreq = BuildJsonReq(UnityWebRequest.kHttpVerbGET, listUrl, null))
@@ -371,7 +371,7 @@ namespace EDIVE.UserCenter
 
             if (existing == null || existing.id == 0)
             {
-                Debug.LogWarning("[PROFILE/SAVEDATA][PUT] Nenalezen existující profil — žádný update neproběhne.");
+                Debug.LogWarning("[PROFILE/SAVEDATA][PUT] Existing profile not found — no update performed.");
                 onDone?.Invoke(false, "no existing");
                 yield break;
             }

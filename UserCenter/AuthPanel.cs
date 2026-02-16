@@ -39,16 +39,16 @@ namespace EDIVE.UserCenter
 
             if (_Auth.IsLoggedIn)
             {
-                Debug.Log($"Přihlášen (UserId): {AuthStorage.GetUserId()}");
+                Debug.Log($"Logged in (UserId): {AuthStorage.GetUserId()}");
                 SetLoggedInUI(true);
             }
             else
             {
-                Debug.Log("Zadej přihlašovací údaje.");
+                Debug.Log("Enter login credentials.");
                 SetLoggedInUI(false);
             }
 
-            var lastEmail = AuthStorage.GetLastEmail(); // viz předešlý krok s uložením e-mailu
+            var lastEmail = AuthStorage.GetLastEmail(); // see previous step with storing the email
             if (!string.IsNullOrEmpty(lastEmail))
             {
                 _EmailInput.SetTextWithoutNotify(lastEmail);
@@ -79,18 +79,18 @@ namespace EDIVE.UserCenter
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pass))
             {
-                Debug.Log("Vyplň e-mail i heslo.");
+                Debug.Log("Fill in both email and password.");
                 return;
             }
 
-            Debug.Log("Přihlašuji…");
+            Debug.Log("Logging in…");
             _Auth.Login(email, pass);
         }
 
         private void OnLoginOk(LoginResponse r)
         {
             SetLoggedInUI(true);
-            Debug.Log("Přihlášení proběhlo úspěšně.");
+            Debug.Log("Login was successful.");
             Debug.Log($"Access Token: {r._AccessToken}");
 
             var expUnix = JwtUtils.GetUnixExp(r._AccessToken);
@@ -141,7 +141,7 @@ namespace EDIVE.UserCenter
         {
             _Auth.Logout();
             SetLoggedInUI(false);
-            Debug.Log("Uživatel byl odhlášen.");
+            Debug.Log("User has been logged out.");
         }
 
         private void OnEmailEndEdit(string value)

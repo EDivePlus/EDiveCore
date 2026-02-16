@@ -68,7 +68,7 @@ namespace EDIVE.UserCenter
 
                         if (string.IsNullOrEmpty(jwt))
                         {
-                            OnLoginFailed?.Invoke(200, "Neplatná odpověď serveru (nenalezen token).");
+                            OnLoginFailed?.Invoke(200, "Invalid server response (token not found).");
                             yield break;
                         }
                         
@@ -105,7 +105,7 @@ namespace EDIVE.UserCenter
                     }
                     catch (Exception e)
                     {
-                        OnLoginFailed?.Invoke(200, $"Chyba parsování login odpovědi: {e.Message}");
+                        OnLoginFailed?.Invoke(200, $"Login response parse error: {e.Message}");
                     }
                 }
                 else
@@ -113,10 +113,10 @@ namespace EDIVE.UserCenter
                     var status = req.responseCode;
                     var msg = req.error;
 
-                    if (status == 401) msg = "Nesprávný e-mail nebo heslo.";
-                    else if (status == 403) msg = "Přístup odepřen.";
-                    else if (status >= 500) msg = "Chyba serveru. Zkus to prosím později.";
-                    else if (status == 0 && req.result == UnityWebRequest.Result.ConnectionError) msg = "Nelze se připojit (síť/TLS).";
+                    if (status == 401) msg = "Incorrect email or password.";
+                    else if (status == 403) msg = "Access denied.";
+                    else if (status >= 500) msg = "Server error. Please try again later.";
+                    else if (status == 0 && req.result == UnityWebRequest.Result.ConnectionError) msg = "Unable to connect (network/TLS).";
 
                     OnLoginFailed?.Invoke(status, msg);
                 }
