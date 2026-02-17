@@ -9,15 +9,18 @@ namespace EDIVE.Networking.Utils
 {
     public static class FishNetExtensions
     {
-        public static void WhenLoadedStartScenes(this NetworkConnection connection, Action callback = null)
+        public static void WhenLoadedStartScenes(this NetworkConnection connection, bool asServer, Action callback = null)
         {
-            if (!connection.LoadedStartScenes())
+            if (!connection.LoadedStartScenes(asServer))
             {
                 connection.OnLoadedStartScenes += OnConnectionOnOnLoadedStartScenes;
                 return;
                 
-                void OnConnectionOnOnLoadedStartScenes(NetworkConnection networkConnection, bool asServer)
+                void OnConnectionOnOnLoadedStartScenes(NetworkConnection networkConnection, bool server)
                 {
+                    if (asServer != server)
+                        return;
+                    
                     callback?.Invoke();
                     connection.OnLoadedStartScenes -= OnConnectionOnOnLoadedStartScenes;
                 }
