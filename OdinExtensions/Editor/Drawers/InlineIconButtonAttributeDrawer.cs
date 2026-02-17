@@ -6,6 +6,7 @@ using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
+using ActionNamedValue = Sirenix.OdinInspector.Editor.ActionResolvers.NamedValue;
 
 namespace EDIVE.OdinExtensions.Editor.Drawers
 {
@@ -18,16 +19,18 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private ValueResolver<bool> _showIfResolver;
         private ActionResolver _clickAction;
         
-
-        private bool show = true;
+        private const string RECT_NAMED_VALUE = "fieldRect";
+        
+        private bool _show = true;
 
         protected override void Initialize()
         {
             _iconNameResolver = ValueResolver.GetForString(Property, Attribute.IconName);
             _tooltipResolver = ValueResolver.GetForString(Property, Attribute.Tooltip);
             _showIfResolver = ValueResolver.Get(Property, Attribute.ShowIf, true);
-            _clickAction = ActionResolver.Get(Property, Attribute.Action);
-            show = _showIfResolver.GetValue();
+            _clickAction = ActionResolver.Get(Property, Attribute.Action, new ActionNamedValue(RECT_NAMED_VALUE, typeof(Rect)));
+            
+            _show = _showIfResolver.GetValue();
         }
 
         /// <summary>
@@ -45,17 +48,17 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
             if (Event.current.type == EventType.Layout)
             {
-                show = _showIfResolver.GetValue();
+                _show = _showIfResolver.GetValue();
             }
 
             var icon = EditorIconsUtility.GetIcon(_iconNameResolver.GetValue(), Attribute.Bundle);
-            if (!show || icon == null)
+            if (!_show || icon == null)
             {
                 CallNextDrawer(label);
                 return;
             }
 
-            EditorGUILayout.BeginHorizontal();
+            var fieldRect = EditorGUILayout.BeginHorizontal();
             CallNextDrawer(label);
             var tooltip = !_tooltipResolver.HasError ? _tooltipResolver.GetValue() : "";
             var rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,  GUILayoutOptions.ExpandWidth(false).Width(18));
@@ -64,6 +67,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (SirenixEditorGUI.IconButton(rect, icon,tooltip))
             {
                 Property.RecordForUndo($"Click {Attribute.Action.SplitPascalCase()}");
+                _clickAction.Context.NamedValues.Set(RECT_NAMED_VALUE, fieldRect);
                 _clickAction.DoActionForAllSelectionIndices();
                 Property.MarkSerializationRootDirty();
             }
