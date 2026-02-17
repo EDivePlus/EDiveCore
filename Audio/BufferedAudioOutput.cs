@@ -6,20 +6,21 @@ using Adrenak.UniVoice;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Audio.Replay
+namespace EDIVE.Audio
 {
     [RequireComponent(typeof(AudioSource))]
     public class BufferedAudioOutput : MonoBehaviour
     {
         [Tooltip("How much audio to buffer before starting playback (ms).")]
         [SuffixLabel("ms", true)]
-        [SerializeField] private float _InitialBufferSize = 500f;
+        [SerializeField] private int _InitialBufferSize = 500;
         
         [SuffixLabel("ms", true)]
-        [SerializeField] private float _RingBufferSize = 60000f;
+        [SerializeField] private int _RingBufferSize = 60000;
 
-        public float InitialBufferSize => _InitialBufferSize;
+        public int InitialBufferSize => _InitialBufferSize;
         public bool IsPlaying => _audioSource.isPlaying;
+        public bool PlaybackEnabled { get; private set; }
         
         private AudioSource _audioSource;
         private AudioClip _clip;
@@ -46,6 +47,26 @@ namespace EDIVE.Audio.Replay
             _audioSource.loop = false;
             _audioSource.playOnAwake = false;
             _audioSource.dopplerLevel = 0f;
+        }
+        
+        /// <summary>
+        /// Enable or disable playback. When enabled, playback will start once the initial buffer is filled.
+        /// </summary>
+        public void SetPlaybackEnabled(bool state)
+        {
+            PlaybackEnabled = state;
+            
+            // If enabling playback and we have enough buffered data, start immediately
+            if (state && _isBuffering && _bufferedDuration >= _InitialBufferSize)
+            {
+                StartPlayback();
+            }
+            
+            // If disabling playback while playing, stop
+            if (!state && IsPlaying)
+            {
+                Stop();
+            }
         }
         
         public void Feed(AudioFrame frame)
@@ -88,8 +109,8 @@ namespace EDIVE.Audio.Replay
             _frameQueue.Enqueue(new BufferedFrame { Timestamp = timestamp, Samples = samples });
             _bufferedDuration += frameDurationMs;
 
-            // If buffering, check if we have enough to start
-            if (_isBuffering && _bufferedDuration >= _InitialBufferSize)
+            // If buffering and playback is enabled, check if we have enough to start
+            if (_isBuffering && PlaybackEnabled && _bufferedDuration >= _InitialBufferSize)
             {
                 StartPlayback();
             }
@@ -218,6 +239,7 @@ namespace EDIVE.Audio.Replay
             _bufferedDuration = 0f;
             _writePosPerChannel = 0;
             _hasReceivedFirstFrame = false;
+            PlaybackEnabled = false;
 
             // Clear the clip with silence
             if (_clip != null && _clipSamplesPerChannel > 0 && _channels > 0)
