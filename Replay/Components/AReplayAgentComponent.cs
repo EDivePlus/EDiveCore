@@ -63,6 +63,7 @@ namespace EDIVE.Replay.Components
     public abstract class AReplayAgentComponent<TData> : AReplayAgentComponent
         where TData : AReplayAgentComponentData, new()
     {
+        [PropertyOrder(10)]
         [HideLabel]
         [InlineProperty]
         [SerializeField]

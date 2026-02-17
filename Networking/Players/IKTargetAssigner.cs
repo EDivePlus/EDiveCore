@@ -17,9 +17,9 @@ namespace EDIVE.Networking.Players
 
         [SerializeField]
         private IKTargetRecord _RightHandTarget;
-
+        
         [Serializable]
-        private class IKTargetRecord
+        public class IKTargetRecord
         {
             [SerializeField]
             private TransformScriptableVariable _RigTarget;
@@ -31,7 +31,7 @@ namespace EDIVE.Networking.Players
             public Transform SkeletonTarget => _SkeletonTarget;
         }
 
-        public void InitializeFollow()
+        public override void OnStartClient()
         {
             if (IsOwner)
             {
@@ -45,7 +45,7 @@ namespace EDIVE.Networking.Players
                 rightHandFollow.Source = _RightHandTarget.RigTarget;
             }
         }
-
+        
         public void Assign(AvatarController avatar)
         {
             if (avatar == null)

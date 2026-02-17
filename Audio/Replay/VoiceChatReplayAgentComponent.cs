@@ -31,7 +31,7 @@ namespace EDIVE.Audio.Replay
         protected override string TargetID => "VCAudio";
 
         protected override GameObject TargetGameObject => _AudioOutput.TryGetGameObject(out var go) ? go : null;
-        public override Type EditorTargetType => typeof(BufferedAudioOutput);
+        public override Type EditorTargetType => typeof(AudioSource);
 
         protected long _startTimestamp;
         private int _playbackIndex;

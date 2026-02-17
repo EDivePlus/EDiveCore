@@ -16,18 +16,6 @@ namespace EDIVE.Networking.UI
         
         [SerializeField]
         private TMP_Text _Label;
-        
-        [SerializeField]
-        private bool _HideForOwner = true;
-    
-        private bool _isOwner;
-    
-        public void SetIsOwner(bool isOwner)
-        {
-            _isOwner = isOwner;
-            if (_HideForOwner) 
-                gameObject.SetActive(!_isOwner);
-        }
 
         public void SetText(string t)
         {
