@@ -70,8 +70,11 @@ namespace EDIVE.StateHandling.MultiStates
             
             if (_allowedStatesResolver != null)
             {
-                Attribute.AllowedStates = _allowedStatesResolver.GetValue().Cast<object>().Where(x => x != null).Select(x => x.ToString());
+                Attribute.AllowedStates = _allowedStatesResolver.GetValue()?.Cast<object>().Where(x => x != null).Select(x => x.ToString());
             }
+            
+            if (Attribute.AllowedStates == null)
+                return;
             
             var allAllowedStates = Attribute.AllowedStates.Where(s => !string.IsNullOrEmpty(s))
                 .Select(s => s.Trim())
