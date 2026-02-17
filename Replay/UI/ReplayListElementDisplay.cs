@@ -1,12 +1,13 @@
 ﻿// Author: Radim Holub
 // Created: 04.12.2025
+
 using System.IO;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.UI
 {
     public class ReplayListElementDisplay : MonoBehaviour
     {
@@ -38,11 +39,9 @@ namespace EDIVE.Replay
 
             UniTask.Void(async () =>
             {
-                var ok = await _replayController.LoadRecordingFromFileAsync(_filePath, () =>
-                {
-                    _replayController.StartPlayback();
-                });
+                var ok = await _replayController.LoadRecordingFromFileAsync(_filePath);
 
+                _replayController.StartPlayback();
                 if (!ok)
                     Debug.LogWarning($"Failed to load replay: {_filePath}");
             });

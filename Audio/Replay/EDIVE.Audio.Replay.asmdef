@@ -6,6 +6,7 @@
         "EDIVE.Audio",
         "EDIVE.Replay",
         "EDIVE.AppLoading",
+        "EDIVE.NativeUtils",
         "EDIVE.Utils.Cysharp",
         "UniTask",
         "Adrenak.UniVoice.Runtime",

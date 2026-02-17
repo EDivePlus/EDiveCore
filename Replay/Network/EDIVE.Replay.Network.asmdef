@@ -1,0 +1,22 @@
+﻿{
+  "name": "EDIVE.Replay.Network",
+  "rootNamespace": "",
+  "references": [
+    "UniTask",
+    "FishNet.Runtime",
+    "EDIVE.External.Signals",
+    "EDIVE.Replay",
+    "EDIVE.OdinExtensions"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "FISHNET"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

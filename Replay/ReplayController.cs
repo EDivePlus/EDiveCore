@@ -29,7 +29,7 @@ namespace EDIVE.Replay
         
         public Signal TimeChanged { get; } = new();
         public Signal StateChanged { get; } = new();
-        
+
         private float _currentDuration;
         public event Action<string> RecordingSaved;
 
@@ -62,7 +62,8 @@ namespace EDIVE.Replay
             var decompressedBuffer = decompressor.Decompress(data);
             return MemoryPackSerializer.Deserialize<T>(decompressedBuffer);
         }
-        public async UniTask<bool> LoadRecordingFromFileAsync(string path, Action onLoaded = null)
+        
+        public async UniTask<bool> LoadRecordingFromFileAsync(string path)
         {
             try
             {
@@ -80,7 +81,7 @@ namespace EDIVE.Replay
                 if (ReplayRecord == null)
                     return false;
 
-                LoadPlayback(ReplayRecord, onLoaded);
+                await LoadPlaybackAsync(ReplayRecord);
                 return true;
             }
             catch (Exception ex)
@@ -296,6 +297,8 @@ namespace EDIVE.Replay
         [SerializeField]
         private float _PlaybackSpeed = 1.0f;
 
+        public IPlaybackContext PlaybackContext { get; private set; } = new PlaybackContext();
+
         public bool IsPlaybackLoaded => PlaybackLoadState == PlaybackLoadState.Loaded;
         public bool IsPlaybackLoading => PlaybackLoadState == PlaybackLoadState.Loading;
         public ReplayRecord ReplayRecord { get; private set; }
@@ -306,6 +309,12 @@ namespace EDIVE.Replay
         private readonly List<ReplayAgent> _playbackAgents = new();
 
         private CancellationTokenSource _playbackCancellationTokenSource;
+
+        public void OverridePlaybackContext(IPlaybackContext context)
+        {
+            if (context != null)
+                PlaybackContext = context;
+        }
         
         [ButtonGroup("Playback")]
         public void StartPlayback()
@@ -396,19 +405,8 @@ namespace EDIVE.Replay
             }
             TimeChanged.Dispatch();
         }
-        
-        public void LoadPlayback(ReplayRecord record, Action onLoaded = null)
-        {
-            LoadPlaybackAsync(record).ContinueWith(() => onLoaded?.Invoke());
-        }
-        
-        public void LoadPlaybackCurrent(Action onLoaded = null)
-        {
-            AssignCurrentRecord();
-            LoadPlayback(ReplayRecord, onLoaded);
-        }
 
-        private async UniTask LoadPlaybackAsync(ReplayRecord record, CancellationToken cancellationToken = default)
+        public async UniTask LoadPlaybackAsync(ReplayRecord record, CancellationToken cancellationToken = default)
         {
             if (StopRecordingInternal())
                 StateChanged.Dispatch();
@@ -424,7 +422,7 @@ namespace EDIVE.Replay
             StateChanged.Dispatch();
 
             // Prepare all agents
-            var tasks = ReplayRecord.ObjectData
+            var getObjectTasks = ReplayRecord.ObjectData
                 .Where(data => data != null && !string.IsNullOrEmpty(data.ID))
                 .Select(data => TryGetObjectAsync(data, cancellationToken));
 
@@ -438,12 +436,16 @@ namespace EDIVE.Replay
             }
 
             // Await for all tasks to complete in parallel
-            var results = await UniTask.WhenAll(tasks);
+            var results = await UniTask.WhenAll(getObjectTasks);
             foreach (var (success, agent, data) in results)
             {
                 if (!success) continue;
                 agent.SetData(data);
             }
+            
+            // Prepare all agents for playback in parallel
+            await UniTask.WhenAll(CurrentAgents.Select(a => a.PreparePlayback(CurrentTime, cancellationToken)));
+            
             PlaybackLoadState = PlaybackLoadState.Loaded;
             _currentDuration = record.Duration;
             CurrentTime = Mathf.Clamp(CurrentTime, 0f, _currentDuration);
@@ -492,21 +494,21 @@ namespace EDIVE.Replay
                 }
             }
 
-            if (data.SpawnMode is ReplaySpawnMode.FindOrCreate or ReplaySpawnMode.AlwaysCreate && data.Definition != null && data.Definition.Prefab != null)
+            if (data.SpawnMode is ReplaySpawnMode.FindOrCreate or ReplaySpawnMode.AlwaysCreate && data.Definition != null)
             {
-                // Create new agent instance
-                var prefab = data.Definition.Prefab;
-                
-                // Todo maybe instantiate with addressables?
-                var handler = (ReplayAgentHandler) Instantiate(prefab, gameObject.scene);
-                handler.Agent.SetCurrentPlaybackParticipation(PlaybackParticipation.Spawned);
-                handler.gameObject.name = handler.gameObject.name.Replace("(Clone)", "(Replay Clone)");
-                var agent = handler.Agent;
-                _playbackAgents.Add(agent);
-                _spawnedHandlers.Add(handler);
-                return (true, agent, data);
+                var (spawned, handler) = await data.Definition.TrySpawnObjectAsync(PlaybackContext, cancellationToken);
+                if (spawned)
+                {
+                    handler.Agent.SetCurrentPlaybackParticipation(PlaybackParticipation.Spawned);
+                    handler.gameObject.name = handler.gameObject.name.Replace("(Clone)", "(Replay Clone)");
+                    var agent = handler.Agent;
+                    _playbackAgents.Add(agent);
+                    _spawnedHandlers.Add(handler);
+                    return (true, agent, data);
+                }
             }
-            
+
+            await UniTask.CompletedTask;
             return (false, null, data);
         }
       

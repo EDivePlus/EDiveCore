@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
@@ -188,6 +189,15 @@ namespace EDIVE.Replay.Agents
             }
         }
         
+        public async UniTask PreparePlayback(float startTime, CancellationToken cancellationToken)
+        {
+            var tasks = _ComponentList
+                .Where(c => c != null)
+                .Select(c => c.PreparePlayback(startTime, cancellationToken));
+            
+            await UniTask.WhenAll(tasks);
+        }
+        
         public void StartPlayback(float startTime, CancellationToken cancellationToken)
         {
             if (_cancellationTokenSource != null)
@@ -325,7 +335,7 @@ namespace EDIVE.Replay.Agents
                 .Select(c => new ValueDropdownItem<AReplayAgentComponent>(c.ComponentLabel, c));
         }
         
-        private Texture2D GetComponentIcon(AReplayAgentComponent component) => GUIHelper.GetAssetThumbnail(null, component.TargetType, false);
+        private Texture2D GetComponentIcon(AReplayAgentComponent component) => GUIHelper.GetAssetThumbnail(null, component.EditorTargetType, false);
         
         [UsedImplicitly]
         private void ValidateComponents(List<AReplayAgentComponent> value, SelfValidationResult result, InspectorProperty property)

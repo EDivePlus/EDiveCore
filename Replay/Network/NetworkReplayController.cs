@@ -1,22 +1,20 @@
 ﻿// Author: František Holubec
 // Created: 19.08.2025
 
-#if FISHNET
 using EDIVE.External.Signals;
+using FishNet;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
-using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.Network
 {
+    [RequireComponent(typeof(ReplayController))]
     public class NetworkReplayController : NetworkBehaviour, IReplayController
     {
     #region Shared
-        [Required]
-        [SerializeField]
-        private ReplayController _ServerReplayController;
-        
+        public Scene Scene => gameObject.scene;
         public float CurrentDuration => Mathf.Max(CurrentTime, _currentDuration.Value);
         public float CurrentTime => _currentTime.Value;
         public bool HasAnyDuration => _currentDuration.Value > 0f;
@@ -27,38 +25,46 @@ namespace EDIVE.Replay
         public Signal TimeChanged { get; } = new();
         public Signal StateChanged { get; } = new();
         
+        private ReplayController _serverReplayController;
+
+        private void Awake()
+        {
+            _serverReplayController = GetComponent<ReplayController>();
+        }
+
         public override void OnStartServer()
         {
             base.OnStartServer();
-            if (_ServerReplayController == null)
+            if (_serverReplayController == null)
             {
                 Debug.LogError("ServerReplayController is not assigned on NetworkReplayController.");
                 return;
             }
-            
-            _ServerReplayController.StateChanged.AddListener(OnServerStateChanged);
-            _ServerReplayController.TimeChanged.AddListener(OnServerTimeChanged);
+
+            _serverReplayController.OverridePlaybackContext(new NetworkPlaybackContext(InstanceFinder.NetworkManager));
+            _serverReplayController.StateChanged.AddListener(OnServerStateChanged);
+            _serverReplayController.TimeChanged.AddListener(OnServerTimeChanged);
         }
 
         public override void OnStopServer()
         {
             base.OnStopServer();
-            if (_ServerReplayController == null)
+            if (_serverReplayController == null)
                 return;
             
-            _ServerReplayController.StateChanged.RemoveListener(OnServerStateChanged);
-            _ServerReplayController.TimeChanged.RemoveListener(OnServerTimeChanged);
+            _serverReplayController.StateChanged.RemoveListener(OnServerStateChanged);
+            _serverReplayController.TimeChanged.RemoveListener(OnServerTimeChanged);
         }
         
         [ObserversRpc(RunLocally = true)]
         private void OnServerStateChanged()
         {
-            _isRecording.Value = _ServerReplayController.IsRecording;
-            _playbackLoadState.Value = _ServerReplayController.PlaybackLoadState;
-            _playbackPlaying.Value = _ServerReplayController.IsPlaybackPlaying;
+            _isRecording.Value = _serverReplayController.IsRecording;
+            _playbackLoadState.Value = _serverReplayController.PlaybackLoadState;
+            _playbackPlaying.Value = _serverReplayController.IsPlaybackPlaying;
             
-            _currentDuration.Value = _ServerReplayController.CurrentDuration;
-            _currentTime.Value = _ServerReplayController.CurrentTime;
+            _currentDuration.Value = _serverReplayController.CurrentDuration;
+            _currentTime.Value = _serverReplayController.CurrentTime;
             
             StateChanged.Dispatch();
         }
@@ -66,8 +72,8 @@ namespace EDIVE.Replay
         [ObserversRpc(RunLocally = true)]
         private void OnServerTimeChanged()
         {
-            _currentDuration.Value = _ServerReplayController.CurrentDuration;
-            _currentTime.Value = _ServerReplayController.CurrentTime;
+            _currentDuration.Value = _serverReplayController.CurrentDuration;
+            _currentTime.Value = _serverReplayController.CurrentTime;
             
             TimeChanged.Dispatch();
         }
@@ -79,19 +85,20 @@ namespace EDIVE.Replay
 
         [ServerRpc]
         public void StartRecording() => 
-            _ServerReplayController.StartRecording();
+            _serverReplayController.StartRecording();
 
         [ServerRpc]
         public void StopRecording() => 
-            _ServerReplayController.StartRecording();
+            _serverReplayController.StartRecording();
 
         [ServerRpc]
         public void ResetRecording() => 
-            _ServerReplayController.ResetRecording();
+            _serverReplayController.ResetRecording();
 
         [ServerRpc]
         public void SetRecordingTime(float time, bool clearFollowingFrames = true) => 
-            _ServerReplayController.SetRecordingTime(time, clearFollowingFrames);
+            _serverReplayController.SetRecordingTime(time, clearFollowingFrames);
+        
     #endregion
         
     #region Playback
@@ -105,24 +112,23 @@ namespace EDIVE.Replay
 
         [ServerRpc]
         public void StartPlayback() => 
-            _ServerReplayController.StartPlayback();
+            _serverReplayController.StartPlayback();
 
         [ServerRpc]
         public void StopPlayback() => 
-            _ServerReplayController.StopPlayback();
+            _serverReplayController.StopPlayback();
 
         [ServerRpc]
         public void SetPlaybackTime(float newTime) => 
-            _ServerReplayController.SetPlaybackTime(newTime);
+            _serverReplayController.SetPlaybackTime(newTime);
         
         [ServerRpc]
         public void UnloadPlayback() => 
-            _ServerReplayController.UnloadPlayback();
+            _serverReplayController.UnloadPlayback();
 
         [ServerRpc]
         public void SaveCurrentRecording() => 
-            _ServerReplayController.SaveCurrentRecording();
+            _serverReplayController.SaveCurrentRecording();
     #endregion
     }
 }
-#endif

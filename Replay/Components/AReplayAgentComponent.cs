@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector;
@@ -22,15 +23,16 @@ namespace EDIVE.Replay.Components
         public abstract float MinTime { get; }
         public abstract float MaxTime { get; }
         
-        public abstract UnityEngine.Object BaseTarget { get; }
-        public abstract Type TargetType { get; }
         public abstract string ComponentLabel { get; }
         protected abstract string TargetID { get; }
+        protected abstract GameObject TargetGameObject { get; }
+        public abstract Type EditorTargetType { get; }
         
         public abstract AReplayAgentComponentData GetDataCopy();
         public abstract void SetData(AReplayAgentComponentData data);
 
         public abstract void StartRecording(float startTime, ReplayRecordingConfig config, CancellationToken cancellationToken = default);
+        public virtual UniTask PreparePlayback(float startTime, CancellationToken cancellationToken = default) => UniTask.CompletedTask;
         public abstract void StartPlayback(float startTime, CancellationToken cancellationToken = default);
         public abstract void ApplyTime(float time);
         public abstract void ClearData(float startTime = 0f);
@@ -38,10 +40,7 @@ namespace EDIVE.Replay.Components
 #if UNITY_EDITOR
         public string GenerateID(InspectorProperty property)
         {
-            if (!BaseTarget.TryGetComponent<Transform>(out var targetTr))
-                return TargetID;
-
-            var resultID = $"{targetTr.gameObject.name}{TargetID}";
+            var resultID = $"{TargetGameObject.name}{TargetID}";
             if (!property.TryGetParentObject<IEnumerable<AReplayAgentComponent>>(out var parentList))
                 return resultID;
 
@@ -59,31 +58,24 @@ namespace EDIVE.Replay.Components
         public void DrawTitle() => GUILayout.Label(ComponentLabel, SirenixGUIStyles.BoldLabel);
 #endif
     }
-    
+
     [Serializable]
-    public abstract class AReplayAgentComponent<TTarget, TData> : AReplayAgentComponent 
-        where TTarget : UnityEngine.Object
+    public abstract class AReplayAgentComponent<TData> : AReplayAgentComponent
         where TData : AReplayAgentComponentData, new()
     {
-        [SerializeField]
-        protected TTarget _Target;
-        
         [HideLabel]
         [InlineProperty]
         [SerializeField]
         protected TData _Data = new();
-
-        public override UnityEngine.Object BaseTarget => _Target;
-        public override Type TargetType => typeof(TTarget);
+        
         public override string ID => _Data.ID;
         
         public override float MinTime => _Data?.GetMinTime() ?? 0f;
         public override float MaxTime => _Data?.GetMaxTime() ?? 0f;
 
         protected AReplayAgentComponent() { }
-        protected AReplayAgentComponent(TTarget target, TData data)
+        protected AReplayAgentComponent( TData data)
         {
-            _Target = target;
             _Data = data;
         }
 
@@ -98,5 +90,21 @@ namespace EDIVE.Replay.Components
             }
             _Data = typedData;
         }
+    }
+    
+    [Serializable]
+    public abstract class AReplayAgentComponent<TTarget, TData> : AReplayAgentComponent<TData> 
+        where TTarget : UnityEngine.Object
+        where TData : AReplayAgentComponentData, new()
+    {
+        [PropertyOrder(-1)]
+        [SerializeField]
+        protected TTarget _Target;
+
+        protected override GameObject TargetGameObject => _Target.TryGetGameObject(out var go) ? go : null;
+        public override Type EditorTargetType => typeof(TTarget);
+
+        protected AReplayAgentComponent() { }
+        protected AReplayAgentComponent(TTarget target, TData data) : base(data) { }
     }
 }

@@ -8,7 +8,7 @@ namespace EDIVE.Replay
     public interface IReplayController
     {
         Signal TimeChanged { get; }
-        Signal StateChanged { get; } 
+        Signal StateChanged { get; }
         
         float CurrentDuration { get; }
         bool HasAnyDuration { get; }

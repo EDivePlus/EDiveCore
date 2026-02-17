@@ -6,9 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Adrenak.UniVoice;
+using Cysharp.Threading.Tasks;
+using EDIVE.Core;
 using EDIVE.Replay;
 using EDIVE.Replay.Components;
 using EDIVE.Utils.Cysharp;
+using EDIVE.NativeUtils;
+using FishNet.Object;
 using MemoryPack;
 using Newtonsoft.Json;
 using R3;
@@ -18,95 +22,91 @@ using UnityEngine;
 namespace EDIVE.Audio.Replay
 {
     [Serializable]
-    public partial class VoiceChatReplayAgentComponent : AReplayAgentComponent<GameObject, VoiceChatReplayAgentComponent.ComponentData>
+    public partial class VoiceChatReplayAgentComponent : AReplayAgentComponent<VoiceChatReplayAgentComponent.ComponentData>
     {
+        [SerializeField]
+        private ReplayAudioOutput _AudioOutput;
+
         public override string ComponentLabel => "Voice Chat Audio";
         protected override string TargetID => "VCAudio";
-        
+
+        protected override GameObject TargetGameObject => _AudioOutput.TryGetGameObject(out var go) ? go : null;
+        public override Type EditorTargetType => typeof(BufferedAudioOutput);
+
         protected long _startTimestamp;
         private int _playbackIndex;
-        
-        private const long AUDIO_LOOKAHEAD_MS = 100; // Lookahead for buffering
-        private VoiceChatReplayProxy _proxy;
+        private int _ownerUserID;
         
         public override void StartRecording(float startTime, ReplayRecordingConfig config, CancellationToken cancellationToken = default)
         {
-            if (_Data == null || _Target == null)
+            if (_Data == null || !TargetGameObject.TryGetComponent<NetworkObject>(out var netObj) || !AppCore.Services.TryGet<AudioManager>(out var audioManager))
                 return;
 
-            _proxy = _Target.GetComponentInParent<VoiceChatReplayProxy>();
-            if (_proxy == null)
-                return;
-            
+            _ownerUserID = netObj.OwnerId;
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            _Data.SetMetadata(0, 0);
-            _proxy.AudioFrameReceived += WriteAudioFrame;
-            _proxy.AudioFrameReceived += WriteMetadata;
+
+            audioManager.UserAudioFrameReady += WriteAudioFrame;
             cancellationToken.Register(() =>
             {
-                _proxy.AudioFrameReceived -= WriteAudioFrame;
-                _proxy.AudioFrameReceived -= WriteMetadata;
+                if (AppCore.Services.TryGet(out audioManager))
+                    audioManager.UserAudioFrameReady -= WriteAudioFrame;
             });
         }
-        
-        private void WriteMetadata(AudioFrame audioFrame)
+
+        private void WriteAudioFrame(int clientID, AudioFrame audioFrame)
         {
-            _proxy.AudioFrameReceived -= WriteMetadata;
-            _Data?.SetMetadata(audioFrame.frequency, audioFrame.channelCount);
+            if (_ownerUserID != clientID)
+                return;
+
+            audioFrame.timestamp -= _startTimestamp;
+            _Data?.AddFrame(audioFrame);
         }
 
-        private void WriteAudioFrame(AudioFrame audioFrame)
+        public override UniTask PreparePlayback(float startTime, CancellationToken cancellationToken = default)
         {
-            _Data?.AddFrame(new SerializedAudioFrame(audioFrame.timestamp - _startTimestamp, audioFrame.samples));
+            if (_Data == null || _AudioOutput == null)
+                return UniTask.CompletedTask;
+
+            _AudioOutput.SetPlaybackEnabled(false);
+            var timelineOffsetMs = (long)(startTime * 1000f);
+            _playbackIndex = -1;
+            if (!_Data.BinarySearchFrameIndex(timelineOffsetMs, out _playbackIndex))
+                return UniTask.CompletedTask;
+            
+            FeedBufferedData(timelineOffsetMs + _AudioOutput.InitialBufferSize);
+            return UniTask.CompletedTask;
         }
-        
+
         public override void StartPlayback(float startTime, CancellationToken cancellationToken = default)
         {
-            if (_Data == null || _Target == null)
-                return;
-
-            _proxy = _Target.GetComponentInParent<VoiceChatReplayProxy>();
-            if (_proxy == null)
+            if (_playbackIndex < 0)
                 return;
             
-            var frames = _Data.AudioFrames;
-            if (frames.Count == 0)
-                return;
-            
-            var timelineOffsetMs = (long) startTime;
-            _playbackIndex = _Data.BinarySearchFrame(timelineOffsetMs);
+            var timelineOffsetMs = (long)(startTime * 1000f);
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            
             cancellationToken.Register(() =>
             {
-                _proxy.StopAudioOutput();
+                _AudioOutput.SetPlaybackEnabled(false);
             });
             
+            _AudioOutput.SetPlaybackEnabled(true);
             Observable
                 .EveryUpdate(cancellationToken)
                 .Subscribe(_ =>
                 {
-                    var elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - _startTimestamp + timelineOffsetMs;
-                    
-                    // Offset for buffering
-                    var targetTimeMs = elapsedMs + AUDIO_LOOKAHEAD_MS;
-                    
-                    // Feed all frames up to the lookahead time
-                    while (_playbackIndex < frames.Count && frames[_playbackIndex]._Timestamp <= targetTimeMs)
-                    {
-                        var sample = frames[_playbackIndex];
-                        var audioFrame = new AudioFrame
-                        {
-                            timestamp = sample._Timestamp,
-                            frequency = _Data.Frequency,
-                            channelCount = _Data.ChannelCount,
-                            samples = sample._Samples,
-                        };
-                        _proxy.FeedAudioFrame(audioFrame);
-                        _playbackIndex++;
-                    }
+                    var elapsedMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - _startTimestamp + timelineOffsetMs + _AudioOutput.InitialBufferSize;
+                    FeedBufferedData(elapsedMs);
                 })
                 .RegisterTo(cancellationToken);
+        }
+        
+        private void FeedBufferedData(float targetMs)
+        {
+            while (_Data.TryGetFrame(_playbackIndex, out var audioFrame) && audioFrame.timestamp <= targetMs)
+            {
+                _AudioOutput.Feed(audioFrame);
+                _playbackIndex++;
+            }
         }
         
         public override void ApplyTime(float time)
@@ -116,7 +116,7 @@ namespace EDIVE.Audio.Replay
 
         public override void ClearData(float startTime = 0)
         {
-            _Data.ClearFrames(f => f._Timestamp >= startTime);
+            _Data?.ClearFrames((long)(startTime * 1000f));
         }
         
         [Serializable]
@@ -147,67 +147,136 @@ namespace EDIVE.Audio.Replay
         }
         
         [Serializable]
+        [MemoryPackable]
+        [JsonObject(MemberSerialization.OptIn)]
+        public partial struct SerializedAudioConfig
+        {
+            [SerializeField]
+            [MemoryPackInclude]
+            [JsonProperty("Timestamp")]
+            public int _FrameIndex;
+
+            [SerializeField]
+            [MemoryPackInclude]
+            [JsonProperty("Frequency")]
+            public int _Frequency;
+            
+            [SerializeField]
+            [MemoryPackInclude]
+            [JsonProperty("ChannelCount")]
+            public int _ChannelCount;
+
+            public SerializedAudioConfig(int frameIndex, int frequency, int channelCount)
+            {
+                _FrameIndex = frameIndex;
+                _Frequency = frequency;
+                _ChannelCount = channelCount;
+            }
+
+            public bool Equals(SerializedAudioConfig other)
+            {
+                return _Frequency == other._Frequency && _ChannelCount == other._ChannelCount;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is SerializedAudioConfig other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                return HashCode.Combine(_Frequency, _ChannelCount);
+            }
+        }
+
+        [Serializable]
         [MemoryPackable, MemoryPackUnionTag(21)]
         [JsonObject(MemberSerialization.OptIn)]
         public partial class ComponentData : AReplayAgentComponentData
         {
             [SerializeField]
             [MemoryPackInclude]
-            [JsonProperty("Frequency")]
-            protected int _Frequency;
-            
-            [SerializeField]
-            [MemoryPackInclude]
-            [JsonProperty("ChannelCount")]
-            protected int _ChannelCount;
-            
-            [SerializeField]
-            [MemoryPackInclude]
             [JsonProperty("AudioFrames")]
-            protected List<SerializedAudioFrame> _AudioFrames = new();
+            private List<SerializedAudioFrame> _AudioFrames = new();
 
-            [MemoryPackIgnore]
-            public int Frequency => _Frequency;
-
-            [MemoryPackIgnore]
-            public int ChannelCount => _ChannelCount;
-
-            [MemoryPackIgnore]
-            public List<SerializedAudioFrame> AudioFrames => _AudioFrames;
+            [SerializeField]
+            [MemoryPackInclude]
+            [JsonProperty("Configs")]
+            private List<SerializedAudioConfig> _Configs = new();
 
             [MemoryPackConstructor]
             public ComponentData() { }
-            public ComponentData(string id, List<SerializedAudioFrame> audioFrames) : base(id)
+            public ComponentData(string id, List<SerializedAudioFrame> audioFrames, List<SerializedAudioConfig> configs) : base(id)
             {
                 _AudioFrames = audioFrames;
+                _Configs = configs;
             }
-
+            
             public override float GetMinTime() => _AudioFrames != null && _AudioFrames.Any() ? _AudioFrames.First()._Timestamp : 0f;
             public override float GetMaxTime() => _AudioFrames != null && _AudioFrames.Any() ? _AudioFrames.Last()._Timestamp : 0f;
 
-            public override AReplayAgentComponentData GetCopy() => new ComponentData(ID, _AudioFrames);
+            public override AReplayAgentComponentData GetCopy() => new ComponentData(ID, _AudioFrames.ToList(), _Configs.ToList());
             
-            public void ClearFrames(Predicate<SerializedAudioFrame> predicate)
+            public void ClearFrames(long timestampMs)
             {
-                _AudioFrames.RemoveAll(predicate);
+                if (BinarySearchFrameIndex(timestampMs, out var frameIndex))
+                {
+                    if (frameIndex < _AudioFrames.Count)
+                    {
+                        _AudioFrames.RemoveRange(frameIndex, _AudioFrames.Count - frameIndex);
+                        _Configs.RemoveAll(c => c._FrameIndex >= frameIndex);
+                    }
+                }
             }
             
-            public void AddFrame(SerializedAudioFrame frame)
+            public bool TryGetFrame(int frameIndex, out AudioFrame frame)
             {
-                _AudioFrames.Add(frame);
+                frame = default;
+                if (_AudioFrames == null || frameIndex < 0 || frameIndex >= _AudioFrames.Count)
+                    return false;
+                
+                var sample = _AudioFrames[frameIndex];
+                var config = GetConfigAtFrame(frameIndex);
+                        
+                frame = new AudioFrame
+                {
+                    timestamp = sample._Timestamp,
+                    frequency = config._Frequency,
+                    channelCount = config._ChannelCount,
+                    samples = sample._Samples,
+                };
+                return true;
             }
             
-            public void SetMetadata(int frequency, int channelCount)
+            public void AddFrame(AudioFrame frame)
             {
-                _Frequency = frequency;
-                _ChannelCount = channelCount;
+                var newConfig = new SerializedAudioConfig(_AudioFrames.Count, frame.frequency, frame.channelCount);
+                if (_Configs.Count == 0 || !_Configs[^1].Equals(newConfig)) 
+                    _Configs.Add(newConfig);
+                
+                _AudioFrames.Add(new SerializedAudioFrame(frame.timestamp, frame.samples));
+            }
+
+            private SerializedAudioConfig GetConfigAtFrame(int frameIndex)
+            {
+                return _Configs.TryGetLast(c => c._FrameIndex <= frameIndex, out var config) ? config : new SerializedAudioConfig(0, 48000, 1);
             }
             
-            public int BinarySearchFrame(long timestampMs)
+            public bool BinarySearchFrameIndex(long timestampMs, out int index)
             {
+                index = 0;
+                if (_AudioFrames == null || _AudioFrames.Count == 0)
+                    return false;
+                
+                if (timestampMs <= _AudioFrames[0]._Timestamp)
+                    return true;
+                
+                if (timestampMs > _AudioFrames[^1]._Timestamp)
+                    return false;
+
                 var lo = 0;
                 var hi = _AudioFrames.Count;
-            
+
                 while (lo < hi)
                 {
                     var mid = lo + (hi - lo) / 2;
@@ -216,7 +285,9 @@ namespace EDIVE.Audio.Replay
                     else
                         hi = mid;
                 }
-                return lo;
+
+                index = hi;
+                return true;
             }
         }
     }
