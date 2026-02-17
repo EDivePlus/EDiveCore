@@ -3,8 +3,11 @@
 
 using System;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities.Editor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.Utilities.Editor;
+#endif
 
 namespace EDIVE.Time.DateTimeUtils
 {

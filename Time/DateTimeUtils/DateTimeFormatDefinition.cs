@@ -22,7 +22,7 @@ namespace EDIVE.Time.DateTimeUtils
         private CultureType _CultureType;
 
         [ShowIf(nameof(_CultureType), CultureType.Custom)]
-        [ValueDropdown(nameof(GetAvailableCultures))]
+        [EnhancedValueDropdown("GetAvailableCultures")]
         [SerializeField]
         private string _CultureName = "";
 
@@ -30,7 +30,7 @@ namespace EDIVE.Time.DateTimeUtils
         private TimeZoneType _TimeZoneType;
 
         [ShowIf(nameof(_TimeZoneType), TimeZoneType.Custom)]
-        [ValueDropdown(nameof(GetAvailableTimeZones))]
+        [EnhancedValueDropdown("GetAvailableTimeZones")]
         [SerializeField]
         private string _TimeZoneId = "";
 
@@ -83,6 +83,7 @@ namespace EDIVE.Time.DateTimeUtils
             }
         }
         
+        [UsedImplicitly]
         private static IEnumerable GetAvailableTimeZones()
         {
             return TimeZoneInfo.GetSystemTimeZones()
@@ -91,6 +92,7 @@ namespace EDIVE.Time.DateTimeUtils
                 .Select(t => new ValueDropdownItem<string>($"{t.DisplayName} ({t.Id})", t.Id));
         }
         
+        [UsedImplicitly]
         private static IEnumerable GetAvailableCultures()
         {
             return CultureInfo.GetCultures(CultureTypes.SpecificCultures)
