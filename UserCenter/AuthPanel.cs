@@ -12,7 +12,7 @@ namespace EDIVE.UserCenter
     {
         [Header("Refs")]
         [SerializeField]
-        private AuthService _Auth;
+        private UserCenterManager _Auth;
         [SerializeField]
         private TMP_InputField _EmailInput;
         [SerializeField]
@@ -109,10 +109,7 @@ namespace EDIVE.UserCenter
                 AuthStorage.SetLastEmail(emailNow);
         }
 
-        private void OnLoginFail(long status, string message)
-        {
-            Debug.Log($"{message} {(status > 0 ? $"(HTTP {status})" : "")}");
-        }
+        private void OnLoginFail(long status, string message) { Debug.Log($"{message} {(status > 0 ? $"(HTTP {status})" : "")}"); }
 
         private void SetLoggedInUI(bool logged)
         {
@@ -166,4 +163,5 @@ namespace EDIVE.UserCenter
             ApplyPasswordMaskState();
         }
     }
+    
 }
