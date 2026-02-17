@@ -55,7 +55,12 @@ namespace EDIVE.Replay.Components
         
         [PropertyOrder(-100)]
         [OnInspectorGUI]
-        public void DrawTitle() => GUILayout.Label(ComponentLabel, SirenixGUIStyles.BoldLabel);
+        public void DrawTitle()
+        {
+            var icon = GUIHelper.GetAssetThumbnail(null, EditorTargetType, false);
+            var content = GUIHelper.TempContent($" {ComponentLabel}", icon);
+            GUILayout.Label(content, SirenixGUIStyles.BoldLabel, GUILayout.Height(18));
+        }
 #endif
     }
 
