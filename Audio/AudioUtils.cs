@@ -121,5 +121,18 @@ namespace EDIVE.Audio
 
             return clip;
         }
+        
+        public static bool TryProcessAudioFrame(ref AudioFrame frame, List<IAudioFilter> filters)
+        {
+            if (filters != null) {
+                foreach (var filter in filters) {
+                    frame = filter.Run(frame);
+                    if (frame.samples == null)
+                        break;
+                }
+            }
+
+            return frame.samples != null && frame.samples.Length > 0;
+        }
     }
 }

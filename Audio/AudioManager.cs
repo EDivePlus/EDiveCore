@@ -42,10 +42,17 @@ namespace EDIVE.Audio
         private FishNetClient _uniVoiceClient;
         private FishNetServer _uniVoiceServer;
         private IAudioInput _currentAudioInput;
+        
+        // Unprocessed local audio frames, triggered when a new frame is captured from the microphone
         public event Action<AudioFrame> LocalAudioFrameReady;
         
         public event Action<int, AudioFrame> ServerReceivedPeerAudioFrame;
         public event Action<int, AudioFrame> ClientReceivedPeerAudioFrame;
+    
+        // Triggered when any audio frame is received (local and remote), frames are encoded
+        public event Action<int, AudioFrame> UserAudioFrameReady;
+        
+        private List<IAudioFilter> _encodeFilters;
         
         [DisableInEditorMode]
         [ShowInInspector]
@@ -81,7 +88,6 @@ namespace EDIVE.Audio
         {
             InitializeAudioInput();
             InitializeVoiceChat();
-            
             return UniTask.CompletedTask;
         }
 
@@ -123,9 +129,14 @@ namespace EDIVE.Audio
                 audioOutput.Stream.DownwardPitchCorrectionScale = 1f;
                 return audioOutput;
             });
-            _voiceChatSession.InputFilters.Add(new RNNoiseFilter()); // Noise suppression
-            _voiceChatSession.InputFilters.Add(new SimpleVadFilter(new SimpleVad())); // Voice activity detection
-            _voiceChatSession.InputFilters.Add(new ConcentusEncodeFilter()); // Opus encoding
+            
+            _encodeFilters = new List<IAudioFilter>
+            {
+                new RNNoiseFilter(), // Noise suppression
+                new SimpleVadFilter(new SimpleVad()), // Voice activity detection
+                new ConcentusEncodeFilter() // Opus encoding
+            };
+            _voiceChatSession.InputFilters.AddRange(_encodeFilters);
             _voiceChatSession.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter()); // Opus decoding
             
             _uniVoiceClient.OnJoined += OnVoiceChatClientJoined;
@@ -154,6 +165,8 @@ namespace EDIVE.Audio
             };
             
             ClientReceivedPeerAudioFrame?.Invoke(sender, frame);
+            if (!InstanceFinder.NetworkManager.IsServerStarted) 
+                UserAudioFrameReady?.Invoke(sender, frame);
         }
 
         private void OnVoiceChatClientLeft()
@@ -237,6 +250,7 @@ namespace EDIVE.Audio
                 samples = reader.ReadByteArray()
             };
             ServerReceivedPeerAudioFrame?.Invoke(sender, frame);
+            UserAudioFrameReady?.Invoke(sender, frame);
         }
 
         private void OnVoiceChatServerStarted()
@@ -342,6 +356,11 @@ namespace EDIVE.Audio
         {
             frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             LocalAudioFrameReady?.Invoke(frame);
+            if (!InstanceFinder.NetworkManager.IsServerStarted)
+            {
+                if (AudioUtils.TryProcessAudioFrame(ref frame, _encodeFilters)) 
+                    UserAudioFrameReady?.Invoke(InstanceFinder.ClientManager.Connection.ClientId, frame);
+            }
         }
         
         private Mic.Device ResolveMicrophone()
