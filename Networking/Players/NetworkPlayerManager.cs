@@ -18,6 +18,7 @@ using Random = UnityEngine.Random;
 using Sirenix.OdinInspector;
 using System.Linq;
 using EDIVE.AssetTranslation;
+using EDIVE.Networking.Utils;
 using UnityEngine.SceneManagement;
 
 namespace EDIVE.Networking.Players
@@ -173,21 +174,24 @@ namespace EDIVE.Networking.Players
 
         private void OnServerPlayerCreationRequest(NetworkConnection conn, PlayerCreationRequestMessage request, Channel channel)
         {
-            // Position will sync from players controls, so we can just instantiate player at origin
-            var position = Vector3.zero;
-            var rotation = Quaternion.identity;
+            conn.WhenLoadedStartScenes(true, () =>
+            {
+                // Position will sync from players controls, so we can just instantiate player at origin
+                var position = Vector3.zero;
+                var rotation = Quaternion.identity;
 
-            var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
-            _networkManager.ServerManager.Spawn(netObj, conn, AppCore.Instance.RootScene);
-            _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
+                var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
+                _networkManager.ServerManager.Spawn(netObj, conn, AppCore.Instance.RootScene);
+                _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
 
-            var playerController = netObj.GetComponent<NetworkPlayerController>();
-            playerController.ApplyProfile(request.profile);
-            _playerProfiles[conn.ClientId] = request.profile;
-            _currentPlayers.Add(playerController);
+                var playerController = netObj.GetComponent<NetworkPlayerController>();
+                playerController.ApplyProfile(request.profile);
+                _playerProfiles[conn.ClientId] = request.profile;
+                _currentPlayers.Add(playerController);
 
-            ServerPlayerJoined?.Invoke(conn.ClientId, request.profile);
-            DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
+                ServerPlayerJoined?.Invoke(conn.ClientId, request.profile);
+                DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
+            });
         }
         
         public bool TryGetPlayerProfile(int clientId, out PlayerProfile profile)
