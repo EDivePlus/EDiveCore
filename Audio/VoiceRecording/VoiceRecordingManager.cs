@@ -57,7 +57,6 @@ namespace EDIVE.Audio.VoiceRecording
             dependencies.Add(typeof(AudioManager));
         }
 
-
         [Button]
         public void StartRecording()
         {
@@ -68,6 +67,7 @@ namespace EDIVE.Audio.VoiceRecording
             }
             
             _recordingStartTime = UnityEngine.Time.time;
+            PathUtility.EnsurePathExists(RecordingsFolderPath);
             _wavFileWriter = new WavFileWriter(Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}.wav"));
             _audioManager.AddVoiceChatMuteRequest(this);
             _audioManager.LocalAudioFrameReady += OnAudioFrameReady;
@@ -118,9 +118,7 @@ namespace EDIVE.Audio.VoiceRecording
             _audioManager.RemoveVoiceChatMuteRequest(this);
             
             DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
-            PathUtility.EnsurePathExists(RecordingsFolderPath);
             _wavFileWriter?.Dispose();
-            
             RecordingStateChanged.Dispatch(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording stopped");
         }
