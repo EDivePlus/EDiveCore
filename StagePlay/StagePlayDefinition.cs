@@ -11,7 +11,7 @@ namespace EDIVE.StagePlay
     public class StagePlayDefinition : ScriptableObject
     {
         [SerializeField]
-        private string _ID;
+        private string _Name;
         
         [SerializeReference]
         [ListDrawerSettings(ShowFoldout = false)]
@@ -21,7 +21,7 @@ namespace EDIVE.StagePlay
         [EnhancedTableList(ShowFoldout = false)]
         private List<StagePlayLanguage> _Languages;
 
-        public string ID => _ID;
+        public string Name => _Name;
         public List<AScriptSegment> ScriptSegments => _ScriptSegments;
     }
 }

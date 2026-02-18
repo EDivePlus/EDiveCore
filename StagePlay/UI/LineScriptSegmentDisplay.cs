@@ -17,6 +17,9 @@ namespace EDIVE.StagePlay.UI
             
             if (_CharactersText != null) 
                 _CharactersText.text = string.Join(", ", data.Segment.Characters);
+            
+            if (_LineText != null) 
+                _LineText.text = data.Segment.Line;
         }
     }
 }

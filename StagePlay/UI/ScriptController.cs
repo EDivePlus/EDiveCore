@@ -4,11 +4,14 @@
 using System;
 using System.Collections.Generic;
 using DG.Tweening;
+using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Activations;
 using EDIVE.XRTools;
 using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Tween = DG.Tweening.Tween;
 
 namespace EDIVE.StagePlay.UI
@@ -28,9 +31,6 @@ namespace EDIVE.StagePlay.UI
         private float _TweenDuration = 0.3f;
 
         [SerializeField]
-        private GameObject _TabletRoot;
-
-        [SerializeField]
         private EnhancedScroller _Scroller;
 
         [SerializeField]
@@ -44,6 +44,9 @@ namespace EDIVE.StagePlay.UI
         
         [SerializeReference]
         private IActivation _IncrementSegmentActivation;
+
+        [SerializeField]
+        private TMP_Text _NameText;
         
         [DisableInEditorMode]
         [ShowInInspector]
@@ -70,7 +73,7 @@ namespace EDIVE.StagePlay.UI
             _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
             _IncrementSegmentActivation?.RegisterActivationListener(OnIncrementSegmentActivated);
         }
-        
+
         private void Start()
         {
             if (_OpenOnStart)
@@ -103,10 +106,14 @@ namespace EDIVE.StagePlay.UI
 
         private void InitializeDefinition()
         {
+            if(_NameText)
+                _NameText.text = _Definition.Name;
+            
             if (_sharedData != null) 
                 _sharedData.CurrentSegmentChanged -= OnDataCurrentSegmentChanged;
             _sharedData = new SharedSegmentData();
             _sharedData.CurrentSegmentChanged += OnDataCurrentSegmentChanged;
+            
             RefreshScroller();
         }
 
@@ -167,11 +174,9 @@ namespace EDIVE.StagePlay.UI
             _animTween?.Kill();
             _isOpen = open;
 
-            if (_CameraFollower != null)
+            if (_CameraFollower != null && open)
             {
-                if (open)
-                    _CameraFollower.Reposition(immediate);
-                _CameraFollower.SetFollowing(open);
+                _CameraFollower.Reposition(immediate);
             }
             
             var newScale = open ? Vector3.one : Vector3.zero;
