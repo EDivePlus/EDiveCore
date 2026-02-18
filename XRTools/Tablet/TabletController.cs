@@ -111,6 +111,9 @@ namespace EDIVE.XRTools.Tablet
 
         private bool CheckInView()
         {
+            if(_CameraFollower == null) 
+                return false;
+            
             var target = _CameraFollower.CameraTransform;
             return target != null && XRUtils.IsTargetInView(target, transform, _MaxDistance, _FacingThreshold, _FacingThreshold);
         }
