@@ -11,10 +11,10 @@
     "EDIVE.AppLoading",
     "EDIVE.Core",
     "EDIVE.Utils.Json",
-    "EDIVE.VisualPresets",
     "EDIVE.ScriptableArchitecture",
     "EDIVE.XRTools",
-    "EDIVE.Utils"
+    "EDIVE.Utils",
+    "EDIVE.StateHandling"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using EDIVE.OdinExtensions.Attributes;
-using EDIVE.VisualPresets.Presets;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -13,10 +12,7 @@ namespace EDIVE.StagePlay
     {
         [SerializeField]
         private string _ID;
-
-        [SerializeField]
-        private VisualPreset _Visual;
-
+        
         [SerializeReference]
         [ListDrawerSettings(ShowFoldout = false)]
         private List<AScriptSegment> _ScriptSegments;
@@ -26,7 +22,6 @@ namespace EDIVE.StagePlay
         private List<StagePlayLanguage> _Languages;
 
         public string ID => _ID;
-        public VisualPreset Visual => _Visual;
         public List<AScriptSegment> ScriptSegments => _ScriptSegments;
     }
 }

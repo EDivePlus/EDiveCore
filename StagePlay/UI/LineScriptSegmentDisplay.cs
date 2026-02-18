@@ -11,12 +11,12 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private TMP_Text _CharactersText;
         
-        protected override void SetData(LineScriptSegment data)
+        protected override void SetData(SegmentDisplayData<LineScriptSegment> data)
         {
             base.SetData(data);
             
             if (_CharactersText != null) 
-                _CharactersText.text = string.Join(", ", data.Characters);
+                _CharactersText.text = string.Join(", ", data.Segment.Characters);
         }
     }
 }

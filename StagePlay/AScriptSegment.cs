@@ -7,6 +7,6 @@ namespace EDIVE.StagePlay
     [JsonObject(MemberSerialization.OptIn)]
     public abstract class AScriptSegment
     {
-        
+        public abstract bool IsOwnedByCharacter(string character);
     }
 }

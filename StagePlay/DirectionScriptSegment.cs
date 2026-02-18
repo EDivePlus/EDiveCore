@@ -14,5 +14,7 @@ namespace EDIVE.StagePlay
         private string _Description;
         
         public string Description => _Description;
+        
+        public override bool IsOwnedByCharacter(string character) => true;
     }
 }

@@ -8,12 +8,12 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private TMP_Text _DescriptionText;
         
-        protected override void SetData(DirectionScriptSegment data)
+        protected override void SetData(SegmentDisplayData<DirectionScriptSegment> data)
         {
             base.SetData(data);
             if (_DescriptionText != null)
             {
-                _DescriptionText.text = data.Description;
+                _DescriptionText.text = data.Segment.Description;
             }
         }
     }

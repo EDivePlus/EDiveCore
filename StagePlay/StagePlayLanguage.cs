@@ -2,7 +2,6 @@
 // Created: 18.02.2026
 
 using System;
-using EDIVE.VisualPresets.Presets;
 using UnityEngine;
 
 namespace EDIVE.StagePlay
@@ -15,8 +14,5 @@ namespace EDIVE.StagePlay
             
         [SerializeField]
         private string _Name;
-            
-        [SerializeField]
-        private VisualPreset _Visual;
     }
 }

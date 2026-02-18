@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using EDIVE.Utils.Json.TypeNames;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -11,13 +12,18 @@ namespace EDIVE.StagePlay
     {
         [SerializeField]
         [JsonProperty("characters")]
-        private string[] _Characters;
+        private List<string> _Characters;
         
         [SerializeField]
         [JsonProperty("line")]
         private string _Line;
         
-        public string[] Characters => _Characters;
+        public List<string> Characters => _Characters;
         public string Line => _Line;
+        
+        public override bool IsOwnedByCharacter(string character)
+        {
+            return _Characters.Contains(character);
+        }
     }
 }
