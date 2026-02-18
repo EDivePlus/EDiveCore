@@ -1,9 +1,12 @@
 ﻿// Author: František Holubec
 // Created: 18.02.2026
 
+using System;
 using DG.Tweening;
 using EDIVE.NativeUtils;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
+using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.Activations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Utilities;
@@ -35,6 +38,15 @@ namespace EDIVE.XRTools
         [SerializeField]
         private bool _RepositionOnAwake = true;
         
+        [SerializeField]
+        private bool _FollowOnAwake;
+        
+        [SerializeReference]
+        private IActivation _ToggleFollowActivation;
+
+        [SerializeField]
+        private AToggleState _FollowState;
+        
         [ShowInInspector]
         [ReadOnly]
         public bool IsFollowing
@@ -58,8 +70,18 @@ namespace EDIVE.XRTools
         {
             if (_RepositionOnAwake)
                 Reposition(true);
+            
+            if (_FollowOnAwake)
+                SetFollowing(true);
+            
+            _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow);
         }
-        
+
+        private void OnDestroy()
+        {
+            _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
+        }
+
         private void LateUpdate()
         {
             if (_isFollowing && !_repositionTween.IsPlaying()) 
@@ -69,6 +91,13 @@ namespace EDIVE.XRTools
         public void SetFollowing(bool following)
         {
             _isFollowing = following;
+            if(_FollowState)
+                _FollowState.SetState(_isFollowing);
+        }
+        
+        private void ToggleFollow()
+        {
+            SetFollowing(!IsFollowing);
         }
         
         private void FollowCamera()
