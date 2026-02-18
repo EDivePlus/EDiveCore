@@ -1,5 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 09.02.2026
+// Updated: 18.02.2026 (savedata endpoints, removed attachments)
 
 using System;
 using System.Collections.Generic;
@@ -7,12 +8,13 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.Core;
+using EDIVE.Networking.Players;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Networking;
-using EDIVE.Networking.Players;
 
 namespace EDIVE.UserCenter
 {
@@ -24,18 +26,18 @@ namespace EDIVE.UserCenter
         
         [Header("Branch header (optional)")]
         [SerializeField]
-        private string _BranchId = "-1"; // set to "2" if required; "-1" disables header
+        private string _BranchId = "-1";
 
-        [Header("Profile attachment")]
+        [Header("Profile key")]
         [SerializeField]
         private string _ProfileKey = "player_profile_v1";
 
         [Header("Timeouts")]
         [SerializeField, Min(1)]
-        private int _ApiTimeoutSeconds = 3;
+        private int _ApiTimeoutSeconds = 5;
 
         [SerializeField, Min(1)]
-        private int _AuthTimeoutSeconds = 3;
+        private int _AuthTimeoutSeconds = 5;
 
         public bool IsLoggedIn => AuthStorage.IsValid();
 
@@ -49,19 +51,21 @@ namespace EDIVE.UserCenter
         private bool BranchEnabled =>
             !string.IsNullOrWhiteSpace(_BranchId) && _BranchId != "-1";
 
-
         private string AuthLoginUrl()
         {
             var baseu = (_ServiceBaseUrl ?? "").TrimEnd('/');
             return $"{baseu}/auth/login";
         }
 
-        private string AttachmentsUrl(params string[] segments)
+        private string SavedataUrl(params string[] segments)
         {
-            var baseu = (_ServiceBaseUrl ?? "").TrimEnd('/') + "/attachments";
+            var baseu = (_ServiceBaseUrl ?? "").TrimEnd('/'); // => https://.../service
+            var basePath = $"{baseu}/ediveplus/savedata"; // => https://.../service/ediveplus/savedata
+
             if (segments != null && segments.Length > 0)
-                return baseu + "/" + string.Join("/", segments);
-            return baseu;
+                return basePath + "/" + string.Join("/", segments);
+
+            return basePath;
         }
 
         private UnityWebRequest BuildJsonReq(
@@ -110,8 +114,7 @@ namespace EDIVE.UserCenter
         {
             // storage is handled by AuthStorage
         }
-
-        // Backward-compatible fire-and-forget API (same shape as AuthService).
+        
         public void Login(string email, string password)
         {
             LoginAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget();
@@ -137,7 +140,8 @@ namespace EDIVE.UserCenter
                 includeAuthHeader: false,
                 includeBranchHeader: false
             );
-            await req.SendWebRequest().WithCancellation(ct);
+
+            await req.SendWebRequest().ToUniTask(cancellationToken: ct);
 
             var raw = req.downloadHandler?.text ?? "";
 
@@ -211,16 +215,71 @@ namespace EDIVE.UserCenter
 
         public void Logout() => AuthStorage.Clear();
         
-        [Button]
-        public async UniTask<(bool ok, string msg, ProfileJson profile)> LoadProfileFromAttachmentsAsync(
+        [Serializable]
+        private class SavedataRecord
+        {
+            public long id;
+            public string key;
+            public string description;
+            public long userId;
+            public long branchId;
+            public string userUuid;
+            public UserBasicPojo userBasicPojo;
+        }
+
+        [Serializable]
+        private class UserBasicPojo
+        {
+            public string uuid;
+            public string firstName;
+            public string surname;
+            public string username;
+            public string userType;
+            public string email;
+        }
+
+        [Serializable]
+        private class ContentWrapper<TItem>
+        {
+            public List<TItem> content;
+        }
+
+        private static List<SavedataRecord> TryParseSavedataList(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+            
+            try
+            {
+                var direct = JsonConvert.DeserializeObject<List<SavedataRecord>>(raw);
+                if (direct != null) return direct;
+            }
+            catch { /* ignore */ }
+
+            try
+            {
+                var wrapper = JsonConvert.DeserializeObject<ContentWrapper<SavedataRecord>>(raw);
+                return wrapper?.content;
+            }
+            catch { /* ignore */ }
+
+            return null;
+        } 
+
+        public async UniTask<(bool ok, string msg)> LoadProfileFromSavedataAndApplyAsync(
             CancellationToken ct = default
         )
         {
             ct = DefaultCt(ct);
 
-            // Spring Data REST pagination
-            var listUrl = AttachmentsUrl() + "?page=0&size=200";
+            if (!IsLoggedIn)
+                return (false, "Not logged in.");
 
+            if (!AppCore.Services.TryGet<NetworkPlayerManager>(out var npm) || npm == null)
+                return (false, "NetworkPlayerManager not found.");
+
+            // vezmeme list všech záznamů pro přihlášeného uživatele v branchi
+            var listUrl = SavedataUrl() + "?pgSize=250";
             using (var req = BuildJsonReq(
                        UnityWebRequest.kHttpVerbGET,
                        listUrl,
@@ -230,77 +289,93 @@ namespace EDIVE.UserCenter
                        includeBranchHeader: true
                    ))
             {
-                Debug.Log($"[PROFILE/ATTACHMENTS][LIST] GET {listUrl}");
+                Debug.Log($"[PROFILE/SAVEDATA][LIST] GET {listUrl}");
                 await req.SendWebRequest().ToUniTask(cancellationToken: ct);
 
-                var raw = req.downloadHandler?.text ?? "";
+                var text = req.downloadHandler?.text ?? "";
 
                 if (req.responseCode == 404)
-                    return (true, "empty", null);
+                {
+                    Debug.Log("[PROFILE/SAVEDATA][LIST] 404 → žádný uložený profil; ponechávám výchozí hodnoty.");
+                    return (true, "empty");
+                }
 
                 if (req.result != UnityWebRequest.Result.Success)
                 {
-                    Debug.LogError($"[PROFILE/ATTACHMENTS][LIST] ERR {req.responseCode}: {req.error}\n{raw}");
-                    return (false, raw, null);
+                    Debug.LogError($"[PROFILE/SAVEDATA][LIST] ERR {req.responseCode}: {req.error}\n{text}");
+                    return (false, text);
                 }
 
-                if (string.IsNullOrWhiteSpace(raw))
-                    return (true, "empty", null);
+                var rows = TryParseSavedataList(text);
+                if (rows == null || rows.Count == 0)
+                {
+                    Debug.Log("[PROFILE/SAVEDATA][LIST] prázdné – ponechávám výchozí.");
+                    return (true, "empty");
+                }
 
-                List<JToken> items;
+                var myUuid = AuthStorage.GetUserId();
+                if (!string.IsNullOrEmpty(myUuid))
+                    rows = rows.FindAll(r =>
+                        string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(r.userBasicPojo?.uuid, myUuid, StringComparison.OrdinalIgnoreCase));
+
+                var rec = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
+                if (rec == null || string.IsNullOrEmpty(rec.description))
+                {
+                    Debug.Log("[PROFILE/SAVEDATA][LIST] nenalezen klíč – ponechávám výchozí.");
+                    return (true, "empty");
+                }
+
+                ProfileJson pj = null;
                 try
                 {
-                    items = ExtractHalCollection(raw, "attachments");
+                    pj = JsonConvert.DeserializeObject<ProfileJson>(rec.description);
                 }
                 catch (Exception e)
                 {
-                    return (false, "Invalid attachments list JSON: " + e.Message, null);
+                    Debug.LogWarning($"[PROFILE/SAVEDATA][PARSE] {e.Message}");
                 }
 
-                if (items == null || items.Count == 0)
-                    return (true, "empty", null);
+                if (pj == null)
+                    return (false, "Invalid profile JSON in description.");
 
-                // Find by key in common fields
-                var match = FindAttachmentByKey(items, _ProfileKey);
-                if (match == null)
-                    return (true, "empty", null);
+                // Apply to NetworkPlayerManager profile
+                var prof = npm.PlayerProfile;
 
-                var json = ExtractProfileJsonFromAttachment(match);
-                if (string.IsNullOrWhiteSpace(json))
-                    return (false, "Profile attachment found, but no JSON payload fields found.", null);
+                if (!string.IsNullOrWhiteSpace(pj.username))
+                    prof.username = pj.username;
 
-                try
+                if (!string.IsNullOrWhiteSpace(pj.avatarId))
                 {
-                    var pj = JsonConvert.DeserializeObject<ProfileJson>(json);
-                    if (pj == null) return (false, "Profile JSON is invalid.", null);
-                    return (true, "ok", pj);
+                    // keep your logic: update last selected + persist avatarId
+                    npm.OnLocalAvatarChanged(pj.avatarId);
+                    prof.avatarId = pj.avatarId;
                 }
-                catch (Exception e)
-                {
-                    return (false, "Profile JSON parse error: " + e.Message, null);
-                }
+
+                Debug.Log($"[PROFILE/SAVEDATA] Applied username='{prof.username}', avatarId='{prof.avatarId}'");
+                return (true, "ok");
             }
         }
 
-        [Button]
-        public async UniTask<(bool ok, string msg)> SaveProfileToAttachmentsUpsertAsync(
-            ProfileJson pj,
+        public async UniTask<(bool ok, string msg)> SaveProfileToSavedataUpsertAsync(
             CancellationToken ct = default
         )
         {
             ct = DefaultCt(ct);
 
-            if (pj == null)
-                return (false, "ProfileJson is null.");
+            if (!IsLoggedIn)
+                return (false, "Not logged in.");
 
-            var profileJson = JsonConvert.SerializeObject(pj);
-            var profileB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(profileJson));
+            if (!AppCore.Services.TryGet<NetworkPlayerManager>(out var npm) || npm == null)
+                return (false, "NetworkPlayerManager not found.");
+            
+            var pj = new ProfileJson { username = npm.PlayerProfile.username, avatarId = npm.GetAvatarId() };
+            var descriptionJson = JsonConvert.SerializeObject(pj);
 
-            // 1) LIST
-            var listUrl = AttachmentsUrl() + "?page=0&size=200";
-            JToken existing = null;
+            SavedataRecord existing = null;
 
-            using (var lreq = BuildJsonReq(
+            var listUrl = SavedataUrl() + "?pgSize=250";
+            using (var sreq = BuildJsonReq(
                        UnityWebRequest.kHttpVerbGET,
                        listUrl,
                        bodyOrNull: null,
@@ -309,118 +384,233 @@ namespace EDIVE.UserCenter
                        includeBranchHeader: true
                    ))
             {
-                Debug.Log($"[PROFILE/ATTACHMENTS][LIST] GET {listUrl}");
-                await lreq.SendWebRequest().ToUniTask(cancellationToken: ct);
+                Debug.Log($"[PROFILE/SAVEDATA][LIST] GET {listUrl}");
+                await sreq.SendWebRequest().ToUniTask(cancellationToken: ct);
 
-                var raw = lreq.downloadHandler?.text ?? "";
-
-                if (lreq.result == UnityWebRequest.Result.Success && !string.IsNullOrWhiteSpace(raw))
+                var stext = sreq.downloadHandler?.text ?? "";
+                if (sreq.result == UnityWebRequest.Result.Success && !string.IsNullOrWhiteSpace(stext))
                 {
-                    try
+                    var rows = TryParseSavedataList(stext);
+                    if (rows != null)
                     {
-                        var items = ExtractHalCollection(raw, "attachments");
-                        existing = FindAttachmentByKey(items, _ProfileKey);
+                        var myUuid = AuthStorage.GetUserId();
+                        if (!string.IsNullOrEmpty(myUuid))
+                            rows = rows.FindAll(r =>
+                                string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(r.userBasicPojo?.uuid, myUuid, StringComparison.OrdinalIgnoreCase));
+
+                        existing = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
                     }
-                    catch
-                    {
-                        // ignore, we'll create new
-                    }
+                }
+                else if (sreq.responseCode == 404)
+                {
+                    // treat as empty list
+                }
+                else if (sreq.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError($"[PROFILE/SAVEDATA][LIST] ERR {sreq.responseCode}: {sreq.error}\n{stext}");
+                    return (false, stext);
                 }
             }
 
-            // Payload tries to fit various common schemas (unknown fields may be ignored;
-            // if server fails on unknown fields, remove the ones it complains about).
-            var uuid = AuthStorage.GetUserId();
-            var payload = new Dictionary<string, object>
+            if (existing != null && existing.id > 0)
             {
-                ["name"] = _ProfileKey,
-                ["key"] = _ProfileKey,
-                ["fileName"] = _ProfileKey + ".json",
-                ["filename"] = _ProfileKey + ".json",
-                ["contentType"] = "application/json",
-                ["mimeType"] = "application/json",
-
-                // store as plain text
-                ["description"] = profileJson,
-                ["content"] = profileJson,
-                ["text"] = profileJson,
-
-                // store as base64
-                ["data"] = profileB64
-            };
-
-            if (!string.IsNullOrWhiteSpace(uuid))
-            {
-                payload["userUuid"] = uuid;
-            }
-
-            // 2) UPDATE or CREATE
-            if (existing != null)
-            {
-                var putUrl = GetSelfHref(existing) ?? BuildAttachmentUrlFromId(existing);
-                if (string.IsNullOrWhiteSpace(putUrl))
-                    return (false, "Attachment exists but has no self link/id.");
+                // 2) UPDATE (PUT)
+                var putUrl = SavedataUrl(existing.id.ToString());
+                var body = new { key = _ProfileKey, description = descriptionJson };
 
                 using (var preq = BuildJsonReq(
                            UnityWebRequest.kHttpVerbPUT,
                            putUrl,
-                           payload,
+                           body,
                            timeoutSeconds: _ApiTimeoutSeconds,
                            includeAuthHeader: true,
                            includeBranchHeader: true
                        ))
                 {
-                    Debug.Log($"[PROFILE/ATTACHMENTS][UPDATE] PUT {putUrl}");
+                    Debug.Log($"[PROFILE/SAVEDATA][UPDATE] PUT {putUrl} body={JsonConvert.SerializeObject(body)}");
                     await preq.SendWebRequest().ToUniTask(cancellationToken: ct);
 
                     var ptext = preq.downloadHandler?.text ?? "";
                     if (preq.result == UnityWebRequest.Result.Success)
+                    {
+                        Debug.Log($"[PROFILE/SAVEDATA][UPDATE] OK {preq.responseCode}: {ptext}");
                         return (true, ptext);
+                    }
 
-                    Debug.LogError($"[PROFILE/ATTACHMENTS][UPDATE] ERR {preq.responseCode}: {preq.error}\n{ptext}");
+                    Debug.LogError($"[PROFILE/SAVEDATA][UPDATE] ERR {preq.responseCode}: {preq.error}\n{ptext}");
                     return (false, ptext);
                 }
             }
             else
             {
-                var postUrl = AttachmentsUrl();
+                // 3) CREATE (POST)
+                var postUrl = SavedataUrl();
+                var uuid = AuthStorage.GetUserId();
+
+                object body = string.IsNullOrEmpty(uuid)
+                    ? new { key = _ProfileKey, description = descriptionJson }
+                    : new { key = _ProfileKey, description = descriptionJson, userUuid = uuid };
 
                 using (var preq = BuildJsonReq(
                            UnityWebRequest.kHttpVerbPOST,
                            postUrl,
-                           payload,
+                           body,
                            timeoutSeconds: _ApiTimeoutSeconds,
                            includeAuthHeader: true,
                            includeBranchHeader: true
                        ))
                 {
-                    Debug.Log($"[PROFILE/ATTACHMENTS][CREATE] POST {postUrl}");
+                    preq.SetRequestHeader("Accept", "application/json");
+
+                    Debug.Log($"[PROFILE/SAVEDATA][CREATE] POST {postUrl} body={JsonConvert.SerializeObject(body)}");
                     await preq.SendWebRequest().ToUniTask(cancellationToken: ct);
 
                     var ptext = preq.downloadHandler?.text ?? "";
                     if (preq.result == UnityWebRequest.Result.Success)
+                    {
+                        Debug.Log($"[PROFILE/SAVEDATA][CREATE] OK {preq.responseCode}: {ptext}");
                         return (true, ptext);
+                    }
 
-                    Debug.LogError($"[PROFILE/ATTACHMENTS][CREATE] ERR {preq.responseCode}: {preq.error}\n{ptext}");
+                    Debug.LogError($"[PROFILE/SAVEDATA][CREATE] ERR {preq.responseCode}: {preq.error}\n{ptext}");
                     return (false, ptext);
                 }
             }
         }
-        
 
-        [Button("GET Load Profile (attachments)")]
-        [GUIColor(0.4f, 0.7f, 1f)]
-        private async void Btn_LoadProfile_FromAttachments()
+        public async UniTask<(bool ok, string msg)> UpdateProfileViaPutAsync(
+            CancellationToken ct = default
+        )
         {
-            if (!Application.isPlaying) return;
+            ct = DefaultCt(ct);
 
-            var (ok, msg, profile) = await LoadProfileFromAttachmentsAsync();
-            Debug.Log(ok ? "[PROFILE/ATTACHMENTS][LOAD] OK" : "[PROFILE/ATTACHMENTS][LOAD] ERR: " + msg);
+            if (!IsLoggedIn)
+                return (false, "Not logged in.");
 
-            if (ok && profile != null)
-                Debug.Log($"[PROFILE/ATTACHMENTS] username='{profile.username}', avatarId='{profile.avatarId}'");
+            if (!AppCore.Services.TryGet<NetworkPlayerManager>(out var npm) || npm == null)
+                return (false, "NetworkPlayerManager not found.");
+
+            // LIST → najdi key
+            SavedataRecord existing = null;
+            var listUrl = SavedataUrl() + "?pgSize=250";
+
+            using (var sreq = BuildJsonReq(
+                       UnityWebRequest.kHttpVerbGET,
+                       listUrl,
+                       bodyOrNull: null,
+                       timeoutSeconds: _ApiTimeoutSeconds,
+                       includeAuthHeader: true,
+                       includeBranchHeader: true
+                   ))
+            {
+                Debug.Log($"[PROFILE/SAVEDATA][LIST] GET {listUrl}");
+                await sreq.SendWebRequest().ToUniTask(cancellationToken: ct);
+
+                var stext = sreq.downloadHandler?.text ?? "";
+                if (sreq.result == UnityWebRequest.Result.Success && !string.IsNullOrWhiteSpace(stext))
+                {
+                    var rows = TryParseSavedataList(stext);
+                    if (rows != null)
+                    {
+                        var myUuid = AuthStorage.GetUserId();
+                        if (!string.IsNullOrEmpty(myUuid))
+                            rows = rows.FindAll(r =>
+                                string.Equals(r.userUuid, myUuid, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(r.userBasicPojo?.uuid, myUuid, StringComparison.OrdinalIgnoreCase));
+
+                        existing = rows.Find(r => string.Equals(r.key, _ProfileKey, StringComparison.OrdinalIgnoreCase));
+                    }
+                }
+                else if (sreq.responseCode == 404)
+                {
+                    // treat as empty
+                }
+                else if (sreq.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError($"[PROFILE/SAVEDATA][LIST] ERR {sreq.responseCode}: {sreq.error}\n{stext}");
+                    return (false, stext);
+                }
+            }
+
+            if (existing == null || existing.id == 0)
+            {
+                Debug.LogWarning("[PROFILE/SAVEDATA][PUT] Nenalezen existující profil — žádný update neproběhne.");
+                return (false, "no existing");
+            }
+
+            var pj = new ProfileJson { username = npm.PlayerProfile.username, avatarId = npm.GetAvatarId() };
+            var descriptionJson = JsonConvert.SerializeObject(pj);
+
+            var putUrl = SavedataUrl(existing.id.ToString());
+            var body2 = new { key = _ProfileKey, description = descriptionJson };
+
+            using (var preq = BuildJsonReq(
+                       UnityWebRequest.kHttpVerbPUT,
+                       putUrl,
+                       body2,
+                       timeoutSeconds: _ApiTimeoutSeconds,
+                       includeAuthHeader: true,
+                       includeBranchHeader: true
+                   ))
+            {
+                Debug.Log($"[PROFILE/SAVEDATA][PUT] {putUrl} body={JsonConvert.SerializeObject(body2)}");
+                await preq.SendWebRequest().ToUniTask(cancellationToken: ct);
+
+                var ptext = preq.downloadHandler?.text ?? "";
+                if (preq.result == UnityWebRequest.Result.Success)
+                {
+                    Debug.Log($"[PROFILE/SAVEDATA][PUT] OK {preq.responseCode}: {ptext}");
+                    return (true, ptext);
+                }
+
+                Debug.LogError($"[PROFILE/SAVEDATA][PUT] ERR {preq.responseCode}: {preq.error}\n{ptext}");
+                return (false, ptext);
+            }
         }
 
+        [Button("POST Save Profile (savedata upsert)")]
+        [GUIColor(0.25f, 0.8f, 0.55f)]
+        private async void Btn_SaveProfile_Upsert()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("Spusť Play Mode.");
+                return;
+            }
+
+            var (ok, msg) = await SaveProfileToSavedataUpsertAsync();
+            Debug.Log(ok ? "[PROFILE/SAVEDATA][UPSERT] OK" : "[PROFILE/SAVEDATA][UPSERT] ERR: " + msg);
+        }
+
+        [Button("GET Load Profile (from savedata)")]
+        [GUIColor(0.4f, 0.7f, 1f)]
+        private async void Btn_LoadProfile_FromSavedata()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("Spusť Play Mode.");
+                return;
+            }
+
+            var (ok, msg) = await LoadProfileFromSavedataAndApplyAsync();
+            Debug.Log(ok ? "[PROFILE/SAVEDATA][LOAD] OK" : "[PROFILE/SAVEDATA][LOAD] ERR: " + msg);
+        }
+
+        [Button("PUT Update Profile (savedata)")]
+        [GUIColor(1f, 0.85f, 0.35f)]
+        private async void Btn_UpdateProfile_Put()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("Spusť Play Mode.");
+                return;
+            }
+
+            var (ok, msg) = await UpdateProfileViaPutAsync();
+            Debug.Log(ok ? "[PROFILE/SAVEDATA][PUT] OK" : "[PROFILE/SAVEDATA][PUT] ERR: " + msg);
+        }
+        
         private static string ExtractJwtFromLoginResponse(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
@@ -435,110 +625,5 @@ namespace EDIVE.UserCenter
                 return null;
             }
         }
-
-        private static List<JToken> ExtractHalCollection(string raw, string collectionName)
-        {
-            var root = JToken.Parse(raw);
-
-            // plain array
-            if (root.Type == JTokenType.Array)
-                return new List<JToken>(root.Children());
-
-            // Spring Data REST: { _embedded: { attachments: [...] } }
-            var embedded = root["_embedded"];
-            var arr = embedded?[collectionName];
-            if (arr != null && arr.Type == JTokenType.Array)
-                return new List<JToken>(arr.Children());
-
-            // fallback: direct { attachments: [...] }
-            var direct = root[collectionName];
-            if (direct != null && direct.Type == JTokenType.Array)
-                return new List<JToken>(direct.Children());
-
-            return new List<JToken>();
-        }
-
-        private static JToken FindAttachmentByKey(List<JToken> items, string key)
-        {
-            if (items == null) return null;
-            if (string.IsNullOrWhiteSpace(key)) return null;
-
-            foreach (var it in items)
-            {
-                var name = GetString(it, "name", "key", "fileName", "filename", "title");
-                if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase))
-                    return it;
-
-                // sometimes fileName includes .json
-                if (!string.IsNullOrWhiteSpace(name) &&
-                    string.Equals(name.Trim(), key + ".json", StringComparison.OrdinalIgnoreCase))
-                    return it;
-            }
-
-            return null;
-        }
-
-        private static string ExtractProfileJsonFromAttachment(JToken it)
-        {
-            // Prefer plain-text fields
-            var json =
-                GetString(it, "description") ??
-                GetString(it, "content") ??
-                GetString(it, "text");
-
-            if (!string.IsNullOrWhiteSpace(json))
-                return json;
-
-            // Or base64 field "data"
-            var dataB64 = GetString(it, "data");
-            if (!string.IsNullOrWhiteSpace(dataB64))
-            {
-                try
-                {
-                    var bytes = Convert.FromBase64String(dataB64);
-                    return Encoding.UTF8.GetString(bytes);
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            return null;
-        }
-
-        private static string GetSelfHref(JToken it)
-        {
-            return (string)it?["_links"]?["self"]?["href"];
-        }
-
-        private string BuildAttachmentUrlFromId(JToken it)
-        {
-            var id = GetString(it, "id");
-            if (string.IsNullOrWhiteSpace(id)) return null;
-            return AttachmentsUrl(id);
-        }
-
-        private static string GetString(JToken it, params string[] keys)
-        {
-            if (it == null || keys == null) return null;
-            foreach (var k in keys)
-            {
-                var v = it[k];
-                if (v == null) continue;
-
-                if (v.Type == JTokenType.String) return (string)v;
-                // sometimes numbers (id) come as int/long
-                if (v.Type == JTokenType.Integer || v.Type == JTokenType.Float) return v.ToString();
-            }
-            return null;
-        }
-    }
-
-    [Serializable]
-    public class ProfileJson
-    {
-        public string username;
-        public string avatarId;
     }
 }
