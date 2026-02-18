@@ -15,5 +15,6 @@ namespace EDIVE.Networking.Players
         public string role;
         public string password;
         public AvatarDefinition avatar;
+        public string avatarId;
     }
 }

@@ -49,6 +49,8 @@ namespace EDIVE.Networking.Players
         private NetworkManager _networkManager;
 
         private PlayerProfile _playerProfile;
+        private string _lastSelectedAvatarId;
+        
         // Todo get the player profile from UserCenter
         public PlayerProfile PlayerProfile => _playerProfile ??= CreatePlayerProfile();
 
@@ -221,7 +223,19 @@ namespace EDIVE.Networking.Players
         {
             return _PlayerNameGenerator ? _PlayerNameGenerator.Generate() : $"Player_{Random.Range(1000, 9999)}";
         }
+        public void OnLocalAvatarChanged(string avatarId)
+        {
+            _lastSelectedAvatarId = avatarId;
+            PlayerProfile.avatarId = avatarId;
+        }
 
+        public string GetAvatarId()
+        {
+            if (!string.IsNullOrEmpty(_lastSelectedAvatarId))
+                return _lastSelectedAvatarId;
+
+            return PlayerProfile.avatarId;
+        }
         public void UpdatePlayerProfile(PlayerProfile profile)
         {
             if (profile == null)
