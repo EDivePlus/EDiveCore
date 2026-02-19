@@ -3,7 +3,7 @@
 
 namespace EDIVE.StagePlay.UI
 {
-    public enum ScriptSegmentState
+    public enum PlaySegmentState
     {
         Upcoming,
         OwnedCurrent,

@@ -4,6 +4,7 @@
   "references": [
     "UniTask",
     "EnhancedScroller",
+    "FishNet.Runtime",
     "Unity.TextMeshPro",
     "Unity.XR.Interaction.Toolkit",
     "EDIVE.OdinExtensions",
@@ -14,7 +15,8 @@
     "EDIVE.ScriptableArchitecture",
     "EDIVE.XRTools",
     "EDIVE.Utils",
-    "EDIVE.StateHandling"
+    "EDIVE.StateHandling",
+    "EDIVE.AssetTranslation"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

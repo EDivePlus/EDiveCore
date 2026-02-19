@@ -7,20 +7,20 @@ using UnityEngine;
 
 namespace EDIVE.StagePlay.UI
 {
-    public abstract class AScriptSegmentDisplay : EnhancedScrollerCellView
+    public abstract class APlaySegmentDisplay : EnhancedScrollerCellView
     {
         public abstract void SetData(ASegmentDisplayData data);
         public abstract void Clear();
     } 
     
-    public abstract class AScriptSegmentDisplay<TSegment> : AScriptSegmentDisplay 
-        where TSegment : AScriptSegment
+    public abstract class APlaySegmentDisplay<TSegment> : APlaySegmentDisplay 
+        where TSegment : APlaySegment
     {
         [SerializeField]
-        [ValidateMultiState(typeof(ScriptSegmentState))]
+        [ValidateMultiState(typeof(PlaySegmentState))]
         private AMultiState _State;
 
-        private ScriptSegmentState? _currentState;
+        private PlaySegmentState? _currentState;
         
         public SegmentDisplayData<TSegment> Data { get; private set; }
         
@@ -69,18 +69,18 @@ namespace EDIVE.StagePlay.UI
 
             var newState = Data.Index.CompareTo(currentIndex) switch
             {
-                < 0 => ScriptSegmentState.Previous,
-                0 => ScriptSegmentState.Current,
-                > 0 => ScriptSegmentState.Upcoming
+                < 0 => PlaySegmentState.Previous,
+                0 => PlaySegmentState.Current,
+                > 0 => PlaySegmentState.Upcoming
             };
 
             // Check if the current segment is owned
-            if (newState == ScriptSegmentState.Current)
+            if (newState == PlaySegmentState.Current)
             {
                 var localName = Data.SharedData.LocalCharacterName;
                 if (!string.IsNullOrEmpty(localName) && Data.Segment.IsOwnedByCharacter(localName))
                 {
-                    newState = ScriptSegmentState.OwnedCurrent;
+                    newState = PlaySegmentState.OwnedCurrent;
                 }
             }
 

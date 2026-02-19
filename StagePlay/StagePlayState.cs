@@ -3,9 +3,9 @@
 
 using System;
 
-namespace EDIVE.StagePlay.UI
+namespace EDIVE.StagePlay
 {
-    public class SharedSegmentData
+    public class StagePlayState : IDisposable
     {
         private int _currentSegmentIndex;
         public int CurrentSegmentIndex
@@ -23,5 +23,10 @@ namespace EDIVE.StagePlay.UI
         public string LocalCharacterName { get; set; }
 
         public event Action<int> CurrentSegmentChanged;
+
+        public void Dispose()
+        {
+            CurrentSegmentChanged = null;
+        }
     }
 }

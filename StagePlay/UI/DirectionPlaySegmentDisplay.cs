@@ -3,12 +3,12 @@ using UnityEngine;
 
 namespace EDIVE.StagePlay.UI
 {
-    public class DirectionScriptSegmentDisplay : AScriptSegmentDisplay<DirectionScriptSegment>
+    public class DirectionPlaySegmentDisplay : APlaySegmentDisplay<DirectionPlaySegment>
     {
         [SerializeField]
         private TMP_Text _DescriptionText;
         
-        protected override void SetData(SegmentDisplayData<DirectionScriptSegment> data)
+        protected override void SetData(SegmentDisplayData<DirectionPlaySegment> data)
         {
             base.SetData(data);
             if (_DescriptionText != null)

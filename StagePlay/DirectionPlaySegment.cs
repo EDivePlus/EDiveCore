@@ -6,11 +6,9 @@ using UnityEngine;
 namespace EDIVE.StagePlay
 {
     [Serializable]
-    [JsonTypeName("direction")]
-    public class DirectionScriptSegment : AScriptSegment
+    public class DirectionPlaySegment : APlaySegment
     {
         [SerializeField]
-        [JsonProperty("description")]
         private string _Description;
         
         public string Description => _Description;

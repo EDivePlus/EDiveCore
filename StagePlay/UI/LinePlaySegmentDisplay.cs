@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace EDIVE.StagePlay.UI
 {
-    public class LineScriptSegmentDisplay : AScriptSegmentDisplay<LineScriptSegment>
+    public class LinePlaySegmentDisplay : APlaySegmentDisplay<SpeachPlaySegment>
     {
         [SerializeField]
         private TMP_Text _LineText;
@@ -11,7 +11,7 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private TMP_Text _CharactersText;
         
-        protected override void SetData(SegmentDisplayData<LineScriptSegment> data)
+        protected override void SetData(SegmentDisplayData<SpeachPlaySegment> data)
         {
             base.SetData(data);
             

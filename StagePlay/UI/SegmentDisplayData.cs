@@ -4,13 +4,13 @@
 namespace EDIVE.StagePlay.UI
 {
     public abstract class ASegmentDisplayData { }
-    public class SegmentDisplayData<TSegment> : ASegmentDisplayData where TSegment : AScriptSegment
+    public class SegmentDisplayData<TSegment> : ASegmentDisplayData where TSegment : APlaySegment
     {        
         public int Index { get; }
         public TSegment Segment { get; }
-        public SharedSegmentData SharedData { get; }
+        public StagePlayState SharedData { get; }
         
-        public SegmentDisplayData(int index, TSegment segment, SharedSegmentData sharedData)
+        public SegmentDisplayData(int index, TSegment segment, StagePlayState sharedData)
         {
             Index = index;
             Segment = segment;

@@ -1,21 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using EDIVE.Utils.Json.TypeNames;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace EDIVE.StagePlay
 {
     [Serializable]
-    [JsonTypeName("line")]
-    public class LineScriptSegment : AScriptSegment
+    public class SpeachPlaySegment : APlaySegment
     {
         [SerializeField]
-        [JsonProperty("characters")]
         private List<string> _Characters;
         
         [SerializeField]
-        [JsonProperty("line")]
         private string _Line;
         
         public List<string> Characters => _Characters;

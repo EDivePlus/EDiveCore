@@ -1,25 +1,23 @@
 ﻿// Author: František Holubec
 // Created: 23.06.2025
 
-using System;
 using System.Collections.Generic;
 using DG.Tweening;
-using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Activations;
 using EDIVE.XRTools;
 using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Tween = DG.Tweening.Tween;
 
 namespace EDIVE.StagePlay.UI
 {
-    public class ScriptController : MonoBehaviour, IEnhancedScrollerDelegate
+    public class StagePlayDisplay : MonoBehaviour, IEnhancedScrollerDelegate
     {
+        [Required]
         [SerializeField]
-        private StagePlayDefinition _Definition;
+        private StagePlayController _Controller;
         
         [SerializeField]
         private SmoothCameraFollower _CameraFollower;
@@ -34,16 +32,13 @@ namespace EDIVE.StagePlay.UI
         private EnhancedScroller _Scroller;
 
         [SerializeField]
-        private LineScriptSegmentDisplay _LineDisplayPrefab;
+        private LinePlaySegmentDisplay _LineDisplayPrefab;
         
         [SerializeField]
-        private DirectionScriptSegmentDisplay _DirectionDisplayPrefab;
+        private DirectionPlaySegmentDisplay _DirectionDisplayPrefab;
         
         [SerializeReference]
         private IActivation _ScrollToCurrentActivation;
-        
-        [SerializeReference]
-        private IActivation _IncrementSegmentActivation;
 
         [SerializeField]
         private TMP_Text _NameText;
@@ -55,101 +50,81 @@ namespace EDIVE.StagePlay.UI
             get => _isOpen;
             set => SetOpen(value);
         }
-        
-        public StagePlayDefinition Definition => _Definition;
-        
-        public event Action<StagePlayDefinition> DefinitionChanged;
-        public event Action<int> CurrentSegmentChanged;
-        
+    
         private Tween _animTween;
         private bool _isOpen;
-        private SharedSegmentData _sharedData;
         private List<ASegmentDisplayData> _segmentsList;
+        
+        private StagePlayDefinition _currentDefinition;
+        private StagePlayState _currentState;
         
         protected void Awake()
         {
+            if (_Controller == null)
+                return;
+            
             _Scroller.Delegate = this;
             _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
             _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
-            _IncrementSegmentActivation?.RegisterActivationListener(OnIncrementSegmentActivated);
+            _Controller.DefinitionChanged += UpdateDefinition;
+        }
+
+        private void OnDestroy()
+        {
+            _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
         }
 
         private void Start()
         {
+            if (_Controller == null)
+                return;
+            
             if (_OpenOnStart)
                 SetOpen(true);
             
-            if (_Definition != null)
-                InitializeDefinition();
+            UpdateDefinition(_Controller.Definition, _Controller.CurrentState);
         }
 
-        public void SetDefinition(StagePlayDefinition definition)
+        private void UpdateDefinition(StagePlayDefinition definition, StagePlayState state)
         {
-            if (_Definition == definition)
+            if (definition == null || state == null) 
                 return;
-
-            _Definition = definition;
-            DefinitionChanged?.Invoke(_Definition);
-            InitializeDefinition();
-        }
-
-        public void IncrementCurrentSegment()
-        {
-            var newIndex = Mathf.Clamp(_sharedData.CurrentSegmentIndex + 1, 0, _Definition.ScriptSegments.Count - 1) ;
-            SetCurrentSegment(newIndex);
-        }
-        
-        public void SetCurrentSegment(int index)
-        {
-            _sharedData.CurrentSegmentIndex = index;
-        }
-
-        private void InitializeDefinition()
-        {
+            
+            _currentDefinition = definition;
+            _currentState = state;
+            
             if(_NameText)
-                _NameText.text = _Definition.Name;
+                _NameText.text = _currentDefinition.Name;
             
-            if (_sharedData != null) 
-                _sharedData.CurrentSegmentChanged -= OnDataCurrentSegmentChanged;
-            _sharedData = new SharedSegmentData();
-            _sharedData.CurrentSegmentChanged += OnDataCurrentSegmentChanged;
-            
-            RefreshScroller();
-        }
-
-        private void OnDataCurrentSegmentChanged(int index)
-        {
-            CurrentSegmentChanged?.Invoke(index);
-        }
-
-        private void RefreshScroller()
-        {
             _segmentsList ??= new List<ASegmentDisplayData>();
             _segmentsList.Clear();
 
-            var index = 0;
-            foreach (var segment in _Definition.ScriptSegments)
+            if (definition != null)
             {
-                ASegmentDisplayData segmentData = segment switch
+                var index = 0;
+                foreach (var segment in definition.ScriptSegments)
                 {
-                    LineScriptSegment lineSegment => new SegmentDisplayData<LineScriptSegment>(index, lineSegment, _sharedData),
-                    DirectionScriptSegment directionSegment => new SegmentDisplayData<DirectionScriptSegment>(index, directionSegment, _sharedData),
-                    _ => null
-                };
+                    ASegmentDisplayData segmentData = segment switch
+                    {
+                        SpeachPlaySegment lineSegment => new SegmentDisplayData<SpeachPlaySegment>(index, lineSegment, state),
+                        DirectionPlaySegment directionSegment => new SegmentDisplayData<DirectionPlaySegment>(index, directionSegment, state),
+                        _ => null
+                    };
 
-                if (segmentData == null) 
-                    continue;
+                    if (segmentData == null) 
+                        continue;
                 
-                _segmentsList.Add(segmentData);
-                index++;
+                    _segmentsList.Add(segmentData);
+                    index++;
+                }
             }
             _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);
         }
-
+        
         [Button]
         public void JumpToCurrentSegment()
         {
-            _Scroller.JumpToDataIndex(_sharedData.CurrentSegmentIndex, 0.5f, 0.5f, true, EnhancedScroller.TweenType.easeOutBack, 0.3f);
+            _Scroller.JumpToDataIndex(_currentState.CurrentSegmentIndex, 0.5f, 0.5f, true, EnhancedScroller.TweenType.easeOutBack, 0.3f);
         }
         
         [Button]
@@ -159,11 +134,6 @@ namespace EDIVE.StagePlay.UI
             SetOpen(_isOpen);
         }
         
-        private void OnIncrementSegmentActivated()
-        {
-            IncrementCurrentSegment();
-        }
-
         private void OnScrollToCurrentActivated()
         {
             JumpToCurrentSegment();
@@ -188,7 +158,7 @@ namespace EDIVE.StagePlay.UI
         
         private static void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
         {
-            if (cellView is AScriptSegmentDisplay display) 
+            if (cellView is APlaySegmentDisplay display) 
                 display.Clear();
         }
         
@@ -198,8 +168,8 @@ namespace EDIVE.StagePlay.UI
         {
             var rect = _segmentsList[dataIndex] switch
             {
-                SegmentDisplayData<LineScriptSegment> => (RectTransform) _LineDisplayPrefab?.transform,
-                SegmentDisplayData<DirectionScriptSegment> => (RectTransform) _DirectionDisplayPrefab?.transform,
+                SegmentDisplayData<SpeachPlaySegment> => (RectTransform) _LineDisplayPrefab?.transform,
+                SegmentDisplayData<DirectionPlaySegment> => (RectTransform) _DirectionDisplayPrefab?.transform,
                 _ => null
             };
             
@@ -211,8 +181,8 @@ namespace EDIVE.StagePlay.UI
         {
             var cellView = _segmentsList[dataIndex] switch
             {
-                SegmentDisplayData<LineScriptSegment> _ => _LineDisplayPrefab ? _Scroller.GetCellView(_LineDisplayPrefab) as AScriptSegmentDisplay : null,
-                SegmentDisplayData<DirectionScriptSegment> _ => _DirectionDisplayPrefab ? _Scroller.GetCellView(_DirectionDisplayPrefab) as AScriptSegmentDisplay : null,
+                SegmentDisplayData<SpeachPlaySegment> _ => _LineDisplayPrefab ? _Scroller.GetCellView(_LineDisplayPrefab) as APlaySegmentDisplay : null,
+                SegmentDisplayData<DirectionPlaySegment> _ => _DirectionDisplayPrefab ? _Scroller.GetCellView(_DirectionDisplayPrefab) as APlaySegmentDisplay : null,
                 _ => null
             };
 
