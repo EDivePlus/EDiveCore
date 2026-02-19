@@ -85,7 +85,7 @@ namespace EDIVE.UserCenter
         private string SavedataBaseUrl()
         {
             var baseu = (_ServiceBaseUrl ?? "").TrimEnd('/');
-            return $"{baseu}/ediveplus/savedata";
+            return $"{baseu}/saveDatas";
         }
 
         public void TryLoadStoredToken()
