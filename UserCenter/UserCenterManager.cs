@@ -43,19 +43,32 @@ namespace EDIVE.UserCenter
         private ISavedataLocalStore _local;
         private UserCenterHttp _http;
         private SavedataAPI _savedata;
+        
+        private bool _inited;
+
+        private void EnsureInit()
+        {
+            if (_inited) return;
+
+            _json ??= new NewtonsoftJsonCodec();
+            _local ??= new PlayerPrefsSavedataStore(prefix: "uc.savedata.");
+            _http ??= new UserCenterHttp(TokenOrNull, BranchEnabled, () => _BranchId);
+            _savedata ??= new SavedataAPI(_http, SavedataBaseUrl(), () => AuthStorage.GetUserId(), _ApiTimeoutSeconds);
+
+            _inited = true;
+        }
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            _json = new NewtonsoftJsonCodec();
-            _local = new PlayerPrefsSavedataStore(prefix: "uc.savedata.");
-            _http = new UserCenterHttp(TokenOrNull, BranchEnabled, () => _BranchId);
-            _savedata = new SavedataAPI(_http, SavedataBaseUrl(), () => AuthStorage.GetUserId(), _ApiTimeoutSeconds);
-
+            EnsureInit();
             return UniTask.CompletedTask;
         }
 
         private CancellationToken DefaultCt(CancellationToken ct)
-            => ct.CanBeCanceled ? ct : this.GetCancellationTokenOnDestroy();
+        {
+            EnsureInit();
+            return ct.CanBeCanceled ? ct : this.GetCancellationTokenOnDestroy();
+        }
 
         private bool BranchEnabled()
             => !string.IsNullOrWhiteSpace(_BranchId) && _BranchId != "-1";
@@ -82,7 +95,8 @@ namespace EDIVE.UserCenter
         public void Login(string email, string password) { LoginAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget(); }
 
         public void Logout() => AuthStorage.Clear();
-
+        
+        
         [Button]
         public async UniTask<(bool ok, LoginResponse resp, long status, string message)> LoginAsync(
             string email,
@@ -94,7 +108,7 @@ namespace EDIVE.UserCenter
 
             var url = AuthLoginUrl();
             var payload = new LoginRequest(email, password);
-            var body = new NewtonsoftJsonCodec().Serialize(payload);
+            var body = _json.Serialize(payload);
 
             var raw = await _http.SendRawAsync(
                 method: UnityEngine.Networking.UnityWebRequest.kHttpVerbPOST,
