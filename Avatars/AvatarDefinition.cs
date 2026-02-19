@@ -21,7 +21,7 @@ namespace EDIVE.Avatars
     [UsedImplicitly] 
     public static class AvatarDefinitionExtensions
     {
-        public static void WriteAvatarDefinition(this Writer writer, AvatarDefinition value) => writer.CustomWriteTranslatedDefinition((AvatarDefinition) value);
+        public static void WriteAvatarDefinition(this Writer writer, AvatarDefinition value) => writer.CustomWriteTranslatedDefinition(value);
         public static AvatarDefinition ReadAvatarDefinition(this Reader reader) => reader.CustomReadTranslatedDefinition<AvatarDefinition>();
     }
 }
