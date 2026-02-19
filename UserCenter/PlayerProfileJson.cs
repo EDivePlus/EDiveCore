@@ -3,10 +3,10 @@
 
 using System;
 
-namespace EDIVE.Networking.Players
+namespace EDIVE.UserCenter
 {
     [Serializable]
-    public class ProfileJson
+    public class PlayerProfileJson
     {
         public string username;
         public string avatarId;

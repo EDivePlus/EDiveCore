@@ -2,6 +2,7 @@
 // Created: 20.06.2025
 
 using EDIVE.Avatars;
+using EDIVE.Core;
 using FishNet;
 using UnityEngine;
 using UnityEngine.UI;
@@ -47,8 +48,8 @@ namespace EDIVE.Networking.Players
         {
             if (Definition == null)
                 return;
-            
-            var localPlayer = InstanceFinder.ClientManager.Connection.FirstObject;
+
+            var localPlayer = AppCore.Services.Get<NetworkPlayerManager>().LocalPlayer;
             if (localPlayer == null)
             {
                 Debug.LogWarning("Local player not found, cannot set avatar");

@@ -21,6 +21,8 @@ using EDIVE.AssetTranslation;
 using EDIVE.Networking.Scenes;
 using EDIVE.Networking.Utils;
 using UnityEngine.SceneManagement;
+using EDIVE.UserCenter;
+using System.Threading;
 
 namespace EDIVE.Networking.Players
 {
@@ -106,6 +108,7 @@ namespace EDIVE.Networking.Players
         {
             base.PopulateDependencies(dependencies);
             dependencies.Add(typeof(MasterNetworkManager));
+            dependencies.Add(typeof(UserCenterManager));
         }
 
         protected override void OnDestroy()
@@ -148,6 +151,33 @@ namespace EDIVE.Networking.Players
             _playerRequests.Remove(record);
             return result.result;
         }
+        private bool _sentCreateRequest;
+
+        private void ApplyProfileJson(PlayerProfileJson pj)
+        {
+            if (pj == null) return;
+
+            if (!string.IsNullOrWhiteSpace(pj.username))
+                PlayerProfile.username = pj.username;
+
+            if (!string.IsNullOrWhiteSpace(pj.avatarId))
+                OnLocalAvatarChanged(pj.avatarId);
+        }
+
+        private async UniTask PersistProfileJsonAsync(CancellationToken ct = default)
+        {
+            if (!AppCore.Services.TryGet<UserCenterManager>(out var uc) || uc == null)
+                return;
+
+            var pj = new PlayerProfileJson
+            {
+                username = PlayerProfile.username,
+                avatarId = GetAvatarId()
+            };
+
+            await uc.SetPlayerProfileJson(pj, ct);
+        }
+
 
         private void OnServerRemoteConnectionState(NetworkConnection conn, RemoteConnectionStateArgs args)
         {
@@ -160,18 +190,46 @@ namespace EDIVE.Networking.Players
 
         private void OnClientLoadedStartScenes(NetworkConnection conn, bool asServer)
         {
-            if (asServer)
+            if (asServer || _sentCreateRequest)
                 return;
+
+            _sentCreateRequest = true;
 
             UniTask.Void(async () =>
             {
-                // Todo Await load from UserCenter here
+                _playerProfile ??= CreatePlayerProfile();
+
+                if (AppCore.Services.TryGet<UserCenterManager>(out var uc) && uc != null)
+                {
+                    var ct = this.GetCancellationTokenOnDestroy();
+                    var res = await uc.GetPlayerProfileJson(ct);
+
+                    if (res.IsOk)
+                    {
+                        ApplyProfileJson(res.Value);
+                    }
+                    else if (res.IsNotFound)
+                    {
+                        var pj = new PlayerProfileJson
+                        {
+                            username = PlayerProfile.username,
+                            avatarId = GetAvatarId()
+                        };
+                        await uc.SetPlayerProfileJson(pj, ct);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[NetworkPlayerManager] Profile load error: {res.ErrorMessage}");
+                    }
+                }
+
                 var playerCreationRequest = new PlayerCreationRequestMessage()
                 {
                     profile = PlayerProfile
                 };
+
                 _networkManager.ClientManager.Broadcast(playerCreationRequest);
-                DebugLite.Log("[NetworkPlayerManager] Sending request for player creation (after savedata load).");
+                DebugLite.Log("[NetworkPlayerManager] Sending request for player creation (after UserCenter profile load).");
             });
         }
 
@@ -236,6 +294,7 @@ namespace EDIVE.Networking.Players
 
             return PlayerProfile.avatarId;
         }
+        
         public void UpdatePlayerProfile(PlayerProfile profile)
         {
             if (profile == null)

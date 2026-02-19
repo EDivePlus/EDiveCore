@@ -5,8 +5,7 @@
         "UniTask",
         "Unity.TextMeshPro",
         "EDIVE.Core",
-        "EDIVE.AppLoading",
-        "EDIVE.Networking"
+        "EDIVE.AppLoading"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
