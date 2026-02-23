@@ -17,17 +17,20 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private ValueResolver<string> _iconNameResolver;
         private ValueResolver<string> _tooltipResolver;
         private ValueResolver<bool> _showIfResolver;
+        private ValueResolver<bool> _enableIfResolver;
         private ActionResolver _clickAction;
         
         private const string RECT_NAMED_VALUE = "fieldRect";
         
         private bool _show = true;
+        private bool _enable = true;
 
         protected override void Initialize()
         {
             _iconNameResolver = ValueResolver.GetForString(Property, Attribute.IconName);
             _tooltipResolver = ValueResolver.GetForString(Property, Attribute.Tooltip);
             _showIfResolver = ValueResolver.Get(Property, Attribute.ShowIf, true);
+            _enableIfResolver = ValueResolver.Get(Property, Attribute.EnableIf, true);
             _clickAction = ActionResolver.Get(Property, Attribute.Action, new ActionNamedValue(RECT_NAMED_VALUE, typeof(Rect)));
             
             _show = _showIfResolver.GetValue();
@@ -38,7 +41,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         /// </summary>
         protected override void DrawPropertyLayout(GUIContent label)
         {
-            ValueResolver.DrawErrors(_iconNameResolver, _tooltipResolver, _showIfResolver);
+            ValueResolver.DrawErrors(_iconNameResolver, _tooltipResolver, _showIfResolver, _enableIfResolver);
             ActionResolver.DrawErrors(_clickAction);
             if (_iconNameResolver.HasError || _clickAction.HasError )
             {
@@ -49,6 +52,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (Event.current.type == EventType.Layout)
             {
                 _show = _showIfResolver.GetValue();
+                _enable = _enableIfResolver.GetValue();
             }
 
             var icon = EditorIconsUtility.GetIcon(_iconNameResolver.GetValue(), Attribute.Bundle);
@@ -63,7 +67,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             var tooltip = !_tooltipResolver.HasError ? _tooltipResolver.GetValue() : "";
             var rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,  GUILayoutOptions.ExpandWidth(false).Width(18));
 
+        
             if (Attribute.GUIAlwaysEnabled) GUIHelper.PushGUIEnabled(true);
+            else if (!_enable) GUIHelper.PushGUIEnabled(false);
             if (SirenixEditorGUI.IconButton(rect, icon,tooltip))
             {
                 Property.RecordForUndo($"Click {Attribute.Action.SplitPascalCase()}");
@@ -71,7 +77,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 _clickAction.DoActionForAllSelectionIndices();
                 Property.MarkSerializationRootDirty();
             }
-            if (Attribute.GUIAlwaysEnabled) GUIHelper.PopGUIEnabled();
+            if (Attribute.GUIAlwaysEnabled || !_enable) GUIHelper.PopGUIEnabled();
             EditorGUILayout.EndHorizontal();
         }
     }

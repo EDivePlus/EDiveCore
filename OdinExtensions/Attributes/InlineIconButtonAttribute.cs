@@ -13,6 +13,7 @@ namespace EDIVE.OdinExtensions.Attributes
         public string Action;
         public string Tooltip;
         public string ShowIf;
+        public string EnableIf;
         public bool GUIAlwaysEnabled;
 
         public InlineIconButtonAttribute(EditorIconsBundle bundle, string iconName, string action, string tooltip = "") : this(iconName, action, tooltip)
