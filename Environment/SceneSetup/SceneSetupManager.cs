@@ -2,12 +2,14 @@
 // Created: 27.08.2025
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
+using EDIVE.NativeUtils;
 using EDIVE.Networking.Scenes;
 using EDIVE.XRTools.Controls;
 using FishNet;
@@ -28,6 +30,8 @@ namespace EDIVE.Environment.SceneSetup
 
         private NetworkManager _networkManager;
         private bool _switchInProgress;
+        private readonly List<ASceneSpawnPlace> _spawnPlaces = new();
+        private readonly List<SceneSetupController> _sceneControllers = new();
 
         protected void Awake()
         {
@@ -45,7 +49,29 @@ namespace EDIVE.Environment.SceneSetup
                 _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
             }
         }
+        
+        public void RegisterSceneController(SceneSetupController sceneController)
+        {
+            if (!_sceneControllers.Contains(sceneController))
+                _sceneControllers.Add(sceneController);
+        }
 
+        public void UnregisterSceneController(SceneSetupController sceneController)
+        {
+            _sceneControllers.Remove(sceneController);
+        }
+
+        public void RegisterSpawnPlace(ASceneSpawnPlace spawnPlace)
+        {
+            if (!_spawnPlaces.Contains(spawnPlace))
+                _spawnPlaces.Add(spawnPlace);
+        }
+
+        public void UnregisterSpawnPlace(ASceneSpawnPlace spawnPlace)
+        {
+            _spawnPlaces.Remove(spawnPlace);
+        }
+        
         private void OnClientAuthenticated()
         {
             try
@@ -71,6 +97,7 @@ namespace EDIVE.Environment.SceneSetup
 
             _switchInProgress = true;
             
+            // Load the scenes
             var defScenes = definition.Scenes.ToList();
             if (defScenes.Any() && AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
             {
@@ -84,7 +111,7 @@ namespace EDIVE.Environment.SceneSetup
                 }
                 
                 var loadedScenes = await UniTask.WhenAll(defScenes.Select(defScene => networkSceneManager.AwaitLoadConnectionScene(GetSceneName(defScene))));
-                if (loadedScenes.Any(scene => scene == null))
+                if (!loadedScenes.Any())
                     return;
                 
                 if (definition.SetFirstSceneActive)
@@ -93,15 +120,23 @@ namespace EDIVE.Environment.SceneSetup
                     if (firstScene != null)
                         UnitySceneManager.SetActiveScene(firstScene.Value);
                 }
+                await UniTask.Yield();
             }
-
-            var controller = definition.Controller;
-            if (controller != null)
+            
+            // Apply visual
+            foreach (var sceneController in _sceneControllers)
+            {
+                if (sceneController != null)
+                    sceneController.ApplyDefinition(definition);
+            }
+            
+            // Find spawn place and teleport
+            if (_spawnPlaces.TryGetFirst(s => s != null, out var spawnPlace))
             {
                 if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
                 {
                     var connection = InstanceFinder.ClientManager.Connection;
-                    if (controller.SpawnPlace.TryGetLocation(connection, out var position, out var rotation))
+                    if (spawnPlace.TryGetLocation(connection, out var position, out var rotation))
                     {
                         controlsManager.RequestTeleport(position, rotation);
                     }

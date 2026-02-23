@@ -10,7 +10,8 @@
     "EDIVE.External.Signals",
     "EDIVE.XRTools",
     "EDIVE.Networking",
-    "Unity.XR.Interaction.Toolkit"
+    "Unity.XR.Interaction.Toolkit",
+    "EDIVE.VisualPresets"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

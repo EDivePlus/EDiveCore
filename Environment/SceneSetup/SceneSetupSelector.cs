@@ -37,15 +37,15 @@ namespace EDIVE.Environment.SceneSetup
 
         private void OnButtonClicked()
         {
-            ChangeSceneContext();
+            ChangeSceneSetup();
         }
 
         private void OnInteractableActivated(ActivateEventArgs arg0)
         {
-            ChangeSceneContext();
+            ChangeSceneSetup();
         }
 
-        private void ChangeSceneContext()
+        private void ChangeSceneSetup()
         {
             if (_Definition == null)
                 return;
