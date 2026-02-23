@@ -312,7 +312,7 @@ namespace EDIVE.Audio
             if (_voiceChatSession == null)
                 return false;
             
-            if (micName != null && TryFindAvailableMicrophoneDevice(micName, out var micDevice))
+            if (micName == null || !TryFindAvailableMicrophoneDevice(micName, out _))
                 return false;
             
             CurrentMicrophoneName = micName;
