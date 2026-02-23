@@ -24,7 +24,7 @@ namespace EDIVE.VisualPresets.StateHandling
         [VerticalGroup("Value")]
         [EnhancedValidate("ValidateState")]
         [EnhancedValueDropdown("GetStatesDropdown")]
-        [InlineIconButton("Pen", "OpenStatesEdit")]
+        [InlineIconButton("Pen", "OpenStatesEdit", EnableIf = "@VisualID != null")]
         [SerializeField]
         private string _State;
         
@@ -40,13 +40,13 @@ namespace EDIVE.VisualPresets.StateHandling
         [UsedImplicitly]
         private IEnumerable GetStatesDropdown()
         {
-            return VisualID.AvailableStates;
+            return VisualID != null ? VisualID.AvailableStates : null;
         }
         
         [UsedImplicitly]
         private void ValidateState(string value, SelfValidationResult result)
         {
-            if (value == null)
+            if (value == null || VisualID == null)
                 return;
 
             if (!VisualID.HasState(value))
@@ -58,6 +58,9 @@ namespace EDIVE.VisualPresets.StateHandling
         [UsedImplicitly]
         private void OpenStatesEdit(Rect fieldRect, InspectorProperty property)
         {
+            if (VisualID == null) 
+                return;
+            
             if (Event.current.button == 0)
             {
                 EditorApplication.delayCall += () => GUIHelper.OpenInspectorWindow(VisualID);
