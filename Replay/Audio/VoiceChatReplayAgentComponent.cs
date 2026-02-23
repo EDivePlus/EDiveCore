@@ -7,21 +7,23 @@ using System.Linq;
 using System.Threading;
 using Adrenak.UniVoice;
 using Cysharp.Threading.Tasks;
+using EDIVE.Audio;
 using EDIVE.Core;
-using EDIVE.Replay;
+using EDIVE.NativeUtils;
 using EDIVE.Replay.Components;
 using EDIVE.Utils.Cysharp;
-using EDIVE.NativeUtils;
 using FishNet.Object;
 using MemoryPack;
 using Newtonsoft.Json;
 using R3;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
-namespace EDIVE.Audio.Replay
+namespace EDIVE.Replay.Audio
 {
     [Serializable]
+    [MovedFrom(true, "EDIVE.Audio.Replay", "EDIVE.Audio.Replay", "VoiceChatReplayAgentComponent")]
     public partial class VoiceChatReplayAgentComponent : AReplayAgentComponent<VoiceChatReplayAgentComponent.ComponentData>
     {
         [SerializeField]

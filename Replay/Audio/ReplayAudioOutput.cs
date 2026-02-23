@@ -5,11 +5,12 @@ using System;
 using System.Collections.Generic;
 using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
+using EDIVE.Audio;
 using FishNet;
 using FishNet.Managing;
 using UnityEngine;
 
-namespace EDIVE.Audio.Replay
+namespace EDIVE.Replay.Audio
 {
     [RequireComponent(typeof(BufferedAudioOutput))]
     public class ReplayAudioOutput : MonoBehaviour

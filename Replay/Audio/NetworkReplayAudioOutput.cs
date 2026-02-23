@@ -5,7 +5,7 @@ using Adrenak.UniVoice;
 using FishNet.Object;
 using UnityEngine;
 
-namespace EDIVE.Audio.Replay
+namespace EDIVE.Replay.Audio
 {
     [RequireComponent(typeof(ReplayAudioOutput))]
     public class NetworkReplayAudioOutput : NetworkBehaviour

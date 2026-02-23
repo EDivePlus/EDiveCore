@@ -373,7 +373,9 @@ namespace EDIVE.Replay.Agents
                     });
             }
             
-            var duplicateItems = _ComponentList.GroupBy(i => i.ID)
+            var duplicateItems = _ComponentList
+                .Where(i => i != null)
+                .GroupBy(i => i.ID)
                 .Where(g => g.Count() > 1)
                 .ToList();
 

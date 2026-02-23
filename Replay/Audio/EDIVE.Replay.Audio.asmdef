@@ -1,5 +1,5 @@
 {
-    "name": "EDIVE.Audio.Replay",
+    "name": "EDIVE.Replay.Audio",
     "rootNamespace": "",
     "references": [
         "EDIVE.Core",
