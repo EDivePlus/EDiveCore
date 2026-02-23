@@ -76,7 +76,7 @@ namespace EDIVE.UserCenter
 
         private async UniTask<NetworkResponse<string>> ListRawAsync(CancellationToken ct)
         {
-            var listUrl = _savedataBaseUrl + "?pgSize=250";
+            var listUrl = _savedataBaseUrl + "?page=0&size=250";
             return await _http.SendRawAsync(
                 method: UnityEngine.Networking.UnityWebRequest.kHttpVerbGET,
                 url: listUrl,

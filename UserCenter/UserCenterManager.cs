@@ -20,7 +20,7 @@ namespace EDIVE.UserCenter
 
         [Header("Branch header (optional)")]
         [SerializeField]
-        private string _BranchId = "-1";
+        private string _BranchId = "2";
 
         [Header("Profile key")]
         [SerializeField]
@@ -36,8 +36,6 @@ namespace EDIVE.UserCenter
 
         public event Action<LoginResponse> OnLoginSucceeded;
         public event Action<long, string> OnLoginFailed;
-
-        private readonly Dictionary<string, string> _memJsonCache = new(StringComparer.OrdinalIgnoreCase);
 
         private IJsonCodec _json;
         private ISavedataLocalStore _local;
@@ -71,7 +69,7 @@ namespace EDIVE.UserCenter
         }
 
         private bool BranchEnabled()
-            => !string.IsNullOrWhiteSpace(_BranchId) && _BranchId != "-1";
+            => !string.IsNullOrWhiteSpace(_BranchId);
 
         private string TokenOrNull()
             => AuthStorage.GetAccessToken();

@@ -53,11 +53,22 @@ namespace EDIVE.UserCenter
                     req.SetRequestHeader("Authorization", "Bearer " + token);
             }
 
-            if (includeBranchHeader && _branchEnabled?.Invoke() == true)
+            if (includeBranchHeader)
             {
                 var bid = _branchIdOrNull?.Invoke();
-                if (!string.IsNullOrWhiteSpace(bid) && bid != "-1")
+
+                if (string.IsNullOrWhiteSpace(bid))
+                { 
+                    hcDebug.LogError("[UserCenterHttp] includeBranchHeader=true but BranchId is NULL/EMPTY. Savedata endpoints will fail (branch is required).");
+                }
+                else
+                {
                     req.SetRequestHeader("branch-id", bid);
+                    req.SetRequestHeader("branchId", bid);
+                    req.SetRequestHeader("branch", bid);
+                    req.SetRequestHeader("Branch-Id", bid);
+                    req.SetRequestHeader("X-Branch-Id", bid);
+                }
             }
 
             await req.SendWebRequest().ToUniTask(cancellationToken: ct);
