@@ -67,7 +67,7 @@ namespace EDIVE.VisualPresets.Switchers
 
                 void OnBeforeApply()
                 {
-                    if (_currentStrategy != strategy) 
+                    if (_currentStrategy != strategy && _currentStrategy != null) 
                         _currentStrategy.CleanUp(this);
                 }
             }
