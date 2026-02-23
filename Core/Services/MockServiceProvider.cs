@@ -10,7 +10,7 @@ namespace EDIVE.Core.Services
 {
     public class MockServiceProvider : IServiceProvider
     {
-        public static readonly MockServiceProvider INSTANCE = new MockServiceProvider();
+        public static readonly MockServiceProvider INSTANCE = new();
 
         public void Register<T>(T service) where T : class, IService
         {
@@ -58,6 +58,21 @@ namespace EDIVE.Core.Services
         {
             PrintMockMessage(nameof(IsRegisteredWith));
             return false;
+        }
+
+        public void SubscribeOnChangeWithInitial<T>(Action<T> handler) where T : class, IService
+        {
+            PrintMockMessage(nameof(IsRegisteredWith));
+        }
+
+        public void SubscribeOnChange<T>(Action<T> handler) where T : class, IService
+        {
+            PrintMockMessage(nameof(IsRegisteredWith));
+        }
+
+        public void UnsubscribeOnChange<T>(Action<T> handler) where T : class, IService
+        {
+            PrintMockMessage(nameof(IsRegisteredWith));
         }
 
         public void WhenRegistered<T>(Action<T> action) where T : class, IService

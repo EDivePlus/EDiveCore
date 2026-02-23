@@ -19,6 +19,11 @@ namespace EDIVE.Core.Services
 
         public bool IsRegistered<T>() where T : class, IService;
         public bool IsRegisteredWith<T>(object service) where T : class, IService;
+        
+        public void SubscribeOnChangeWithInitial<T>(Action<T> handler) where T : class, IService;
+        public void SubscribeOnChange<T>(Action<T> handler) where T : class, IService;
+        public void UnsubscribeOnChange<T>(Action<T> handler) where T : class, IService;
+        
         public void WhenRegistered<T>(Action<T> action) where T : class, IService;
         public void WhenRegistered<T, T2>(Action<T, T2> action)
             where T : class, IService
