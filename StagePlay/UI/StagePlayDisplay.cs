@@ -39,6 +39,9 @@ namespace EDIVE.StagePlay.UI
         
         [SerializeReference]
         private IActivation _ScrollToCurrentActivation;
+        
+        [SerializeReference]
+        private IActivation _ToggleAction;
 
         [SerializeField]
         private TMP_Text _NameText;
@@ -66,12 +69,14 @@ namespace EDIVE.StagePlay.UI
             _Scroller.Delegate = this;
             _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
             _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
+            _ToggleAction?.RegisterActivationListener(ToggleTablet);
             _Controller.DefinitionChanged += UpdateDefinition;
         }
 
         private void OnDestroy()
         {
             _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
+            _ToggleAction?.UnregisterActivationListener(ToggleTablet);
         }
 
         private void Start()
