@@ -17,6 +17,8 @@ namespace EDIVE.StagePlay
         private IActivation _IncrementSegmentActivation;
         
         public StagePlayDefinition Definition => _Definition;
+        
+        [ShowInInspector, ReadOnly]
         public StagePlayState CurrentState { get; private set; } = new();
         
         public event Action<StagePlayDefinition, StagePlayState> DefinitionChanged;
