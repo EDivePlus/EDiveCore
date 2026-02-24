@@ -1,50 +1,47 @@
 ﻿// Author: Radim Holub
 // Created: 04.12.2025
 
-using System.IO;
-using Cysharp.Threading.Tasks;
+using System;
+using EDIVE.Time.TimeSpanUtils;
+using EnhancedUI.EnhancedScroller;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace EDIVE.Replay.UI
 {
-    public class ReplayListElementDisplay : MonoBehaviour
+    public class ReplayListElementDisplay : EnhancedScrollerCellView
     {
-        [SerializeField] private TMP_Text _FileNameText;
-        [SerializeField] private Button _LoadButton;
+        [SerializeField]
+        private TMP_Text _IDText;
 
-        private string _filePath;
-        private ReplayController _replayController;
+        [SerializeField]
+        private TimeSpanDisplay _DurationDisplay;
+        
+        [SerializeField]
+        private Button _LoadButton;
 
-        public void SetReplay(string filePath, ReplayController controller)
+        private ReplayRecordInfo _info;
+        private Action<ReplayRecordInfo> _onClicked;
+
+        public void SetReplay(ReplayRecordInfo info, Action<ReplayRecordInfo> onClicked)
         {
-            _filePath = filePath;
-            _replayController = controller;
+            _info = info;
+            _onClicked = onClicked;
 
-            if (_FileNameText)
-                _FileNameText.text = Path.GetFileNameWithoutExtension(filePath);
+            if (_IDText)
+                _IDText.text = info.ID;
             
-            if (_LoadButton)
-            {
-                _LoadButton.onClick.RemoveAllListeners();
+            if (_DurationDisplay)
+                _DurationDisplay.SetTimeSpan(TimeSpan.FromSeconds(info.Duration));
+            
+            if (_LoadButton) 
                 _LoadButton.onClick.AddListener(OnLoadClicked);
-            }
         }
 
         private void OnLoadClicked()
         {
-            if (_replayController == null || string.IsNullOrEmpty(_filePath))
-                return;
-
-            UniTask.Void(async () =>
-            {
-                var ok = await _replayController.LoadRecordingFromFileAsync(_filePath);
-
-                _replayController.StartPlayback();
-                if (!ok)
-                    Debug.LogWarning($"Failed to load replay: {_filePath}");
-            });
+            _onClicked?.Invoke(_info);
         }
     }
 }

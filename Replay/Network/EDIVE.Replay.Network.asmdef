@@ -6,7 +6,8 @@
     "FishNet.Runtime",
     "EDIVE.External.Signals",
     "EDIVE.Replay",
-    "EDIVE.OdinExtensions"
+    "EDIVE.OdinExtensions",
+    "EDIVE.Core"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

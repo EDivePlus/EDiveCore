@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 03.07.2025
 
+using System;
 using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -15,6 +16,8 @@ namespace EDIVE.Replay.Agents
         [SerializeField]
         private ReplayAgent _Agent;
         public ReplayAgent Agent => _Agent;
+        
+        private Action<ReplayAgentHandler> _despawnDelegate;
         
         private bool _initialized;
 
@@ -40,6 +43,19 @@ namespace EDIVE.Replay.Agents
             
             _Agent.Initialize(this);
             _initialized = true;
+        }
+
+        public void Despawn()
+        {
+            if (_despawnDelegate != null)
+                _despawnDelegate.Invoke(this);
+            else
+                Destroy(gameObject);
+        }
+        
+        public void SetDespawnDelegate(Action<ReplayAgentHandler> despawnDelegate)
+        {
+            _despawnDelegate = despawnDelegate;
         }
     }
 }

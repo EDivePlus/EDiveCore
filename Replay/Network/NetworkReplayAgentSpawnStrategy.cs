@@ -17,24 +17,23 @@ namespace EDIVE.Replay.Network
     {
         [SerializeField]
         private NetworkObject _Prefab;
-        
-        public override bool IsValidFor(IPlaybackContext context)
+
+        public NetworkReplayAgentSpawnStrategy() { }
+        public NetworkReplayAgentSpawnStrategy(NetworkObject prefab)
         {
-            return context is NetworkPlaybackContext netContext && netContext.NetworkManager.IsServerStarted;
+            _Prefab = prefab;
         }
-        
-        public override UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(IPlaybackContext context, CancellationToken cancellationToken = default)
+
+        public override UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(CancellationToken cancellationToken = default)
         {
-            if (context is not NetworkPlaybackContext netContext)
-                return UniTask.FromResult((false, (ReplayAgentHandler) null));
-                
-            var networkManager = netContext.NetworkManager;
+            var networkManager = InstanceFinder.NetworkManager;
             var netObj = networkManager.GetPooledInstantiated(_Prefab, true);
             networkManager.ServerManager.Spawn(netObj, InstanceFinder.ClientManager.Connection);
             
             if (!netObj.TryGetComponent<ReplayAgentHandler>(out var handler))
                 return UniTask.FromResult((false, (ReplayAgentHandler) null));
                 
+            handler.SetDespawnDelegate(h => networkManager.ServerManager.Despawn(h.gameObject));
             return UniTask.FromResult((true, handler));
         }
     }

@@ -1,52 +1,78 @@
 ﻿// Author: Radim Holub
 // Created: 04.12.2025
 
-using System.IO;
-using EDIVE.Replay.UI;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using EDIVE.Core;
+using EDIVE.Utils.Activations;
+using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.UI
 {
-    public class ReplayListDisplay : MonoBehaviour
+    public class ReplayListDisplay : MonoBehaviour, IEnhancedScrollerDelegate
     {
-        [SerializeField] private ReplayController _ReplayController;
-        [SerializeField] private ReplayListElementDisplay _ElementPrefab;
-        [SerializeField] private Transform _ContentRoot;
+        [SerializeField]
+        public EnhancedScroller _Scroller;
+        
+        [SerializeField] 
+        private ReplayListElementDisplay _ElementPrefab;
+        
+        [SerializeReference] 
+        private IActivation _RefreshActivation;
+        
+        private readonly List<ReplayRecordInfo> _currentRecords = new();
         
         private void OnEnable()
         {
-            if (_ReplayController != null)
-                _ReplayController.RecordingSaved += OnRecordingSaved;
+            _Scroller.Delegate = this;
+            _RefreshActivation?.RegisterActivationListener(RefreshList);
+        }
 
+        private void Start()
+        {
             RefreshList();
         }
 
         private void OnDisable()
         {
-            if (_ReplayController != null)
-                _ReplayController.RecordingSaved -= OnRecordingSaved;
-        }
-
-        private void OnRecordingSaved(string path)
-        {
-            RefreshList();
+            _RefreshActivation?.UnregisterActivationListener(RefreshList);
         }
 
         [Button]
         private void RefreshList()
         {
-            var dir = ReplayUtils.RecordingsFolderPath;
-            if (!Directory.Exists(dir))
+            if (!AppCore.Services.TryGet<ReplayController>(out var controller))
                 return;
-
-            var files = Directory.GetFiles(dir, "*.dat");
-
-            foreach (var file in files)
+            
+            UniTask.Void(async () =>
             {
-                var element = Instantiate(_ElementPrefab, _ContentRoot);
-                element.SetReplay(file, _ReplayController);
-            }
+                var records = await controller.GetSavedRecords();
+                _currentRecords.Clear();
+                _currentRecords.AddRange(records);
+                _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);
+            });
+        }
+        
+        private void OnReplayRecordedSelected(ReplayRecordInfo info)
+        {
+            if (AppCore.Services.TryGet<ReplayController>(out var controller))
+                controller.LoadRecord(info);
+        }
+
+        public int GetNumberOfCells(EnhancedScroller scroller) => _currentRecords.Count;
+
+        public float GetCellViewSize(EnhancedScroller scroller, int dataIndex) => ((RectTransform)_ElementPrefab.transform).rect.height;
+
+        public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
+        {
+            var cell = (ReplayListElementDisplay) _Scroller.GetCellView(_ElementPrefab);
+            if (!cell)
+                return null;
+
+            cell.SetReplay(_currentRecords[dataIndex], OnReplayRecordedSelected);
+            return cell;
         }
     }
 }

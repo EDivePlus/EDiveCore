@@ -2,7 +2,7 @@
 // Created: 22.07.2025
 
 using System;
-using EDIVE.DataStructures;
+using EDIVE.Core;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Time.TimeSpanUtils;
@@ -10,63 +10,78 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.Replay
+namespace EDIVE.Replay.UI
 {
     public class ReplayDisplay : MonoBehaviour
     {
-        [Required]
-        [SerializeField]
-        private SerializedInterface<IReplayController, MonoBehaviour> _ReplayController;
-
         [PropertySpace]
         [SerializeField]
         private Slider _PlaybackSlider;
-        
+
         [SerializeField]
         private TimeSpanDisplay _CurrentTimeDisplay;
-        
+
         [SerializeField]
         private TimeSpanDisplay _DurationDisplay;
-        
+
         [SerializeField]
         private Button _PlayPauseButton;
-        
+
         [SerializeField]
         private Button _RewindButton;
-        
+
         [SerializeField]
         private Button _UnloadButton;
-        
+
         [SerializeField]
         private AToggleState _PlayingState;
 
         [ValidateMultiState(typeof(PlaybackLoadState))]
         [SerializeField]
         private AMultiState _LoadingState;
-        
+
         [PropertySpace]
         [SerializeField]
         private Button _RecordButton;
-        
+
         [SerializeField]
         private Button _ClearRecordingButton;
-        
+
         [SerializeField]
         private Button _SaveButton;
-        
+
         [SerializeField]
         private AToggleState _RecordingState;
-        
+
         [SerializeField]
         private AToggleState _HasRecordState;
-        
-        private IReplayController ReplayController => _ReplayController.Value;
-   
-        private void Awake()
+
+        private ReplayController _replayController;
+
+        private void OnEnable()
         {
-            if (_ReplayController == null)
+            AppCore.Services.SubscribeOnChangeWithInitial<ReplayController>(OnReplayControllerChanged);
+        }
+
+        private void OnDisable()
+        {
+            AppCore.Services.UnsubscribeOnChange<ReplayController>(OnReplayControllerChanged);
+        }
+
+        private void OnReplayControllerChanged(ReplayController replayController)
+        {
+            if (replayController == _replayController)
+                return;
+            Terminate();
+            if (replayController == null) 
                 return;
             
+            _replayController = replayController;
+            Initialize(); 
+        }
+
+        private void Initialize()
+        {
             if (_PlaybackSlider)
             {
                 _PlaybackSlider.minValue = 0;
@@ -93,27 +108,57 @@ namespace EDIVE.Replay
             if (_SaveButton)
                 _SaveButton.onClick.AddListener(OnSaveButtonClicked);
 
-            ReplayController.StateChanged.AddListener(RefreshState);
-            ReplayController.TimeChanged.AddListener(RefreshTime);
+            _replayController.StateChanged += RefreshState;
+            _replayController.TimeChanged += RefreshTime;
             RefreshState();
             RefreshTime();
+        }
+
+        private void Terminate()
+        {
+            if (_PlaybackSlider) 
+                _PlaybackSlider.onValueChanged.RemoveListener(OnSliderValueChanged);
+
+            if (_PlayPauseButton)
+                _PlayPauseButton.onClick.RemoveListener(OnPlayPauseButtonClicked);
+            
+            if (_RewindButton)
+                _RewindButton.onClick.RemoveListener(OnRewindButtonClicked);
+
+            if (_UnloadButton)
+                _UnloadButton.onClick.RemoveListener(OnUnloadButtonClicked);
+            
+            if (_RecordButton)
+                _RecordButton.onClick.RemoveListener(OnRecordButtonClicked);
+            
+            if (_ClearRecordingButton)
+                _ClearRecordingButton.onClick.RemoveListener(OnClearRecordingButtonClicked);
+            
+            if (_SaveButton)
+                _SaveButton.onClick.RemoveListener(OnSaveButtonClicked);
+
+            if (_replayController != null)
+            {
+                _replayController.StateChanged -= RefreshState;
+                _replayController.TimeChanged -= RefreshTime;
+            }
         }
         
         private void OnSliderValueChanged(float value)
         {
-            if (ReplayController.IsPlaybackLoaded)
+            if (_replayController.IsPlaybackLoaded)
             {
-                ReplayController.StopPlayback();
-                ReplayController.SetPlaybackTime(value);
+                _replayController.StopPlayback();
+                _replayController.SetPlaybackTime(value);
             }
-            else if (ReplayController.IsPlaybackLoaded)
+            else if (_replayController.IsPlaybackLoaded)
             {
-                ReplayController.StopPlayback();
-                ReplayController.SetPlaybackTime(value);
+                _replayController.StopPlayback();
+                _replayController.SetPlaybackTime(value);
             }
             else
             {
-                ReplayController.SetRecordingTime(value, clearFollowingFrames: false);
+                _replayController.SetRecordingTime(value, clearFollowingFrames: false);
             }
         }
         
@@ -127,52 +172,49 @@ namespace EDIVE.Replay
         
         private void OnPlayPauseButtonClicked()
         {
-            if (ReplayController.IsPlaybackPlaying)
+            if (_replayController.IsPlaybackPlaying)
             {
-                ReplayController.StopPlayback();
+                _replayController.StopPlayback();
             }
             else
             {
-                ReplayController.StartPlayback();
+                _replayController.StartPlayback();
             }
         }
         
         private void OnRewindButtonClicked()
         {
-            ReplayController.SetPlaybackTime(0);
+            _replayController.SetPlaybackTime(0);
         }
         
         private void OnUnloadButtonClicked()
         {
-            if (ReplayController.IsPlaybackLoaded)
+            if (_replayController.IsPlaybackLoaded)
             {
-                ReplayController.UnloadPlayback();
+                _replayController.UnloadPlayback();
             }
         }
         
         private void OnSaveButtonClicked()
         {
-            // TODO implement save functionality
-            // https://github.com/yasirkula/UnityNativeFilePicker maybe? already imported in the project
-            
-                if (_ReplayController != null)
-                    ReplayController.SaveCurrentRecording();
+            // TODO
+            // _replayController?.SaveCurrentRecording();
         }
 
         private void OnClearRecordingButtonClicked()
         {
-            ReplayController.ResetRecording();
+            _replayController.ResetRecording();
         }
 
         private void OnRecordButtonClicked()
         {
-            if (ReplayController.IsRecording)
+            if (_replayController.IsRecording)
             {
-                ReplayController.StopRecording();
+                _replayController.StopRecording();
             }
             else
             {
-                ReplayController.StartRecording();
+                _replayController.StartRecording();
             }
         }
         
@@ -180,32 +222,32 @@ namespace EDIVE.Replay
         private void RefreshState()
         {
             if (_PlayingState)
-                _PlayingState.SetState(ReplayController.IsPlaybackPlaying);
+                _PlayingState.SetState(_replayController.IsPlaybackPlaying);
             
             if (_RecordingState)
-                _RecordingState.SetState(ReplayController.IsRecording);
+                _RecordingState.SetState(_replayController.IsRecording);
             
             if (_LoadingState)
-                _LoadingState.SetState(ReplayController.PlaybackLoadState);
+                _LoadingState.SetState(_replayController.PlaybackLoadState);
             
             if (_HasRecordState)
-                _HasRecordState.SetState(ReplayController.HasAnyDuration);
+                _HasRecordState.SetState(_replayController.HasAnyDuration);
 
             if (_ClearRecordingButton)
-                _ClearRecordingButton.interactable = ReplayController.HasAnyDuration;
+                _ClearRecordingButton.interactable = _replayController.HasAnyDuration;
             
             if (_SaveButton)
-                _SaveButton.interactable = ReplayController.HasAnyDuration;
+                _SaveButton.interactable = _replayController.HasAnyDuration;
             
             if (_UnloadButton)
-                _UnloadButton.interactable = ReplayController.PlaybackLoadState != PlaybackLoadState.NotLoaded;
+                _UnloadButton.interactable = _replayController.PlaybackLoadState != PlaybackLoadState.NotLoaded;
         }
         
         // Todo listed to replay controller time change
         private void RefreshTime()
         {
-            var currentTime = ReplayController.CurrentTime;
-            var currentDuration = ReplayController.CurrentDuration;
+            var currentTime = _replayController.CurrentTime;
+            var currentDuration = _replayController.CurrentDuration;
             
             if (_CurrentTimeDisplay)
                 _CurrentTimeDisplay.SetTimeSpan(TimeSpan.FromSeconds(currentTime));
@@ -222,19 +264,19 @@ namespace EDIVE.Replay
             }
             
             if (_HasRecordState)
-                _HasRecordState.SetState(ReplayController.HasAnyDuration);
+                _HasRecordState.SetState(_replayController.HasAnyDuration);
 
             if (_ClearRecordingButton)
-                _ClearRecordingButton.interactable = ReplayController.HasAnyDuration;
+                _ClearRecordingButton.interactable = _replayController.HasAnyDuration;
             
             if (_SaveButton)
-                _SaveButton.interactable = ReplayController.HasAnyDuration;
+                _SaveButton.interactable = _replayController.HasAnyDuration;
             
             if (_PlayPauseButton)
-                _PlayPauseButton.interactable = ReplayController.HasAnyDuration;
+                _PlayPauseButton.interactable = _replayController.HasAnyDuration;
             
             if (_RewindButton)
-                _RewindButton.interactable = ReplayController.HasAnyDuration && ReplayController.IsPlaybackLoaded;
+                _RewindButton.interactable = _replayController.HasAnyDuration && _replayController.IsPlaybackLoaded;
         }
     }
 }

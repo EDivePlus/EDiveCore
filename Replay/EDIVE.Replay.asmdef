@@ -15,7 +15,9 @@
         "NativeFilePicker.Runtime",
         "EDIVE.DataStructures",
         "FishNet.Runtime",
-        "EDIVE.Utils.Cysharp"
+        "EDIVE.Utils.Cysharp",
+        "EDIVE.Core",
+        "EnhancedScroller"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

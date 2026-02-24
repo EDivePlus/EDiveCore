@@ -11,7 +11,6 @@ namespace EDIVE.Replay.Strategies
     [Serializable]
     public abstract class AReplayAgentSpawnStrategy
     {
-        public abstract bool IsValidFor(IPlaybackContext context);
-        public abstract UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(IPlaybackContext context, CancellationToken cancellationToken = default);
+        public abstract UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(CancellationToken cancellationToken = default);
     }
 }

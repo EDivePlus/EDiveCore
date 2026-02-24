@@ -15,15 +15,18 @@ namespace EDIVE.Replay.Strategies
     {
         [SerializeField]
         private ReplayAgentHandler _Prefab;
-        
-        public override bool IsValidFor(IPlaybackContext context)
+
+        public PrefabReplayAgentSpawnStrategy() { }
+        public PrefabReplayAgentSpawnStrategy(ReplayAgentHandler prefab)
         {
-            return context is PlaybackContext;
+            _Prefab = prefab;
         }
-        
-        public override UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(IPlaybackContext context, CancellationToken cancellationToken = default)
+
+        public override UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(CancellationToken cancellationToken = default)
         {
-            return UniTask.FromResult((true, Object.Instantiate(_Prefab)));
+            var handler = Object.Instantiate(_Prefab);
+            handler.SetDespawnDelegate(h => Object.Destroy(h.gameObject));
+            return UniTask.FromResult((true, handler));
         }
     }
 }
