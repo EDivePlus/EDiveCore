@@ -2,6 +2,7 @@
 // Created: 10.11.2025
 
 using System;
+using EDIVE.OdinExtensions.Attributes;
 using EDIVE.VisualPresets.VisualIDs;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
@@ -21,6 +22,7 @@ namespace EDIVE.VisualPresets.Presets
     public abstract class AVisualPresetRecord<TVisualID> : AVisualPresetRecord where TVisualID : ABaseVisualID
     {
         [HideLabel]
+        [ShowCreateNew]
         [JsonProperty("ID")]
         [SerializeField]
         protected TVisualID _VisualID;
