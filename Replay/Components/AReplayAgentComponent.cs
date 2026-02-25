@@ -73,9 +73,9 @@ namespace EDIVE.Replay.Components
         [InlineProperty]
         [SerializeField]
         protected TData _Data = new();
-        
+
+        public TData Data => _Data;
         public override string ID => _Data.ID;
-        
         public override float MinTime => _Data?.GetMinTime() ?? 0f;
         public override float MaxTime => _Data?.GetMaxTime() ?? 0f;
 
@@ -103,10 +103,12 @@ namespace EDIVE.Replay.Components
         where TTarget : UnityEngine.Object
         where TData : AReplayAgentComponentData, new()
     {
+        [Required]
         [PropertyOrder(-1)]
         [SerializeField]
         protected TTarget _Target;
 
+        public TTarget Target => _Target;
         protected override GameObject TargetGameObject => _Target.TryGetGameObject(out var go) ? go : null;
         public override Type EditorTargetType => typeof(TTarget);
 
