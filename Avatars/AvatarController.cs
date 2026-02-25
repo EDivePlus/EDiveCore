@@ -17,11 +17,11 @@ namespace EDIVE.Avatars
         private AToggleState _LocalPlayerToggle;
         
         public ARigFollow RigFollow => _RigFollow;
-
-        public override void OnOwnershipClient(NetworkConnection prevOwner)
+        
+        public void SetLocalPlayer(bool isLocal)
         {
             if(_LocalPlayerToggle)
-                _LocalPlayerToggle.SetState(IsOwner);
+                _LocalPlayerToggle.SetState(isLocal);
         }
     }
 }

@@ -2,11 +2,14 @@
 // Created: 15.07.2025
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core.Services;
 using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions.Attributes;
+using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -14,11 +17,25 @@ namespace EDIVE.Replay
 {
     public class ReplayController : AServiceBehaviour<ReplayController>
     {
+        [PropertySpace]
         [SerializeField] 
-        private List<ReplayHandlerWrapper> _AvailableHandlers;
+        private List<ReplayHandlerWrapper> _AvailableHandlers = new();
+        
+        [PropertyOrder(-2)]
+        [ShowInInspector]
+        [EnhancedValueDropdown("GetAvailableHandlerIDs")]
+        public string CurrentHandlerID
+        {
+            get => _AvailableHandlers?.FirstOrDefault(h => h.Handler == CurrentHandler)?.ID;
+            set => TrySetHandler(value);
+        }
 
+        [BoxGroup("Current Handler", Order = -1)]
+        [HideLabel]
+        [ShowInInspector]
+        [InlineProperty]
         public IReplayHandler CurrentHandler { get; private set; }
-
+        
         [Serializable]
         public class ReplayHandlerWrapper
         {
@@ -27,7 +44,8 @@ namespace EDIVE.Replay
             
             [HideLabel]
             [InlineProperty]
-            [SerializeReference] 
+            [SerializeReference]
+            [HideDuplicateReferenceBox]
             private IReplayHandler _Handler;
             
             public string ID => _ID;
@@ -50,16 +68,19 @@ namespace EDIVE.Replay
             if (CurrentHandler != null)
             {
                 CurrentHandler.Terminate();
-                CurrentHandler.StateChanged -= StateChanged;
-                CurrentHandler.TimeChanged -= TimeChanged;
+                CurrentHandler.StateChanged -= OnStateChanged;
+                CurrentHandler.TimeChanged -= OnTimeChanged;
             }
                
             CurrentHandler = handler;
             CurrentHandler.Initialize();
-            CurrentHandler.StateChanged += StateChanged;
-            CurrentHandler.TimeChanged += TimeChanged;
+            CurrentHandler.StateChanged += OnStateChanged;
+            CurrentHandler.TimeChanged += OnTimeChanged;
             return true;
         }
+        
+        private void OnStateChanged() => StateChanged?.Invoke();
+        private void OnTimeChanged() => TimeChanged?.Invoke();
         
         private void Awake()
         {
@@ -97,5 +118,10 @@ namespace EDIVE.Replay
         public void SaveCurrentRecord() => CurrentHandler?.SaveCurrentRecord();
         public void LoadRecord(ReplayRecordInfo info) => CurrentHandler?.LoadRecord(info);
         public async UniTask<IEnumerable<ReplayRecordInfo>> GetSavedRecords() => CurrentHandler != null ? await CurrentHandler.GetSavedRecords() : Enumerable.Empty<ReplayRecordInfo>();
+
+#if UNITY_EDITOR
+        [UsedImplicitly]
+        private IEnumerable GetAvailableHandlerIDs() => _AvailableHandlers.Select(h => h.ID);
+#endif
     }
 }

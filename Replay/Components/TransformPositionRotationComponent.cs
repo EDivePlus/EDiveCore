@@ -28,6 +28,11 @@ namespace EDIVE.Replay.Components
             [MemoryPackInclude]
             [JsonProperty("UseGlobal")]
             private bool _UseGlobal;
+            
+            [SerializeField]
+            [MemoryPackInclude]
+            [JsonProperty("Interpolate")]
+            private bool _Interpolate = true;
 
             [MemoryPackConstructor]
             public ComponentData() { }
@@ -43,19 +48,13 @@ namespace EDIVE.Replay.Components
 
             protected override void Apply(Transform target, FramePreset beforeFrame, FramePreset afterFrame, float blend)
             {
-                var position = Vector3.Lerp(beforeFrame.Position, afterFrame.Position, blend);
-                var rotation = Quaternion.Slerp(beforeFrame.Rotation, afterFrame.Rotation, blend);
-
+                var position = _Interpolate ? Vector3.Lerp(beforeFrame.Position, afterFrame.Position, blend) : beforeFrame.Position;
+                var rotation = _Interpolate ? Quaternion.Slerp(beforeFrame.Rotation, afterFrame.Rotation, blend) : beforeFrame.Rotation;
+                
                 if (_UseGlobal)
-                {
-                    target.position = position;
-                    target.rotation = rotation;
-                }
+                    target.SetPositionAndRotation(position, rotation);
                 else
-                {
-                    target.localPosition = position;
-                    target.localRotation = rotation;
-                }
+                    target.SetLocalPositionAndRotation(position, rotation);
             }
 
             protected override bool AreValuesEqual(FramePreset a, FramePreset b) => a.Position == b.Position && a.Rotation == b.Rotation;

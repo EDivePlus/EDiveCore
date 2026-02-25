@@ -24,6 +24,11 @@ namespace EDIVE.Replay.Components
         [JsonObject(MemberSerialization.OptIn)]
         public partial class ComponentData : AFrameSequenceComponentData<Transform, FramePreset>
         {
+            [SerializeField]
+            [MemoryPackInclude]
+            [JsonProperty("Interpolate")]
+            private bool _Interpolate = true;
+            
             [MemoryPackConstructor]
             public ComponentData() { }
             public ComponentData(string id, List<FramePreset> frames) : base(id, frames) { }
@@ -32,7 +37,7 @@ namespace EDIVE.Replay.Components
 
             protected override void Apply(Transform target, FramePreset beforeFrame, FramePreset afterFrame, float blend)
             {
-                target.localScale = Vector3.Lerp(beforeFrame.Scale, afterFrame.Scale, blend);
+                target.localScale = _Interpolate ? Vector3.Lerp(beforeFrame.Scale, afterFrame.Scale, blend) : beforeFrame.Scale;
             }
 
             protected override bool AreValuesEqual(FramePreset a, FramePreset b) => a.Scale == b.Scale;

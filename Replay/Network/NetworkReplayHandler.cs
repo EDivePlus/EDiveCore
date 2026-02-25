@@ -18,18 +18,22 @@ namespace EDIVE.Replay.Network
         
         public event Action TimeChanged;
         public event Action StateChanged;
-        
+
         public void Initialize()
         {
-            _Proxy.StateChanged += StateChanged;
-            _Proxy.TimeChanged += TimeChanged;
+            _Proxy.StateChanged += OnStateChanged;
+            _Proxy.TimeChanged += OnTimeChanged;
         }
 
         public void Terminate()
         {
-            _Proxy.StateChanged -= StateChanged;
-            _Proxy.TimeChanged -= TimeChanged;
+            _Proxy.StateChanged -= OnStateChanged;
+            _Proxy.TimeChanged -= OnTimeChanged;
         }
+        
+        private void OnStateChanged() => StateChanged?.Invoke();
+        private void OnTimeChanged() => TimeChanged?.Invoke();
+
 
         public float CurrentDuration => _Proxy.CurrentDuration;
         public bool HasAnyDuration => CurrentDuration > 0f;

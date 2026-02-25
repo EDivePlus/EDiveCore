@@ -64,6 +64,8 @@ namespace EDIVE.Networking.Players
             
             if (_IKAssigner != null)
                 _IKAssigner.Assign(avatar);
+            
+            avatar.SetLocalPlayer(IsOwner);
         }
         
         public override void OnStartClient()

@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Replay.Agents;
 using EDIVE.Replay.Strategies;
 using Newtonsoft.Json;
@@ -27,10 +29,16 @@ namespace EDIVE.Replay
         private ReplayScope _Scope;
 
         public ReplayScope Scope => _Scope;
-        [ShowInInspector, ReadOnly]
+        
+        [ShowInInspector] 
+        [ReadOnly] 
         public float CurrentDuration => Mathf.Max(CurrentTime, _currentDuration);
-        [ShowInInspector, ReadOnly]
+
+        [ShowInInspector] 
+        [ReadOnly]
+        [KeepRefreshing]
         public float CurrentTime { get; private set; }
+        
         public bool HasAnyDuration => CurrentDuration > 0f;
 
         public event Action TimeChanged;
@@ -209,7 +217,7 @@ namespace EDIVE.Replay
         public bool IsPlaybackLoaded => PlaybackLoadState == PlaybackLoadState.Loaded;
         public bool IsPlaybackLoading => PlaybackLoadState == PlaybackLoadState.Loading;
         public ReplayRecord ReplayRecord { get; private set; }
-        [ShowInInspector, ReadOnly]
+        [ShowInInspector] [ReadOnly]
         public PlaybackLoadState PlaybackLoadState { get; private set; }
         public bool IsPlaybackPlaying => _playbackCancellationTokenSource != null && !_playbackCancellationTokenSource.IsCancellationRequested;
 
@@ -233,7 +241,7 @@ namespace EDIVE.Replay
                 return;
 
             StopRecordingInternal();
-            if (!IsPlaybackLoaded)
+            if (!IsPlaybackLoaded || CurrentTime.Approximately(CurrentDuration))
                 CurrentTime = 0;
 
             AssignCurrentRecord();
@@ -249,7 +257,7 @@ namespace EDIVE.Replay
             StateChanged?.Invoke();
 
             ApplyPlaybackTime(CurrentTime);
-            foreach (var agent in CurrentAgents)
+            foreach (var agent in _playbackAgents)
             {
                 agent.StartPlayback(CurrentTime, cancellationToken);
             }
@@ -332,14 +340,13 @@ namespace EDIVE.Replay
             // All agents that are not found will be set to ignored, spawned agents are not registered in the scope
             foreach (var agent in Scope.Agents)
             {
-                if (agent.CurrentPlaybackParticipation != PlaybackParticipation.Found)
-                {
+                if (agent.CurrentPlaybackParticipation != PlaybackParticipation.Found) 
                     agent.SetCurrentPlaybackParticipation(PlaybackParticipation.Ignored);
-                }
             }
 
             // Await for all tasks to complete in parallel
             var results = await UniTask.WhenAll(getObjectTasks);
+            await UniTask.Yield();
             foreach (var (success, agent, data) in results)
             {
                 if (!success)
@@ -347,11 +354,12 @@ namespace EDIVE.Replay
                     Debug.LogWarning($"Failed to get object '{data.ID}'");
                     continue;
                 }
+                _playbackAgents.Add(agent);
                 agent.SetData(data);
             }
 
             // Prepare all agents for playback in parallel
-            await UniTask.WhenAll(CurrentAgents.Select(a => a.PreparePlayback(CurrentTime, cancellationToken)));
+            await UniTask.WhenAll(_playbackAgents.Select(a => a.PreparePlayback(CurrentTime, cancellationToken)));
 
             PlaybackLoadState = PlaybackLoadState.Loaded;
             _currentDuration = record.Duration;
@@ -396,7 +404,6 @@ namespace EDIVE.Replay
             {
                 if (Scope.TryGetAgent(data.ID, out var agent))
                 {
-                    _playbackAgents.Add(agent);
                     agent.SetCurrentPlaybackParticipation(PlaybackParticipation.Found);
                     return (true, agent, data);
                 }
@@ -416,7 +423,6 @@ namespace EDIVE.Replay
                     handler.Agent.SetCurrentPlaybackParticipation(PlaybackParticipation.Spawned);
                     handler.gameObject.name = handler.gameObject.name.Replace("(Clone)", "(Replay Clone)");
                     var agent = handler.Agent;
-                    _playbackAgents.Add(agent);
                     _spawnedHandlers.Add(handler);
                     return (true, agent, data);
                 }

@@ -141,12 +141,12 @@ namespace EDIVE.Replay.Network
             UniTask.Void(async () =>
             {
                 var records = await _Handler.GetSavedRecords() ?? Enumerable.Empty<ReplayRecordInfo>();
-                TargetReceiveSavedRecords(conn, records.Select(r => r.ToNetSerialized()).ToArray());
+                TargetReceiveSavedRecords(conn, records.Select(r => r.ToNetSerialized()).ToList());
             });
         }
         
         [TargetRpc]
-        private void TargetReceiveSavedRecords(NetworkConnection conn, NetReplayRecordInfo[] records)
+        private void TargetReceiveSavedRecords(NetworkConnection conn, List<NetReplayRecordInfo> records)
         {
             _recordsRequest?.TrySetResult(records.Select(r => r.FromNetSerialized()));
         }
