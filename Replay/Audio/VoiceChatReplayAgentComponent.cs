@@ -41,10 +41,16 @@ namespace EDIVE.Replay.Audio
         
         public override void StartRecording(float startTime, ReplayRecordingConfig config, CancellationToken cancellationToken = default)
         {
-            if (_Data == null || !TargetGameObject.TryGetComponent<NetworkObject>(out var netObj) || !AppCore.Services.TryGet<AudioManager>(out var audioManager))
+            if (_Data == null || !AppCore.Services.TryGet<AudioManager>(out var audioManager))
                 return;
 
-            _ownerUserID = netObj.OwnerId;
+            if (!TargetGameObject.TryGetComponent<NetworkBehaviour>(out var networkBehaviour))
+            {
+                Debug.LogError("VoiceChatReplayAgentComponent requires a NetworkBehaviour attached to the target GameObject!");
+                return;
+            }
+
+            _ownerUserID = networkBehaviour.OwnerId;
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             audioManager.UserAudioFrameReady += WriteAudioFrame;
