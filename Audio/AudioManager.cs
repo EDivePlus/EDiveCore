@@ -46,9 +46,6 @@ namespace EDIVE.Audio
         // Unprocessed local audio frames, triggered when a new frame is captured from the microphone
         public event Action<AudioFrame> LocalAudioFrameReady;
         
-        public event Action<int, AudioFrame> ServerReceivedPeerAudioFrame;
-        public event Action<int, AudioFrame> ClientReceivedPeerAudioFrame;
-    
         // Triggered when any audio frame is received (local and remote), frames are encoded
         public event Action<int, AudioFrame> UserAudioFrameReady;
         
@@ -163,10 +160,12 @@ namespace EDIVE.Audio
                 channelCount = reader.ReadInt(),
                 samples = reader.ReadByteArray()
             };
-            
-            ClientReceivedPeerAudioFrame?.Invoke(sender, frame);
-            if (!InstanceFinder.NetworkManager.IsServerStarted) 
+
+            if (!InstanceFinder.NetworkManager.IsServerStarted)
+            {
+                frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 UserAudioFrameReady?.Invoke(sender, frame);
+            }
         }
 
         private void OnVoiceChatClientLeft()
@@ -249,7 +248,8 @@ namespace EDIVE.Audio
                 channelCount = reader.ReadInt(),
                 samples = reader.ReadByteArray()
             };
-            ServerReceivedPeerAudioFrame?.Invoke(sender, frame);
+            
+            frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             UserAudioFrameReady?.Invoke(sender, frame);
         }
 
@@ -358,8 +358,11 @@ namespace EDIVE.Audio
             LocalAudioFrameReady?.Invoke(frame);
             if (!InstanceFinder.NetworkManager.IsServerStarted)
             {
-                if (AudioUtils.TryProcessAudioFrame(ref frame, _encodeFilters)) 
+                if (AudioUtils.TryProcessAudioFrame(ref frame, _encodeFilters))
+                {
+                    frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                     UserAudioFrameReady?.Invoke(InstanceFinder.ClientManager.Connection.ClientId, frame);
+                }
             }
         }
         
