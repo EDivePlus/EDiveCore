@@ -9,6 +9,8 @@ using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 using Tween = DG.Tweening.Tween;
 
 namespace EDIVE.StagePlay.UI
@@ -40,8 +42,9 @@ namespace EDIVE.StagePlay.UI
         [SerializeReference]
         private IActivation _ScrollToCurrentActivation;
         
+        [FormerlySerializedAs("_ToggleAction")]
         [SerializeReference]
-        private IActivation _ToggleAction;
+        private IActivation _ToggleActivation;
 
         [SerializeField]
         private TMP_Text _NameText;
@@ -69,14 +72,15 @@ namespace EDIVE.StagePlay.UI
             _Scroller.Delegate = this;
             _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
             _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleAction?.RegisterActivationListener(ToggleTablet);
+            _ToggleActivation?.RegisterActivationListener(ToggleTablet);
             _Controller.DefinitionChanged += UpdateDefinition;
         }
 
         private void OnDestroy()
         {
+            _Controller.DefinitionChanged -= UpdateDefinition;
             _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleAction?.UnregisterActivationListener(ToggleTablet);
+            _ToggleActivation?.UnregisterActivationListener(ToggleTablet);
         }
 
         private void Start()

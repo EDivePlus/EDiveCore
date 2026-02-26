@@ -16,22 +16,27 @@ namespace EDIVE.StagePlay
         [SerializeReference]
         private IActivation _IncrementSegmentActivation;
         
+        [SerializeReference]
+        private IActivation _ResetActivation;
+        
         public StagePlayDefinition Definition => _Definition;
         
         [ShowInInspector, ReadOnly]
         public StagePlayState CurrentState { get; private set; } = new();
         
         public event Action<StagePlayDefinition, StagePlayState> DefinitionChanged;
-        
+
         private void Awake()
         {
             _IncrementSegmentActivation?.RegisterActivationListener(IncrementCurrentSegment);
+            _ResetActivation?.RegisterActivationListener(ResetState);
             InitializeDefinition();
         }
 
         private void OnDestroy()
         {
             _IncrementSegmentActivation?.UnregisterActivationListener(IncrementCurrentSegment);
+            _ResetActivation?.UnregisterActivationListener(ResetState);
         }
 
         public void SetDefinition(StagePlayDefinition definition)
@@ -49,6 +54,14 @@ namespace EDIVE.StagePlay
         {
             CurrentState?.Dispose();
             CurrentState = new StagePlayState();
+        }
+        
+        [Button]
+        public void ResetState()
+        {
+            if (CurrentState == null)
+                return;
+            SetCurrentSegment(0);
         }
         
         [Button]
