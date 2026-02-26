@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.AssetTranslation;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.VisualPresets.Presets;
 using Sirenix.OdinInspector;
@@ -10,7 +11,7 @@ using UnityEngine;
 
 namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneSetupDefinition : ScriptableObject
+    public class SceneSetupDefinition : AUniqueDefinition
     {
         [SceneReference]
         [SerializeField]

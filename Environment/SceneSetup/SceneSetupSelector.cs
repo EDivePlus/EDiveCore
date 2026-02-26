@@ -2,10 +2,10 @@
 // Created: 28.08.2025
 
 using EDIVE.Core;
+using EDIVE.Utils.Activations;
+using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.XR.Interaction.Toolkit;
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace EDIVE.Environment.SceneSetup
 {
@@ -14,35 +14,27 @@ namespace EDIVE.Environment.SceneSetup
         [SerializeField]
         private SceneSetupDefinition _Definition;
 
-        [SerializeField]
-        private XRBaseInteractable _XRInteractable;
+        [SerializeReference]
+        private IActivation _Activation;
 
         [SerializeField]
-        private Button _Button;
+        private TMP_Text _IDText;
         
-        private void Awake()
+        [Button]
+        public void SetDefinition(SceneSetupDefinition definition)
         {
-            if (_XRInteractable == null && TryGetComponent(out XRBaseInteractable xrInteractable))
-                _XRInteractable = xrInteractable;
-
-            if (_XRInteractable)
-                _XRInteractable.activated.AddListener(OnInteractableActivated);
-
-            if (_Button == null && TryGetComponent(out Button button))
-                _Button = button;
-
-            if (_Button)
-                _Button.onClick.AddListener(OnButtonClicked);
+            _Definition = definition;
+            _IDText.text = definition.UniqueID;
+        }
+        
+        private void OnEnable()
+        {
+            _Activation?.RegisterActivationListener(ChangeSceneSetup);
         }
 
-        private void OnButtonClicked()
+        private void OnDisable()
         {
-            ChangeSceneSetup();
-        }
-
-        private void OnInteractableActivated(ActivateEventArgs arg0)
-        {
-            ChangeSceneSetup();
+            _Activation?.UnregisterActivationListener(ChangeSceneSetup);
         }
 
         private void ChangeSceneSetup()

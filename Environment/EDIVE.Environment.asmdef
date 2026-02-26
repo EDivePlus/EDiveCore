@@ -3,6 +3,7 @@
   "rootNamespace": "",
   "references": [
     "UniTask",
+    "Unity.TextMeshPro",
     "EDIVE.Core",
     "EDIVE.OdinExtensions",
     "FishNet.Runtime",
@@ -11,7 +12,9 @@
     "EDIVE.XRTools",
     "EDIVE.Networking",
     "Unity.XR.Interaction.Toolkit",
-    "EDIVE.VisualPresets"
+    "EDIVE.VisualPresets",
+    "EDIVE.Utils",
+    "EDIVE.AssetTranslation"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
