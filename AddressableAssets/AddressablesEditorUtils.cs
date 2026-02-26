@@ -6,6 +6,7 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using Object = UnityEngine.Object;
 
 namespace EDIVE.AddressableAssets
 {
@@ -81,6 +82,34 @@ namespace EDIVE.AddressableAssets
         public static AssetReferenceGameObject ConvertToReference(MonoBehaviour originalReference, string label = null)
         {
             return originalReference != null ? ConvertToReference(originalReference.gameObject, label) : null;
+        }
+        
+        public static Object GetAssetByAddress(string address)
+        {
+            if (string.IsNullOrEmpty(address))
+                return null;
+
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+                return null;
+
+            foreach (var group in settings.groups)
+            {
+                if (group == null) continue;
+                foreach (var entry in group.entries)
+                {
+                    if (entry.address == address)
+                    {
+                        var path = AssetDatabase.GUIDToAssetPath(entry.guid);
+                        if (string.IsNullOrEmpty(path))
+                            return null;
+            
+                        var asset = AssetDatabase.LoadMainAssetAtPath(path);
+                        return asset;
+                    }
+                }
+            }
+            return null;
         }
     }
 }
