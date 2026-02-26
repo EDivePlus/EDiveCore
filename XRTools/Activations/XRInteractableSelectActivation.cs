@@ -38,7 +38,7 @@ namespace EDIVE.XRTools.Activations
         [OnInspectorInit]
         private void OnInspectorInit(InspectorProperty property)
         {
-            if (property.SerializationRoot.ValueEntry.WeakSmartValue is MonoBehaviour monoBehaviour && monoBehaviour.TryGetComponent<XRBaseInteractable>(out var interactable))
+            if (_Interactable == null && property.SerializationRoot.ValueEntry.WeakSmartValue is MonoBehaviour monoBehaviour && monoBehaviour.TryGetComponent<XRBaseInteractable>(out var interactable))
             {
                 _Interactable = interactable;
                 property.MarkSerializationRootDirty();

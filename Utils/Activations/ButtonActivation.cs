@@ -34,7 +34,7 @@ namespace EDIVE.Utils.Activations
         [OnInspectorInit]
         private void OnInspectorInit(InspectorProperty property)
         {
-            if (property.SerializationRoot.ValueEntry.WeakSmartValue is MonoBehaviour monoBehaviour && monoBehaviour.TryGetComponent<Button>(out var button))
+            if (_Button == null && property.SerializationRoot.ValueEntry.WeakSmartValue is MonoBehaviour monoBehaviour && monoBehaviour.TryGetComponent<Button>(out var button))
             {
                 _Button = button;
                 property.MarkSerializationRootDirty();
