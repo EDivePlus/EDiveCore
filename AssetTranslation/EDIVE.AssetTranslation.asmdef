@@ -6,7 +6,6 @@
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "EDIVE.EditorUtils",
-        "Mirror",
         "EDIVE.Utils.Json",
         "FishNet.Runtime"
     ],

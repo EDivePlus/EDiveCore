@@ -23,6 +23,7 @@ namespace EDIVE.AssetTranslation
     public abstract class ADefinitionTranslator : ScriptableObject
     {
         public abstract bool RequireAllAssets { get; }
+        public abstract IEnumerable<string> FilterFolders { get; }
 
         public abstract IReadOnlyList<ScriptableObject> BaseDefinitions { get; }
         public abstract Type DefinitionType { get; }
@@ -65,8 +66,9 @@ namespace EDIVE.AssetTranslation
         [ListDrawerSettings(ShowFoldout = false)]
         [LabelText("Folders")]
         [SerializeField]
-        protected string[] _FilterFolders;
+        protected List<string> _FilterFolders;
 
+        public override IEnumerable<string> FilterFolders => _FilterFolders;
         public override bool RequireAllAssets => _RequireAllAssets;
         public override Type DefinitionType => typeof(TDefinition);
         public override IReadOnlyList<ScriptableObject> BaseDefinitions => _Definitions;
@@ -242,7 +244,7 @@ namespace EDIVE.AssetTranslation
 
             if (_RequireAllAssets)
             {
-                var allAssets = EditorAssetUtils.FindAllAssetsOfType<TDefinition>(_FilterFolders);
+                var allAssets = EditorAssetUtils.FindAllAssetsOfType<TDefinition>(_FilterFolders.ToArray());
                 var missingAssets = allAssets.Except(definitions).ToList();
                 if (missingAssets.Count > 0)
                 {
