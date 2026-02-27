@@ -16,6 +16,7 @@ using FishNet;
 using FishNet.Managing;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace EDIVE.Environment.SceneSetup
@@ -96,42 +97,45 @@ namespace EDIVE.Environment.SceneSetup
                 return;
 
             _switchInProgress = true;
-            
+
             // Load the scenes
+
+            Scene?[] loadedScenes = null;
             var defScenes = definition.Scenes.ToList();
             if (defScenes.Any() && AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
             {
                 var scenesToUnload = networkSceneManager.LoadedScenes
                     .Where(loadedScene => defScenes.All(defScene => GetSceneName(defScene) != loadedScene.name))
                     .Select(loadedScene => loadedScene.name);
-                
+
                 foreach (var sceneToUnload in scenesToUnload)
                 {
                     networkSceneManager.UnloadConnectionScene(sceneToUnload);
                 }
-                
-                var loadedScenes = await UniTask.WhenAll(defScenes.Select(defScene => networkSceneManager.AwaitLoadConnectionScene(GetSceneName(defScene))));
+
+                loadedScenes = await UniTask.WhenAll(defScenes.Select(defScene => networkSceneManager.AwaitLoadConnectionScene(GetSceneName(defScene))));
                 if (!loadedScenes.Any())
                     return;
-                
+
                 if (definition.SetFirstSceneActive)
                 {
                     var firstScene = loadedScenes.FirstOrDefault(scene => scene != null && scene.Value.isLoaded);
                     if (firstScene != null)
                         UnitySceneManager.SetActiveScene(firstScene.Value);
                 }
+
                 await UniTask.Yield();
             }
-            
+
             // Apply visual
             foreach (var sceneController in _sceneControllers)
             {
                 if (sceneController != null)
                     sceneController.ApplyDefinition(definition);
             }
-            
+
             // Find spawn place and teleport
-            if (_spawnPlaces.TryGetFirst(s => s != null, out var spawnPlace))
+            if (_spawnPlaces.TryGetFirst(s => s != null && loadedScenes != null && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
             {
                 if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
                 {
