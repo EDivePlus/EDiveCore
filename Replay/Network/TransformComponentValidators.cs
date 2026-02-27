@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 25.02.2026
 
+#if UNITY_EDITOR
 using EDIVE.OdinExtensions;
 using EDIVE.Replay.Components;
 using EDIVE.Replay.Network;
@@ -58,3 +59,4 @@ namespace EDIVE.Replay.Network
         }
     }
 }
+#endif

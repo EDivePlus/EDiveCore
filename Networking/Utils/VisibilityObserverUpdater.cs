@@ -7,12 +7,14 @@ using System.Linq;
 using EDIVE.NativeUtils;
 using FishNet.Object;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities.Editor;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using Sirenix.Utilities.Editor;
+#endif
 
 namespace EDIVE.Networking.Utils
 {
