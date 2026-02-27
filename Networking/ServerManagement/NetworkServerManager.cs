@@ -40,6 +40,7 @@ namespace EDIVE.Networking.ServerManagement
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
+            await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
             if (_ServerConfig.ServerID == 0)
                 _ServerConfig.ServerID = GenerateServerID();
             
