@@ -1,0 +1,19 @@
+{
+    "name": "EDIVE.Utils.Loading",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.Core",
+        "EDIVE.Tweening",
+        "UniTask",
+        "UniTask.DOTween"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

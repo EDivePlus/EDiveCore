@@ -11,6 +11,7 @@ using EDIVE.Core.Services;
 using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Scenes;
+using EDIVE.Utils.Loading;
 using EDIVE.XRTools.Controls;
 using FishNet;
 using FishNet.Managing;
@@ -98,6 +99,9 @@ namespace EDIVE.Environment.SceneSetup
 
             _switchInProgress = true;
 
+            if (AppCore.Services.TryGet<LoadingOverlayProvider>(out var overlay)) 
+                await overlay.RequestOverlayAndWait(this);
+
             // Load the scenes
 
             Scene?[] loadedScenes = null;
@@ -146,6 +150,9 @@ namespace EDIVE.Environment.SceneSetup
                     }
                 }
             }
+            await UniTask.Yield();
+            if (AppCore.Services.TryGet(out overlay)) 
+                overlay.ReleaseOverlay(this);
             
             CurrentSetup = definition;
             _switchInProgress = false;

@@ -14,7 +14,8 @@
     "Unity.XR.Interaction.Toolkit",
     "EDIVE.VisualPresets",
     "EDIVE.Utils",
-    "EDIVE.AssetTranslation"
+    "EDIVE.AssetTranslation",
+    "EDIVE.Utils.Loading"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
