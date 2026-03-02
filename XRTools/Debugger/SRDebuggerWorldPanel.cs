@@ -44,6 +44,12 @@ namespace EDIVE.Utils
         private async UniTaskVoid Start()
         {
             _panelRect = SRDebug.Instance.EnableWorldSpaceMode();
+            transform.AddChangeListener(OnTransformChanged);
+            RepositionPanel();
+
+            SRDebug.Instance?.HideDebugPanel();
+            await UniTask.WaitForEndOfFrame();
+            
             if (_XRRaycaster)
             {
                 foreach (var raycaster in _panelRect.GetComponentsInChildren<GraphicRaycaster>(true))
@@ -59,14 +65,9 @@ namespace EDIVE.Utils
                 keyboardProvider.Keyboard = _KeyboardProvider.Keyboard;
             }
             
-            transform.AddChangeListener(OnTransformChanged);
-            RepositionPanel();
-
-            SRDebug.Instance?.HideDebugPanel();
-            await UniTask.WaitForEndOfFrame();
+            var panelCanvas = _panelRect.GetComponentInChildren<Canvas>(true);
             if (_OverrideCanvasSorting)
             {
-                var panelCanvas = _panelRect.GetComponentInChildren<Canvas>(true);
                 if (panelCanvas)
                 {
                     panelCanvas.sortingLayerID = _CanvasSortingLayer;
@@ -81,6 +82,11 @@ namespace EDIVE.Utils
                         childCanvas.sortingOrder = _CanvasSortingOrder + 1;
                     }
                 }
+            }
+            
+            if (panelCanvas)
+            {
+                panelCanvas.GetOrAddComponent<RectMask2D>();
             }
             
             // Fix panels not hiding properly when enabled at start
