@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using DG.Tweening;
+using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Activations;
 using EDIVE.XRTools;
 using EnhancedUI.EnhancedScroller;
@@ -45,6 +46,12 @@ namespace EDIVE.StagePlay.UI
         [FormerlySerializedAs("_ToggleAction")]
         [SerializeReference]
         private IActivation _ToggleActivation;
+        
+        [SerializeReference]
+        private IActivation _ToggleAutoScrollActivation;
+        
+        [SerializeField]
+        private AToggleState _AutoScrollToggle;
 
         [SerializeField]
         private TMP_Text _NameText;
@@ -59,6 +66,7 @@ namespace EDIVE.StagePlay.UI
     
         private Tween _animTween;
         private bool _isOpen;
+        private bool _autoScroll = true;
         private List<ASegmentDisplayData> _segmentsList;
         
         private StagePlayDefinition _currentDefinition;
@@ -73,7 +81,20 @@ namespace EDIVE.StagePlay.UI
             _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
             _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
             _ToggleActivation?.RegisterActivationListener(ToggleTablet);
+            _ToggleAutoScrollActivation?.RegisterActivationListener(ToggleAutoScroll);
             _Controller.DefinitionChanged += UpdateDefinition;
+            if(_AutoScrollToggle)
+                _AutoScrollToggle.SetState(_autoScroll);
+        }
+
+        private void ToggleAutoScroll()
+        {
+            _autoScroll = !_autoScroll;
+            if(_AutoScrollToggle)
+                _AutoScrollToggle.SetState(_autoScroll);
+            
+            if (_autoScroll)
+                JumpToCurrentSegment();
         }
 
         private void OnDestroy()
@@ -100,7 +121,13 @@ namespace EDIVE.StagePlay.UI
                 return;
             
             _currentDefinition = definition;
-            _currentState = state;
+            if (_currentState != state)
+            {
+                if (_currentState != null ) 
+                    _currentState.CurrentSegmentChanged -= OnCurrentSegmentChanged;
+                _currentState = state;
+                _currentState.CurrentSegmentChanged += OnCurrentSegmentChanged;
+            }
             
             if(_NameText)
                 _NameText.text = _currentDefinition.Name;
@@ -129,7 +156,13 @@ namespace EDIVE.StagePlay.UI
             }
             _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);
         }
-        
+
+        private void OnCurrentSegmentChanged(int index)
+        {
+            if (_autoScroll)
+                JumpToCurrentSegment();
+        }
+
         [Button]
         public void JumpToCurrentSegment()
         {
