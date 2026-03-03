@@ -1,6 +1,4 @@
 ﻿using System;
-using EDIVE.Utils.Json.TypeNames;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace EDIVE.StagePlay
@@ -14,5 +12,10 @@ namespace EDIVE.StagePlay
         public string Description => _Description;
         
         public override bool IsOwnedByCharacter(string character) => true;
+
+        public DirectionPlaySegment(string description)
+        {
+            _Description = description;
+        }
     }
 }

@@ -11,7 +11,6 @@ using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
-using UnityEngine.UI;
 using Tween = DG.Tweening.Tween;
 
 namespace EDIVE.StagePlay.UI
@@ -34,8 +33,9 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private EnhancedScroller _Scroller;
 
+        [FormerlySerializedAs("_LineDisplayPrefab")]
         [SerializeField]
-        private LinePlaySegmentDisplay _LineDisplayPrefab;
+        private SpeechPlaySegmentDisplay _SpeechDisplayPrefab;
         
         [SerializeField]
         private DirectionPlaySegmentDisplay _DirectionDisplayPrefab;
@@ -142,7 +142,7 @@ namespace EDIVE.StagePlay.UI
                 {
                     ASegmentDisplayData segmentData = segment switch
                     {
-                        SpeachPlaySegment lineSegment => new SegmentDisplayData<SpeachPlaySegment>(index, lineSegment, state),
+                        SpeechPlaySegment lineSegment => new SegmentDisplayData<SpeechPlaySegment>(index, lineSegment, state),
                         DirectionPlaySegment directionSegment => new SegmentDisplayData<DirectionPlaySegment>(index, directionSegment, state),
                         _ => null
                     };
@@ -210,7 +210,7 @@ namespace EDIVE.StagePlay.UI
         {
             var rect = _segmentsList[dataIndex] switch
             {
-                SegmentDisplayData<SpeachPlaySegment> => (RectTransform) _LineDisplayPrefab?.transform,
+                SegmentDisplayData<SpeechPlaySegment> => (RectTransform) _SpeechDisplayPrefab?.transform,
                 SegmentDisplayData<DirectionPlaySegment> => (RectTransform) _DirectionDisplayPrefab?.transform,
                 _ => null
             };
@@ -223,7 +223,7 @@ namespace EDIVE.StagePlay.UI
         {
             var cellView = _segmentsList[dataIndex] switch
             {
-                SegmentDisplayData<SpeachPlaySegment> _ => _LineDisplayPrefab ? _Scroller.GetCellView(_LineDisplayPrefab) as APlaySegmentDisplay : null,
+                SegmentDisplayData<SpeechPlaySegment> _ => _SpeechDisplayPrefab ? _Scroller.GetCellView(_SpeechDisplayPrefab) as APlaySegmentDisplay : null,
                 SegmentDisplayData<DirectionPlaySegment> _ => _DirectionDisplayPrefab ? _Scroller.GetCellView(_DirectionDisplayPrefab) as APlaySegmentDisplay : null,
                 _ => null
             };
