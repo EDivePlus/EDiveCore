@@ -4,8 +4,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using CsvHelper;
-using CsvHelper.Configuration;
 using Cysharp.Threading.Tasks;
 using EDIVE.AssetTranslation;
 using FishNet.Serializing;
@@ -13,6 +11,11 @@ using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+
+#if UNITY_EDITOR && CSV_HELPER
+using CsvHelper;
+using CsvHelper.Configuration;
+#endif
 
 namespace EDIVE.StagePlay
 {
@@ -33,7 +36,7 @@ namespace EDIVE.StagePlay
         public string Name => _Name;
         public List<StagePlaySegment> ScriptSegments => _ScriptSegments;
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && CSV_HELPER
         [Button]
         private async UniTask ImportFromCSV(int columnOffset)
         {
@@ -45,8 +48,7 @@ namespace EDIVE.StagePlay
 
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                Delimiter = ";",
-                Mode = CsvMode.RFC4180
+                Delimiter = ";"
             };
             
             try
