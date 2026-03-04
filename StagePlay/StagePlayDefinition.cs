@@ -2,8 +2,12 @@
 // Created: 23.06.2025
 
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Cysharp.Threading.Tasks;
 using EDIVE.AssetTranslation;
 using FishNet.Serializing;
 using JetBrains.Annotations;
@@ -17,49 +21,63 @@ namespace EDIVE.StagePlay
         [SerializeField]
         private string _Name;
 
-        [SerializeReference]
+        [SerializeField]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(ShowFoldout = false)]
-        private List<APlaySegment> _ScriptSegments = new();
+        private List<StagePlaySegment> _ScriptSegments = new();
 
         public string Name => _Name;
-        public List<APlaySegment> ScriptSegments => _ScriptSegments;
+        public List<StagePlaySegment> ScriptSegments => _ScriptSegments;
 
 #if UNITY_EDITOR
-        [Button("Import from CSV")]
-        private void ImportFromCSV()
+        [BoxGroup("Import")]
+        [Button("Import")]
+        private async UniTask ImportFromCSV(int columnOffset)
         {
+            columnOffset = Mathf.Max(0, columnOffset);
+            // File picker must run on main thread
             var filePath = UnityEditor.EditorUtility.OpenFilePanel("Select CSV file", "", "csv");
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 return;
 
-            var lines = File.ReadAllLines(filePath);
-            if (lines.Length == 0)
-                return;
-
-            _ScriptSegments ??= new List<APlaySegment>();
-            _ScriptSegments.Clear();
-            
-            for (var i = 1; i < lines.Length; i++)
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                var line = lines[i];
-                if (string.IsNullOrWhiteSpace(line)) 
-                    continue;
+                Delimiter = ";",
+                Mode = CsvMode.RFC4180
+            };
+            
+            try
+            {
+                using var reader = new StreamReader(filePath);
+                using var csv = new CsvReader(reader, config);
+
+                // Read and skip header row
+                if (!await csv.ReadAsync() || !csv.ReadHeader())
+                {
+                    await UniTask.SwitchToMainThread();
+                    UnityEditor.EditorUtility.DisplayDialog("Import Error", "Could not read header row.", "OK");
+                    return;
+                }
                 
-                var parts = line.Split(";");
-                if (parts.Length < 2) 
-                    continue;
+                _ScriptSegments ??= new List<StagePlaySegment>();
+                _ScriptSegments.Clear();
+                
+                while (await csv.ReadAsync())
+                {
+                    var characters = (csv.GetField(columnOffset) ?? string.Empty).Trim();
+                    var text = (csv.GetField(columnOffset + 1) ?? string.Empty).Trim();
 
-                var characters = parts[0].Split(",").Select(s => s.Trim()).ToList();
-                var text = parts[1].Trim();
+                    if (string.IsNullOrEmpty(text))
+                        continue;
 
-                if (string.IsNullOrEmpty(text)) 
-                    continue;
-
-                if (characters.All(string.IsNullOrWhiteSpace))
-                    _ScriptSegments.Add(new DirectionPlaySegment(text));
-                else
-                    _ScriptSegments.Add(new SpeechPlaySegment(characters, text));
+                    var type = !string.IsNullOrEmpty(characters) ? StagePlaySegmentType.Speach : StagePlaySegmentType.Direction;
+                    _ScriptSegments.Add(new StagePlaySegment(type, text, characters));
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEditor.EditorUtility.DisplayDialog("Import Error", ex.Message, "OK");
+                return;
             }
             UnityEditor.EditorUtility.SetDirty(this);
         }

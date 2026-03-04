@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 23.06.2025
 
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using EDIVE.StateHandling.ToggleStates;
@@ -32,13 +33,12 @@ namespace EDIVE.StagePlay.UI
 
         [SerializeField]
         private EnhancedScroller _Scroller;
-
-        [FormerlySerializedAs("_LineDisplayPrefab")]
-        [SerializeField]
-        private SpeechPlaySegmentDisplay _SpeechDisplayPrefab;
         
         [SerializeField]
-        private DirectionPlaySegmentDisplay _DirectionDisplayPrefab;
+        private StagePlaySegmentDisplay _SpeechDisplayPrefab;
+        
+        [SerializeField]
+        private StagePlaySegmentDisplay _DirectionDisplayPrefab;
         
         [SerializeReference]
         private IActivation _ScrollToCurrentActivation;
@@ -67,7 +67,7 @@ namespace EDIVE.StagePlay.UI
         private Tween _animTween;
         private bool _isOpen;
         private bool _autoScroll = true;
-        private List<ASegmentDisplayData> _segmentsList;
+        private List<StagePlaySegmentDisplayData> _segmentsList;
         
         private StagePlayDefinition _currentDefinition;
         private StagePlayState _currentState;
@@ -132,7 +132,7 @@ namespace EDIVE.StagePlay.UI
             if(_NameText)
                 _NameText.text = _currentDefinition.Name;
             
-            _segmentsList ??= new List<ASegmentDisplayData>();
+            _segmentsList ??= new List<StagePlaySegmentDisplayData>();
             _segmentsList.Clear();
 
             if (definition != null)
@@ -140,16 +140,7 @@ namespace EDIVE.StagePlay.UI
                 var index = 0;
                 foreach (var segment in definition.ScriptSegments)
                 {
-                    ASegmentDisplayData segmentData = segment switch
-                    {
-                        SpeechPlaySegment lineSegment => new SegmentDisplayData<SpeechPlaySegment>(index, lineSegment, state),
-                        DirectionPlaySegment directionSegment => new SegmentDisplayData<DirectionPlaySegment>(index, directionSegment, state),
-                        _ => null
-                    };
-
-                    if (segmentData == null) 
-                        continue;
-                
+                    var segmentData = new StagePlaySegmentDisplayData(index, segment, state);
                     _segmentsList.Add(segmentData);
                     index++;
                 }
@@ -200,7 +191,7 @@ namespace EDIVE.StagePlay.UI
         
         private static void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
         {
-            if (cellView is APlaySegmentDisplay display) 
+            if (cellView is StagePlaySegmentDisplay display) 
                 display.Clear();
         }
         
@@ -208,10 +199,10 @@ namespace EDIVE.StagePlay.UI
         
         public float GetCellViewSize(EnhancedScroller scroller, int dataIndex)
         {
-            var rect = _segmentsList[dataIndex] switch
+            var rect = _segmentsList[dataIndex].Segment.Type switch
             {
-                SegmentDisplayData<SpeechPlaySegment> => (RectTransform) _SpeechDisplayPrefab?.transform,
-                SegmentDisplayData<DirectionPlaySegment> => (RectTransform) _DirectionDisplayPrefab?.transform,
+                StagePlaySegmentType.Speach => (RectTransform) _SpeechDisplayPrefab?.transform,
+                StagePlaySegmentType.Direction => (RectTransform) _DirectionDisplayPrefab?.transform,
                 _ => null
             };
             
@@ -221,13 +212,14 @@ namespace EDIVE.StagePlay.UI
 
         public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
         {
-            var cellView = _segmentsList[dataIndex] switch
+            
+            var cellView = _segmentsList[dataIndex].Segment.Type switch
             {
-                SegmentDisplayData<SpeechPlaySegment> _ => _SpeechDisplayPrefab ? _Scroller.GetCellView(_SpeechDisplayPrefab) as APlaySegmentDisplay : null,
-                SegmentDisplayData<DirectionPlaySegment> _ => _DirectionDisplayPrefab ? _Scroller.GetCellView(_DirectionDisplayPrefab) as APlaySegmentDisplay : null,
+                StagePlaySegmentType.Speach => _SpeechDisplayPrefab ? _Scroller.GetCellView(_SpeechDisplayPrefab) as StagePlaySegmentDisplay : null,
+                StagePlaySegmentType.Direction => _DirectionDisplayPrefab ? _Scroller.GetCellView(_DirectionDisplayPrefab) as StagePlaySegmentDisplay : null,
                 _ => null
             };
-
+            
             if (!cellView)
                 return null;
             
