@@ -22,7 +22,7 @@ namespace EDIVE.StagePlay
         public StagePlayDefinition Definition => _Definition;
         
         [ShowInInspector, ReadOnly]
-        public StagePlayState CurrentState { get; private set; } = new();
+        public StagePlayState CurrentState { get; private set; }
         
         public event Action<StagePlayDefinition, StagePlayState> DefinitionChanged;
 
@@ -39,6 +39,7 @@ namespace EDIVE.StagePlay
             _ResetActivation?.UnregisterActivationListener(ResetState);
         }
 
+        [Button]
         public void SetDefinition(StagePlayDefinition definition)
         {
             if (_Definition == definition)

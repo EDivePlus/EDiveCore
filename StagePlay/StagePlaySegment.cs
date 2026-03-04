@@ -21,7 +21,7 @@ namespace EDIVE.StagePlay
         
         public StagePlaySegmentType Type => _Type;
         public string Characters => _Characters;
-        public string Line => _Line;
+        public string Line => _Line.Trim();
 
         public StagePlaySegment(StagePlaySegmentType type,string line, string characters)
         {

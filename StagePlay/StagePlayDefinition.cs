@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Cysharp.Threading.Tasks;
@@ -12,6 +11,7 @@ using EDIVE.AssetTranslation;
 using FishNet.Serializing;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 
 namespace EDIVE.StagePlay
@@ -20,18 +20,21 @@ namespace EDIVE.StagePlay
     {
         [SerializeField]
         private string _Name;
+        
+        [SerializeField]
+        private TMP_FontAsset _Font;
 
         [SerializeField]
         [HideReferenceObjectPicker]
         [ListDrawerSettings(ShowFoldout = false)]
         private List<StagePlaySegment> _ScriptSegments = new();
 
+        public TMP_FontAsset Font => _Font;
         public string Name => _Name;
         public List<StagePlaySegment> ScriptSegments => _ScriptSegments;
 
 #if UNITY_EDITOR
-        [BoxGroup("Import")]
-        [Button("Import")]
+        [Button]
         private async UniTask ImportFromCSV(int columnOffset)
         {
             columnOffset = Mathf.Max(0, columnOffset);

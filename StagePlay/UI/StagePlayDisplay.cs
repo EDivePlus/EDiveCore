@@ -140,7 +140,7 @@ namespace EDIVE.StagePlay.UI
                 var index = 0;
                 foreach (var segment in definition.ScriptSegments)
                 {
-                    var segmentData = new StagePlaySegmentDisplayData(index, segment, state);
+                    var segmentData = new StagePlaySegmentDisplayData(index, segment, definition, state);
                     _segmentsList.Add(segmentData);
                     index++;
                 }
@@ -199,20 +199,17 @@ namespace EDIVE.StagePlay.UI
         
         public float GetCellViewSize(EnhancedScroller scroller, int dataIndex)
         {
-            var rect = _segmentsList[dataIndex].Segment.Type switch
+            var segmentData = _segmentsList[dataIndex];
+            return segmentData.Segment.Type switch
             {
-                StagePlaySegmentType.Speach => (RectTransform) _SpeechDisplayPrefab?.transform,
-                StagePlaySegmentType.Direction => (RectTransform) _DirectionDisplayPrefab?.transform,
-                _ => null
+                StagePlaySegmentType.Speach => _SpeechDisplayPrefab.CalculateHeight(segmentData),
+                StagePlaySegmentType.Direction => _DirectionDisplayPrefab.CalculateHeight(segmentData),
+                _ => 0
             };
-            
-            if (rect != null) return rect.rect.height;
-            return 0;
         }
 
         public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
         {
-            
             var cellView = _segmentsList[dataIndex].Segment.Type switch
             {
                 StagePlaySegmentType.Speach => _SpeechDisplayPrefab ? _Scroller.GetCellView(_SpeechDisplayPrefab) as StagePlaySegmentDisplay : null,

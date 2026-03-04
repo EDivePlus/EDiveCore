@@ -1,8 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 23.06.2025
 
+using EDIVE.NativeUtils;
 using EDIVE.StateHandling.MultiStates;
 using EnhancedUI.EnhancedScroller;
+using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 
@@ -29,12 +31,20 @@ namespace EDIVE.StagePlay.UI
                 Data.SharedData.CurrentSegmentChanged -= OnCurrentSegmentChanged;
             Data = data;
             Data.SharedData.CurrentSegmentChanged += OnCurrentSegmentChanged;
-            
-            if (_CharactersText != null) 
+
+            if (_CharactersText != null)
+            {
                 _CharactersText.text = string.Join(", ", data.Segment.Characters);
+                if (data.Definition.Font != null)
+                    _CharactersText.font = data.Definition.Font;
+            }
             
-            if (_LineText != null) 
+            if (_LineText != null)
+            {
                 _LineText.text = data.Segment.Line;
+                if (data.Definition.Font != null)
+                    _LineText.font = data.Definition.Font;
+            }
             
             RefreshState();
         }
@@ -72,6 +82,24 @@ namespace EDIVE.StagePlay.UI
             _currentState = newState;
             if(_State)
                 _State.SetState(newState);
+        }
+        
+        public float CalculateHeight(StagePlaySegmentDisplayData data)
+        {
+            return CalculateHeight(data.Segment.Line, data.Definition.Font);
+        }
+        
+        [Button]
+        public float CalculateHeight(string text, TMP_FontAsset font)
+        {
+            var rectTr = _LineText.rectTransform;
+            var width = rectTr.rect.width;
+            var originalFont = _LineText.font;
+            if (font != null)
+                _LineText.font = font;
+            var height = _LineText.GetPreferredValues(text, width, Mathf.Infinity).y;
+            _LineText.font = originalFont;
+            return height + rectTr.offsetMin.y - rectTr.offsetMax.y;
         }
     }
 }

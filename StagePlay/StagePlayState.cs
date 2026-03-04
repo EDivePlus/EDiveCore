@@ -10,6 +10,7 @@ namespace EDIVE.StagePlay
     public class StagePlayState : IDisposable
     {
         private int _currentSegmentIndex;
+        
         [ShowInInspector]
         public int CurrentSegmentIndex
         {
@@ -22,8 +23,8 @@ namespace EDIVE.StagePlay
                 CurrentSegmentChanged?.Invoke(_currentSegmentIndex);
             }
         }
-        
-        public string LocalCharacterName { get; set; }
+
+        public StagePlayDefinition Definition { get; set; }
 
         public event Action<int> CurrentSegmentChanged;
 

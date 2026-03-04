@@ -8,9 +8,11 @@ namespace EDIVE.StagePlay.UI
         public int Index { get; }
         public StagePlaySegment Segment { get; }
         public StagePlayState SharedData { get; }
+        public StagePlayDefinition Definition { get; }
         
-        public StagePlaySegmentDisplayData(int index, StagePlaySegment segment, StagePlayState sharedData)
+        public StagePlaySegmentDisplayData(int index, StagePlaySegment segment, StagePlayDefinition definition, StagePlayState sharedData)
         {
+            Definition = definition;
             Index = index;
             Segment = segment;
             SharedData = sharedData;
