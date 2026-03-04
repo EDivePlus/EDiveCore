@@ -2,6 +2,7 @@
     "name": "EDIVE.EditorUtils",
     "rootNamespace": "",
     "references": [
+        "Unity.TextMeshPro",
         "EDIVE.OdinExtensions",
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.NativeUtils",
