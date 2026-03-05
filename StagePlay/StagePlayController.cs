@@ -26,19 +26,23 @@ namespace EDIVE.StagePlay
         
         public event Action<StagePlayDefinition, StagePlayState> DefinitionChanged;
 
-        private void Awake()
+        private void OnEnable()
         {
             _IncrementSegmentActivation?.RegisterActivationListener(IncrementCurrentSegment);
             _ResetActivation?.RegisterActivationListener(ResetState);
-            InitializeDefinition();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             _IncrementSegmentActivation?.UnregisterActivationListener(IncrementCurrentSegment);
             _ResetActivation?.UnregisterActivationListener(ResetState);
         }
 
+        private void Awake()
+        {
+            InitializeDefinition();
+        }
+        
         [Button]
         public void SetDefinition(StagePlayDefinition definition)
         {

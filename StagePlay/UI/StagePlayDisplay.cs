@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 23.06.2025
 
+using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using EDIVE.StateHandling.ToggleStates;
@@ -78,29 +79,29 @@ namespace EDIVE.StagePlay.UI
             
             _Scroller.Delegate = this;
             _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
-            _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleActivation?.RegisterActivationListener(ToggleTablet);
-            _ToggleAutoScrollActivation?.RegisterActivationListener(ToggleAutoScroll);
+            
             _Controller.DefinitionChanged += UpdateDefinition;
             if(_AutoScrollToggle)
                 _AutoScrollToggle.SetState(_autoScroll);
         }
-
-        private void ToggleAutoScroll()
+        
+        private void OnEnable()
         {
-            _autoScroll = !_autoScroll;
-            if(_AutoScrollToggle)
-                _AutoScrollToggle.SetState(_autoScroll);
-            
-            if (_autoScroll)
-                JumpToCurrentSegment();
+            _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
+            _ToggleActivation?.RegisterActivationListener(ToggleTablet);
+            _ToggleAutoScrollActivation?.RegisterActivationListener(ToggleAutoScroll);
+        }
+
+        private void OnDisable()
+        {
+            _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
+            _ToggleActivation?.UnregisterActivationListener(ToggleTablet);
+            _ToggleAutoScrollActivation?.UnregisterActivationListener(ToggleAutoScroll);
         }
 
         private void OnDestroy()
         {
             _Controller.DefinitionChanged -= UpdateDefinition;
-            _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleActivation?.UnregisterActivationListener(ToggleTablet);
         }
 
         private void Start()
@@ -113,10 +114,20 @@ namespace EDIVE.StagePlay.UI
             
             UpdateDefinition(_Controller.Definition, _Controller.CurrentState);
         }
+        
+        private void ToggleAutoScroll()
+        {
+            _autoScroll = !_autoScroll;
+            if(_AutoScrollToggle)
+                _AutoScrollToggle.SetState(_autoScroll);
+            
+            if (_autoScroll)
+                JumpToCurrentSegment();
+        }
 
         private void UpdateDefinition(StagePlayDefinition definition, StagePlayState state)
         {
-            if (definition == null || state == null) 
+            if (definition == null || state == null || (definition == _currentDefinition && state == _currentState))
                 return;
             
             _currentDefinition = definition;
