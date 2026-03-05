@@ -58,7 +58,6 @@ namespace EDIVE.StagePlay
                 // Read and skip header row
                 if (!await csv.ReadAsync() || !csv.ReadHeader())
                 {
-                    await UniTask.SwitchToMainThread();
                     UnityEditor.EditorUtility.DisplayDialog("Import Error", "Could not read header row.", "OK");
                     return;
                 }
@@ -68,8 +67,8 @@ namespace EDIVE.StagePlay
                 
                 while (await csv.ReadAsync())
                 {
-                    var characters = (csv.GetField(columnOffset) ?? string.Empty).Trim();
-                    var text = (csv.GetField(columnOffset + 1) ?? string.Empty).Trim();
+                    var characters = GetCSVText(csv, columnOffset);
+                    var text = GetCSVText(csv, columnOffset + 1);
 
                     if (string.IsNullOrEmpty(text))
                         continue;
@@ -84,6 +83,28 @@ namespace EDIVE.StagePlay
                 return;
             }
             UnityEditor.EditorUtility.SetDirty(this);
+        }
+
+        private string GetCSVText(CsvReader reader, int columnOffset)
+        {
+            var text = reader.GetField(columnOffset);
+            if (text == null)
+                return string.Empty;
+
+            text = GetCleanString(text).Trim();
+            return text;
+        }
+
+        private static string GetCleanString(string text)
+        {
+            var buffer = new char[text.Length];
+            var pos = 0;
+            foreach (var c in text)
+            {
+                if (!char.IsControl(c) || char.IsWhiteSpace(c))
+                    buffer[pos++] = c;
+            }
+            return new string(buffer, 0, pos);
         }
 #endif
     }
