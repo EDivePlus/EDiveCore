@@ -1,4 +1,8 @@
 ﻿using System.Collections.Generic;
+using EDIVE.EditorUtils.EditorHeaders;
+using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -49,6 +53,28 @@ namespace EDIVE.EditorUtils
 
                 AssetDatabase.ForceReserializeAssets(assetPaths);
             }
+        }
+        
+        [CustomEditorHeaderItem(11)]
+        private static bool PingScriptableObject(Rect rect, Object[] targets)
+        {
+            var firstTarget = targets[0];
+            if (firstTarget == null || !AssetDatabase.Contains(firstTarget))
+                return false;
+
+            if (GUI.Button(rect, GUIHelper.TempContent(FontAwesomeEditorIcons.CrosshairsSolid.Highlighted, "Ping"), EditorHeaderExtender.IconButtonStyle))
+            {
+                var target = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GetAssetPath(firstTarget)); // To select the asset as correct type
+                EditorGUIUtility.PingObject(target);
+                Selection.activeObject = target;
+
+                if (firstTarget is Component component)
+                {
+                    Debug.Log($"Pinging component '{firstTarget.name}' on '{component.transform.GetPath()}'");
+                }
+            }
+
+            return true;
         }
     }
 }
