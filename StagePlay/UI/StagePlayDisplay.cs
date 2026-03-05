@@ -2,16 +2,12 @@
 // Created: 23.06.2025
 
 using System.Collections.Generic;
-using DG.Tweening;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Activations;
-using EDIVE.XRTools;
 using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
-using Tween = DG.Tweening.Tween;
 
 namespace EDIVE.StagePlay.UI
 {
@@ -21,15 +17,6 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private StagePlayController _Controller;
         
-        [SerializeField]
-        private SmoothCameraFollower _CameraFollower;
-        
-        [SerializeField]
-        private bool _OpenOnStart = true;
-        
-        [SerializeField]
-        private float _TweenDuration = 0.3f;
-
         [SerializeField]
         private EnhancedScroller _Scroller;
         
@@ -42,18 +29,11 @@ namespace EDIVE.StagePlay.UI
         [SerializeReference]
         private IActivation _ScrollToCurrentActivation;
         
-        [FormerlySerializedAs("_ToggleAction")]
-        [SerializeReference]
-        private IActivation _ToggleActivation;
-        
         [SerializeReference]
         private IActivation _ToggleAutoScrollActivation;
         
         [SerializeField]
         private AToggleState _AutoScrollToggle;
-        
-        [SerializeField]
-        private Transform _RootTransform;
 
         [SerializeField]
         private TMP_Text _NameText;
@@ -70,16 +50,6 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private float _AutoScrollTweenTime = 0.3f;
         
-        [DisableInEditorMode]
-        [ShowInInspector]
-        public bool IsOpen
-        {
-            get => _isOpen;
-            set => SetOpen(value);
-        }
-    
-        private Tween _animTween;
-        private bool _isOpen;
         private bool _autoScroll = true;
         private List<StagePlaySegmentDisplayData> _segmentsList;
         
@@ -101,14 +71,12 @@ namespace EDIVE.StagePlay.UI
         private void OnEnable()
         {
             _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleActivation?.RegisterActivationListener(ToggleTablet);
             _ToggleAutoScrollActivation?.RegisterActivationListener(ToggleAutoScroll);
         }
 
         private void OnDisable()
         {
             _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleActivation?.UnregisterActivationListener(ToggleTablet);
             _ToggleAutoScrollActivation?.UnregisterActivationListener(ToggleAutoScroll);
         }
 
@@ -121,9 +89,6 @@ namespace EDIVE.StagePlay.UI
         {
             if (_Controller == null)
                 return;
-            
-            if (_OpenOnStart)
-                SetOpen(true);
             
             _Controller.DefinitionChanged += UpdateDefinition;
             UpdateDefinition(_Controller.Definition, _Controller.CurrentState);
@@ -190,36 +155,9 @@ namespace EDIVE.StagePlay.UI
                 _AutoScrollTweenTime);
         }
         
-        [Button]
-        public void ToggleTablet()
-        {
-            _isOpen = !_isOpen;
-            SetOpen(_isOpen);
-        }
-        
         private void OnScrollToCurrentActivated()
         {
             JumpToCurrentSegment();
-        }
-        
-        public void SetOpen(bool open, bool immediate = false)
-        {
-            _animTween?.Kill();
-            _isOpen = open;
-
-            if (_CameraFollower != null && open)
-            {
-                _CameraFollower.Reposition(immediate);
-            }
-            
-            if (_RootTransform)
-            {
-                var newScale = open ? Vector3.one : Vector3.zero;
-                if (immediate)
-                    _RootTransform.localScale = newScale;
-                else
-                    _animTween = _RootTransform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
-            }
         }
         
         private static void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
