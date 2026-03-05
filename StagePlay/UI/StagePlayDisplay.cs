@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 23.06.2025
 
-using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using EDIVE.StateHandling.ToggleStates;
@@ -52,6 +51,9 @@ namespace EDIVE.StagePlay.UI
         
         [SerializeField]
         private AToggleState _AutoScrollToggle;
+        
+        [SerializeField]
+        private Transform _RootTransform;
 
         [SerializeField]
         private TMP_Text _NameText;
@@ -80,7 +82,6 @@ namespace EDIVE.StagePlay.UI
             _Scroller.Delegate = this;
             _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
             
-            _Controller.DefinitionChanged += UpdateDefinition;
             if(_AutoScrollToggle)
                 _AutoScrollToggle.SetState(_autoScroll);
         }
@@ -112,6 +113,7 @@ namespace EDIVE.StagePlay.UI
             if (_OpenOnStart)
                 SetOpen(true);
             
+            _Controller.DefinitionChanged += UpdateDefinition;
             UpdateDefinition(_Controller.Definition, _Controller.CurrentState);
         }
         
@@ -127,7 +129,7 @@ namespace EDIVE.StagePlay.UI
 
         private void UpdateDefinition(StagePlayDefinition definition, StagePlayState state)
         {
-            if (definition == null || state == null || (definition == _currentDefinition && state == _currentState))
+            if (definition == null || state == null)
                 return;
             
             _currentDefinition = definition;
@@ -192,11 +194,14 @@ namespace EDIVE.StagePlay.UI
                 _CameraFollower.Reposition(immediate);
             }
             
-            var newScale = open ? Vector3.one : Vector3.zero;
-            if (immediate)
-                transform.localScale = newScale;
-            else
-                _animTween = transform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
+            if (_RootTransform)
+            {
+                var newScale = open ? Vector3.one : Vector3.zero;
+                if (immediate)
+                    _RootTransform.localScale = newScale;
+                else
+                    _animTween = _RootTransform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
+            }
         }
         
         private static void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
