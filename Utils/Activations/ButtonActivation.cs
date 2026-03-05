@@ -13,23 +13,25 @@ using Sirenix.OdinInspector.Editor;
 namespace EDIVE.Utils.Activations
 {
     [Serializable]
-    public class ButtonActivation : IActivation
+    public class ButtonActivation : AWrapperActivation
     {
         [SerializeField]
         private Button _Button;
         
-        public void RegisterActivationListener(Action onActivate)
+        protected override void StartListening()
         {
             if (_Button != null)
-                _Button.onClick.AddListener(onActivate.Invoke);
-        }
-        
-        public void UnregisterActivationListener(Action onActivate)
-        {
-            if (_Button != null)
-                _Button.onClick.RemoveListener(onActivate.Invoke);
+                _Button.onClick.AddListener(OnButtonClick);
         }
 
+        protected override void StopListening()
+        {
+            if (_Button != null)
+                _Button.onClick.RemoveListener(OnButtonClick);
+        }
+
+        private void OnButtonClick() => InvokeListeners();
+        
 #if UNITY_EDITOR
         [OnInspectorInit]
         private void OnInspectorInit(InspectorProperty property)
