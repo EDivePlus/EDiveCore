@@ -29,7 +29,6 @@ namespace EDIVE.StagePlay
 
         [SerializeField]
         [HideReferenceObjectPicker]
-        [ListDrawerSettings(ShowFoldout = false)]
         private List<StagePlaySegment> _ScriptSegments = new();
 
         public TMP_FontAsset Font => _Font;

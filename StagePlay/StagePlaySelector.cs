@@ -1,26 +1,30 @@
 ﻿// Author: František Holubec
 // Created: 03.03.2026
 
+using System;
 using EDIVE.Utils.Activations;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.StagePlay
 {
-    public class StagePlaySelector : NetworkBehaviour
+    public class StagePlaySelector : MonoBehaviour
     {
+        [FormerlySerializedAs("_DefaultDefinition")]
         [SerializeField]
-        private StagePlayDefinition _DefaultDefinition;
-
-        [SerializeField]
-        private StagePlayController _Controller;
-
+        private StagePlayDefinition _Definition;
+        
         [SerializeReference]
         private IActivation _Activation;
 
-        private readonly SyncVar<StagePlayDefinition> _currentDefinition = new();
+        public StagePlayDefinition Definition
+        {
+            get => _Definition;
+            set => _Definition = value;
+        }
 
+        public event Action<StagePlayDefinition> DefinitionSelected;
+        
         private void OnEnable()
         {
             _Activation.RegisterActivationListener(OnActivated);
@@ -30,18 +34,11 @@ namespace EDIVE.StagePlay
         {
             _Activation.UnregisterActivationListener(OnActivated);
         }
-
-        [ServerRpc]
-        public void SetDefinition(StagePlayDefinition definition)
-        {
-            _currentDefinition.Value = definition;
-        }
         
         private void OnActivated()
         {
-            if (_Controller == null || _currentDefinition.Value == null)
-                return;
-            _Controller.SetDefinition(_currentDefinition.Value);
+            if (Definition != null)
+                DefinitionSelected?.Invoke(Definition);
         }
     }
 }
