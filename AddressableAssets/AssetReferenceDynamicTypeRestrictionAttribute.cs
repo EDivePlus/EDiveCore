@@ -4,10 +4,10 @@ using System;
 namespace EDIVE.AddressableAssets
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-    public class AssetReferenceTypeConstraintAttribute : Attribute
+    public class AssetReferenceDynamicTypeRestrictionAttribute : Attribute
     {
         public string TypeGetter { get; }
-        public AssetReferenceTypeConstraintAttribute(string typeGetter)
+        public AssetReferenceDynamicTypeRestrictionAttribute(string typeGetter)
         {
             TypeGetter = typeGetter;
         }
