@@ -84,7 +84,7 @@ namespace EDIVE.XRTools
 
         private void LateUpdate()
         {
-            if (_isFollowing && !_repositionTween.IsPlaying()) 
+            if (_isFollowing && (!_repositionTween.IsActive() || !_repositionTween.IsPlaying())) 
                 FollowCamera();
         }
         
