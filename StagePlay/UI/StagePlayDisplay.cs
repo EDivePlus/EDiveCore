@@ -58,6 +58,18 @@ namespace EDIVE.StagePlay.UI
         [SerializeField]
         private TMP_Text _NameText;
         
+        [SerializeField]
+        private float _AutoScrollScrollerOffset = 0.5f;
+        
+        [SerializeField]
+        private float _AutoScrollCellOffset = 0.5f;
+        
+        [SerializeField]
+        private EnhancedScroller.TweenType _AutoScrollEase = EnhancedScroller.TweenType.easeInOutQuad;
+        
+        [SerializeField]
+        private float _AutoScrollTweenTime = 0.3f;
+        
         [DisableInEditorMode]
         [ShowInInspector]
         public bool IsOpen
@@ -169,7 +181,13 @@ namespace EDIVE.StagePlay.UI
         [Button]
         public void JumpToCurrentSegment()
         {
-            _Scroller.JumpToDataIndex(_currentState.CurrentSegmentIndex, 0.5f, 0.5f, true, EnhancedScroller.TweenType.easeOutBack, 0.3f);
+            _Scroller.JumpToDataIndex(
+                _currentState.CurrentSegmentIndex, 
+                _AutoScrollScrollerOffset,
+                _AutoScrollCellOffset,
+                true, 
+                _AutoScrollEase, 
+                _AutoScrollTweenTime);
         }
         
         [Button]
