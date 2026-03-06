@@ -44,7 +44,7 @@ namespace EDIVE.External.Oculus
                 }
             };
         }
-    
+
         protected override void OnDisable()
         {
             base.OnDisable();
@@ -54,9 +54,7 @@ namespace EDIVE.External.Oculus
 
         public override void OnInspectorGUI()
         {
-            var upgradeableCanvases = targets.OfType<Canvas>().
-                Where(c => GetRenderMode(c) == RenderMode.WorldSpace).
-                ToArray();
+            var upgradeableCanvases = targets.OfType<Canvas>().Where(c => GetRenderMode(c) == RenderMode.WorldSpace).ToArray();
             UpgradeDialog("canvas", upgradeableCanvases, c =>
                 {
                     if (_presetSelection == 1)
@@ -67,11 +65,11 @@ namespace EDIVE.External.Oculus
                 {
                     using var verticalScope = new EditorGUILayout.VerticalScope(_presetAreaStyle, GUILayout.Width(120));
                     GUILayout.Label("Preset", Styles.GUIStyles.BoldLabel);
-                    _presetSelection = GUILayout.SelectionGrid(_presetSelection, new[] { " Animated UI", " Static Text" }, 1, EditorStyles.radioButton);
+                    _presetSelection = GUILayout.SelectionGrid(_presetSelection, new[] {" Animated UI", " Static Text"}, 1, EditorStyles.radioButton);
                 },
                 $"{nameof(Canvas)}/{(_presetSelection == 0 ? "UI" : "Text")}");
 
-            if (_unityEditor == null) 
+            if (_unityEditor == null)
                 _unityEditor = CreateEditor(targets, typeof(Editor).Assembly.GetType("UnityEditor.CanvasEditor"));
 
             if (_unityEditor != null)
@@ -84,7 +82,7 @@ namespace EDIVE.External.Oculus
             // even when it's actually set to WorldSpace.
             var serializedObject = new SerializedObject(canvas);
             serializedObject.Update();
-            return (RenderMode)serializedObject.FindProperty("m_RenderMode").intValue;
+            return (RenderMode) serializedObject.FindProperty("m_RenderMode").intValue;
         }
 
         internal static void UpgradeDialog(string noun, Component[] components, System.Action<OVROverlayCanvas> onUpgrade, System.Action onPresetArea, string telemetryParam)
@@ -98,7 +96,12 @@ namespace EDIVE.External.Oculus
                 {
                     using (var horizontalScope = new EditorGUILayout.HorizontalScope())
                     {
-                        using (var disabledScope = new EditorGUI.DisabledGroupScope(!OVROverlayEditorHelper.CanvasLayerSelected))
+#if META_SDK_85_OR_NEWER
+                        var canvasLayerSelected = OVROverlayEditorHelper.HiddenCanvasLayerSelected;
+#else
+                       var canvasLayerSelected = OVROverlayEditorHelper.CanvasLayerSelected;
+#endif
+                        using (var disabledScope = new EditorGUI.DisabledGroupScope(!canvasLayerSelected))
                         {
                             if (GUILayout.Button(
                                     new GUIContent($" Upgrade {(components.Length == 1 ? "" : "all ")}to OVROverlayCanvas", Styles.Contents.MetaWhiteIcon.Image, ""),
@@ -111,7 +114,12 @@ namespace EDIVE.External.Oculus
                                     if (canvas.GetComponent<OVROverlayCanvas>() != null)
                                         continue;
                                     var overlay = Undo.AddComponent<OVROverlayCanvas>(canvas.gameObject);
-                                    overlay.SetCanvasLayer(OVROverlayEditorHelper.CanvasLayer, false);
+#if META_SDK_85_OR_NEWER
+                                    var overlayCanvasLayer = OVROverlayEditorHelper.HiddenCanvasLayer;
+#else
+                                    var overlayCanvasLayer = OVROverlayEditorHelper.CanvasLayer;
+#endif
+                                    overlay.SetCanvasLayer(overlayCanvasLayer, false);
                                     onUpgrade?.Invoke(overlay);
                                     EditorUtility.SetDirty(overlay);
                                     Debug.Log($"Added {nameof(OVROverlayCanvas)} to {canvas.gameObject}", overlay);
@@ -132,7 +140,12 @@ namespace EDIVE.External.Oculus
                     GUILayout.Label("It will also improve the readability of any text.", Styles.GUIStyles.DialogTextStyle);
                     GUILayout.FlexibleSpace();
 
-                    OVROverlayEditorHelper.CanvasLayerSelectionUI(OVROverlayEditorHelper.CanvasLayer, _ => { }, _ => { });
+#if META_SDK_85_OR_NEWER
+                    var canvasLayer = OVROverlayEditorHelper.HiddenCanvasLayer;
+#else
+                    var canvasLayer = OVROverlayEditorHelper.CanvasLayer;
+#endif
+                    OVROverlayEditorHelper.CanvasLayerSelectionUI(canvasLayer, _ => { }, _ => { });
                 }
             }
             else
@@ -143,11 +156,16 @@ namespace EDIVE.External.Oculus
 
         internal static void SetTextDefaults(OVROverlayCanvas c)
         {
+#if META_SDK_85_OR_NEWER
+            c.compositionMode = OVROverlayCanvas.CompositionMode.DepthTested;
+            c._mipmapMode = OVROverlayCanvas.MipMapMode.Autogenerated;
+#else
             c.overlayType = OVROverlay.OverlayType.Overlay;
+            c._enableMipmapping = true;
+#endif
             c.opacity = OVROverlayCanvas.DrawMode.OpaqueWithClip;
             c.manualRedraw = true;
             c._dynamicResolution = false;
-            c._enableMipmapping = true;
         }
     }
 }

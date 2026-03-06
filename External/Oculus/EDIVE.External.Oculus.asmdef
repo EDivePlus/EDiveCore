@@ -2,11 +2,11 @@
     "name": "EDIVE.External.Oculus",
     "rootNamespace": "",
     "references": [
-        "GUID:f64c9ebcd7899c3448a08dc9f9ddbe30",
-        "GUID:d2761a0af0f567748a72629d4bb18a26",
-        "GUID:72a933f94d34d054baaa26f7ecc4b09f",
-        "GUID:6055be8ebefd69e48b49212b09b47b2f",
-        "GUID:6546d7765b4165b40850b3667f981c26"
+        "Oculus.VR",
+        "Oculus.VR.Editor",
+        "Meta.XR.Editor.UserInterface",
+        "Unity.TextMeshPro",
+        "Unity.TextMeshPro.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -20,6 +20,11 @@
             "name": "com.unity.textmeshpro",
             "expression": "",
             "define": "UNITY_TEXTMESHPRO"
+        },
+        {
+            "name": "com.meta.xr.sdk.core",
+            "expression": "85.0.0",
+            "define": "META_SDK_85_OR_NEWER"
         }
     ],
     "noEngineReferences": false
