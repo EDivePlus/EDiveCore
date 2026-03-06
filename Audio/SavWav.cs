@@ -163,8 +163,7 @@ namespace EDIVE.Audio
 
             var subChunk1 = BitConverter.GetBytes(16);
             fileStream.Write(subChunk1, 0, 4);
-
-            const ushort two = 2;
+            
             const ushort one = 1;
 
             var audioFormat = BitConverter.GetBytes(one);

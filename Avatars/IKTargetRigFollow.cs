@@ -5,10 +5,6 @@ namespace EDIVE.Avatars
 {
     public class IKTargetRigFollow : ARigFollow
     {
-        [Range(0,1)]
-        [SerializeField]
-        private float _TurnSmoothness = 0.1f;
-
         [SerializeField]
         private FollowRecord _Head;
 

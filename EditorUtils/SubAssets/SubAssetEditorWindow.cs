@@ -142,8 +142,9 @@ namespace EDIVE.EditorUtils.SubAssets
             return value;
         }
         
-        public void AddItemsToMenu(GenericMenu menu)
+        public new void AddItemsToMenu(GenericMenu menu)
         {
+            base.AddItemsToMenu(menu);
             menu.AddItem(new GUIContent("Lock"), IsLocked, () => {
                 IsLocked = !IsLocked;
             });
