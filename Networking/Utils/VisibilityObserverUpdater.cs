@@ -142,6 +142,12 @@ namespace EDIVE.Networking.Utils
     }
     
     [Serializable, Preserve]
+    public class CanvasObserverUpdaterRule : ABehaviourEnableObserverUpdaterRule<CanvasObserverUpdaterRule, Canvas>
+    {
+        protected override string Label => "Canvases";
+    }
+    
+    [Serializable, Preserve]
     public class RendererObserverUpdaterRule : AComponentObserverUpdaterRule<RendererObserverUpdaterRule, Renderer>
     {
         protected override string Label => "Renderers";
