@@ -115,7 +115,7 @@ namespace EDIVE.XRTools.Tablet
                 return false;
             
             var target = _CameraFollower.CameraTransform;
-            return target != null && XRUtils.IsTargetInView(target, transform, _MaxDistance, _FacingThreshold, _FacingThreshold);
+            return target != null && XRUtils.IsTargetInView(target, transform, _MaxDistance, _FrontThreshold, _FacingThreshold);
         }
     }
 }
