@@ -21,7 +21,8 @@
         "EDIVE.ScriptableArchitecture",
         "EDIVE.Utils",
         "StompyRobot.SRDebugger",
-        "EDIVE.Conditions"
+        "EDIVE.Conditions",
+        "EDIVE.EditorUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

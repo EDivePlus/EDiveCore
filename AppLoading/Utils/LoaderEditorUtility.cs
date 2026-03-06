@@ -1,15 +1,24 @@
-﻿#if UNITY_EDITOR
+﻿#if UNITY_6000_3_OR_NEWER
+#define UNITY_6_TOOLBAR
+#endif
+
+#if UNITY_EDITOR
 using System.IO;
-using Cysharp.Threading.Tasks;
 using EDIVE.EditorUtils;
-using EDIVE.External.ToolbarExtensions;
 using EDIVE.OdinExtensions;
-using Sirenix.Utilities;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+
+#if UNITY_6_TOOLBAR
+using UnityEditor.Toolbars;
+using UnityEngine.UIElements;
+#else
+using Sirenix.Utilities;
+using Sirenix.Utilities.Editor;
+using EDIVE.External.ToolbarExtensions;
+#endif
 
 namespace EDIVE.AppLoading.Utils
 {
@@ -19,10 +28,55 @@ namespace EDIVE.AppLoading.Utils
         private static void InitializeToolbar()
         {
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
+#if !UNITY_6_TOOLBAR
             ToolbarExtender.AddToLeftToolbar(PlayRootSceneToolbarGUI, 1000);
-            ToolbarExtender.AddToLeftToolbar(LoaderToolbarGUI, -90);
+#endif
         }
 
+#if UNITY_6_TOOLBAR
+        [MainToolbarElement("EDive/Play Root Scene", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = -1)]
+        public static MainToolbarElement CreateToolbarButton()
+        {
+            return MainToolbarElementFactory.Create(() =>
+            {
+                var button = new Button(() => TryPlayRootScene());
+                button.style.paddingLeft = 4;
+                button.style.paddingRight = 4;
+                button.style.flexDirection = FlexDirection.Row;
+                button.style.alignItems = Align.Center;
+                button.style.justifyContent = Justify.Center;
+                button.AddToClassList("unity-toolbar-toggle");
+                button.tooltip = "Play root scene";
+
+                var bgCol = new Color(0.31f, 0.31f, 0.31f);
+                var hoverCol = new Color(0.5f, 0.5f, 0.5f);
+
+                button.style.backgroundColor = bgCol;
+                button.RegisterCallback<MouseEnterEvent>(_ => 
+                {
+                    if (button.enabledInHierarchy) button.style.backgroundColor = hoverCol;
+                });
+                button.RegisterCallback<MouseLeaveEvent>(_ => button.style.backgroundColor = bgCol);
+                
+                var icon = new Image
+                {
+                    image = FontAwesomeEditorIcons.RocketSolid.Raw,
+                    style = { width = 14, height = 14 }
+                };
+                
+                button.Add(icon);
+                button.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
+                EditorApplication.playModeStateChanged += _ =>
+                {
+                    var enabled = !EditorApplication.isPlayingOrWillChangePlaymode;
+                    button.SetEnabled(enabled);
+                    if (!enabled) button.style.backgroundColor = bgCol;
+                };
+                return button;
+            });
+        }
+        
+#else
         private static void PlayRootSceneToolbarGUI()
         {
             EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
@@ -32,45 +86,8 @@ namespace EDIVE.AppLoading.Utils
             }
             EditorGUI.EndDisabledGroup();
         }
-
-        private static void LoaderToolbarGUI()
-        {
-            GUILayout.Space(2);
-            var dropdownRect = GUILayoutUtility.GetRect(0, 18).MinWidth(200);
-            if (GUILayout.Button(new GUIContent(null, FontAwesomeEditorIcons.LoaderSolid.Highlighted, "Open Loader Settings"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
-            {
-                LoaderSettings.OpenLoaderSettings();
-            }
-
-            if (GUILayout.Button(new GUIContent(null, FontAwesomeEditorIcons.CaretDownSolid.Active, "Loader Menu"), ToolbarStyles.ToolbarButton, GUILayout.Width(15)))
-            {
-                var menu = new GenericMenu();
-                menu.AddItem(new GUIContent("Disable Parallel Load"), LoaderUtils.DisableParallelLoad, () => LoaderUtils.DisableParallelLoad = !LoaderUtils.DisableParallelLoad);
-                menu.DropDown(dropdownRect);
-            }
-            
-            GUILayout.Space(2); 
-            var rootScene = SceneManager.GetSceneByPath(LoaderSettings.RootScene);
-            var icon = rootScene.isLoaded ? FontAwesomeEditorIcons.LightbulbSlashSolid : FontAwesomeEditorIcons.LightbulbSolid;
-            var tooltip = rootScene.isLoaded ? "Unload Light Scene" : "Load Light Scene";
-            EditorGUI.BeginDisabledGroup(!string.IsNullOrEmpty(LoaderSettings.RootScene) && rootScene.isLoaded && EditorSceneManager.loadedRootSceneCount <= 1);
-            if (GUILayout.Button(new GUIContent(null, icon.Active, tooltip), ToolbarStyles.ToolbarButton, GUILayout.Width(25)))
-            {
-                if (rootScene.isLoaded)
-                {
-                    EditorSceneManager.CloseScene(rootScene, true);
-                }
-                else
-                {
-                    var scene = EditorSceneManager.OpenScene(LoaderSettings.RootScene, OpenSceneMode.Additive);
-                    SceneManager.SetActiveScene(scene);
-                }
-            }
-            EditorGUI.EndDisabledGroup();
-            
-            GUILayout.Space(2);
-        }
-
+#endif
+        
         private static void SelectRootScene()
         {
             var path = EditorUtility.OpenFilePanel("Select Root Scene", Application.dataPath, "unity").Replace(Application.dataPath, "Assets");

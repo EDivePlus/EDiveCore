@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿#if true //!UNITY_6000_3_OR_NEWER
+using UnityEditor;
 using UnityEngine;
 
 namespace EDIVE.External.ToolbarExtensions
@@ -35,3 +36,4 @@ namespace EDIVE.External.ToolbarExtensions
         };
     }
 }
+#endif

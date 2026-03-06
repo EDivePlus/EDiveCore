@@ -8,7 +8,8 @@
         "Newtonsoft.Json.UnityConverters",
         "EDIVE.AppLoading",
         "EDIVE.External.ToolbarExtensions",
-        "EDIVE.Utils.Json"
+        "EDIVE.Utils.Json",
+        "EDIVE.EditorUtils"
     ],
     "includePlatforms": [
         "Editor"

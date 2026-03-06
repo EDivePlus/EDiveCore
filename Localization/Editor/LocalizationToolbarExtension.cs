@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_6000_3_OR_NEWER
+#define UNITY_6_TOOLBAR
+#endif
+
+using System.Collections.Generic;
 using System.Linq;
-using EDIVE.External.ToolbarExtensions;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
@@ -12,17 +15,76 @@ using UnityEngine.Events;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
+using Object = UnityEngine.Object;
+
+#if UNITY_6_TOOLBAR
+using EDIVE.EditorUtils;
+using UnityEditor.Toolbars;
+#else
+using EDIVE.External.ToolbarExtensions;
+#endif
 
 namespace EDIVE.Localization.Editor
 {
     public static class LocalizationToolbarExtension
     {
+#if UNITY_6_TOOLBAR
+        [MainToolbarElement("EDive/Locale Selector", defaultDockPosition = MainToolbarDockPosition.Right)]
+        public static MainToolbarElement CreatePlayRootSceneButton()
+        {
+            return MainToolbarElementFactory.Create(() =>
+            {
+                var settings = LocalizationEditorSettings.ActiveLocalizationSettings;
+                var dropdown = new EditorToolbarDropdown
+                {
+                    icon = FontAwesomeEditorIcons.LanguageSolid.Raw,
+                    tooltip = "Language Selector"
+                };
+                dropdown.AddToClassList("unity-editor-toolbar-element");
+                dropdown.clicked += () =>
+                {
+                    if (!settings) 
+                        return;
+                    
+                    var locales = settings.GetAvailableLocales().Locales
+                        .Prepend(null)
+                        .Select(l => new LocaleWrapper(l));
+
+                    var selector = new GenericSelector<LocaleWrapper>(null, false, x => x.Name, locales);
+                    selector.SelectionTree.DefaultMenuStyle.Height = 22;
+                    selector.SelectionTree.Config.DrawSearchToolbar = true;
+                    selector.SelectionTree.Config.AutoFocusSearchBar = true;
+                    selector.EnableSingleClickToSelect();
+
+                    selector.SelectionConfirmed += selection =>
+                    {
+                        var selected = selection.FirstOrDefault();
+                        if (selected != null)
+                        {
+                            settings.SetSelectedLocale(selected.Locale);
+                            RefreshAll();
+                        }
+                    };
+                    selector.ShowInPopup(dropdown.worldBound.MinWidth(200));
+                };
+                
+                settings.OnSelectedLocaleChanged += UpdateLabel;
+                UpdateLabel(settings.GetSelectedLocale());
+                return dropdown;
+
+                void UpdateLabel(Locale locale)
+                {
+                    dropdown.text = locale == null ? "--" : locale.Identifier.Code.ToUpperInvariant();
+                }
+            });
+        }
+#else  
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
             ToolbarExtender.AddToRightToolbar(OnToolbarGUI, 95);
         }
-
+        
         private static void OnToolbarGUI()
         {
             var activeLocalizationSettings = LocalizationEditorSettings.ActiveLocalizationSettings;
@@ -66,7 +128,8 @@ namespace EDIVE.Localization.Editor
             }
             GUILayout.Space(2);
         }
-
+#endif
+        
         private static void RefreshAll()
         {
             var stringEvents = GetAllLocalizeStringEvents();

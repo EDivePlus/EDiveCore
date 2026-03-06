@@ -8,7 +8,8 @@
         "Unity.Localization.Editor",
         "EDIVE.OdinExtensions",
         "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
-        "EDIVE.External.ToolbarExtensions"
+        "EDIVE.External.ToolbarExtensions",
+        "EDIVE.EditorUtils"
     ],
     "includePlatforms": [
         "Editor"

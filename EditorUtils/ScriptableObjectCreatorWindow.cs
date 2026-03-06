@@ -1,9 +1,12 @@
+#if UNITY_6000_3_OR_NEWER
+#define UNITY_6_TOOLBAR
+#endif
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using EDIVE.External.ToolbarExtensions;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector.Editor;
@@ -11,6 +14,12 @@ using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
+
+#if UNITY_6_TOOLBAR
+using UnityEditor.Toolbars;
+#else
+using EDIVE.External.ToolbarExtensions;
+#endif
 
 namespace EDIVE.EditorUtils
 {
@@ -26,6 +35,14 @@ namespace EDIVE.EditorUtils
 
         private static EditorIcon MainIcon => FontAwesomeEditorIcons.FolderPlusSolid;
 
+        
+#if UNITY_6_TOOLBAR
+        [MainToolbarElement("EDive/Scriptable Object Creator", defaultDockPosition = MainToolbarDockPosition.Left)]
+        public static MainToolbarElement CreateToolbarButton()
+        {
+            return new MainToolbarButton(new MainToolbarContent(MainIcon.Raw, "Create Scriptable Object"), OpenWindow);
+        }
+#else
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
@@ -42,6 +59,7 @@ namespace EDIVE.EditorUtils
 
             GUILayout.Space(2);
         }
+#endif
 
         [MenuItem("Assets/Create Scriptable Object", priority = -1000)]
         public static void OpenWindow()

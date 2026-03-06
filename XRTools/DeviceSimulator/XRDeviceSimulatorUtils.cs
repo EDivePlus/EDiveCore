@@ -1,16 +1,28 @@
 ﻿// Author: František Holubec
 // Created: 15.05.2025
 
+#if UNITY_6000_3_OR_NEWER
+#define UNITY_6_TOOLBAR
+#endif
+
 using UnityEngine;
 using UnityEngine.Scripting;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using EDIVE.OdinExtensions;
 
 #if UNITY_EDITOR
-using EDIVE.External.ToolbarExtensions;
+#if UNITY_6_TOOLBAR
+using EDIVE.EditorUtils;
+using UnityEditor.Toolbars;
+using UnityEngine.UIElements;
+#else
 using UnityEditor;
 using Sirenix.Utilities.Editor;
+using EDIVE.External.ToolbarExtensions;
 #endif
+#endif
+
+
 
 namespace EDIVE.XRTools.DeviceSimulator
 {
@@ -39,6 +51,41 @@ namespace EDIVE.XRTools.DeviceSimulator
         }
 
 #if UNITY_EDITOR
+#if UNITY_6_TOOLBAR
+        [MainToolbarElement("EDive/XRDeviceSimulator Toggle", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = 15)]
+        public static MainToolbarElement CreateToolbarButton()
+        {
+            return MainToolbarElementFactory.Create(() =>
+            {
+                var toggle = new EditorToolbarToggle();
+                toggle.AddToClassList("unity-editor-toolbar-element");
+
+                void UpdateVisual(bool value)
+                {
+                    toggle.icon = value
+                        ? FontAwesomeEditorIcons.CheckToSlotSolid.Raw
+                        : FontAwesomeEditorIcons.XmarkToSlotSolid.Raw;
+
+                    toggle.tooltip = value
+                        ? "Disable Device Simulator"
+                        : "Enable Device Simulator";
+                }
+
+                var settings = XRDeviceSimulatorSettings.Instance;
+
+                toggle.SetValueWithoutNotify(settings.automaticallyInstantiateSimulatorPrefab);
+                UpdateVisual(toggle.value);
+
+                toggle.RegisterValueChangedCallback(evt =>
+                {
+                    settings.automaticallyInstantiateSimulatorPrefab = evt.newValue;
+                    UpdateVisual(evt.newValue);
+                });
+
+                return toggle;
+            });
+        }
+#else
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
@@ -59,6 +106,7 @@ namespace EDIVE.XRTools.DeviceSimulator
             }
             GUILayout.Space(2);
         }
+#endif
 #endif
 
     }

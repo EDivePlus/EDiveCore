@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !UNITY_6000_3_OR_NEWER
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
@@ -34,16 +35,16 @@ namespace EDIVE.External.ToolbarExtensions
             if (_currentToolbar != null)
                 RepaintMethod?.Invoke(_currentToolbar, null);
         }
-
+        
         public static void AddToRightToolbar(Action action, int priority) => AddToToolbar(_rightToolbarActions, action, priority);
         public static void AddToLeftToolbar(Action action, int priority) => AddToToolbar(_leftToolbarActions, action, priority);
-
+        
         private static void AddToToolbar(List<PriorityAction> toolbarList, Action action, int priority)
         {
             toolbarList.Add(new PriorityAction(action, priority));
             toolbarList.Sort();
         }
-
+        
         [InitializeOnLoadMethod]
         [MenuItem("Tools/Reload Toolbar Extender", priority = 200)]
         private static void Reload()
@@ -175,3 +176,4 @@ namespace EDIVE.External.ToolbarExtensions
         }
     }
 }
+#endif
