@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if EDITOR_COROUTINES
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -344,7 +345,5 @@ namespace EDIVE.OdinExtensions.Editor
             Texture
         }
     }
-
-
-    
 }
+#endif

@@ -6,7 +6,7 @@ using System.Globalization;
 using System.IO;
 using Cysharp.Threading.Tasks;
 using EDIVE.AssetTranslation;
-using FishNet.Serializing;
+
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using TMPro;
@@ -15,6 +15,10 @@ using UnityEngine;
 #if UNITY_EDITOR && CSV_HELPER
 using CsvHelper;
 using CsvHelper.Configuration;
+#endif
+
+#if FISHNET
+using FishNet.Serializing;
 #endif
 
 namespace EDIVE.StagePlay
@@ -109,11 +113,13 @@ namespace EDIVE.StagePlay
 #endif
     }
     
+#if FISHNET
     // Used by Fishet for serialization of AvatarDefinition references.
     [UsedImplicitly] 
-    public static class StagePlayDefinitionExtensions
+    public static class StagePlayDefinitionNetworkExtensions
     {
         public static void WriteStagePlayDefinition(this Writer writer, StagePlayDefinition value) => writer.CustomWriteTranslatedDefinition(value);
         public static StagePlayDefinition ReadStagePlayDefinition(this Reader reader) => reader.CustomReadTranslatedDefinition<StagePlayDefinition>();
     }
+#endif
 }

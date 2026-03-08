@@ -25,13 +25,19 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": ["XR_INTERACTION_TOOLKIT"],
     "versionDefines": [
         {
             "name": "com.joshclose.csvhelper",
             "expression": "",
             "define": "CSV_HELPER"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "",
+            "define": "XR_INTERACTION_TOOLKIT"
         }
+        
     ],
     "noEngineReferences": false
 }

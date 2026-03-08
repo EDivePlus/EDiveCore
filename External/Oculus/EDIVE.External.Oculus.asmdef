@@ -14,7 +14,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": ["META_XR"],
     "versionDefines": [
         {
             "name": "com.unity.textmeshpro",
@@ -23,8 +23,13 @@
         },
         {
             "name": "com.meta.xr.sdk.core",
+            "expression": "",
+            "define": "META_XR"
+        },
+        {
+            "name": "com.meta.xr.sdk.core",
             "expression": "85.0.0",
-            "define": "META_SDK_85_OR_NEWER"
+            "define": "META_XR_85_OR_NEWER"
         }
     ],
     "noEngineReferences": false

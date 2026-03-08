@@ -22,7 +22,7 @@
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": [],
+  "defineConstraints": ["ADDRESSABLES"],
   "versionDefines": [
     {
       "name": "com.unity.addressables",

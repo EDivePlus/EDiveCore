@@ -28,6 +28,11 @@
             "name": "com.unity.addressables",
             "expression": "",
             "define": "ADDRESSABLES"
+        },
+        {
+            "name": "com.unity.editorcoroutines",
+            "expression": "",
+            "define": "EDITOR_COROUTINES"
         }
     ],
     "noEngineReferences": false

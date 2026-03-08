@@ -6,10 +6,10 @@ using System.Linq;
 using DG.Tweening;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.Utils.Activations;
-using EDIVE.XRTools;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using EDIVE.XRTools;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
@@ -26,7 +26,7 @@ namespace EDIVE.StagePlay
         
         [SerializeField]
         private SmoothCameraFollower _CameraFollower;
-                
+        
         [SerializeField]
         private Transform _RootTransform;
         

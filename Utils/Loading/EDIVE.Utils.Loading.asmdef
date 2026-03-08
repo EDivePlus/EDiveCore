@@ -13,7 +13,13 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
+    "defineConstraints": ["DOTWEEN", "UNITASK", "UNITASK_DOTWEEN_SUPPORT"],
+    "versionDefines": [
+        {
+            "name": "com.cysharp.unitask",
+            "expression": "",
+            "define": "UNITASK"
+        }
+    ],
     "noEngineReferences": false
 }

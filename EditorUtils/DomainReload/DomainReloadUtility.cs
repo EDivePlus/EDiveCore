@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if EDITOR_COROUTINES
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.EditorCoroutines.Editor;
@@ -19,7 +20,7 @@ namespace EDIVE.EditorUtils.DomainReload
             EditorApplication.delayCall += OnDelayedDomainReload;
         }
 
-        public static void OnDelayedDomainReload()
+        private static void OnDelayedDomainReload()
         {
             EditorCoroutineUtility.StartCoroutineOwnerless(InvokeSurvivors());
         }
@@ -130,3 +131,4 @@ namespace EDIVE.EditorUtils.DomainReload
         }
     }
 }
+#endif

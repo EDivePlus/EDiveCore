@@ -12,7 +12,6 @@
         "EDIVE.Time",
         "EDIVE.External.Signals",
         "EDIVE.StateHandling",
-        "NativeFilePicker.Runtime",
         "EDIVE.DataStructures",
         "FishNet.Runtime",
         "EDIVE.Utils.Cysharp",
@@ -25,7 +24,13 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
+    "defineConstraints": ["MEMORY_PACK"],
+    "versionDefines": [
+        {
+            "name": "com.cysharp.memorypack",
+            "expression": "",
+            "define": "MEMORY_PACK"
+        }
+    ],
     "noEngineReferences": false
 }
