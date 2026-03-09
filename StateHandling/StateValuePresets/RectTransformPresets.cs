@@ -36,4 +36,20 @@ namespace EDIVE.StateHandling.StateValuePresets
         public override void ApplyTo(RectTransform targetObject) => Value.ApplyTo(targetObject);
         public override void CaptureFrom(RectTransform targetObject) => Value = new RectTransformSnapshot(targetObject);
     }
+
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
+    public class RectTransformAnchorMinPreset : AStateValuePreset<RectTransform, Vector2>
+    {
+        public override string Title => "Anchor Min";
+        public override void ApplyTo(RectTransform targetObject) => targetObject.anchorMin = Value;
+        public override void CaptureFrom(RectTransform targetObject) => Value = targetObject.anchorMin;
+    }
+
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
+    public class RectTransformAnchorMaxPreset : AStateValuePreset<RectTransform, Vector2>
+    {
+        public override string Title => "Anchor Max";
+        public override void ApplyTo(RectTransform targetObject) => targetObject.anchorMax = Value;
+        public override void CaptureFrom(RectTransform targetObject) => Value = targetObject.anchorMax;
+    }
 }
