@@ -2,8 +2,10 @@
 // Created: 03.03.2026
 
 using System;
+using EDIVE.UIElements.Tooltips;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace EDIVE.Tablet
@@ -15,6 +17,9 @@ namespace EDIVE.Tablet
 
         [SerializeField]
         private Button _OpenButton;
+        
+        [SerializeField]
+        private TooltipTrigger _TooltipTrigger;
         
         public TabletWidgetDefinition Definition { get; private set; }
         public event Action<TabletWidgetDefinition> OnClick = delegate { };
@@ -36,6 +41,7 @@ namespace EDIVE.Tablet
             
             Definition = definition;
             _Switcher.Apply(definition.Visual);
+            _TooltipTrigger.SetPreset(definition.Visual);
         }
 
         private void OnOpenButtonClicked()
