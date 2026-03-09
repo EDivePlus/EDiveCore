@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 09.03.2026
 
+#if ZLINQ
 using System;
 using ZLinq;
 
@@ -48,3 +49,4 @@ namespace EDIVE.NativeUtils
         }
     }
 }
+#endif

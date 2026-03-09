@@ -23,6 +23,11 @@
       "name": "com.cysharp.memorypack",
       "expression": "",
       "define": "MEMORY_PACK"
+    },
+    {
+      "name": "com.cysharp.zlinq",
+      "expression": "",
+      "define": "ZLINQ"
     }
   ],
   "noEngineReferences": false
