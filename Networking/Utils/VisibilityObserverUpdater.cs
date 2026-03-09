@@ -102,10 +102,10 @@ namespace EDIVE.Networking.Utils
     {
         public override void Initialize(Scene scene)
         {
-            _Targets = GetAllComponentsInScene<T>(scene);
+            _Targets = GetAllComponentsInScene<T>(scene, true);
         }
         
-        private static List<TObj> GetAllComponentsInScene<TObj>(Scene scene, bool includeInactive = false)
+        private static List<TObj> GetAllComponentsInScene<TObj>(Scene scene, bool includeInactive)
             where TObj : Component
         {
             var results = new List<TObj>();
