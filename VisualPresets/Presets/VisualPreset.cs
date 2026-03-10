@@ -34,15 +34,19 @@ namespace EDIVE.VisualPresets.Presets
         {
             AddRecords(records);
         }
+        public VisualPreset(IEnumerable<AVisualPresetRecord> records)
+        {
+            AddRecords(records);
+        }
 
         public virtual IEnumerable<AVisualPresetRecord> EnumerateValidRecords()
         {
             return _Records.Where(r => r != null && r.IsValid());
         }
         
-        public void AddRecords(params AVisualPresetRecord[] records)
+        public void AddRecords(IEnumerable<AVisualPresetRecord> records)
         {
-            if (records == null || records.Length == 0)
+            if (records == null)
                 return;
 
             _Records ??= new List<AVisualPresetRecord>();
@@ -59,6 +63,16 @@ namespace EDIVE.VisualPresets.Presets
         {
             return _Records.TryGetFirst(r => r.BaseVisualID == visualID, out record);
         }
+        
+        public VisualPreset CombineWith(VisualPreset other)
+        {
+            return other == null ? this : new VisualPreset(_Records.Concat(other._Records));
+        }
+        
+        public static VisualPreset Combine(params VisualPreset[] presets)
+        {
+            return new VisualPreset(presets.Where(p => p != null).SelectMany(p => p._Records));
+        }
 
 #if UNITY_EDITOR
         private IEnumerable GetAvailableRecords()
@@ -68,4 +82,6 @@ namespace EDIVE.VisualPresets.Presets
         }
 #endif
     }
+    
+    
 }
