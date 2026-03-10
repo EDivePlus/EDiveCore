@@ -13,13 +13,16 @@ namespace EDIVE.UIElements.Tooltips
     public class TooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField]
+        private VisualPreset _DefaultPreset;
+        
+        [SerializeField]
         private TooltipPlacement _Placement;
         
         private Graphic _graphic;
         private TooltipManager _tooltipManager;
         
         private IDisposable _tooltipSubscription;
-        private VisualPreset _visualPreset; 
+        private VisualPreset _currentVisualPreset; 
 
         private void Awake()
         {
@@ -29,12 +32,15 @@ namespace EDIVE.UIElements.Tooltips
         
         public void SetPreset(VisualPreset visualPreset)
         {
-            _visualPreset = visualPreset;
+            _currentVisualPreset = VisualPreset.Combine(visualPreset, _DefaultPreset);
         }
         
         public void OnPointerEnter(PointerEventData eventData)
-        { 
-            _tooltipSubscription = _tooltipManager.ShowTooltip(_visualPreset, _graphic.rectTransform, _Placement);
+        {
+            _tooltipSubscription?.Dispose();
+            
+            _currentVisualPreset ??= _DefaultPreset;
+            _tooltipSubscription = _tooltipManager.ShowTooltip(_currentVisualPreset, _graphic.rectTransform, _Placement);
         }
 
         public void OnPointerExit(PointerEventData eventData)

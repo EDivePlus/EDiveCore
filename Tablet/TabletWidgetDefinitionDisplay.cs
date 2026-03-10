@@ -41,7 +41,8 @@ namespace EDIVE.Tablet
             
             Definition = definition;
             _Switcher.Apply(definition.Visual);
-            _TooltipTrigger.SetPreset(definition.Visual);
+            if (_TooltipTrigger)
+                _TooltipTrigger.SetPreset(definition.Visual);
         }
 
         private void OnOpenButtonClicked()
