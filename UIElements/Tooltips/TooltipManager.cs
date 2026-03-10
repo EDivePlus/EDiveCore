@@ -20,6 +20,8 @@ namespace EDIVE.UIElements.Tooltips
 
         private void Awake()
         {
+            if (!_ParentCanvas)
+                _ParentCanvas = GetComponentInParent<Canvas>();
             AvailableDisplays = new Queue<TooltipDisplay>(_Displays.Count);
             
             foreach (var display in _Displays)
@@ -30,7 +32,7 @@ namespace EDIVE.UIElements.Tooltips
             }
         }
         
-        public IDisposable ShowTooltip(VisualPreset preset, RectTransform rect, TooltipPlacement preferredPlacement)
+        public IDisposable ShowTooltip(VisualPreset preset, RectTransform target, TooltipPlacement preferredPlacement)
         {
             if (!AvailableDisplays.TryDequeue(out var display))
             {
@@ -38,10 +40,8 @@ namespace EDIVE.UIElements.Tooltips
                 return null;
             }
             
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(_ParentCanvas.transform as RectTransform, rect.position, _ParentCanvas.worldCamera, out var position);
-            
             display.transform.SetAsLastSibling();
-            display.ShowTooltip(preset, position, _ParentCanvas, preferredPlacement);
+            display.ShowTooltip(preset, target, _ParentCanvas, preferredPlacement);
             
             return new TooltipHandle(this, display);
         }
@@ -51,6 +51,7 @@ namespace EDIVE.UIElements.Tooltips
             if (display == null || !display.gameObject.activeSelf) 
                 return; 
             
+            display.HideTooltip();
             display.gameObject.SetActive(false);
             AvailableDisplays.Enqueue(display);
         }

@@ -13,15 +13,18 @@ namespace EDIVE.UIElements.Tooltips
     {
         [SerializeField]
         private VisualSwitcher _Switcher;
+
+        [SerializeField]
+        private RectTransform _Container;
         
         [SerializeField]
         [ValidateMultiState(typeof(TooltipPlacement))]
         private AMultiState _PlacementState;
         
-        public void ShowTooltip(VisualPreset preset, Vector2 position, Canvas canvas, TooltipPlacement preferredPlacement)
+        public void ShowTooltip(VisualPreset preset, RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement)
         {
             _Switcher.Apply(preset);
-            UpdatePlacement(position, canvas, preferredPlacement);
+            UpdatePlacement(target, canvas, preferredPlacement);
             gameObject.SetActive(true);
         }
         
@@ -30,19 +33,26 @@ namespace EDIVE.UIElements.Tooltips
             gameObject.SetActive(false);
         }
         
-        private void UpdatePlacement(Vector2 position, Canvas canvas, TooltipPlacement preferredPlacement)
+        private void UpdatePlacement(RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement)
         {
             gameObject.SetActive(true);
             var rectTr = (RectTransform) transform;
             var canvasRect = (RectTransform) canvas.transform;
 
             _PlacementState.SetState(preferredPlacement);
-            rectTr.anchoredPosition = position;
+            
+            rectTr.localPosition = GetEdgePosition(target, canvasRect, preferredPlacement);
             LayoutRebuilder.ForceRebuildLayoutImmediate(rectTr);
+            
+            ResolvePlacement(target, canvasRect, preferredPlacement);
+        }
 
+        private void ResolvePlacement(RectTransform target, RectTransform canvasRect, TooltipPlacement preferredPlacement)
+        {
+            var rectTr = (RectTransform) transform;
             var objectCorners = new Vector3[4];
-            rectTr.GetWorldCorners(objectCorners);
-
+            _Container.GetWorldCorners(objectCorners);
+            
             float minX = float.MaxValue, maxX = float.MinValue;
             float minY = float.MaxValue, maxY = float.MinValue;
 
@@ -77,7 +87,24 @@ namespace EDIVE.UIElements.Tooltips
             else
                 newPlacement = applyTop ? TooltipPlacement.TopCenter : TooltipPlacement.BottomCenter;
 
+            if (newPlacement.Equals(preferredPlacement)) 
+                return;
+            
             _PlacementState.SetState(newPlacement);
+            rectTr.localPosition = GetEdgePosition(target, canvasRect, newPlacement);
+                
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rectTr);
+        }
+        
+        private Vector3 GetEdgePosition(RectTransform target, RectTransform canvasRect, TooltipPlacement placement)
+        {
+            var targetRect = target.rect;
+            var localPoint = targetRect.center;
+
+            localPoint.y = placement.IsBottom() ? targetRect.yMin : targetRect.yMax;
+
+            var worldPoint = target.TransformPoint(localPoint);
+            return canvasRect.InverseTransformPoint(worldPoint);
         }
     }
 }
