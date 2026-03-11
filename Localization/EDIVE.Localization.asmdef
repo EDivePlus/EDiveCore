@@ -15,7 +15,9 @@
         "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.AppLoading",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "EDIVE.OdinExtensions.Editor",
+        "EDIVE.VisualPresets"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

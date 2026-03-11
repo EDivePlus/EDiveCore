@@ -7,11 +7,8 @@
     "EDIVE.OdinExtensions",
     "EDIVE.NativeUtils",
     "EDIVE.EditorUtils",
-    "EDIVE.Localization",
     "EDIVE.Utils.Json",
-    "EDIVE.DataStructures",
-    "Unity.Localization",
-    "Unity.Localization.Editor"
+    "EDIVE.DataStructures"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -20,12 +17,6 @@
   "precompiledReferences": [],
   "autoReferenced": true,
   "defineConstraints": [],
-  "versionDefines": [
-    {
-      "name": "com.unity.localization",
-      "expression": "",
-      "define": "UNITY_LOCALIZATION"
-    }
-  ],
+  "versionDefines": [],
   "noEngineReferences": false
 }

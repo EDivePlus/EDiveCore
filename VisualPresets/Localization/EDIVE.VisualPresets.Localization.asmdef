@@ -1,0 +1,27 @@
+﻿{
+  "name": "EDIVE.VisualPresets.Localization",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.VisualPresets",
+    "EDIVE.NativeUtils",
+    "Unity.TextMeshPro",
+    "EDIVE.Localization",
+    "Unity.Localization",
+    "Unity.Localization.Editor"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.unity.localization",
+      "expression": "",
+      "define": "UNITY_LOCALIZATION"
+    }
+  ],
+  "noEngineReferences": false
+}

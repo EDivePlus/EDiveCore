@@ -8,10 +8,12 @@ using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace EDIVE.VisualPresets.Localization
 {
     [Serializable]
+    [MovedFrom(true, "EDIVE.VisualPresets.Localization", "EDIVE.Localization")]
     public class LocalizedStringVisualPresetRecord : AVisualPresetRecord<StringVisualID>
     {
         [VerticalGroup("Value")]
