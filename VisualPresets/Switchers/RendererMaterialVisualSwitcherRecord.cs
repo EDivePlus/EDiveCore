@@ -2,6 +2,7 @@
 // Created: 29.10.2025
 
 using System;
+using EDIVE.NativeUtils;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.OdinInspector;
@@ -37,23 +38,25 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class RendererMaterialTextVisualSwitcherStrategy : AVisualSwitcherStrategy<MaterialVisualID, MaterialVisualPresetRecord, RendererMaterialVisualSwitcherRecord>
     {
-        protected override void Apply(MaterialVisualPresetRecord presetRecord, RendererMaterialVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(MaterialVisualPresetRecord presetRecord, RendererMaterialVisualSwitcherRecord switcherRecord)
         {
-            if (switcherRecord.Renderer == null) 
-                return;
+            if (switcherRecord.Renderer == null)
+                return DisposableUtils.Empty;
             
             var materials = switcherRecord.UseSharedMaterial ? switcherRecord.Renderer.sharedMaterials : switcherRecord.Renderer.materials;
-            if (materials.Length <= 0) 
-                return;
+            if (materials.Length <= 0)
+                return DisposableUtils.Empty;
 
             if (switcherRecord.MaterialIndex < 0 || switcherRecord.MaterialIndex >= materials.Length)
-                return;
+                return DisposableUtils.Empty;
 
             materials[switcherRecord.MaterialIndex] = presetRecord.Material; 
             if (switcherRecord.UseSharedMaterial)
                 switcherRecord.Renderer.sharedMaterials = materials;
             else
                 switcherRecord.Renderer.materials = materials;
+            
+            return DisposableUtils.Empty;
         }
     }
 }

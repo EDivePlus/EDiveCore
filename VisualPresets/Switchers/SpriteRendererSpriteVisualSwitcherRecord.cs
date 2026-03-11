@@ -2,6 +2,7 @@
 // Created: 29.10.2025
 
 using System;
+using EDIVE.NativeUtils;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.OdinInspector;
@@ -25,12 +26,13 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class SpriteRendererSpriteTextVisualSwitcherStrategy : AVisualSwitcherStrategy<SpriteVisualID, SpriteVisualPresetRecord, SpriteRendererSpriteVisualSwitcherRecord>
     {
-        protected override void Apply(SpriteVisualPresetRecord presetRecord, SpriteRendererSpriteVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(SpriteVisualPresetRecord presetRecord, SpriteRendererSpriteVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.SpriteRenderer == null) 
-                return;
+                return DisposableUtils.Empty;
             
             switcherRecord.SpriteRenderer.sprite = presetRecord.Sprite;
+            return DisposableUtils.Empty;
         }
     }
 }

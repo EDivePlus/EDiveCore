@@ -15,13 +15,20 @@ namespace EDIVE.VisualPresets.Presets
         [SerializeField]
         private string _Text;
         
-        public string Text
-        {
-            get => _Text;
-            set => _Text = value;
-        }
-        
+        public string Text => _Text;
+
         public override string EditorLabel => "String";
 
+        public override bool Equals(AVisualPresetRecord other)
+        {
+            if (other is not StringVisualPresetRecord tOther)
+                return false;
+            return base.Equals(other) && Text == tOther.Text;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(base.GetHashCode(), Text);
+        }
     }
 }

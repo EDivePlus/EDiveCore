@@ -2,6 +2,7 @@
 // Created: 29.10.2025
 
 using System;
+using EDIVE.NativeUtils;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.OdinInspector;
@@ -26,12 +27,13 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class GraphicColorTextVisualSwitcherStrategy : AVisualSwitcherStrategy<ColorVisualID, ColorVisualPresetRecord, GraphicColorVisualSwitcherRecord>
     {
-        protected override void Apply(ColorVisualPresetRecord presetRecord, GraphicColorVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(ColorVisualPresetRecord presetRecord, GraphicColorVisualSwitcherRecord switcherRecord)
         {
-            if (switcherRecord.Graphic == null) 
-                return;
+            if (switcherRecord.Graphic == null)
+                return DisposableUtils.Empty;
             
             switcherRecord.Graphic.color = presetRecord.Color;
+            return DisposableUtils.Empty;
         }
     }
 }

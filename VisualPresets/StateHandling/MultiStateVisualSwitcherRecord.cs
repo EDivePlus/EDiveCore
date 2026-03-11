@@ -3,7 +3,7 @@
 
 using System;
 using System.Collections;
-using System.Linq;
+using EDIVE.NativeUtils;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.VisualPresets.Switchers;
 using Sirenix.OdinInspector;
@@ -33,12 +33,13 @@ namespace EDIVE.VisualPresets.StateHandling
     [Preserve]
     public class MultiStateVisualSwitcherStrategy : AVisualSwitcherStrategy<MultiStateVisualID, MultiStateVisualPresetRecord, MultiStateVisualSwitcherRecord>
     {
-        protected override void Apply(MultiStateVisualPresetRecord presetRecord, MultiStateVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(MultiStateVisualPresetRecord presetRecord, MultiStateVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.MultiState == null || string.IsNullOrWhiteSpace(presetRecord.State)) 
-                return;
+                return DisposableUtils.Empty;
             
             switcherRecord.MultiState.SetState(presetRecord.State);
+            return DisposableUtils.Empty;
         }
     }
 }

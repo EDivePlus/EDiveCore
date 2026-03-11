@@ -15,13 +15,20 @@ namespace EDIVE.VisualPresets.Presets
         [SerializeField]
         private Sprite _Sprite;
         
-        public Sprite Sprite
-        {
-            get => _Sprite;
-            set => _Sprite = value;
-        }
-        
+        public Sprite Sprite => _Sprite;
+
         public override string EditorLabel => "Sprite";
 
+        public override bool Equals(AVisualPresetRecord other)
+        {
+            if (other is not SpriteVisualPresetRecord spriteRecord)
+                return false;
+            return base.Equals(other) && Sprite == spriteRecord.Sprite;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(base.GetHashCode(), Sprite != null ? Sprite.GetHashCode() : 0);
+        }
     }
 }

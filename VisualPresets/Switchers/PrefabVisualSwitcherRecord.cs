@@ -21,29 +21,19 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private Transform _Root;
 
-        [VerticalGroup("Value")]
-        [SerializeField]
-        private bool _CheckIfSamePrefab;
-
         public override string EditorLabel => "Prefab";
         public override Type EditorIconTargetType => typeof(GameObject);
         
         public Transform Root => _Root;
-        public bool CheckIfSamePrefab => _CheckIfSamePrefab;
-        
-        public GameObject CurrentPrefab {get; set;}
     }
     
     [Preserve]
     public class PrefabVisualSwitcherStrategy : AVisualSwitcherStrategy<PrefabVisualID, PrefabVisualPresetRecord, PrefabVisualSwitcherRecord>
     {
-        protected override void Apply(PrefabVisualPresetRecord presetRecord, PrefabVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(PrefabVisualPresetRecord presetRecord, PrefabVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.Root == null)
-                return;
-            
-            if (switcherRecord.CheckIfSamePrefab && switcherRecord.CurrentPrefab == presetRecord.Prefab)
-                return;
+                return null;
             
             switcherRecord.Root.DestroyChildren();
 
@@ -72,7 +62,14 @@ namespace EDIVE.VisualPresets.Switchers
                     snapshot.ApplyTo(newObj.transform);
                 }
             }
-            switcherRecord.CurrentPrefab = presetRecord.Prefab;
+
+            return DisposableUtils.Create(() =>
+            {
+                if (switcherRecord.Root != null)
+                {
+                    switcherRecord.Root.DestroyChildren();
+                }
+            });
         }
     }
 }

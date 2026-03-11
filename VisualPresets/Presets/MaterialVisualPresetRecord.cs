@@ -15,13 +15,21 @@ namespace EDIVE.VisualPresets.Presets
         [SerializeField]
         private Material _Material;
         
-        public Material Material
-        {
-            get => _Material;
-            set => _Material = value;
-        }
-        
+        public Material Material => _Material;
+
         public override string EditorLabel => "Material";
 
+        public override bool Equals(AVisualPresetRecord other)
+        {
+            if (other is not MaterialVisualPresetRecord materialRecord)
+                return false;
+
+            return base.Equals(other) && Equals(Material, materialRecord.Material);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(base.GetHashCode(), Material != null ? Material.GetHashCode() : 0);
+        }
     }
 }

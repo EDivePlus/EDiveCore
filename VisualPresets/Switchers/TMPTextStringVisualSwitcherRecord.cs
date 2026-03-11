@@ -2,6 +2,7 @@
 // Created: 29.10.2025
 
 using System;
+using EDIVE.NativeUtils;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.OdinInspector;
@@ -26,12 +27,13 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class TMPTextStringVisualSwitcherStrategy : AVisualSwitcherStrategy<StringVisualID, StringVisualPresetRecord, TMPTextStringVisualSwitcherRecord>
     {
-        protected override void Apply(StringVisualPresetRecord presetRecord, TMPTextStringVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(StringVisualPresetRecord presetRecord, TMPTextStringVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.Text == null) 
-                return;
+                return DisposableUtils.Empty;
             
             switcherRecord.Text.text = presetRecord.Text;
+            return DisposableUtils.Empty;
         }
     }
 }

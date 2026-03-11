@@ -4,7 +4,8 @@
     "references": [
         "EDIVE.VisualPresets",
         "EDIVE.StateHandling",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

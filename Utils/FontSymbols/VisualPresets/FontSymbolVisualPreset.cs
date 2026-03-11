@@ -2,6 +2,7 @@
 // Created: 29.10.2025
 
 using System;
+using EDIVE.NativeUtils;
 using EDIVE.Utils.FontSymbols;
 using EDIVE.VisualPresets.Presets;
 using Sirenix.OdinInspector;
@@ -41,12 +42,13 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class TextFontSymbolVisualSwitcherStrategy : AVisualSwitcherStrategy<FontSymbolVisualID, FontSymbolVisualPresetRecord, TextFontSymbolVisualSwitcherRecord>
     {
-        protected override void Apply(FontSymbolVisualPresetRecord presetRecord, TextFontSymbolVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(FontSymbolVisualPresetRecord presetRecord, TextFontSymbolVisualSwitcherRecord switcherRecord)
         {
             if (switcherRecord.Text == null) 
-                return;
+                return DisposableUtils.Empty;
             
             switcherRecord.Text.FontSymbol = presetRecord.FontSymbol;
+            return DisposableUtils.Empty;
         }
     }
     
@@ -65,12 +67,13 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class TMPTextFontSymbolVisualSwitcherStrategy : AVisualSwitcherStrategy<FontSymbolVisualID, FontSymbolVisualPresetRecord, TMPTextFontSymbolVisualSwitcherRecord>
     {
-        protected override void Apply(FontSymbolVisualPresetRecord presetRecord, TMPTextFontSymbolVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(FontSymbolVisualPresetRecord presetRecord, TMPTextFontSymbolVisualSwitcherRecord switcherRecord)
         {
-            if (switcherRecord.Text == null) 
-                return;
+            if (switcherRecord.Text == null)
+                return DisposableUtils.Empty;
             
             switcherRecord.Text.FontSymbol = presetRecord.FontSymbol;
+            return DisposableUtils.Empty;
         }
     }
 }

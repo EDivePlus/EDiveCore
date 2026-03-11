@@ -36,8 +36,7 @@ namespace EDIVE.VisualPresets.Switchers
             
             foreach (var switcher in _Records)
             {
-                if (switcher != null && switcher.BaseVisualID == record.BaseVisualID)
-                    switcher.TryApply(record);
+                switcher?.TryApply(record);
             }
         }
         

@@ -11,11 +11,29 @@ using UnityEngine;
 namespace EDIVE.VisualPresets.Presets
 {
     [Serializable]
-    public abstract class AVisualPresetRecord
+    public abstract class AVisualPresetRecord : IEquatable<AVisualPresetRecord>
     {
         public abstract string EditorLabel { get; }
         public abstract ABaseVisualID BaseVisualID { get; }
         public virtual bool IsValid() => BaseVisualID != null;
+
+        public virtual bool Equals(AVisualPresetRecord other)
+        {
+            return other != null && Equals(BaseVisualID, other.BaseVisualID);
+        }
+
+        public override int GetHashCode()
+        {
+            return BaseVisualID != null ? BaseVisualID.GetHashCode() : 0;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((AVisualPresetRecord) obj);
+        }
     }
     
     [Serializable]
@@ -29,5 +47,7 @@ namespace EDIVE.VisualPresets.Presets
         
         public TVisualID VisualID => _VisualID;
         public override ABaseVisualID BaseVisualID => _VisualID;
+        
+        
     }
 }

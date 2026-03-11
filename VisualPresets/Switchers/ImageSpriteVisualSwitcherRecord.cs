@@ -2,6 +2,7 @@
 // Created: 11.11.2025
 
 using System;
+using EDIVE.NativeUtils;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.OdinInspector;
@@ -26,12 +27,13 @@ namespace EDIVE.VisualPresets.Switchers
     [Preserve]
     public class ImageSpriteTextVisualSwitcherStrategy : AVisualSwitcherStrategy<SpriteVisualID, SpriteVisualPresetRecord, ImageSpriteVisualSwitcherRecord>
     {
-        protected override void Apply(SpriteVisualPresetRecord presetRecord, ImageSpriteVisualSwitcherRecord switcherRecord)
+        protected override IDisposable Apply(SpriteVisualPresetRecord presetRecord, ImageSpriteVisualSwitcherRecord switcherRecord)
         {
-            if (switcherRecord.Image == null) 
-                return;
+            if (switcherRecord.Image == null)
+                return DisposableUtils.Empty;
             
             switcherRecord.Image.sprite = presetRecord.Sprite;
+            return DisposableUtils.Empty;
         }
     }
 }

@@ -9,8 +9,8 @@ namespace EDIVE.VisualPresets.Switchers
 {
     public interface IVisualSwitcherStrategy
     {
-        bool TryApply(AVisualPresetRecord presetRecord, AVisualSwitcherRecord switcherRecord, Action onBeforeApply = null);
-        void CleanUp(AVisualSwitcherRecord switcherRecord);
+        bool TryApply(out IDisposable handle, AVisualPresetRecord presetRecord, AVisualSwitcherRecord switcherRecord, Action onBeforeApply = null);
+        void Prepare(AVisualSwitcherRecord switcherRecord);
     }
     
     public interface IVisualSwitcherStrategy<TVisualID> : IVisualSwitcherStrategy where TVisualID : ABaseVisualID
@@ -23,24 +23,25 @@ namespace EDIVE.VisualPresets.Switchers
         where TPresetRecord : AVisualPresetRecord<TVisualID>
         where TSwitcherRecord : AVisualSwitcherRecord<TVisualID>
     {
-        public bool TryApply(AVisualPresetRecord presetRecord, AVisualSwitcherRecord switcherRecord, Action onBeforeApply = null)
+        public bool TryApply(out IDisposable handle, AVisualPresetRecord presetRecord, AVisualSwitcherRecord switcherRecord, Action onBeforeApply = null)
         {
+            handle = null;
             if (presetRecord is not TPresetRecord tPresetRecord || switcherRecord is not TSwitcherRecord tSwitcherRecord)
                 return false;
             
             onBeforeApply?.Invoke();
-            Apply(tPresetRecord, tSwitcherRecord);
+            handle = Apply(tPresetRecord, tSwitcherRecord);
             return true;
         }
         
-        protected abstract void Apply(TPresetRecord presetRecord, TSwitcherRecord switcherRecord);
-
-        public void CleanUp(AVisualSwitcherRecord switcherRecord)
+        protected abstract IDisposable Apply(TPresetRecord presetRecord, TSwitcherRecord switcherRecord);
+        
+        public virtual void Prepare(AVisualSwitcherRecord switcherRecord)
         {
-            if (switcherRecord is TSwitcherRecord tSwitcherRecord) 
-                CleanUp(tSwitcherRecord);
+            if (switcherRecord is TSwitcherRecord tSwitcherRecord)
+                Prepare(tSwitcherRecord);
         }
-
-        protected virtual void CleanUp(TSwitcherRecord switcherRecord) { }
+        
+        protected virtual void Prepare(TSwitcherRecord switcherRecord) { }
     }
 }

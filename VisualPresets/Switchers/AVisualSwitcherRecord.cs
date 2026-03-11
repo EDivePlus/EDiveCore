@@ -39,12 +39,14 @@ namespace EDIVE.VisualPresets.Switchers
         
         // ReSharper disable StaticFieldInGenericType
         private static List<IVisualSwitcherStrategy<TVisualID>> _typedStrategyCatalog;
-        private IVisualSwitcherStrategy<TVisualID> _currentStrategy;
         private bool _isInitialized;
+        
+        private AVisualPresetRecord _currentPreset;
+        private IDisposable _strategyHandle;
         
         public override void TryApply(AVisualPresetRecord preset)
         {
-            if (preset is AVisualPresetRecord<TVisualID> tPreset)
+            if (BaseVisualID == preset.BaseVisualID && !Equals(_currentPreset, preset) && preset is AVisualPresetRecord<TVisualID> tPreset)
                 TryApply(tPreset);
         }
 
@@ -54,24 +56,21 @@ namespace EDIVE.VisualPresets.Switchers
             if (!_isInitialized)
             {
                 _isInitialized = true;
-                _typedStrategyCatalog.ForEach(s => s.CleanUp(this));
+                _typedStrategyCatalog.ForEach(s => s.Prepare(this));
             }
             
             foreach (var strategy in _typedStrategyCatalog)
             {
-                if (!strategy.TryApply(presetRecord, this, OnBeforeApply)) 
+                if (!strategy.TryApply(out _strategyHandle, presetRecord, this, () => _strategyHandle?.Dispose())) 
                     continue;
                 
-                _currentStrategy = strategy;
+                _currentPreset = presetRecord;
                 return;
-
-                void OnBeforeApply()
-                {
-                    if (_currentStrategy != strategy && _currentStrategy != null) 
-                        _currentStrategy.CleanUp(this);
-                }
             }
-            _currentStrategy = null;
+
+            Debug.LogWarning($"[VisualSwitcher] No strategy found for preset {presetRecord.VisualID.name}");
+            _strategyHandle?.Dispose();
+            _currentPreset = null;
         }
     }
 }
