@@ -1,84 +1,48 @@
-﻿using EDIVE.Localization.Fonts;
-using EDIVE.StateHandling.ToggleStates;
-using Sirenix.OdinInspector;
+﻿using EDIVE.VisualPresets.Switchers;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Localization;
-using UnityEngine.UI;
 
 namespace EDIVE.Localization.View
 {
     public class LocaleDisplay : MonoBehaviour
     {
         [SerializeField]
-        protected Locale _Locale;
+        protected EnhancedLocale _DefaultLocale;
 
         [SerializeField]
-        private Image _FlagImage;
+        private TMP_Text _LocaleNameText;
 
         [SerializeField]
-        private AToggleState _FlagImageLoadedToggle;
+        private VisualSwitcher _Visuals;
 
-        [SerializeField]
-        private LocalizedSprite _FlagSpriteLocalizedAsset;
-
-        [SerializeField]
-        private TMP_Text _LabelText;
-
-        [SerializeField]
-        private LocalizedFontDefinition _Font;
-
-        public Locale Locale => _Locale;
+        public Locale CurrentLocale { get; private set; }
 
         protected virtual void Awake()
         {
             RefreshVisual();
+            CurrentLocale = _DefaultLocale;
         }
 
         public void SetLocale(Locale locale)
         {
-            _Locale = locale;
+            if (locale == null)
+                return;
+            CurrentLocale = locale;
             RefreshVisual();
         }
 
-        [PropertySpace]
-        [Button]
         protected void RefreshVisual()
         {
-            if (_Locale == null)
+            if (_DefaultLocale == null)
                 return;
+            
+            if (_LocaleNameText != null) 
+                _LocaleNameText.text = CurrentLocale.GetNativeName();
 
-            if(_FlagImage)
-                ApplyFlagIcon();
-
-            if (_LabelText)
+            if (CurrentLocale is EnhancedLocale enhancedLocale)
             {
-                _LabelText.text = _Locale.GetNativeName();
-                if (_Font)
-                {
-                    var preset = _Font.GetLanguageFontPreset(_Locale.GetEnglishName());
-                    _LabelText.font = preset.Font;
-                    _LabelText.fontSharedMaterial = preset.Material;
-                }
-            }
-        }
-        
-        private void ApplyFlagIcon()
-        {
-            if (_FlagSpriteLocalizedAsset != null)
-            {
-                if (_FlagImageLoadedToggle)
-                    _FlagImageLoadedToggle.SetState(false);
-                _FlagSpriteLocalizedAsset.LocaleOverride = _Locale;
-                var loadOperation = _FlagSpriteLocalizedAsset.LoadAssetAsync();
-                loadOperation.Completed += handle =>
-                {
-                    if (!this || !_FlagImage)
-                        return;
-                    _FlagImage.sprite = handle.Result;
-                    if (_FlagImageLoadedToggle)
-                        _FlagImageLoadedToggle.SetState(true);
-                };
+                _Visuals?.Apply(enhancedLocale.VisualPreset);
             }
         }
     }

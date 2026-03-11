@@ -1,4 +1,7 @@
-﻿using UnityEngine.Localization;
+﻿// Author: Michal Petr
+// Created: 11.03.2026
+
+using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 
 namespace EDIVE.Localization.View
@@ -7,9 +10,8 @@ namespace EDIVE.Localization.View
     {
         protected override void Awake()
         {
-            _Locale = LocalizationSettings.SelectedLocale;
+            SetLocale(LocalizationSettings.SelectedLocale);
             LocalizationSettings.SelectedLocaleChanged += LocalizationChanged;
-            base.Awake();
         }
 
         private void OnDestroy()

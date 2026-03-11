@@ -2,6 +2,7 @@
 // Created: 11.03.2026
 
 using System;
+using EDIVE.Localization.Fonts;
 using EDIVE.VisualPresets.Presets;
 using UnityEngine;
 using UnityEngine.Localization;
@@ -18,7 +19,11 @@ namespace EDIVE.Localization
         [SerializeField]
         private VisualPreset _VisualPreset = new();
         
+        [SerializeField]
+        private LocalizedFontDefinition _FontDefinition = new();
+        
         public VisualPreset VisualPreset => _VisualPreset;
+        public LocalizedFontDefinition FontDefinition => _FontDefinition;
     }
 
 #if UNITY_EDITOR
