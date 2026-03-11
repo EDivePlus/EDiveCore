@@ -2,24 +2,32 @@
 // Created: 13.05.2025
 
 #if UNITY_EDITOR
+using System;
 using Sirenix.OdinInspector.Editor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace EDIVE.OdinExtensions.Editor
 {
-    public class NativeWrapperOdinEditor<T, TEditor> : OdinEditor
-        where T : Object
-        where TEditor : UnityEditor.Editor
+    public abstract class NativeWrapperOdinEditor : OdinEditor
     {
         private UnityEditor.Editor _unityEditor;
+        
+        protected abstract Type BaseType { get; }
+        protected abstract Type BaseEditorType { get; }
+        
+        protected virtual bool DrawBaseEditor => true;
 
         protected override void OnEnable()
         {
             base.OnEnable();
-            foreach (var property in Tree.EnumerateTree())
+            if (DrawBaseEditor)
             {
-                if (property.Info.TypeOfOwner.IsAssignableFrom(typeof(T)))
-                    property.State.Visible = false;
+                foreach (var property in Tree.EnumerateTree())
+                {
+                    if (property.Info.TypeOfOwner.IsAssignableFrom(BaseType))
+                        property.State.Visible = false;
+                }
             }
         }
 
@@ -32,15 +40,44 @@ namespace EDIVE.OdinExtensions.Editor
 
         public override void OnInspectorGUI()
         {
-            if (_unityEditor == null)
-                _unityEditor = CreateEditor(targets, typeof(TEditor));
+            if (BaseEditorType == null)
+            {
+                base.OnInspectorGUI();
+                return;
+            }
 
-            if (_unityEditor != null)
-                _unityEditor.OnInspectorGUI();
+            if (DrawBaseEditor)
+            {
+                if (_unityEditor == null)
+                    _unityEditor = CreateEditor(targets, BaseEditorType);
 
-            GUILayout.Space(8);
+                if (_unityEditor != null)
+                    _unityEditor.OnInspectorGUI();
+                
+                GUILayout.Space(4);
+            }
+
             base.OnInspectorGUI();
         }
+
+        protected override void DrawTree()
+        {
+            Tree.DrawMonoScriptObjectField = false;
+            base.DrawTree();
+        }
+    }
+    
+    public abstract class NativeWrapperOdinEditor<TBase> : NativeWrapperOdinEditor
+        where TBase : Object
+    {
+        protected override Type BaseType => typeof(TBase);
+    }
+    
+    public abstract class NativeWrapperOdinEditor<TBase, TEditor> : NativeWrapperOdinEditor<TBase>
+        where TBase : Object
+        where TEditor : UnityEditor.Editor
+    {
+        protected override Type BaseEditorType => typeof(TEditor);
     }
 }
 #endif
