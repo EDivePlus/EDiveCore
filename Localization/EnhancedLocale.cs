@@ -20,7 +20,7 @@ namespace EDIVE.Localization
         private VisualPreset _VisualPreset = new();
         
         [SerializeField]
-        private LocalizedFontDefinition _FontDefinition = new();
+        private LocalizedFontDefinition _FontDefinition;
         
         public VisualPreset VisualPreset => _VisualPreset;
         public LocalizedFontDefinition FontDefinition => _FontDefinition;
