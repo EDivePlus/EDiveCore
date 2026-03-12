@@ -33,6 +33,8 @@ namespace EDIVE.Procedural.MeshScaling
         [HideInInspector]
         [SerializeField]
         private int _ModificationsHash;
+        
+        public override string Label => "Mesh";
 
         public override bool TryCalculateBounds(Transform root, out Bounds bounds)
         {
@@ -64,6 +66,16 @@ namespace EDIVE.Procedural.MeshScaling
             }
 
             return false;
+        }
+
+        public override void PreviewOriginal(MeshSliceScaleDetails details, Component container, Transform root)
+        {
+            _SlicedMeshHash = 0;
+            _ModificationsHash = 0;
+            if (_MeshFilter != null) 
+                _MeshFilter.sharedMesh = _OriginalMesh;
+            if (_MeshCollider != null)
+                _MeshCollider.sharedMesh = _OriginalMesh;
         }
         
         public override bool Recalculate(MeshSliceScaleDetails details, Component container, Transform root, bool force = false)

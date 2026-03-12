@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 02.10.2025
 
+using System;
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
@@ -13,18 +14,28 @@ namespace EDIVE.Procedural.MeshScaling
     [ExecuteAlways]
     public class MeshSliceScaler : MonoBehaviour
     {
+        [PropertyOrder(-1)]
+        [ShowInInspector]
+        public Vector3 Size
+        {
+            get => _Details.TargetScale.MultiplyElementWise(_Details.Bounds.size);
+            set => _Details.TargetScale = value.DivideElementWise(_Details.Bounds.size);
+        }
+
+        [PropertySpace]
         [HideLabel]
         [InlineProperty]
         [SerializeField]
-        [OnValueChanged(nameof(Recalculate), true)]
+        [OnValueChanged("EditorRefresh", true)]
         private MeshSliceScaleDetails _Details = new();
-        
+
         [PropertySpace]
         [SerializeReference]
         [HideReferenceObjectPicker]
-        [OnValueChanged(nameof(Recalculate), true)]
+        [CustomValueDrawer("CustomComponentDrawer")]
+        [OnValueChanged("EditorRefresh", true)]
         private List<AMeshSliceScalerComponent> _Components = new();
-        
+
         public Vector3 TargetSize
         {
             get => _Details.TargetScale;
@@ -34,12 +45,13 @@ namespace EDIVE.Procedural.MeshScaling
                 Recalculate();
             }
         }
-        
+
         private void OnEnable()
         {
+            RecalculateBounds();
             Recalculate();
         }
-        
+
         private void RecalculateBounds()
         {
             var hasBounds = false;
@@ -64,36 +76,78 @@ namespace EDIVE.Procedural.MeshScaling
             _Details.SliceMin = _Details.SliceMin.Clamp(_Details.Bounds.min, _Details.Bounds.max);
             _Details.SliceMax = _Details.SliceMax.Clamp(_Details.SliceMin, _Details.Bounds.max);
         }
-        
+
         private void Recalculate(bool force = false)
         {
-            var modified = false;
             foreach (var component in _Components)
             {
-                if (component == null)
-                    continue;
-                modified |= component.Recalculate(_Details, this, transform, force);
+                component?.Recalculate(_Details, this, transform, force);
             }
-            if (modified)
-                RecalculateBounds();
+            
+            foreach (var component in _Components)
+            {
+                component?.Postprocess(_Details, this, transform);
+            }
+        }
+
+        private void ShowPreviewOriginal()
+        {
+            foreach (var component in _Components)
+            {
+                component?.PreviewOriginal(_Details, this, transform);
+            }
+        }
+
+#if UNITY_EDITOR
+        [PropertyOrder(-10)]
+        [ShowInInspector]
+        [OnValueChanged("EditorRefresh")]
+        private bool PreviewSlicing { get; set; }
+
+        private void EditorRefresh()
+        {
+            RecalculateBounds();
+            
+            if (PreviewSlicing)
+                ShowPreviewOriginal();
+            else
+                Recalculate();
+        }
+
+        private void HideOriginal()
+        {
+            if (!PreviewSlicing) 
+                return;
+            
+            Recalculate(true);
+            PreviewSlicing = false;
         }
         
-#if UNITY_EDITOR
         [Button]
         private void ForceRecalculate()
         {
             Recalculate(true);
         }
-        
+
         [OnInspectorInit]
         private void OnInspectorInit()
         {
-            Recalculate();
+            PreviewSlicing = false;
+            EditorRefresh();
         }
         
+        [OnInspectorDispose]
+        private void OnInspectorDispose()
+        {
+            HideOriginal();
+        }
+
         [OnSceneGUI]
         private void OnSceneGUI()
         {
+            if (!PreviewSlicing)
+                return;
+            
             var matrix = transform.localToWorldMatrix;
             using (new Handles.DrawingScope(matrix))
             {
@@ -102,7 +156,7 @@ namespace EDIVE.Procedural.MeshScaling
                 DrawSliceHandles();
             }
         }
-        
+
         private void DrawSliceHandles()
         {
             DrawPlaneHandle(ref _Details.SliceMin.x, ref _Details.SliceMax.x, -Vector3.right, Vector3.up, Vector3.forward, _Details.Bounds, Color.red);
@@ -112,7 +166,7 @@ namespace EDIVE.Procedural.MeshScaling
             DrawPlaneHandle(ref _Details.SliceMax.y, ref _Details.SliceMin.y, Vector3.up, Vector3.right, Vector3.forward, _Details.Bounds, Color.green);
 
             DrawPlaneHandle(ref _Details.SliceMin.z, ref _Details.SliceMax.z, -Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
-            DrawPlaneHandle(ref _Details.SliceMax.z, ref _Details.SliceMin.z,Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
+            DrawPlaneHandle(ref _Details.SliceMax.z, ref _Details.SliceMin.z, Vector3.forward, Vector3.right, Vector3.up, _Details.Bounds, Color.cyan);
         }
 
         private void DrawPlaneHandle(ref float value, ref float otherValue, Vector3 axis, Vector3 extendA, Vector3 extendB, Bounds bounds, Color color)
@@ -133,7 +187,7 @@ namespace EDIVE.Procedural.MeshScaling
                 var min = Vector3.Dot(bounds.min, absAxis);
                 var max = Vector3.Dot(bounds.max, absAxis);
                 value = Mathf.Clamp(newValue, min, max);
-                
+
                 if ((axis.x < 0 || axis.y < 0 || axis.z < 0))
                 {
                     if (value > otherValue) otherValue = value;
@@ -145,14 +199,14 @@ namespace EDIVE.Procedural.MeshScaling
 
                 EditorUtility.SetDirty(this);
             }
-            
+
             var halfA = extendA * (Vector3.Dot(bounds.extents, extendA));
             var halfB = extendB * (Vector3.Dot(bounds.extents, extendB));
             var verts = new[]
             {
-                planeCenter - halfA - halfB, 
+                planeCenter - halfA - halfB,
                 planeCenter - halfA + halfB,
-                planeCenter + halfA + halfB, 
+                planeCenter + halfA + halfB,
                 planeCenter + halfA - halfB
             };
             Handles.DrawSolidRectangleWithOutline(verts, color.WithA(0.04f), color.WithA(0.7f));
@@ -163,6 +217,12 @@ namespace EDIVE.Procedural.MeshScaling
                 var offsetPosition = position + (axis * (size * 0.5f));
                 Handles.ConeHandleCap(controlID, offsetPosition, rotation, size, eventType);
             }
+        }
+        
+        private void CustomComponentDrawer(AMeshSliceScalerComponent value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
+        {
+            GUILayout.Label(value.Label, EditorStyles.boldLabel);
+            callNextDrawer.Invoke(label);
         }
 #endif
     }
