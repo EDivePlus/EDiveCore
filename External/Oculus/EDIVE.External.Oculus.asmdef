@@ -6,7 +6,8 @@
         "Oculus.VR.Editor",
         "Meta.XR.Editor.UserInterface",
         "Unity.TextMeshPro",
-        "Unity.TextMeshPro.Editor"
+        "Unity.TextMeshPro.Editor",
+        "EDIVE.OdinExtensions.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

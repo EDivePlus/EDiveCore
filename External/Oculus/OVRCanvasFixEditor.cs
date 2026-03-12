@@ -1,14 +1,15 @@
 ﻿#if UNITY_EDITOR
+using System;
 using System.Linq;
+using EDIVE.OdinExtensions.Editor;
 using Meta.XR.Editor.UserInterface;
-using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 using UnityEngine;
 
 namespace EDIVE.External.Oculus
 {
 #if UNITY_TEXTMESHPRO
-    [CustomEditor(typeof(TMPro.TextMeshPro))]
+    [CustomEditor(typeof(TMPro.TextMeshPro), true)]
     [CanEditMultipleObjects]
     public class OVRTextFixEditor : TMPro.EditorUtilities.TMP_EditorPanel
     {
@@ -27,11 +28,12 @@ namespace EDIVE.External.Oculus
 
     [CustomEditor(typeof(Canvas))]
     [CanEditMultipleObjects]
-    public class OVRCanvasFixEditor : OdinEditor
+    public class OVRCanvasFixEditor : NativeWrapperOdinEditor<Canvas>
     {
         private int _presetSelection = 0;
         private GUIStyle _presetAreaStyle;
-        private Editor _unityEditor;
+
+        protected override Type BaseEditorType => typeof(Editor).Assembly.GetType("UnityEditor.CanvasEditor");
 
         protected override void OnEnable()
         {
@@ -43,13 +45,6 @@ namespace EDIVE.External.Oculus
                     background = Styles.Colors.DarkGray.ToTexture(),
                 }
             };
-        }
-
-        protected override void OnDisable()
-        {
-            base.OnDisable();
-            if (_unityEditor != null)
-                DestroyImmediate(_unityEditor);
         }
 
         public override void OnInspectorGUI()
@@ -69,11 +64,7 @@ namespace EDIVE.External.Oculus
                 },
                 $"{nameof(Canvas)}/{(_presetSelection == 0 ? "UI" : "Text")}");
 
-            if (_unityEditor == null)
-                _unityEditor = CreateEditor(targets, typeof(Editor).Assembly.GetType("UnityEditor.CanvasEditor"));
-
-            if (_unityEditor != null)
-                _unityEditor.OnInspectorGUI();
+            base.OnInspectorGUI();
         }
 
         private static RenderMode GetRenderMode(Canvas canvas)
