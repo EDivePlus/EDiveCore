@@ -59,7 +59,7 @@ namespace EDIVE.UserCenter
 
                 if (string.IsNullOrWhiteSpace(bid))
                 { 
-                    hcDebug.LogError("[UserCenterHttp] includeBranchHeader=true but BranchId is NULL/EMPTY. Savedata endpoints will fail (branch is required).");
+                    Debug.LogError("[UserCenterHttp] includeBranchHeader=true but BranchId is NULL/EMPTY. Savedata endpoints will fail (branch is required).");
                 }
                 else
                 {

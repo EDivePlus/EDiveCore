@@ -2,6 +2,7 @@
 // Created: 08.09.2025
 
 using System;
+using EDIVE.Http;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

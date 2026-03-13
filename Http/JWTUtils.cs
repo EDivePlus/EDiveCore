@@ -5,7 +5,7 @@ using System;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.Http
 {
     public static class JwtUtils
     {
