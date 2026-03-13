@@ -8,9 +8,11 @@
         "EDIVE.OdinExtensions",
         "Unity.XR.Interaction.Toolkit",
         "Unity.XR.Interaction.Toolkit.Editor",
+        "Unity.XR.Hands",
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.AppLoading",
         "UniTask",
+        "R3.Unity",
         "Unity.XR.CoreUtils",
         "EDIVE.External.ToolbarExtensions",
         "Unity.TextMeshPro",
@@ -22,7 +24,9 @@
         "EDIVE.Utils",
         "StompyRobot.SRDebugger",
         "EDIVE.Conditions",
-        "EDIVE.EditorUtils"
+        "EDIVE.EditorUtils",
+        "EDIVE.External.DomainReloadHelper",
+        "Unity.XR.Hands.Samples.Gestures"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -38,6 +42,11 @@
             "name": "com.unity.xr.interaction.toolkit",
             "expression": "",
             "define": "XR_INTERACTION_TOOLKIT"
+        },
+        {
+            "name": "com.unity.xr.hands",
+            "expression": "",
+            "define": "XR_HANDS"
         }
     ],
     "noEngineReferences": false
