@@ -1,0 +1,31 @@
+{
+  "name": "EDIVE.XRTools.Editor",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.EditorUtils",
+    "EDIVE.OdinExtensions.Editor",
+    "Unity.XR.Interaction.Toolkit",
+    "Unity.XR.Interaction.Toolkit.Editor",
+    "Unity.XR.CoreUtils",
+    "EDIVE.OdinExtensions",
+    "EDIVE.External.DomainReloadHelper",
+    "Unity.XR.Hands.Samples.Gestures"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "XR_INTERACTION_TOOLKIT"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.xr.interaction.toolkit",
+      "expression": "",
+      "define": "XR_INTERACTION_TOOLKIT"
+    }
+  ],
+  "noEngineReferences": false
+}

@@ -15,7 +15,7 @@ namespace EDIVE.External.DomainReloadHelper
             EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
             EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
 
-            if (EditorSettings.enterPlayModeOptionsEnabled && (EditorSettings.enterPlayModeOptions & EnterPlayModeOptions.DisableDomainReload) > 0) 
+            if (EditorSettings.enterPlayModeOptionsEnabled && (EditorSettings.enterPlayModeOptions & EnterPlayModeOptions.DisableDomainReload) > 0)
                 ReloadDomain();
         }
 
@@ -24,7 +24,7 @@ namespace EDIVE.External.DomainReloadHelper
             if (state == PlayModeStateChange.EnteredEditMode)
                 ReloadDomain();
         }
-        
+
         private static void ReloadDomain()
         {
             Profiler.BeginSample("DomainReloadHandler");
@@ -50,39 +50,19 @@ namespace EDIVE.External.DomainReloadHelper
                 }
                 else if (member is FieldInfo field)
                 {
-                    var fieldType = field.FieldType;
-
-                    // Extract attribute and access its parameters
                     var reloadAttribute = field.GetCustomAttribute<ClearOnReloadAttribute>();
                     if (reloadAttribute == null)
                         continue;
-                    var valueToAssign = reloadAttribute.ValueToAssign;
-                    var assignNewTypeInstance = reloadAttribute.AssignNewTypeInstance;
 
-                    // Use valueToAssign only if it's convertible to the field value type
-                    object value = null;
-                    if (valueToAssign != null)
+                    if (reloadAttribute.AssignNewTypeInstance)
                     {
-                        value = System.Convert.ChangeType(valueToAssign, fieldType);
-                        if (value == null)
-                            Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {fieldType}.");
+                        if (ClearFieldToNew(field)) 
+                            clearedValues++;
                     }
-
-                    // If assignNewTypeInstance is set, create a new instance of this type and assign it to the field
-                    if (assignNewTypeInstance)
-                        value = System.Activator.CreateInstance(fieldType);
-
-                    try
+                    else
                     {
-                        field.SetValue(null, value);
-                        clearedValues++;
-                    }
-                    catch
-                    {
-                        if (valueToAssign == null)
-                            Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
-                        else
-                            Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign field {field.Name}.");
+                        if (ClearField(field, reloadAttribute.ValueToAssign)) 
+                            clearedValues++;
                     }
                 }
             }
@@ -100,6 +80,43 @@ namespace EDIVE.External.DomainReloadHelper
             if (field != null && !filterValue)
                 Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Inapplicable field {field.Name} to clear; must be static and non-generic.");
             return filterValue;
+        }
+
+        public static bool ClearField(FieldInfo field, object valueToAssign = null)
+        {
+            if (field == null)
+                return false;
+            try
+            {
+                var value = System.Convert.ChangeType(valueToAssign, field.FieldType);
+                if (value == null)
+                    Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {field.FieldType}.");
+                
+                field.SetValue(null, value);
+                return true;
+            }
+            catch
+            {
+                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
+                return false;
+            }
+        }
+        
+        public static bool ClearFieldToNew(FieldInfo field)
+        {
+            if (field == null)
+                return false;
+            try
+            {
+                var value = System.Activator.CreateInstance(field.FieldType);
+                field.SetValue(null, value);
+                return true;
+            }
+            catch
+            {
+                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
+                return false;
+            }
         }
     }
 }
