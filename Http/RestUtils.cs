@@ -1,7 +1,4 @@
-﻿// Author: Michal Petr
-// Created: 12.03.2026
-
-using System;
+﻿using System;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -24,183 +21,77 @@ namespace EDIVE.Http
 
     public static class RestUtils
     {
-        private const int DEFAULT_TIMEOUT = 30; // Seconds
+        private const int DEFAULT_TIMEOUT = 30;
 
-        public static async UniTask<TResponse> PostAsync<TResponse, TRequest>(
-            string url, 
-            TRequest request, 
-            string authToken = null,
-            CancellationToken cancellationToken = default)
+        public static UniTask<TResponse> PostAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, CancellationToken cancellationToken = default)
         {
             var json = JsonConvert.SerializeObject(request);
-            var bytes = Encoding.UTF8.GetBytes(json);
-
-            using var webRequest = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
-            webRequest.uploadHandler = new UploadHandlerRaw(bytes)
-            {
-                contentType = "application/json"
-            };
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.timeout = DEFAULT_TIMEOUT;
-            
-            webRequest.SetRequestHeader("Content-Type", "application/json");
-            webRequest.SetRequestHeader("Accept", "application/json");
-            
-            if (!string.IsNullOrEmpty(authToken))
-            {
-                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
-            }
-
-            // Pass cancellation token to SendWebRequest
-            await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
-
-            if (webRequest.result != UnityWebRequest.Result.Success)
-            {
-                throw new RestRequestException(
-                    $"POST {url} failed: {webRequest.error}", 
-                    webRequest.responseCode, 
-                    webRequest.downloadHandler.text
-                );
-            }
-
-            return JsonConvert.DeserializeObject<TResponse>(webRequest.downloadHandler.text);
+            return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbPOST, json, authToken, cancellationToken);
         }
 
-        public static async UniTask<TResponse> PutAsync<TResponse, TRequest>(
-            string url, 
-            TRequest request, 
-            string authToken = null,
-            CancellationToken cancellationToken = default)
+        public static UniTask<TResponse> PutAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, CancellationToken cancellationToken = default)
         {
             var json = JsonConvert.SerializeObject(request);
-            var bytes = Encoding.UTF8.GetBytes(json);
-
-            using var webRequest = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPUT);
-            webRequest.uploadHandler = new UploadHandlerRaw(bytes)
-            {
-                contentType = "application/json"
-            };
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.timeout = DEFAULT_TIMEOUT;
-            
-            webRequest.SetRequestHeader("Content-Type", "application/json");
-            webRequest.SetRequestHeader("Accept", "application/json");
-            
-            if (!string.IsNullOrEmpty(authToken))
-            {
-                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
-            }
-
-            // Pass cancellation token to SendWebRequest
-            await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
-
-            if (webRequest.result != UnityWebRequest.Result.Success)
-            {
-                throw new RestRequestException(
-                    $"PUT {url} failed: {webRequest.error}", 
-                    webRequest.responseCode, 
-                    webRequest.downloadHandler.text
-                );
-            }
-
-            return JsonConvert.DeserializeObject<TResponse>(webRequest.downloadHandler.text);
+            return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbPUT, json, authToken, cancellationToken);
         }
 
-        public static async UniTask<TResponse> PatchAsync<TResponse, TRequest>(
-            string url, 
-            TRequest request, 
-            string authToken = null,
-            CancellationToken cancellationToken = default)
+        public static UniTask<TResponse> PatchAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, CancellationToken cancellationToken = default)
         {
             var json = JsonConvert.SerializeObject(request);
-            var bytes = Encoding.UTF8.GetBytes(json);
-
-            using var webRequest = new UnityWebRequest(url, "PATCH");
-            webRequest.uploadHandler = new UploadHandlerRaw(bytes)
-            {
-                contentType = "application/json"
-            };
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.timeout = DEFAULT_TIMEOUT;
-            
-            webRequest.SetRequestHeader("Content-Type", "application/json");
-            webRequest.SetRequestHeader("Accept", "application/json");
-            
-            if (!string.IsNullOrEmpty(authToken))
-            {
-                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
-            }
-
-            // Pass cancellation token to SendWebRequest
-            await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
-
-            if (webRequest.result != UnityWebRequest.Result.Success)
-            {
-                throw new RestRequestException(
-                    $"PATCH {url} failed: {webRequest.error}", 
-                    webRequest.responseCode, 
-                    webRequest.downloadHandler.text
-                );
-            }
-
-            return JsonConvert.DeserializeObject<TResponse>(webRequest.downloadHandler.text);
+            return SendRequestAsync<TResponse>(url, "PATCH", json, authToken, cancellationToken);
         }
 
-        public static async UniTask<T> DeleteAsync<T>(
-            string url, 
-            string authToken = null,
-            CancellationToken cancellationToken = default)
+        public static UniTask<T> DeleteAsync<T>(string url, string authToken = null, CancellationToken cancellationToken = default)
         {
-            using var webRequest = UnityWebRequest.Delete(url);
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.timeout = DEFAULT_TIMEOUT;
-            webRequest.SetRequestHeader("Accept", "application/json");
-
-            if (!string.IsNullOrEmpty(authToken))
-            {
-                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
-            }
-
-            await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
-
-            if (webRequest.result != UnityWebRequest.Result.Success)
-            {
-                throw new RestRequestException(
-                    $"DELETE {url} failed: {webRequest.error}", 
-                    webRequest.responseCode, 
-                    webRequest.downloadHandler.text
-                );
-            }
-
-            return JsonConvert.DeserializeObject<T>(webRequest.downloadHandler.text);
+            return SendRequestAsync<T>(url, UnityWebRequest.kHttpVerbDELETE, null, authToken, cancellationToken);
         }
 
-        public static async UniTask<T> GetAsync<T>(
-            string url, 
-            string authToken = null,
-            CancellationToken cancellationToken = default)
+        public static UniTask<T> GetAsync<T>(string url, string authToken = null, CancellationToken cancellationToken = default)
         {
-            using var webRequest = UnityWebRequest.Get(url);
-            webRequest.timeout = DEFAULT_TIMEOUT;
-            webRequest.SetRequestHeader("Accept", "application/json");
+            return SendRequestAsync<T>(url, UnityWebRequest.kHttpVerbGET, null, authToken, cancellationToken);
+        }
 
-            if (!string.IsNullOrEmpty(authToken))
+        private static async UniTask<TResponse> SendRequestAsync<TResponse>(
+            string url, 
+            string method, 
+            string jsonPayload, 
+            string authToken, 
+            CancellationToken cancellationToken)
+        {
+            using var webRequest = new UnityWebRequest(url, method);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.timeout = DEFAULT_TIMEOUT;
+
+            if (jsonPayload != null)
             {
-                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
+                var bytes = Encoding.UTF8.GetBytes(jsonPayload);
+                webRequest.uploadHandler = new UploadHandlerRaw(bytes);
+                webRequest.SetRequestHeader("Content-Type", "application/json");
             }
 
-            await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
+            webRequest.SetRequestHeader("Accept", "application/json");
+    
+            if (!string.IsNullOrEmpty(authToken)) 
+                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
 
-            if (webRequest.result != UnityWebRequest.Result.Success)
+            try
+            {
+                await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
+            }
+            catch (UnityWebRequestException ex)
             {
                 throw new RestRequestException(
-                    $"GET {url} failed: {webRequest.error}", 
-                    webRequest.responseCode, 
-                    webRequest.downloadHandler.text
+                    $"{method} {url} failed: {ex.Message}", 
+                    ex.ResponseCode, 
+                    ex.Text
                 );
             }
 
-            return JsonConvert.DeserializeObject<T>(webRequest.downloadHandler.text);
+            var responseText = webRequest.downloadHandler?.text;
+
+            if (string.IsNullOrWhiteSpace(responseText)) return default;
+
+            return await UniTask.RunOnThreadPool(() => JsonConvert.DeserializeObject<TResponse>(responseText), cancellationToken: cancellationToken);
         }
     }
 }
