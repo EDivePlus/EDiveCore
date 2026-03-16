@@ -18,6 +18,7 @@ namespace EDIVE.OdinExtensions.Editor
         protected abstract Type BaseEditorType { get; }
         
         protected virtual bool DrawBaseEditor => true;
+        protected virtual bool DrawOdinEditor => true;
 
         protected override void OnEnable()
         {
@@ -58,7 +59,8 @@ namespace EDIVE.OdinExtensions.Editor
                 GUILayout.Space(4);
             }
 
-            base.OnInspectorGUI();
+            if (DrawOdinEditor)
+                base.OnInspectorGUI();
         }
 
         protected override void DrawTree()
