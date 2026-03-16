@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
@@ -34,66 +35,128 @@ namespace EDIVE.Utils.FontSymbols
             }
         }
 
-        [HorizontalGroup("Search")]
+        [HorizontalGroup("Symbol")]
+        [VerticalGroup("Symbol/Data")]
+        [PropertyOrder(-1)] 
+        [ShowInInspector]
+        [EnhancedAssetSelector(FlattenTreeView = true)]
+        private FontSymbolsDefinition Definition
+        {
+            get => _currentValue.Definition;
+            set
+            {
+                _currentValue = _currentValue.WithDefinition(value);
+                _onSelectionChanged?.Invoke(_currentValue);
+                RefreshDefinition();
+            }
+        }
+        
+        [VerticalGroup("Symbol/Data")]
+        [PropertyOrder(-1)] 
+        [ShowInInspector]
+        private string HexCode
+        {
+            get => FontSymbol.ConvertCharToHex(_currentValue.Symbol);
+            set
+            {
+                _currentValue = _currentValue.WithSymbol(FontSymbol.ConvertHexToChar(value));
+                _onSelectionChanged?.Invoke(_currentValue);
+                RefreshSelected();
+            }
+        }
+        
         [OnValueChanged(nameof(RunFilter))]
         [SerializeField]
         private string _SearchFilter;
-
+        
         [SerializeField]
         [PropertyRange(20, 80)]
         private int _Size = 40;
 
         private GUIStyle _imageStyle;
 
-        private FontSymbolsDefinition _definition;
+        private FontSymbol _currentValue;
         private List<CodepointData> _filteredCollection;
-        private CodepointData _selected;
-        private Action<Codepoint> _onSelectionChanged;
+        private CodepointData _selectedCodePoint;
+        private Action<FontSymbol> _onSelectionChanged;
         private Vector2 _scrollPos = Vector2.zero;
-
-        public static void Open(FontSymbolsDefinition definition, char preSelected = char.MinValue, Action<Codepoint> onSelectionChanged = null)
+        
+        public static void Open(FontSymbolsDefinition definition)
+        {
+            Open(new FontSymbol(definition, '\0'));
+        }
+        
+        public static void Open(FontSymbol defaultValue, Action<FontSymbol> onSelectionChanged = null)
         {
             var window = GetWindow<FontSymbolSelectionWindow>(true);
             window.wantsMouseMove = true;
-            window.Prepare(definition, preSelected, onSelectionChanged);
+            window.Prepare(defaultValue, onSelectionChanged);
             window.ShowAuxWindow();
         }
 
-        private void Prepare(FontSymbolsDefinition definition, char preSelected,  Action<Codepoint> onSelectionChanged)
+        private void Prepare(FontSymbol defaultValue, Action<FontSymbol> onSelectionChanged)
         {
-            _definition = definition;
-            if (!_definition)
-                return;
-
+            _currentValue = defaultValue;
             _onSelectionChanged = onSelectionChanged;
-            _filteredCollection = _definition.Codepoints.Entries.Select((c, i) => new CodepointData(c, i)).ToList();
-            _selected = _filteredCollection.FirstOrDefault(data => data.Codepoint.Char == preSelected);
+            RefreshDefinition();
+        }
 
+        private void RefreshDefinition()
+        {
+            if (_currentValue.Definition == null)
+                return;
+            
+            _filteredCollection = _currentValue.Definition.Codepoints.Entries.Select((c, i) => new CodepointData(c, i)).ToList();
             _imageStyle = new GUIStyle(SirenixGUIStyles.WhiteLabelCentered)
             {
-                font = _definition.Font,
+                font = _currentValue.Definition.Font,
                 fontSize = _Size,
                 alignment = TextAnchor.MiddleCenter,
                 padding = new RectOffset(0, 0, 0, 0),
                 margin = new RectOffset(0, 0, 0, 0)
             };
+            RunFilter();
+            RefreshSelected();
         }
 
+        private void RefreshSelected()
+        {
+            _selectedCodePoint = _filteredCollection.FirstOrDefault(data => data.Codepoint.Char == _currentValue.Symbol);
+        }
+
+        [HorizontalGroup("Symbol", 50, DisableAutomaticLabelWidth = true)]
+        [OnInspectorGUI]
+        private void DrawSymbol()
+        {
+            SirenixEditorGUI.BeginBox(GUILayout.Width(40), GUILayout.Height(40));
+            var rect = GUILayoutUtility.GetRect(40, 40);
+            if (_currentValue.Definition != null && Event.current.type == EventType.Repaint)
+            {
+                _imageStyle.Draw(rect, GUIHelper.TempContent(_currentValue.Symbol.ToString()), 0);
+            }
+            SirenixEditorGUI.EndBox();
+        }
+        
         [OnInspectorGUI]
         private void DrawTable()
         {
-            if (!_definition)
+            if (_currentValue.Definition == null)
             {
                 EditorGUILayout.HelpBox("Invalid definition", MessageType.Error);
                 return;
             }
 
-            if (!_definition.Codepoints || _definition.Codepoints.Entries.Count == 0)
+            if (!_currentValue.Definition.Codepoints || _currentValue.Definition.Codepoints.Entries.Count == 0)
             {
                 EditorGUILayout.HelpBox("Invalid codepoints", MessageType.Error);
                 return;
             }
 
+            if (_filteredCollection == null)
+            {
+                RefreshDefinition();
+            }
+            
             _imageStyle.fontSize = _Size;
             _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
             var viewWidth = EditorGUIUtility.currentViewWidth - 20;
@@ -116,7 +179,7 @@ namespace EDIVE.Utils.FontSymbols
                 var icon = _filteredCollection[i];
                 var cellAligned = cell.AlignCenter(charSize.x, charSize.y);
                 var hover = cellAligned.Contains(Event.current.mousePosition);
-                var active = icon == _selected;
+                var active = icon == _selectedCodePoint;
 
                 if (Event.current.type == EventType.Repaint)
                 {
@@ -148,7 +211,7 @@ namespace EDIVE.Utils.FontSymbols
 
         private void RunFilter()
         {
-            _filteredCollection = _definition.Codepoints.Entries.Select((c, i) => new CodepointData(c, i)).ToList();
+            _filteredCollection = _currentValue.Definition.Codepoints.Entries.Select((c, i) => new CodepointData(c, i)).ToList();
 
             if (!string.IsNullOrEmpty(_SearchFilter))
             {
@@ -161,11 +224,9 @@ namespace EDIVE.Utils.FontSymbols
 
         private void Select(CodepointData data)
         {
-            if (_onSelectionChanged != null)
-            {
-                _selected = data;
-                _onSelectionChanged?.Invoke(data.Codepoint);
-            }
+            _currentValue = _currentValue.WithSymbol(data.Codepoint.Char);
+            _onSelectionChanged?.Invoke(_currentValue);
+            RefreshSelected();
         }
     }
 }

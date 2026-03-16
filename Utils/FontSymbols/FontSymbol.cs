@@ -45,6 +45,30 @@ namespace EDIVE.Utils.FontSymbols
         {
             return _Definition.CheckSymbolAvailability(Symbol);
         }
+        
+        public static string ConvertCharToHex(char code)
+        {
+            try
+            {
+                return Convert.ToString(code, 16);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public static char ConvertHexToChar(string hex)
+        {
+            try
+            {
+                return Convert.ToChar(Convert.ToInt32(hex, 16));
+            }
+            catch (Exception)
+            {
+                return '\0';
+            }
+        }
     }
 
 #if UNITY_EDITOR
@@ -82,9 +106,9 @@ namespace EDIVE.Utils.FontSymbols
             }
             if (GUILayout.Button(content, _imageStyle, GUILayout.Width(60), GUILayout.Height(60)))
             {
-                FontSymbolSelectionWindow.Open(definition, symbol, c =>
+                FontSymbolSelectionWindow.Open(ValueEntry.SmartValue, newValue =>
                 {
-                    ValueEntry.SmartValue = new FontSymbol(definition, c.Char);
+                    ValueEntry.SmartValue = newValue;
                     ValueEntry.ApplyChanges();
                     Property.MarkSerializationRootDirty();
                 });
@@ -93,10 +117,10 @@ namespace EDIVE.Utils.FontSymbols
             EditorGUILayout.BeginVertical();
             EditorGUI.BeginChangeCheck();
             var newDefinition = (FontSymbolsDefinition) SirenixEditorFields.UnityObjectField(definition, typeof(FontSymbolsDefinition), false);
-            var newCode = EditorGUILayout.TextField(ConvertCharToHex(symbol));
+            var newCode = EditorGUILayout.TextField(FontSymbol.ConvertCharToHex(symbol));
             if (EditorGUI.EndChangeCheck())
             {
-                var newChar = ConvertHexToChar(newCode);
+                var newChar = FontSymbol.ConvertHexToChar(newCode);
                 ValueEntry.SmartValue = new FontSymbol(newDefinition, newChar);
                 ValueEntry.ApplyChanges();
                 Property.MarkSerializationRootDirty();
@@ -105,29 +129,6 @@ namespace EDIVE.Utils.FontSymbols
             SirenixEditorGUI.EndHorizontalPropertyLayout();
         }
 
-        private static string ConvertCharToHex(char code)
-        {
-            try
-            {
-                return Convert.ToString(code, 16);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
-        private static char ConvertHexToChar(string hex)
-        {
-            try
-            {
-                return Convert.ToChar(Convert.ToInt32(hex, 16));
-            }
-            catch (Exception)
-            {
-                return '\0';
-            }
-        }
     }
 #endif
 }
