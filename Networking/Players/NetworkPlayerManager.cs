@@ -157,11 +157,11 @@ namespace EDIVE.Networking.Players
         {
             if (pj == null) return;
 
-            if (!string.IsNullOrWhiteSpace(pj.username))
-                PlayerProfile.username = pj.username;
+            if (!string.IsNullOrWhiteSpace(pj.Username))
+                PlayerProfile.username = pj.Username;
 
-            if (!string.IsNullOrWhiteSpace(pj.avatarId))
-                OnLocalAvatarChanged(pj.avatarId);
+            if (!string.IsNullOrWhiteSpace(pj.AvatarId))
+                OnLocalAvatarChanged(pj.AvatarId);
         }
 
         private async UniTask PersistProfileJsonAsync(CancellationToken ct = default)
@@ -169,11 +169,7 @@ namespace EDIVE.Networking.Players
             if (!AppCore.Services.TryGet<UserCenterManager>(out var uc) || uc == null)
                 return;
 
-            var pj = new PlayerProfileJson
-            {
-                username = PlayerProfile.username,
-                avatarId = GetAvatarId()
-            };
+            var pj = new PlayerProfileJson(PlayerProfile.username, GetAvatarId());
 
             await uc.SetPlayerProfileJson(pj, ct);
         }
@@ -210,11 +206,7 @@ namespace EDIVE.Networking.Players
                     }
                     else if (res.IsNotFound)
                     {
-                        var pj = new PlayerProfileJson
-                        {
-                            username = PlayerProfile.username,
-                            avatarId = GetAvatarId()
-                        };
+                        var pj = new PlayerProfileJson(PlayerProfile.username, GetAvatarId());
                         await uc.SetPlayerProfileJson(pj, ct);
                     }
                     else

@@ -164,5 +164,21 @@ namespace EDIVE.Utils.Json
         {
             return (T) JsonUtility.FromJson(JsonUtility.ToJson(obj), obj.GetType());
         }
+
+        public static bool TryDeserializeObject<T>(string json, out T result, out string error)
+        {
+            try
+            {
+                result = JsonConvert.DeserializeObject<T>(json);
+                error = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                result = default;
+                error = ex.Message;
+                return false;
+            }
+        }
     }
 }

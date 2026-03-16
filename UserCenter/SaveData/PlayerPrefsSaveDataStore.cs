@@ -3,29 +3,22 @@
 
 using UnityEngine;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.UserCenter.SaveData
 {
-    public interface ISavedataLocalStore
-    {
-        bool TryGet(string key, out string json);
-        void Set(string key, string json);
-        void Delete(string key);
-    }
-
-    public sealed class PlayerPrefsSavedataStore : ISavedataLocalStore
+    public sealed class PlayerPrefsSaveDataStore : ISaveDataLocalStore
     {
         private readonly string _prefix;
 
-        public PlayerPrefsSavedataStore(string prefix = "uc.savedata.")
+        public PlayerPrefsSaveDataStore(string prefix = "uc.savedata.")
         {
             _prefix = prefix ?? "uc.savedata.";
         }
 
-        private string K(string key) => _prefix + (key ?? "");
+        private string BuildKey(string key) => _prefix + (key ?? "");
 
         public bool TryGet(string key, out string json)
         {
-            var k = K(key);
+            var k = BuildKey(key);
             if (!PlayerPrefs.HasKey(k))
             {
                 json = null;
@@ -38,13 +31,13 @@ namespace EDIVE.UserCenter
 
         public void Set(string key, string json)
         {
-            PlayerPrefs.SetString(K(key), json ?? "");
+            PlayerPrefs.SetString(BuildKey(key), json ?? "");
             PlayerPrefs.Save();
         }
 
         public void Delete(string key)
         {
-            PlayerPrefs.DeleteKey(K(key));
+            PlayerPrefs.DeleteKey(BuildKey(key));
         }
     }
 }

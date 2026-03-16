@@ -4,13 +4,13 @@
 using System;
 using UnityEngine;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.UserCenter.Auth
 {
     public static class AuthStorage
     {
-        private const string K_ACCESS    = "auth.access";
-        private const string K_REFRESH   = "auth.refresh";
-        private const string K_USERID    = "auth.userId";
+        private const string K_ACCESS = "auth.access";
+        private const string K_REFRESH = "auth.refresh";
+        private const string K_USERID = "auth.userId";
         private const string K_EXPIRESAT = "auth.expiresAt";
         private const string K_EMAIL = "auth.lastEmail";
 
@@ -34,9 +34,9 @@ namespace EDIVE.UserCenter
             PlayerPrefs.Save();
         }
 
-        public static string GetAccessToken()  => PlayerPrefs.GetString(K_ACCESS, "");
+        public static string GetAccessToken() => PlayerPrefs.GetString(K_ACCESS, "");
         public static string GetRefreshToken() => PlayerPrefs.GetString(K_REFRESH, "");
-        public static string GetUserId()       => PlayerPrefs.GetString(K_USERID, "");
+        public static string GetUserId() => PlayerPrefs.GetString(K_USERID, "");
 
         public static long GetExpiresAtUnix()
         {
@@ -59,15 +59,13 @@ namespace EDIVE.UserCenter
             PlayerPrefs.DeleteKey(K_USERID);
             PlayerPrefs.DeleteKey(K_EXPIRESAT);
         }
+
         public static void SetLastEmail(string email)
         {
             PlayerPrefs.SetString(K_EMAIL, email ?? "");
             PlayerPrefs.Save();
         }
 
-        public static string GetLastEmail()
-        {
-            return PlayerPrefs.GetString(K_EMAIL, "");
-        }
+        public static string GetLastEmail() { return PlayerPrefs.GetString(K_EMAIL, ""); }
     }
 }

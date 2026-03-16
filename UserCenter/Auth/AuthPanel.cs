@@ -7,24 +7,30 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.UserCenter.Auth
 {
     public class AuthPanel : MonoBehaviour
     {
         [Header("Refs")]
         [SerializeField]
         private UserCenterManager _Auth;
+        
         [SerializeField]
         private TMP_InputField _EmailInput;
+        
         [SerializeField]
         private TMP_InputField _PasswordInput;
+        
         [SerializeField]
         private Button _LoginButton;
+        
         [SerializeField]
         private Button _LogoutButton;
+        
         [SerializeField]
         private Button _TogglePasswordButton;
-        private bool _IsPasswordHidden = true;
+        
+        private bool _isPasswordHidden = true;
 
         private void Awake()
         {
@@ -38,7 +44,7 @@ namespace EDIVE.UserCenter
         {
             _Auth.TryLoadStoredToken();
 
-            if (_Auth.IsLoggedIn)
+            if (UserCenterManager.IsLoggedIn)
             {
                 Debug.Log($"Logged in (UserId): {AuthStorage.GetUserId()}");
                 SetLoggedInUI(true);
@@ -56,7 +62,7 @@ namespace EDIVE.UserCenter
                 _EmailInput.caretPosition = _EmailInput.text.Length;
             }
 
-            _IsPasswordHidden = true;
+            _isPasswordHidden = true;
             ApplyPasswordMaskState();
 
             _Auth.OnLoginSucceeded += OnLoginOk;
@@ -92,16 +98,16 @@ namespace EDIVE.UserCenter
         {
             SetLoggedInUI(true);
             Debug.Log("Login was successful.");
-            Debug.Log($"Access Token: {r._AccessToken}");
+            Debug.Log($"Access Token: {r.AccessToken}");
 
-            var expUnix = JwtUtils.GetUnixExp(r._AccessToken);
+            var expUnix = JwtUtils.GetUnixExp(r.AccessToken);
             if (expUnix.HasValue)
             {
                 var dt = DateTimeOffset.FromUnixTimeSeconds(expUnix.Value).UtcDateTime;
                 Debug.Log($"JWT exp: {dt:O} (UTC)");
             }
 
-            var sub = JwtUtils.GetClaim(r._AccessToken, "sub");
+            var sub = JwtUtils.GetClaim(r.AccessToken, "sub");
             if (!string.IsNullOrEmpty(sub))
                 Debug.Log($"JWT sub: {sub}");
 
@@ -121,14 +127,14 @@ namespace EDIVE.UserCenter
 
             if (logged)
             {
-                _IsPasswordHidden = true;
+                _isPasswordHidden = true;
                 _PasswordInput.SetTextWithoutNotify("*****");
                 ApplyPasswordMaskState();
                 if (_TogglePasswordButton != null) _TogglePasswordButton.interactable = false;
             }
             else
             {
-                _IsPasswordHidden = true;
+                _isPasswordHidden = true;
                 _PasswordInput.SetTextWithoutNotify(string.Empty);
                 ApplyPasswordMaskState();
                 if (_TogglePasswordButton != null) _TogglePasswordButton.interactable = true;
@@ -152,7 +158,7 @@ namespace EDIVE.UserCenter
         private void ApplyPasswordMaskState()
         {
             if (_PasswordInput == null) return;
-            _PasswordInput.contentType = _IsPasswordHidden
+            _PasswordInput.contentType = _isPasswordHidden
                 ? TMP_InputField.ContentType.Password
                 : TMP_InputField.ContentType.Standard;
             _PasswordInput.ForceLabelUpdate();
@@ -160,7 +166,7 @@ namespace EDIVE.UserCenter
 
         private void OnTogglePasswordClicked()
         {
-            _IsPasswordHidden = !_IsPasswordHidden;
+            _isPasswordHidden = !_isPasswordHidden;
             ApplyPasswordMaskState();
         }
     }

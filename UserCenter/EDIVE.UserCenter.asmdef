@@ -6,7 +6,9 @@
         "Unity.TextMeshPro",
         "EDIVE.Core",
         "EDIVE.AppLoading",
-        "EDIVE.Http"
+        "EDIVE.Http",
+        "EDIVE.Utils.Json",
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
