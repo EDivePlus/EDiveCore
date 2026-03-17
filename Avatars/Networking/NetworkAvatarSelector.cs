@@ -1,15 +1,14 @@
 ﻿// Author: František Holubec
 // Created: 20.06.2025
 
-using EDIVE.Avatars;
 using EDIVE.Core;
-using FishNet;
+using EDIVE.Networking.Players;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
-namespace EDIVE.Networking.Players
+namespace EDIVE.Avatars.Networking
 {
     public class NetworkAvatarSelector : AAvatarSelector
     {
@@ -56,7 +55,7 @@ namespace EDIVE.Networking.Players
                 return;
             }
 
-            if (localPlayer.TryGetComponent<NetworkPlayerController>(out var playerController))
+            if (localPlayer.TryGetComponent<NetworkAvatarPlayerController>(out var playerController))
                 playerController.SetAvatar(Definition);
         }
     }

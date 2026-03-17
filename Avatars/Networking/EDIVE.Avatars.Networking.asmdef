@@ -1,0 +1,24 @@
+﻿{
+  "name": "EDIVE.Avatars.Networking",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.Networking",
+    "FishNet.Runtime",
+    "EDIVE.Avatars",
+    "EDIVE.XRTools",
+    "EDIVE.Core",
+    "EDIVE.AssetTranslation",
+    "EDIVE.Utils",
+    "EDIVE.NativeUtils",
+    "EDIVE.AppLoading"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": ["FISHNET"],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

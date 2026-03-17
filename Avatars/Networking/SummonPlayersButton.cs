@@ -2,10 +2,11 @@
 // Created: 22.01.2026
 
 using EDIVE.Core;
+using EDIVE.Networking.Players;
 using EDIVE.Utils.Activations;
 using UnityEngine;
 
-namespace EDIVE.Networking.Players
+namespace EDIVE.Avatars.Networking
 {
     public class SummonPlayersButton : MonoBehaviour
     {
@@ -24,9 +25,9 @@ namespace EDIVE.Networking.Players
 
         private void OnActivated()
         {
-            if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
+            if (AppCore.Services.TryGet<NetworkPlayerManager>(out var networkPlayerManager))
             {
-                playerManager.SummonPlayersToMe();
+                networkPlayerManager.LocalPlayer.GetComponent<NetworkAvatarPlayerController>().SummonPlayersToMe();
             }
         }
     }

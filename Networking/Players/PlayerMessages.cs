@@ -6,6 +6,5 @@ namespace EDIVE.Networking.Players
 {
     public struct PlayerCreationRequestMessage : IBroadcast
     {
-        public PlayerProfile profile;
     }
 }

@@ -4,7 +4,7 @@
 using FishNet.Broadcast;
 using UnityEngine;
 
-namespace EDIVE.Networking.Players
+namespace EDIVE.Avatars.Networking
 {
     public struct SummonPlayersToMeRequest : IBroadcast
     {

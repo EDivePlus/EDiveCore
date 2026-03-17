@@ -50,7 +50,7 @@ namespace EDIVE.UserCenter
             return UniTask.CompletedTask;
         }
 
-        public async UniTask<DataResult<T>> GetData<T>(string key, CancellationToken ct = default, bool forceRefresh = false)
+        public async UniTask<SaveDataResult<T>> GetSaveData<T>(string key, CancellationToken ct = default, bool forceRefresh = false)
         {
             using var linkedCts = ct.CanBeCanceled 
                 ? CancellationTokenSource.CreateLinkedTokenSource(ct, this.GetCancellationTokenOnDestroy()) 
@@ -66,34 +66,34 @@ namespace EDIVE.UserCenter
                     if (JsonUtils.TryDeserializeObject<T>(server.Result, out var obj, out var derr))
                     {
                         _local.Set(key, server.Result);
-                        return DataResult<T>.Ok(obj, true);
+                        return SaveDataResult<T>.Ok(obj, true);
                     }
 
-                    return DataResult<T>.Error($"Savedata JSON parse error: {derr}");
+                    return SaveDataResult<T>.Error($"Savedata JSON parse error: {derr}");
                 }
 
                 if (server.IsNotFound)
                 {
                     if (_local.TryGet(key, out var lj) && JsonUtils.TryDeserializeObject<T>(lj, out var lo, out _))
-                        return DataResult<T>.Ok(lo, false);
+                        return SaveDataResult<T>.Ok(lo, false);
 
-                    return DataResult<T>.NotFound();
+                    return SaveDataResult<T>.NotFound();
                 }
             }
 
             if (_local.TryGet(key, out var json))
             {
                 if (JsonUtils.TryDeserializeObject<T>(json, out var localObj, out var lerr))
-                    return DataResult<T>.Ok(localObj, false);
+                    return SaveDataResult<T>.Ok(localObj, false);
                 
                 if (!string.IsNullOrEmpty(json) && !string.IsNullOrEmpty(lerr))
-                    return DataResult<T>.Error($"Local JSON parse error: {lerr}");
+                    return SaveDataResult<T>.Error($"Local JSON parse error: {lerr}");
             }
 
-            return DataResult<T>.NotFound();
+            return SaveDataResult<T>.NotFound();
         }
 
-        public async UniTask<DataResult<bool>> SetData<T>(string key, T value, CancellationToken ct = default)
+        public async UniTask<SaveDataResult<bool>> SetSaveData<T>(string key, T value, CancellationToken ct = default)
         {
             using var linkedCts = ct.CanBeCanceled 
                 ? CancellationTokenSource.CreateLinkedTokenSource(ct, this.GetCancellationTokenOnDestroy()) 
@@ -105,13 +105,13 @@ namespace EDIVE.UserCenter
             _local.Set(key, json);
 
             if (!IsLoggedIn) 
-                return DataResult<bool>.Ok(true, false);
+                return SaveDataResult<bool>.Ok(true, false);
             
             var up = await UpsertDescriptionJsonByKeyAsync(key, json, effectiveToken);
            
             return up.Success 
-                ? DataResult<bool>.Ok(true, true) 
-                : DataResult<bool>.Error($"Server save failed: {up.Error} (saved locally)");
+                ? SaveDataResult<bool>.Ok(true, true) 
+                : SaveDataResult<bool>.Error($"Server save failed: {up.Error} (saved locally)");
         }
     }
 }
