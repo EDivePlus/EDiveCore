@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.Http;
 using EDIVE.UserCenter.Auth;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace EDIVE.UserCenter
     public partial class UserCenterManager
     {
         private readonly SemaphoreSlim _indexLock = new(1, 1);
-        private readonly Dictionary<string, SaveDataRecord> _index = new(StringComparer.OrdinalIgnoreCase);
+        private volatile Dictionary<string, SaveDataRecord> _index = new(StringComparer.OrdinalIgnoreCase);
         private bool _indexLoaded;
 
         private void InvalidateIndex() => _indexLoaded = false;
@@ -23,35 +24,40 @@ namespace EDIVE.UserCenter
         private string SaveDataBaseUrl()
         {
             var baseUrl = (_ServiceBaseUrl ?? "").TrimEnd('/');
-            return $"{baseUrl}/saveDatas";
+            return $"{baseUrl}/savedata";
         }
         
         private static List<SaveDataRecord> TryParseList(string raw)
         {
-            if (string.IsNullOrWhiteSpace(raw))
-                return null;
+            if (string.IsNullOrWhiteSpace(raw)) return null;
 
             try
             {
-                var direct = JsonConvert.DeserializeObject<List<SaveDataRecord>>(raw);
-                if (direct != null)
-                    return direct;
+                if (raw.TrimStart().StartsWith("{"))
+                {
+                    var wrapper = JsonConvert.DeserializeObject<ContentWrapper<SaveDataRecord>>(raw);
+                    return wrapper?.Content;
+                }
 
-                // todo: remove content wrap
-                var wrapper = JsonConvert.DeserializeObject<ContentWrapper<SaveDataRecord>>(raw);
-                return wrapper?.Content;
+                return JsonConvert.DeserializeObject<List<SaveDataRecord>>(raw);
             }
             catch (Exception e)
             {
                 Debug.LogError($"Failed to parse save data list response: {e}");
+                return null;
             }
-            return null;
         }
 
         private async UniTask<NetworkResponse<string>> ListRawAsync(CancellationToken ct)
         {
             var listUrl = SaveDataBaseUrl() + "?page=0&size=250";
-            return await GetAsync(listUrl, true, true, _ApiTimeoutSeconds, ct);
+            return await RestUtils.GetAsync<string>(
+                listUrl,
+                AuthStorage.GetAccessToken(),
+                GetBranchHeadersOrNull(),
+                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                ct
+            );
         }
 
         private async UniTask EnsureIndexAsync(CancellationToken ct, bool force)
@@ -63,25 +69,19 @@ namespace EDIVE.UserCenter
             {
                 if (_indexLoaded && !force) return;
 
-                _index.Clear();
-
                 var resp = await ListRawAsync(ct);
+                
                 if (resp.IsNotFound)
                 {
-                    _indexLoaded = true; // empty
-                    return;
-                }
-                if (!resp.Success)
-                {
-                    return;
-                }
-
-                var rows = TryParseList(resp.Raw);
-                if (rows == null || rows.Count == 0)
-                {
+                    _index = new Dictionary<string, SaveDataRecord>(StringComparer.OrdinalIgnoreCase);
                     _indexLoaded = true;
                     return;
                 }
+                
+                if (!resp.Success) return;
+
+                var rows = TryParseList(resp.Raw);
+                if (rows == null) return;
 
                 var userUuid = AuthStorage.GetUserId();
                 if (!string.IsNullOrEmpty(userUuid))
@@ -91,11 +91,13 @@ namespace EDIVE.UserCenter
                         string.Equals(r.UserBasicPojo?.Uuid, userUuid, StringComparison.OrdinalIgnoreCase));
                 }
 
+                var newIndex = new Dictionary<string, SaveDataRecord>(StringComparer.OrdinalIgnoreCase);
                 foreach (var r in rows.Where(r => !string.IsNullOrWhiteSpace(r.Key)))
                 {
-                    _index[r.Key] = r;
+                    newIndex[r.Key] = r;
                 }
 
+                _index = newIndex;
                 _indexLoaded = true;
             }
             finally
@@ -126,26 +128,35 @@ namespace EDIVE.UserCenter
             if (existing != null && existing.ID > 0)
             {
                 var putUrl = SaveDataBaseUrl() + "/" + existing.ID;
-                var body = JsonConvert.SerializeObject(new {key, description = descriptionJson });
-                var put = await PutAsync(putUrl, body, true, true, _ApiTimeoutSeconds, ct);
+                var put = await RestUtils.PutAsync<string, object>(
+                    putUrl,
+                    new { key, description = descriptionJson },
+                    AuthStorage.GetAccessToken(),
+                    GetBranchHeadersOrNull(),
+                    GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                    ct
+                );
                 if (put.Success) InvalidateIndex();
                 return put;
             }
-            else
-            {
-                var userUuid = AuthStorage.GetUserId();
 
-                object obj = string.IsNullOrEmpty(userUuid)
-                    ? new { key, description = descriptionJson }
-                    : new { key, description = descriptionJson, userUuid };
+            var userUuid = AuthStorage.GetUserId();
 
-                var body = JsonConvert.SerializeObject(obj);
+            object obj = string.IsNullOrEmpty(userUuid)
+                ? new { key, description = descriptionJson }
+                : new { key, description = descriptionJson, userUuid };
 
-                var post = await PostAsync(SaveDataBaseUrl(), body, true, true, _ApiTimeoutSeconds, ct);
+            var post = await RestUtils.PostAsync<string, object>(
+                SaveDataBaseUrl(),
+                obj,
+                AuthStorage.GetAccessToken(),
+                GetBranchHeadersOrNull(),
+                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                ct
+            );
 
-                if (post.Success) InvalidateIndex();
-                return post;
-            }
+            if (post.Success) InvalidateIndex();
+            return post;
         }
     }
 }

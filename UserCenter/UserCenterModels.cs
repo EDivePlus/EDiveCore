@@ -8,26 +8,6 @@ using UnityEngine;
 
 namespace EDIVE.UserCenter
 {
-    // Common models
-    [Serializable]
-    [JsonObject(MemberSerialization.OptIn)]
-    public class PlayerProfileJson
-    {
-        [SerializeField, JsonProperty("username")]
-        private string _Username;
-        public string Username => _Username;
-        
-        [SerializeField, JsonProperty("avatarId")]
-        private string _AvatarId;
-        public string AvatarId => _AvatarId;
-        
-        public PlayerProfileJson(string username, string avatarId)
-        {
-            _Username = username;
-            _AvatarId = avatarId;
-        }
-    }
-    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class SaveDataRecord
@@ -93,55 +73,28 @@ namespace EDIVE.UserCenter
         public DataStatus Status { get; }
         public T Value { get; }
         public string ErrorMessage { get; }
-        public bool FromServer { get; }
-        public bool FromLocal { get; }
+        public bool FromRemote { get; }
 
         public bool IsOk => Status == DataStatus.Ok;
         public bool IsNotFound => Status == DataStatus.NotFound;
+        public bool FromLocal => !FromRemote;
 
-        private DataResult(DataStatus status, T value, string errorMessage, bool fromServer, bool fromLocal, bool fromMemory)
+        private DataResult(DataStatus status, T value, string errorMessage, bool fromRemote)
         {
             Status = status;
             Value = value;
             ErrorMessage = errorMessage;
-            FromServer = fromServer;
-            FromLocal = fromLocal;
+            FromRemote = fromRemote;
         }
 
-        public static DataResult<T> Ok(T value, bool fromServer, bool fromLocal, bool fromMemory = false)
-            => new(DataStatus.Ok, value, null, fromServer, fromLocal, fromMemory);
+        public static DataResult<T> Ok(T value, bool fromServer)
+            => new(DataStatus.Ok, value, null, fromServer);
 
         public static DataResult<T> NotFound()
-            => new(DataStatus.NotFound, default, null, false, false, false);
+            => new(DataStatus.NotFound, default, null, false);
 
-        public static DataResult<T> Error(string error)
-            => new(DataStatus.Error, default, error, false, false, false);
-    }
-
-    public readonly struct NetworkResponse<T>
-    {
-        public bool Success { get; }
-        public long StatusCode { get; }
-        public string Error { get; }
-        public string Raw { get; }
-        public T Result { get; }
-
-        public bool IsNotFound => StatusCode == 404;
-
-        private NetworkResponse(bool success, long statusCode, string error, string raw, T result)
-        {
-            Success = success;
-            StatusCode = statusCode;
-            Error = error;
-            Raw = raw;
-            Result = result;
-        }
-
-        public static NetworkResponse<T> Ok(long status, T result, string raw)
-            => new NetworkResponse<T>(true, status, null, raw, result);
-
-        public static NetworkResponse<T> Fail(long status, string error, string raw)
-            => new NetworkResponse<T>(false, status, error, raw, default);
+        public static DataResult<T> Error(string error, T value = default)
+            => new(DataStatus.Error, value, error, false);
     }
 }
 

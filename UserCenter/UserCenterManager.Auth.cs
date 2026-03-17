@@ -7,7 +7,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.UserCenter.Auth;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -52,13 +51,20 @@ namespace EDIVE.UserCenter
             CancellationToken cancellationToken = default
         )
         {
-            cancellationToken = GetEffectiveCancellationToken(cancellationToken);
+            using var linkedCts = cancellationToken.CanBeCanceled 
+                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.GetCancellationTokenOnDestroy()) 
+                : null;
+            var effectiveToken = linkedCts?.Token ?? this.GetCancellationTokenOnDestroy();
 
             var url = AuthLoginUrl();
             var payload = new LoginRequest(email, password);
-            var body = JsonConvert.SerializeObject(payload);
 
-            var raw = await PostAsync(url, body, false, false, _AuthTimeoutSeconds, cancellationToken);
+            var raw = await RestUtils.PostAsync<string, LoginRequest>(
+                url,
+                payload,
+                timeout: GetRequestTimeoutSeconds(_AuthTimeoutSeconds),
+                cancellationToken: effectiveToken
+            );
 
             if (raw.Success)
             {
