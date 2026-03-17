@@ -83,7 +83,7 @@ namespace EDIVE.OdinExtensions.Editor
         protected override Type BaseEditorType => typeof(TEditor);
     }
     
-    public class AutoNativeWrapperOdinEditor<T> : NativeWrapperOdinEditor<T> where T : Object
+    public abstract class AutoNativeWrapperOdinEditor : NativeWrapperOdinEditor
     {
         private Type _baseEditorType;
         protected override Type BaseEditorType => _baseEditorType ??= CustomEditorUtility.GetCustomEditorType(target.GetType(), GetType());
