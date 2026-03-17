@@ -9,7 +9,6 @@ using R3;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.XR.Hands;
-using UnityEngine.XR.Hands.Gestures;
 
 namespace EDIVE.XRTools.HandGestures
 {
@@ -19,7 +18,14 @@ namespace EDIVE.XRTools.HandGestures
         private XRHandTrackingEvents _HandTrackingEvents;
         
         [SerializeReference]
-        private IHandGesture _Gesture;
+        private IHandGesture _TriggerGesture;
+
+        [SerializeField]
+        private bool _UseSeparateHoldGesture; 
+            
+        [EnableIf(nameof(_UseSeparateHoldGesture))]
+        [SerializeReference]
+        private IHandGesture _HoldGesture;
         
         [SerializeField]
         private float _MinimumHoldTime = 0.2f;
@@ -30,14 +36,15 @@ namespace EDIVE.XRTools.HandGestures
         [SerializeField]
         private AToggleState _GestureState;
         
-        [ShowInInspector, ReadOnly]
+        [ShowInInspector, ReadOnly, KeepRefreshing]
         public bool IsPerforming { get; private set; }
         
-        public event Action GesturePerformed;
-        public event Action GestureEnded;
+        public event Action PerformStarted;
+        public event Action PerformEnded;
 
         [ShowInInspector, ReadOnly, KeepRefreshing]
         private bool _isDetected;
+        
         private IDisposable _jointsUpdatedHandle;
         private IDisposable _holdHandle;
         
@@ -46,14 +53,25 @@ namespace EDIVE.XRTools.HandGestures
             if(_GestureState)
                 _GestureState.SetState(false);
             
-            if (_HandTrackingEvents == null || _Gesture == null || !_Gesture.CheckValid())
+            if (_HandTrackingEvents == null || _TriggerGesture == null || !_TriggerGesture.CheckValid())
                 return;
             
             _jointsUpdatedHandle = _HandTrackingEvents.jointsUpdated.AsObservable()
                 .ThrottleLast(TimeSpan.FromSeconds(_DetectionInterval))
-                .Select(args => _HandTrackingEvents.handIsTracked && _Gesture.CheckConditions(args))
+                .Select(CheckGesture)
                 .DistinctUntilChanged()
                 .Subscribe(SetDetected);
+        }
+
+        private bool CheckGesture(XRHandJointsUpdatedEventArgs args)
+        {
+            if (!_HandTrackingEvents.handIsTracked)
+                return false;
+
+            if (_isDetected && _UseSeparateHoldGesture && _HoldGesture != null && _HoldGesture.CheckValid())
+                return _HoldGesture.CheckConditions(args);
+
+            return _TriggerGesture.CheckConditions(args);
         }
         
         private void OnDisable()
@@ -92,45 +110,9 @@ namespace EDIVE.XRTools.HandGestures
                 _GestureState.SetState(isPerforming);
             
             if (isPerforming)
-                GesturePerformed?.Invoke();
+                PerformStarted?.Invoke();
             else
-                GestureEnded?.Invoke();
-        }
-    }
-
-    public interface IHandGesture
-    {
-        bool CheckValid();
-        bool CheckConditions(XRHandJointsUpdatedEventArgs eventArgs);
-    }
-    
-    [Serializable]
-    public class HandShapeGesture : IHandGesture
-    {
-        [SerializeField]
-        private XRHandShape _HandShape;
-
-        public bool CheckValid() => _HandShape != null;
-        public bool CheckConditions(XRHandJointsUpdatedEventArgs eventArgs)
-        {
-            return _HandShape.CheckConditions(eventArgs);
-        }
-    }
-    
-    [Serializable]
-    public class HandPoseGesture : IHandGesture
-    {
-        [SerializeField]
-        private XRHandPose _HandPose;
-        
-        [SerializeField]
-        private Transform _Target;
-        
-        public bool CheckValid() => _HandPose != null;
-        public bool CheckConditions(XRHandJointsUpdatedEventArgs eventArgs)
-        {
-            _HandPose.relativeOrientation.targetTransform = _Target;
-            return _HandPose.CheckConditions(eventArgs);
+                PerformEnded?.Invoke();
         }
     }
 }
