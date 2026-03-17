@@ -2,6 +2,7 @@
 // Created: 08.09.2025
 
 using System;
+using EDIVE.Core;
 using EDIVE.Http;
 using TMPro;
 using UnityEngine;
@@ -11,10 +12,6 @@ namespace EDIVE.UserCenter.Auth
 {
     public class AuthPanel : MonoBehaviour
     {
-        [Header("Refs")]
-        [SerializeField]
-        private UserCenterManager _Auth;
-        
         [SerializeField]
         private TMP_InputField _EmailInput;
         
@@ -29,11 +26,13 @@ namespace EDIVE.UserCenter.Auth
         
         [SerializeField]
         private Button _TogglePasswordButton;
-        
+
+        private UserCenterManager _userCenterManager;
         private bool _isPasswordHidden = true;
 
         private void Awake()
         {
+            _userCenterManager = AppCore.Services.Get<UserCenterManager>();
             _LoginButton.onClick.AddListener(OnLoginClicked);
             _LogoutButton.onClick.AddListener(OnLogoutClicked);
             _EmailInput.onEndEdit.AddListener(OnEmailEndEdit);
@@ -42,7 +41,7 @@ namespace EDIVE.UserCenter.Auth
 
         private void Start()
         {
-            _Auth.TryLoadStoredToken();
+            _userCenterManager.TryLoadStoredToken();
 
             if (UserCenterManager.IsLoggedIn)
             {
@@ -65,14 +64,14 @@ namespace EDIVE.UserCenter.Auth
             _isPasswordHidden = true;
             ApplyPasswordMaskState();
 
-            _Auth.OnLoginSucceeded += OnLoginOk;
-            _Auth.OnLoginFailed += OnLoginFail;
+            _userCenterManager.OnLoginSucceeded += OnLoginOk;
+            _userCenterManager.OnLoginFailed += OnLoginFail;
         }
 
         private void OnDestroy()
         {
-            _Auth.OnLoginSucceeded -= OnLoginOk;
-            _Auth.OnLoginFailed -= OnLoginFail;
+            _userCenterManager.OnLoginSucceeded -= OnLoginOk;
+            _userCenterManager.OnLoginFailed -= OnLoginFail;
             _LoginButton.onClick.RemoveListener(OnLoginClicked);
             _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
             _EmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
@@ -91,7 +90,7 @@ namespace EDIVE.UserCenter.Auth
             }
 
             Debug.Log("Logging in…");
-            _Auth.Login(email, pass);
+            _userCenterManager.Login(email, pass);
         }
 
         private void OnLoginOk(LoginResponse r)
@@ -143,7 +142,7 @@ namespace EDIVE.UserCenter.Auth
 
         private void OnLogoutClicked()
         {
-            _Auth.Logout();
+            _userCenterManager.Logout();
             SetLoggedInUI(false);
             Debug.Log("User has been logged out.");
         }
