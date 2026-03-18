@@ -10,7 +10,8 @@
     "EDIVE.AssetTranslation",
     "EDIVE.Utils",
     "EDIVE.NativeUtils",
-    "EDIVE.AppLoading"
+    "EDIVE.AppLoading",
+    "Unity.XR.Interaction.Toolkit"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -20,24 +20,19 @@ namespace EDIVE.UserCenter.SaveData
         public string Key => _Key;
         
         [SerializeField, JsonProperty("description")]
-        private string _Description;
-        public string Description => _Description;
+        private string _JsonData;
+        public string JsonData => _JsonData;
         
         [SerializeField, JsonProperty("userUuid")]
         private string _UserUuid;
         public string UserUuid => _UserUuid;
         
-        [SerializeField, JsonProperty("userBasicPojo")]
-        private UserBasicPojo _UserBasicPojo;
-        public UserBasicPojo UserBasicPojo => _UserBasicPojo;
-        
-        public SaveDataRecord(long id, string key, string description, string userUuid, UserBasicPojo userBasicPojo)
+        public SaveDataRecord(long id, string key, string jsonData, string userUuid)
         {
             _ID = id;
             _Key = key;
-            _Description = description;
+            _JsonData = jsonData;
             _UserUuid = userUuid;
-            _UserBasicPojo = userBasicPojo;
         }
     }
 }
