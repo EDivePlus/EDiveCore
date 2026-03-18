@@ -55,6 +55,8 @@ namespace EDIVE.OdinExtensions.Attributes
         public string OnListEndGUI;
 
         public int ChildrenIndent;
+        
+        public int SpaceBeforeChildren;
 
         public bool DontReloadOnInit;
 

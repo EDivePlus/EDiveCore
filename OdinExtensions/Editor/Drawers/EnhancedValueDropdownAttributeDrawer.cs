@@ -302,6 +302,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                         if (SirenixEditorGUI.BeginFadeGroup(this, _isToggled.Value))
                         {
                             EditorGUI.indentLevel += Attribute.ChildrenIndent;
+                            if (Attribute.SpaceBeforeChildren > 0)
+                                GUILayout.Space(Attribute.SpaceBeforeChildren);
                             foreach (var child in Property.Children)
                             {
                                 child.Draw(child.Label);
@@ -314,6 +316,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     {
                         newResult = EnhancedDropdownSelector<object>.DrawSelectorDropdown(_label, valueName, ShowSelector);
                         EditorGUI.indentLevel += Attribute.ChildrenIndent;
+                        if (Attribute.SpaceBeforeChildren > 0)
+                            GUILayout.Space(Attribute.SpaceBeforeChildren);
                         foreach (var child in Property.Children)
                         {
                             child.Draw(child.Label);
