@@ -21,9 +21,6 @@ namespace EDIVE.UserCenter
         [SerializeField]
         private string _BranchId = "2";
         
-        [SerializeField]
-        private string _ProfileKey = "player_profile_v1";
-        
         private ISaveDataLocalStore _local;
         private Dictionary<string, string> _cachedBranchHeaders;
 

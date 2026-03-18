@@ -8,7 +8,8 @@
         "EDIVE.AppLoading",
         "EDIVE.Http",
         "EDIVE.Utils.Json",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.Time"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

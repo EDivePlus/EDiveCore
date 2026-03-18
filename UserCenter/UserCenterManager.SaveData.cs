@@ -8,10 +8,13 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
+using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Time.TimeSpanUtils;
 using EDIVE.UserCenter.Auth;
 using EDIVE.UserCenter.SaveData;
 using EDIVE.Utils.Json;
 using Newtonsoft.Json;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using ZLinq;
 
@@ -19,18 +22,52 @@ namespace EDIVE.UserCenter
 {
     public partial class UserCenterManager
     {
+        [SerializeField]
+        [PropertyOrder(20)]
+        [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Orange", SpaceBefore = 8)]
+        private UTimeSpan _DirtyDataSyncInterval = TimeSpan.FromSeconds(30);
+        
         private readonly SemaphoreSlim _indexLock = new(1, 1);
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _keyLocks = new(StringComparer.OrdinalIgnoreCase);
         
         private volatile bool _indexLoaded;
         private ConcurrentDictionary<string, SaveDataRecord> _index = new(StringComparer.OrdinalIgnoreCase);
-
-        private void InvalidateIndex() => _indexLoaded = false;
         
-        private string SaveDataBaseUrl()
+        private readonly ConcurrentDictionary<SaveDataDirtyFlag, List<string>> _dirtyKeys = new();
+        private CancellationTokenSource _syncCts = new();
+
+        private void OnEnable()
         {
-            var baseUrl = (_ServiceBaseUrl ?? "").TrimEnd('/');
-            return $"{baseUrl}/savedata";
+            if (_syncCts != null)
+                return;
+            _syncCts = new CancellationTokenSource();
+            
+            StartSyncLoop(SaveDataDirtyFlag.OnBatch, ct => UniTask.Delay(_DirtyDataSyncInterval, cancellationToken: ct), _syncCts.Token).Forget();
+            StartSyncLoop(SaveDataDirtyFlag.OnEndOfFrame, UniTask.WaitForEndOfFrame, _syncCts.Token).Forget();
+        }
+
+        private void OnDisable()
+        {
+            _syncCts?.Cancel();
+            _syncCts?.Dispose();
+            _syncCts = null;
+        }
+        
+        private async UniTaskVoid StartSyncLoop(SaveDataDirtyFlag flag, Func<CancellationToken, UniTask> syncTaskFactory, CancellationToken ct)
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await syncTaskFactory(ct);
+                    await SyncSaveData(_dirtyKeys.GetOrAdd(flag, _ => new List<string>()), ct);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Error in sync loop for flag {flag}: {e}");
+                }
+            }
         }
         
         public async UniTask<SaveDataResult<T>> GetSaveData<T>(string key, CancellationToken ct = default, bool forceRefresh = false)
@@ -73,24 +110,48 @@ namespace EDIVE.UserCenter
             return SaveDataResult<T>.NotFound();
         }
 
-        public async UniTask<SaveDataResult<bool>> SetSaveData<T>(string key, T value, CancellationToken ct = default)
+        public async UniTask<SaveDataResult<bool>> SetSaveData<T>(string key, T value, SaveDataDirtyFlag flag = SaveDataDirtyFlag.Immediate, CancellationToken ct = default)
         {
             var effectiveToken = ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
             var json = JsonConvert.SerializeObject(value);
-            
-            _local.Set(key, json);
 
-            if (!IsLoggedIn) 
-                return SaveDataResult<bool>.Ok(true, false);
-            
-            var up = await UpsertJsonDataByKeyAsync(key, json, effectiveToken);
-            
-            if (up.Success)
+            if (flag == SaveDataDirtyFlag.Immediate)
             {
-                return SaveDataResult<bool>.Ok(true, true);
+                _local.Set(key, json);
+                
+                if (!IsLoggedIn) 
+                    return SaveDataResult<bool>.Ok(true, false);
+                
+                var up = await UpsertJsonDataByKeyAsync(key, json, effectiveToken);
+                
+                if (up.Success)
+                {
+                    return SaveDataResult<bool>.Ok(true, true);
+                }
+                Debug.LogError($"Server save failed for key '{key}': {up.Error} (saved locally)");
+                return SaveDataResult<bool>.Ok(true, false);
             }
-            Debug.LogError($"Server save failed for key '{key}': {up.Error} (saved locally)");
+            
+            if (flag != SaveDataDirtyFlag.NoChange)
+            {
+                var list = _dirtyKeys.GetOrAdd(flag, _ => new List<string>());
+                if (!list.Contains(key)) list.Add(key);
+            }
+
             return SaveDataResult<bool>.Ok(true, false);
+        }
+        
+        private async UniTask SyncSaveData(List<string> keys, CancellationToken ct)
+        {
+            
+        }
+        
+        private void InvalidateIndex() => _indexLoaded = false;
+        
+        private string SaveDataBaseUrl()
+        {
+            var baseUrl = (_ServiceBaseUrl ?? "").TrimEnd('/');
+            return $"{baseUrl}/savedata";
         }
         
         private static List<SaveDataRecord> TryParseList(string raw)
