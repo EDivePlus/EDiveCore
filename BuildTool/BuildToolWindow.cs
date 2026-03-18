@@ -120,7 +120,7 @@ namespace EDIVE.BuildTool
 
             private void RefreshPresets()
             {
-                _Presets = EditorAssetUtils.FindAllAssetsOfType<ABuildPlatformConfig>()
+                _Presets = EditorAssetUtils.FindAllAssetsOfType<BuildPlatformConfig>()
                     .Select(c => new BuildPreset(BuildGlobalSettings.Instance.CurrentUser, c)).ToList();
             }
 

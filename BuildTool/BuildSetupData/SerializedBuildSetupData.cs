@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.BuildTool.Actions;
 using EDIVE.DataStructures.ToggleableValues;
 using EDIVE.EditorUtils;
@@ -28,6 +29,7 @@ namespace EDIVE.BuildTool.BuildSetupData
         public IEnumerable<string> Defines => _Defines.ToValueList();
         public IEnumerable<IBuildAction> Actions => _Actions;
         
-        private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<IBuildAction>();
+        private IEnumerable GetAvailableBuildActions() => 
+            TypeCacheUtils.GetDerivedClassesOfType<IBuildAction>().Select(a => new ValueDropdownItem<IBuildAction>(a.Label, a));
     }
 }

@@ -10,8 +10,7 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.EditorUtils",
         "EDIVE.External.Signals",
-        "EDIVE.DataStructures",
-        "NuGetForUnity"
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [
         "Editor"
@@ -36,11 +35,6 @@
             "name": "com.unity.editorcoroutines",
             "expression": "",
             "define": "EDITOR_COROUTINES"
-        },
-        {
-            "name": "com.github-glitchenzo.nugetforunity",
-            "expression": "",
-            "define": "NUGET_FOR_UNITY"
         }
     ],
     "noEngineReferences": false

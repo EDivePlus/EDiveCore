@@ -1,6 +1,5 @@
-using System;
-using EDIVE.BuildTool.Runners;
-using EDIVE.OdinExtensions.Attributes;
+using System.Collections.Generic;
+using EDIVE.EditorUtils;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.Build;
@@ -8,79 +7,29 @@ using UnityEngine;
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {
-    public class StandaloneBuildPlatformConfig : ABuildPlatformConfig
+    public class StandaloneBuildPlatformConfig : BuildPlatformConfig, ISelfValidator
     {
-        [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1)]
-        [SerializeField]
-        private StandalonePlatform _Platform;
-
-        [EnhancedBoxGroup("Backend")]
-        [ShowIf(nameof(_Platform), StandalonePlatform.Windows)]
-        [SerializeField]
-        private StandaloneArchitecture _Architecture;
-
-        [EnhancedBoxGroup("Backend")]
-        [SerializeField]
-        private StandaloneTargetMode _TargetMode;
-
-        [PropertySpace(5)]
-        [EnhancedBoxGroup("Backend")]
-        [SerializeField]
-        private ScriptingImplementation _ScriptingImplementation = ScriptingImplementation.IL2CPP;
-
-        [EnhancedBoxGroup("Backend")]
-        [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
-        [LabelText("IL2CPP Config")]
-        [SerializeField]
-        private Il2CppCompilerConfiguration _Il2CppConfig = Il2CppCompilerConfiguration.Release;
-
-        [EnhancedBoxGroup("Backend")]
-        [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
-        [PropertyTooltip("IL2CPP compiler will generate code optimized for:\nOptimizeSpeed - runtime performance.\nOptimizeSize - size and build time")]
-        [LabelText("IL2CPP Code Generation")]
-        [SerializeField]
-        private Il2CppCodeGeneration _Il2CppCodeGeneration = Il2CppCodeGeneration.OptimizeSpeed;
-
-        public ScriptingImplementation ScriptingImplementation => _ScriptingImplementation;
-        public Il2CppCompilerConfiguration Il2CppConfig => _Il2CppConfig;
-        public Il2CppCodeGeneration Il2CppCodeGeneration => _Il2CppCodeGeneration;
-
-        public enum StandalonePlatform
+    #region Migration
+        [SerializeField, HideInInspector] private StandaloneBuildPlatformModule.StandalonePlatform _Platform;
+        [SerializeField, HideInInspector] private StandaloneBuildPlatformModule.StandaloneArchitecture _Architecture;
+        [SerializeField, HideInInspector] private StandaloneBuildPlatformModule.StandaloneTargetMode _TargetMode;
+        [SerializeField, HideInInspector] private ScriptingImplementation _ScriptingImplementation;
+        [SerializeField, HideInInspector] private Il2CppCompilerConfiguration _Il2CppConfig;
+        [SerializeField, HideInInspector] private Il2CppCodeGeneration _Il2CppCodeGeneration; 
+        
+        public void Validate(SelfValidationResult result)
         {
-            Windows,
-            Linux,
-            MacOS
+            result.AddError("AndroidBuildPlatformConfig is obsolete, migrate to base class")
+                .WithFix(() => 
+                { 
+                    this.ChangeScriptType<BuildPlatformConfig>(config =>
+                    {
+                        var json = JsonUtility.ToJson(this);
+                        config._BaseModule = JsonUtility.FromJson<StandaloneBuildPlatformModule>(json);
+                        config._AdditionalModules = new List<APlatformModule> {JsonUtility.FromJson<PathPlatformModule>(json)};
+                    });
+                });
         }
-
-        public enum StandaloneArchitecture
-        {
-            X64,
-            X86
-        }
-
-        public enum StandaloneTargetMode
-        {
-            Player,
-            Server
-        }
-
-        public override NamedBuildTarget NamedBuildTarget => _TargetMode == StandaloneTargetMode.Server ? NamedBuildTarget.Server : NamedBuildTarget.Standalone;
-        public override BuildTarget BuildTarget => _Platform switch
-        {
-            StandalonePlatform.Windows => _Architecture == StandaloneArchitecture.X64 ? BuildTarget.StandaloneWindows64 : BuildTarget.StandaloneWindows,
-            StandalonePlatform.Linux => BuildTarget.StandaloneLinux64,
-            StandalonePlatform.MacOS => BuildTarget.StandaloneOSX,
-            _ => throw new ArgumentOutOfRangeException()
-        };
-
-        public override string BuildExtension => _Platform switch
-        {
-            StandalonePlatform.Windows => ".exe",
-            StandalonePlatform.Linux => ".app",
-            StandalonePlatform.MacOS => ".x86_64",
-            _ => throw new ArgumentOutOfRangeException()
-        };
-
-        public override ABuildRunner CreateBuildRunner(BuildPreset preset, BuildOptions options) => new StandaloneBuildRunner(this, preset, options);
+    #endregion
     }
 }

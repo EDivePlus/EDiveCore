@@ -4,6 +4,7 @@ using EDIVE.BuildTool.PathResolving;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
+using EDIVE.NativeUtils;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -41,10 +42,13 @@ namespace EDIVE.BuildTool
         private BuildUserConfig _UserConfig;
         
         [SerializeField]
-        private ABuildPlatformConfig _PlatformConfig;
+        private BuildPlatformConfig _PlatformConfig;
         
         [SerializeField]
         private List<string> _Scenes;
+        
+        [SerializeReference]
+        private List<ABuildContextData> _Data = new();
         
         public AppVersionDefinition VersionDefinition { get => _VersionDefinition; set => _VersionDefinition = value; }
         public BuildStateType State { get => _State; set => _State = value; }
@@ -54,13 +58,28 @@ namespace EDIVE.BuildTool
         public List<string> Defines { get => _Defines; set => _Defines = value; }
         public FilePath ResultPath { get => _ResultPath; set => _ResultPath = value; }
         public BuildUserConfig UserConfig { get => _UserConfig; set => _UserConfig = value; }
-        public ABuildPlatformConfig PlatformConfig { get => _PlatformConfig; set => _PlatformConfig = value; }
+        public BuildPlatformConfig PlatformConfig { get => _PlatformConfig; set => _PlatformConfig = value; }
         public List<string> Scenes { get => _Scenes; set => _Scenes = value; }
 
         public BuildContext(BuildOptions options = BuildOptions.None)
         {
             _Options = options;
             _State = BuildStateType.NotStarted;
+        }
+               
+        public bool TryGetData<T>(out T data, Predicate<T> predicate = null) where T : ABuildContextData
+        {
+            return _Data.TryGetFirstT(predicate, out data);
+        }
+       
+        public T GetOrCreateData<T>(Predicate<T> predicate = null) where T : ABuildContextData, new()
+        {
+            if (!TryGetData(out var data, predicate))
+            {
+                data = new T();
+                _Data.Add(data);
+            }
+            return data;
         }
     }
 }

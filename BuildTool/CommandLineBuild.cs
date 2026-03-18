@@ -28,21 +28,26 @@ namespace EDIVE.BuildTool
         public static void Build()
         {
             TeamCityServiceMessages.MessageLog("[CMDBuild] Initializing command line build...");
-#if NUGET_FOR_UNITY
-            NugetForUnity.PackageRestorer.Restore(false);
-#endif
+
             var arguments = GetArguments();
             if (!arguments.TryGetValue(CMD_PLATFORM_CONFIG, out var platformConfigName))
             {
                 TeamCityServiceMessages.MessageBuildProblem("[CMDBuild] Platform config not specified");
                 return;
             }
-            if (!EditorAssetUtils.FindAllAssetsOfType<ABuildPlatformConfig>().TryGetFirst(c => c.name == platformConfigName, out var platformConfig ))
+            
+            if (!EditorAssetUtils.FindAllAssetsOfType<BuildPlatformConfig>().TryGetFirst(c => c.name == platformConfigName, out var platformConfig ))
             {
                 TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] Platform config '{platformConfigName}' not found");
                 return;
             }
         
+            if (!platformConfig.IsValid)
+            {
+                TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] Platform config '{platformConfigName}' is not valid!, open project and fix the issues.");
+                return;
+            }
+            
             var user = BuildGlobalSettings.Instance.DefaultUser;
             if (arguments.TryGetValue(CMD_USER_CONFIG, out var userName))
             {

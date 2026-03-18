@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.BuildTool.PathResolving;
-using EDIVE.BuildTool.Utils;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEditor.Build;

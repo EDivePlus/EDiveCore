@@ -1,17 +1,16 @@
 using System;
 using EDIVE.EditorUtils.DomainReload;
-using Unity.EditorCoroutines.Editor;
 using UnityEngine;
 
-namespace EDIVE.BuildTool.Runners
+namespace EDIVE.BuildTool
 {
     [Serializable]
     public class BuildRunnerDomainReloadSurvivor : IDomainReloadSurvivor
     {
-        [SerializeReference]
-        private ABuildRunner _Runner;
+        [SerializeField]
+        private BuildRunner _Runner;
 
-        public BuildRunnerDomainReloadSurvivor(ABuildRunner runner)
+        public BuildRunnerDomainReloadSurvivor(BuildRunner runner)
         {
             _Runner = runner;
         }

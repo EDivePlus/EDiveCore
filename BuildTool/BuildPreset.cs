@@ -24,13 +24,13 @@ namespace EDIVE.BuildTool
         private BuildUserConfig _UserConfig;
         
         [SerializeField]
-        private ABuildPlatformConfig _PlatformConfig;
+        private BuildPlatformConfig _PlatformConfig;
 
         public BuildUserConfig UserConfig => _UserConfig;
-        public ABuildPlatformConfig PlatformConfig => _PlatformConfig;
+        public BuildPlatformConfig PlatformConfig => _PlatformConfig;
 
         public BuildPreset() { }
-        public BuildPreset(BuildUserConfig userConfig, ABuildPlatformConfig platformConfig)
+        public BuildPreset(BuildUserConfig userConfig, BuildPlatformConfig platformConfig)
         {
             _UserConfig = userConfig;
             _PlatformConfig = platformConfig;
@@ -38,12 +38,7 @@ namespace EDIVE.BuildTool
 
         public void Build(BuildOptions options)
         {
-            var buildRunner = _PlatformConfig.CreateBuildRunner(this, options);
-            if (buildRunner == null)
-            {
-                Debug.LogError("Invalid Build runner!");
-                return;
-            }
+            var buildRunner = new BuildRunner(_PlatformConfig, this, options);
             buildRunner.StartBuild();
         }
 
