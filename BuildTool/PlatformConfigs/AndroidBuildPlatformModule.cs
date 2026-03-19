@@ -16,9 +16,9 @@ using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     [Serializable]
-    public class AndroidBuildPlatformModule : ABasePlatformModule
+    public class AndroidBuildPlatformModule : ABuildTargetPlatformModule
     {
-        public override string Label => "Android Platform";
+        public override string PlatformName => "Android";
         
         [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
         [SerializeField]

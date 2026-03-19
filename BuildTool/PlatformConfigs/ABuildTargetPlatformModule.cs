@@ -12,9 +12,9 @@ using UnityEngine;
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     [Serializable]
-    public abstract class ABasePlatformModule : APlatformModule
+    public abstract class ABuildTargetPlatformModule : IPlatformModule
     {
-        public override int ExecutionOrder => -10000;
+        public abstract string PlatformName { get; }
         
         [EnhancedBoxGroup("Backend")]
         [SerializeField]
@@ -106,7 +106,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public abstract BuildTarget BuildTarget { get; }
         public abstract string BuildExtension { get; }
 
-        public override void SetupBeforeBuild(BuildContext context)
+        public virtual void SetupBeforeBuild(BuildContext context)
         {
             var data = context.GetOrCreateData<Data>();
 
@@ -147,7 +147,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             context.Options |= _PlayerCompression.ToBuildOptions();
         }
 
-        public override void RestoreAfterBuild(BuildContext context)
+        public virtual void RestoreAfterBuild(BuildContext context)
         {
             if (!context.TryGetData<Data>(out var data))
                 return;
@@ -198,5 +198,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             [SerializeField]
             public bool _PrevAutoConnectProfiler;
         }
+        
+        
     }
 }

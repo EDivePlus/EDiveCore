@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
 
-namespace EDIVE.BuildTool.PlatformConfigs
+namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
 {
     public class StandaloneBuildPlatformConfig : BuildPlatformConfig, ISelfValidator
     {
@@ -25,7 +25,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
                     this.ChangeScriptType<BuildPlatformConfig>(config =>
                     {
                         var json = JsonUtility.ToJson(this);
-                        config._BaseModule = JsonUtility.FromJson<StandaloneBuildPlatformModule>(json);
+                        config._BuildTargetModule = JsonUtility.FromJson<StandaloneBuildPlatformModule>(json);
                         config._AdditionalModules = new List<APlatformModule> {JsonUtility.FromJson<PathPlatformModule>(json)};
                     });
                 });

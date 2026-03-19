@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using EDIVE.EditorUtils;
 using Sirenix.OdinInspector;
+using Unity.Android.Types;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
-using Unity.Android.Types;
 using AndroidArchitecture = UnityEditor.AndroidArchitecture;
 using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;
 
-namespace EDIVE.BuildTool.PlatformConfigs
+namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
 {
     public class AndroidBuildPlatformConfig : BuildPlatformConfig, ISelfValidator
     {
@@ -35,7 +35,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
                     this.ChangeScriptType<BuildPlatformConfig>(config =>
                     {
                         var json = JsonUtility.ToJson(this);
-                        config._BaseModule = JsonUtility.FromJson<AndroidBuildPlatformModule>(json);
+                        config._BuildTargetModule = JsonUtility.FromJson<AndroidBuildPlatformModule>(json);
                         config._AdditionalModules = new List<APlatformModule> {JsonUtility.FromJson<PathPlatformModule>(json)};
                     });
                 });

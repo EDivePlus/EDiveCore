@@ -7,7 +7,9 @@ using EDIVE.BuildTool.Utils;
 using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.OdinExtensions.Editor;
 using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Build;
@@ -18,17 +20,17 @@ namespace EDIVE.BuildTool.PlatformConfigs
     public class BuildPlatformConfig : ScriptableObject, IBuildSetupDataProvider
     {
         [Required]
-        [LabelText("Target Platform")]
+        [LabelText("Build Target Group")]
         [SerializeReference]
-        [EnhancedValueDropdown(nameof(GetAvailableBaseModulesDropdown), SpaceBeforeChildren = 4)]
-        internal ABasePlatformModule _BaseModule;
-        public ABasePlatformModule BaseModule => _BaseModule;
+        [EnhancedValueDropdown(nameof(GetBuildTargetModulesDropdown), SpaceBeforeChildren = 4, ValueLabelGetter = nameof(GetBuildTargetModuleLabel))]
+        internal ABuildTargetPlatformModule _BuildTargetModule;
+        public ABuildTargetPlatformModule BuildTargetModule => _BuildTargetModule;
         
         [PropertySpace(4)]
-        [EnhancedValueDropdown(nameof(GetAvailableModulesDropdown), DrawDropdownForListElements = false, IsUniqueList =  true)]
+        [EnhancedValueDropdown(nameof(GetAvailableModulesDropdown), DrawDropdownForListElements = false, IsUniqueList =  true, CustomComparer = nameof(CustomModuleComparer))]
         [CustomValueDrawer(nameof(CustomModuleDrawer))]
         [ListDrawerSettings(ShowFoldout = false, HideRemoveButton = true, DraggableItems = false, OnTitleBarGUI = nameof(OnModulesListTitleBarGUI))]
-        [OnCollectionChanged(nameof(OnModulesCollectionChanged))]
+        [EnhancedValidate(nameof(ValidateAdditionalModules))]
         [HideReferenceObjectPicker]
         [SerializeReference]
         internal List<APlatformModule> _AdditionalModules = new();
@@ -46,25 +48,23 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeField]
         protected SerializedBuildSetupData _BuildSetupData;
         
-        public bool IsValid => BaseModule != null;
+        public bool IsValid => BuildTargetModule != null;
         public SerializedBuildSetupData BuildSetupData => _BuildSetupData;
         public SceneListDefinition OverrideSceneList => _OverrideSceneList;
-
-        public IEnumerable<APlatformModule> ModulesOrdered => GetAllModules().Where(m => m != null).OrderBy(m => m.ExecutionOrder);
         
-        private IEnumerable<APlatformModule> GetAllModules()
+        public IEnumerable<IPlatformModule> GetModules()
         {
-            if(_BaseModule != null)
-                yield return _BaseModule;
+            if(_BuildTargetModule != null)
+                yield return _BuildTargetModule;
             if (_AdditionalModules == null) 
                 yield break;
-            foreach (var module in _AdditionalModules)
+            foreach (var module in _AdditionalModules.Where(m => m != null).OrderBy(m => m.ExecutionOrder))
                 yield return module;
         }
 
-        public bool TryGetModule<T>(out T module) where T : APlatformModule
+        public bool TryGetModule<T>(out T module) where T : IPlatformModule
         {
-            return ModulesOrdered.TryGetFirstT(out module);
+            return GetModules().TryGetFirstT(out module);
         }
         
         [PropertySpace(6)]
@@ -90,15 +90,16 @@ namespace EDIVE.BuildTool.PlatformConfigs
         
         private IEnumerable<APlatformModule> GetAvailableModules()
         {
-            return BaseModule != null 
+            return BuildTargetModule != null 
                 ? TypeCacheUtils.GetAssignableClassesOfType<APlatformModule>()
-                    .Where(m => m is not ABasePlatformModule  && m.SupportsTarget(BaseModule.BuildTarget)) 
+                    .Where(m => m.SupportsTarget(BuildTargetModule.BuildTarget)) 
                 : Enumerable.Empty<APlatformModule>();
         }
         
-        private IEnumerable GetAvailableBaseModulesDropdown()
+        private IEnumerable GetBuildTargetModulesDropdown()
         {
-            return TypeCacheUtils.GetAssignableClassesOfType<ABasePlatformModule>().Select(m => new ValueDropdownItem<APlatformModule>(m.Label, m));
+            return TypeCacheUtils.GetAssignableClassesOfType<ABuildTargetPlatformModule>()
+                .Select(m => new ValueDropdownItem<ABuildTargetPlatformModule>(m.PlatformName, m));
         }
         
         private void CustomModuleDrawer(APlatformModule value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
@@ -106,23 +107,67 @@ namespace EDIVE.BuildTool.PlatformConfigs
             EditorGUILayout.LabelField(GUIHelper.TempContent(value.Label), EditorStyles.boldLabel);
             callNextDrawer?.Invoke(label);
         }
-
-        private void OnModulesCollectionChanged()
-        {
-            _AdditionalModules.Sort();
-        }
         
         private void OnModulesListTitleBarGUI()
         {
             if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
             {
-                _AdditionalModules.RemoveAll(m => (BaseModule != null && !m.SupportsTarget(BaseModule.BuildTarget)) || m is null or ABasePlatformModule);
+                _AdditionalModules ??= new List<APlatformModule>();
+                _AdditionalModules.RemoveAll(m => (BuildTargetModule != null && !m.SupportsTarget(BuildTargetModule.BuildTarget)) || m == null);
                 foreach (var module in GetAvailableModules())
                 {
                     if (!_AdditionalModules.Contains(module)) 
                         _AdditionalModules.Add(module);
                 }
                 _AdditionalModules.Sort();
+            }
+        }
+
+        private string GetBuildTargetModuleLabel(ABuildTargetPlatformModule module) => module.PlatformName;
+
+        private TypeEqualityComparer<APlatformModule> CustomModuleComparer => TypeEqualityComparer<APlatformModule>.INSTANCE;
+        
+        private void ValidateAdditionalModules(SelfValidationResult result, InspectorProperty property)
+        {
+            if (_AdditionalModules == null || BuildTargetModule == null)
+                return;
+            
+            if (_AdditionalModules.Any(m => m == null || !m.SupportsTarget(BuildTargetModule.BuildTarget)))
+                result.AddError("Some modules are not supported for this target!")
+                    .WithFix(() =>
+                    {
+                        _AdditionalModules.RemoveAll(m => m == null || !m.SupportsTarget(BuildTargetModule.BuildTarget));
+                        property.MarkSerializationRootDirty();
+                    });
+            
+            var missingModules = GetAvailableModules().Except(_AdditionalModules, CustomModuleComparer).ToList();
+            if (missingModules.Any())
+                result.AddError("Some available modules are not added to the list!")
+                    .WithFix(() =>
+                    {
+                        _AdditionalModules.AddRange(missingModules);
+                        _AdditionalModules.Sort();
+                        property.MarkSerializationRootDirty();
+                    });
+            
+            var duplicates = _AdditionalModules
+                .Where(m => m != null)
+                .GroupBy(m => m, CustomModuleComparer)
+                .Where(g => g.Count() > 1)
+                .SelectMany(g => g.Skip(1)) // keep one, mark the rest as duplicates
+                .ToList();
+
+            if (duplicates.Any())
+            {
+                result.AddError("Duplicate modules detected!")
+                    .WithFix(() =>
+                    {
+                        _AdditionalModules = _AdditionalModules
+                            .Where(m => m != null)
+                            .Distinct(CustomModuleComparer)
+                            .ToList();
+                        property.MarkSerializationRootDirty();
+                    });
             }
         }
 

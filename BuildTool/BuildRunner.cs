@@ -25,10 +25,10 @@ namespace EDIVE.BuildTool
         private const string DOMAIN_RELOAD_SURVIVOR_ID = "BuildRunner";
         
         [SerializeField]
-        protected BuildPlatformConfig _PlatformConfig;
+        private BuildPlatformConfig _PlatformConfig;
         
         [SerializeField]
-        protected BuildPreset _Preset;
+        private BuildPreset _Preset;
         
         [SerializeField]
         private BuildContext _Context;
@@ -74,12 +74,12 @@ namespace EDIVE.BuildTool
             EditorCoroutineUtility.StopCoroutine(_buildCoroutine);
         }
  
-        protected IEnumerator StartBuildRoutine()
+        private IEnumerator StartBuildRoutine()
         {
             yield return DomainReloadUtility.WaitWhileCompiling();
             DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
             
-            var buildTarget = PlatformConfig.BaseModule.BuildTarget;
+            var buildTarget = PlatformConfig.BuildTargetModule.BuildTarget;
             if (Context.State == BuildStateType.NotStarted)
             {
                 TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
@@ -173,7 +173,7 @@ namespace EDIVE.BuildTool
                 Context.VersionDefinition.IncrementCurrentVersion();
             Context.VersionDefinition.ApplyCurrentVersion();
 
-            var platformModule = PlatformConfig.BaseModule;
+            var platformModule = PlatformConfig.BuildTargetModule;
             var namedBuildTarget = platformModule.NamedBuildTarget;
             var buildTarget = platformModule.BuildTarget;
             
@@ -214,7 +214,7 @@ namespace EDIVE.BuildTool
 
             SetupSettingsBeforeBuild();
             DebugLite.Log("[BuildRunner] Preprocess Actions executing");
-            var platformModule = PlatformConfig.BaseModule;
+            var platformModule = PlatformConfig.BuildTargetModule;
             var namedBuildTarget = platformModule.NamedBuildTarget;
             var buildTarget = platformModule.BuildTarget;
             var buildActions = Preset.GetBuildActions(namedBuildTarget, buildTarget).ToList();
@@ -234,7 +234,7 @@ namespace EDIVE.BuildTool
             try
             {
                 SetContextState(BuildStateType.PipelineInProgress);
-                _Context.Report = BuildPipeline.BuildPlayer(Context.Scenes.ToArray(), Context.ResultPath.FullPath, PlatformConfig.BaseModule.BuildTarget, Context.Options);
+                _Context.Report = BuildPipeline.BuildPlayer(Context.Scenes.ToArray(), Context.ResultPath.FullPath, PlatformConfig.BuildTargetModule.BuildTarget, Context.Options);
                 _Context.Result = _Context.Report.summary.result;
             }
             catch (Exception e)
@@ -254,7 +254,7 @@ namespace EDIVE.BuildTool
         {
             SetContextState(BuildStateType.Postprocess);
 
-            var platformModule = PlatformConfig.BaseModule;
+            var platformModule = PlatformConfig.BuildTargetModule;
             var namedBuildTarget = platformModule.NamedBuildTarget;
             var buildTarget = platformModule.BuildTarget;
             
@@ -290,7 +290,7 @@ namespace EDIVE.BuildTool
             SetContextState(BuildStateType.StateRestore);
             RestoreSettingsAfterBuild();
 
-            var platformModule = PlatformConfig.BaseModule;
+            var platformModule = PlatformConfig.BuildTargetModule;
             var namedBuildTarget = platformModule.NamedBuildTarget;
             var buildTarget = platformModule.BuildTarget;
             
@@ -333,14 +333,14 @@ namespace EDIVE.BuildTool
             }
         }
         
-        protected virtual void SetupSettingsBeforeBuild()
+        private void SetupSettingsBeforeBuild()
         {
-            PlatformConfig.ModulesOrdered.ForEach(m => m.SetupBeforeBuild(Context));
+            PlatformConfig.GetModules().ForEach(m => m.SetupBeforeBuild(Context));
         }
 
-        protected virtual void RestoreSettingsAfterBuild()
+        private void RestoreSettingsAfterBuild()
         {
-            PlatformConfig.ModulesOrdered.ForEach(m => m.RestoreAfterBuild(Context));
+            PlatformConfig.GetModules().ForEach(m => m.RestoreAfterBuild(Context));
         }
 
         private void SetContextState(BuildStateType state)

@@ -8,9 +8,9 @@ using UnityEngine;
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     [Serializable]
-    public class StandaloneBuildPlatformModule : ABasePlatformModule
+    public class StandaloneBuildPlatformModule : ABuildTargetPlatformModule
     {
-        public override string Label => "Standalone Platform";
+        public override string PlatformName => "Standalone";
         
         [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
         [SerializeField]
