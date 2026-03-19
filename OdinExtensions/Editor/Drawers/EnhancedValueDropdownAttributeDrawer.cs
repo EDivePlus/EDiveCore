@@ -22,7 +22,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
     [DrawerPriority(0, 0, 2002)]
     public sealed class EnhancedValueDropdownAttributeDrawer : OdinAttributeDrawer<EnhancedValueDropdownAttribute>
     {
-        private string _error;
         private GUIContent _label;
         private bool _isList;
         private bool _isListElement;
@@ -35,6 +34,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private ValueResolver<string> _valueLabelGetterResolver;
         private ActionResolver _onListEndGUIResolver;
         private ValueResolver<bool> _showIfResolver;
+        private ValueResolver<IEqualityComparer> _customComparerResolver;
+        private IEqualityComparer _customComparer;
 
         private ValueResolver<object> _rawGetter;
         private LocalPersistentContext<bool> _isToggled;
@@ -49,26 +50,32 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
             
             _rawGetter = ValueResolver.Get<object>(Property, Attribute.ValuesGetter);
-            if (Attribute.OnListEndGUI != null)
+            if (!string.IsNullOrEmpty(Attribute.OnListEndGUI))
             {
                 _onListEndGUIResolver = ActionResolver.Get(Property, Attribute.OnListEndGUI);
             }
             _isToggled = this.GetPersistentValue("Toggled", SirenixEditorGUI.ExpandFoldoutByDefault);
-
-            _error = _rawGetter.ErrorMessage;
+            
             _isList = Property.ChildResolver is ICollectionResolver;
             _isListElement = Property.Parent != null && Property.Parent.ChildResolver is ICollectionResolver;
 
-            if (Attribute.IconGetter != null)
+            if (!string.IsNullOrEmpty(Attribute.IconGetter))
             {
                 var type = Property.ChildResolver is ICollectionResolver collectionResolver ? collectionResolver.ElementType : Property.ValueEntry.BaseValueType;
                 _iconGetterResolver = ValueResolver.Get<Texture>(Property, Attribute.IconGetter, new ValueNamedValue(VALUE_ID, type));
             }
 
-            if (Attribute.ValueLabelGetter != null)
+            if (!string.IsNullOrEmpty(Attribute.ValueLabelGetter))
             {
                 var type = Property.ChildResolver is ICollectionResolver collectionResolver ? collectionResolver.ElementType : Property.ValueEntry.BaseValueType;
                 _valueLabelGetterResolver = ValueResolver.Get<string>(Property, Attribute.ValueLabelGetter, new ValueNamedValue(VALUE_ID, type));
+            }
+            
+            if (!string.IsNullOrEmpty(Attribute.CustomComparer))
+            {
+                _customComparerResolver = ValueResolver.Get<IEqualityComparer>(Property, Attribute.CustomComparer);
+                if (!_customComparerResolver.HasError)
+                    _customComparer = _customComparerResolver.GetValue();
             }
 
             _getSelection = () => Property.ValueEntry.WeakValues.Cast<object>();
@@ -102,10 +109,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private void ReloadDropdownCollections()
         {
-            if (_error != null)
-            {
+            if (_rawGetter.HasError)
                 return;
-            }
 
             object first = null;
             var value = _rawGetter.GetValue();
@@ -119,7 +124,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (isNamedValueDropdownItems)
             {
                 var vals = _getValues();
-                _nameLookup = new Dictionary<object, string>(new IValueDropdownEqualityComparer(false));
+                _nameLookup = new Dictionary<object, string>(new IValueDropdownEqualityComparer(false, _customComparer));
                 foreach (var item in vals)
                 {
                     _nameLookup[item] = item.Text;
@@ -162,22 +167,26 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 CallNextDrawer(label);
                 return;
             }
-          
-            ActionResolver.DrawErrors(_onListEndGUIResolver);
-            ValueResolver.DrawErrors(_showIfResolver, _iconGetterResolver, _valueLabelGetterResolver);
-            if (_showIfResolver != null && !_showIfResolver.HasError && !_showIfResolver.GetValue())
+            
+   
+            if (_rawGetter.HasError)
             {
+                ValueResolver.DrawErrors(_rawGetter);
                 CallNextDrawer(label);
                 return;
             }
 
-            if (_error != null)
+            if (_isList)
             {
-                SirenixEditorGUI.ErrorMessageBox(_error);
-                CallNextDrawer(label);
-            }
-            else if (_isList)
-            {
+                ActionResolver.DrawErrors(_onListEndGUIResolver);
+                ValueResolver.DrawErrors(_showIfResolver, _iconGetterResolver, _valueLabelGetterResolver, _customComparerResolver);
+                
+                if (_showIfResolver != null && !_showIfResolver.HasError && !_showIfResolver.GetValue())
+                {
+                    CallNextDrawer(label);
+                    return;
+                }
+                
                 if (Attribute.DisableListAddButtonBehaviour)
                 {
                     CallNextDrawer(label);
@@ -226,7 +235,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     for (int i = 0; i < arr.Length; i++)
                     {
                         var newValue = Attribute.CopyValues ? SerializationUtility.CreateCopy(item) : item;
-                        if (Attribute.OverrideExistingValues || !Equals(arr[i], newValue))
+                        if (Attribute.OverrideExistingValues || !_customComparer.Equals(arr[i], newValue))
                         {
                             arr[i] = newValue;
                         }
@@ -241,7 +250,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 for (int i = 0; i < Property.ValueEntry.WeakValues.Count; i++)
                 {
                     var newValue = Attribute.CopyValues ? SerializationUtility.CreateCopy(first) : first;
-                    if (Attribute.OverrideExistingValues || !Equals(Property.ValueEntry.WeakValues[i], newValue))
+                    if (Attribute.OverrideExistingValues || !_customComparer.Equals(Property.ValueEntry.WeakValues[i], newValue))
                     {
                         Property.ValueEntry.WeakValues[i] = newValue;
                     }
@@ -391,32 +400,28 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private GenericSelector<object> CreateSelector()
         {
             bool isUniqueList = Attribute.IsUniqueList; // /*(this.Property.ChildResolver is IOrderedCollectionResolver) == false ||*/ (this.Attribute.IsUniqueList || this.Attribute.ExcludeExistingValuesInList);
-            var query = _getValues() ?? Enumerable.Empty<ValueDropdownItem>();
-
-            var isEmpty = query.Any() == false;
-
+            var valueList = (_getValues() ?? Enumerable.Empty<ValueDropdownItem>()).ToList();
+            var isEmpty = !valueList.Any();
+            
             if (!isEmpty)
             {
                 if (_isList && Attribute.ExcludeExistingValuesInList || (_isListElement && isUniqueList))
                 {
-                    var list = query.ToList();
                     var listProperty = Property.FindParent(x => (x.ChildResolver as ICollectionResolver) != null, true);
-                    var comparer = new IValueDropdownEqualityComparer(false);
-
+                    
+                    var comparer = new IValueDropdownEqualityComparer(false, _customComparer);
                     listProperty.ValueEntry.WeakValues.Cast<IEnumerable>()
                         .SelectMany(x => x.Cast<object>())
                         .ForEach(x =>
                         {
-                            list.RemoveAll(c => comparer.Equals(c, x));
+                            valueList.RemoveAll(c => comparer.Equals(c, x));
                         });
-
-                    query = list;
                 }
 
                 // Update item names in the look up table in case the collection has changed.
                 if (_nameLookup != null)
                 {
-                    foreach (var item in query)
+                    foreach (var item in valueList)
                     {
                         if (item.Value != null)
                         {
@@ -426,9 +431,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 }
             }
 
-            var enableSearch = Attribute.NumberOfItemsBeforeEnablingSearch == 0 || (query != null && query.Take(Attribute.NumberOfItemsBeforeEnablingSearch).Count() == Attribute.NumberOfItemsBeforeEnablingSearch);
+            var enableSearch = Attribute.NumberOfItemsBeforeEnablingSearch == 0 || (valueList.Take(Attribute.NumberOfItemsBeforeEnablingSearch).Count() == Attribute.NumberOfItemsBeforeEnablingSearch);
 
-            var selector = new EnhancedDropdownSelector<object>(Attribute.DropdownTitle, false, query.Select(x => new GenericSelectorItem<object>(x.Text, x.Value)));
+            var selector = new EnhancedDropdownSelector<object>(Attribute.DropdownTitle, false, valueList.Select(x => new GenericSelectorItem<object>(x.Text, x.Value)));
             if (_onListEndGUIResolver != null && !_onListEndGUIResolver.HasError)
             {
                 _onListEndGUIResolver.DoAction();
@@ -469,8 +474,12 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             {
                 selection = _getSelection().SelectMany(x => (x as IEnumerable).Cast<object>());
             }
+            
+            var normalizedSelection = selection
+                .Select(sel => valueList.FirstOrDefault(item => _customComparer.Equals(item.Value, sel)).Value)
+                .Where(x => x != null);
 
-            selector.SetSelection(selection);
+            selector.SetSelection(normalizedSelection);
 
             if (_iconGetterResolver != null && !_iconGetterResolver.HasError)
             {
@@ -566,9 +575,14 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
     internal class IValueDropdownEqualityComparer : IEqualityComparer<object>
     {
-        private bool isTypeLookup;
+        private readonly bool _isTypeLookup;
+        private readonly IEqualityComparer _valueComparer;
 
-        public IValueDropdownEqualityComparer(bool isTypeLookup) { this.isTypeLookup = isTypeLookup; }
+        public IValueDropdownEqualityComparer(bool isTypeLookup = false, IEqualityComparer valueComparer = null)
+        {
+            _isTypeLookup = isTypeLookup;
+            _valueComparer = valueComparer ?? EqualityComparer<object>.Default;
+        }
 
         public new bool Equals(object x, object y)
         {
@@ -582,7 +596,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 y = ((ValueDropdownItem) y).Value;
             }
 
-            if (EqualityComparer<object>.Default.Equals(x, y))
+            if (_valueComparer.Equals(x, y))
             {
                 return true;
             }
@@ -592,7 +606,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 return false;
             }
 
-            if (this.isTypeLookup)
+            if (this._isTypeLookup)
             {
                 var tx = x as Type ?? x.GetType();
                 var ty = y as Type ?? y.GetType();
@@ -623,15 +637,13 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 return -1;
             }
 
-            if (this.isTypeLookup)
+            if (_isTypeLookup)
             {
                 var t = obj as Type ?? obj.GetType();
                 return t.GetHashCode();
             }
-            else
-            {
-                return obj.GetHashCode();
-            }
+
+            return _valueComparer.GetHashCode(obj);
         }
     }
 }

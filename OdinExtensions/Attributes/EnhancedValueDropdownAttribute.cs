@@ -47,6 +47,8 @@ namespace EDIVE.OdinExtensions.Attributes
         public string IconGetter;
 
         public string ValueLabelGetter;
+        
+        public string CustomComparer;
 
         public bool DrawThumbnailIcon;
 
