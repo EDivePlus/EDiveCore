@@ -1,0 +1,32 @@
+{
+    "name": "EDIVE.BuildTool.XRManagement",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.BuildTool",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.EditorUtils",
+        "EDIVE.OdinExtensions.Editor",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "XR_MANAGEMENT"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.management",
+            "expression": "",
+            "define": "XR_MANAGEMENT"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -2,6 +2,8 @@
 // Created: 18.03.2026
 
 using System;
+using EDIVE.OdinExtensions;
+using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 
 namespace EDIVE.BuildTool.PlatformConfigs
@@ -24,6 +26,12 @@ namespace EDIVE.BuildTool.PlatformConfigs
             var executionOrderComparison = ExecutionOrder.CompareTo(other.ExecutionOrder);
             if (executionOrderComparison != 0) return executionOrderComparison;
             return string.Compare(Label, other.Label, StringComparison.Ordinal);
+        }
+
+        public static bool TryGetModuleFromProperty<T>(InspectorProperty property, out T module) where T : IPlatformModule
+        {
+            module = default;
+            return property != null && property.TryGetParentObject<BuildPlatformConfig>(out var config) && config.TryGetModule(out module);
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,9 +26,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public ABuildTargetPlatformModule BuildTargetModule => _BuildTargetModule;
         
         [PropertySpace(4)]
-        [EnhancedValueDropdown(nameof(GetAvailableModulesDropdown), DrawDropdownForListElements = false, IsUniqueList =  true, CustomComparer = nameof(CustomModuleComparer))]
-        [CustomValueDrawer(nameof(CustomModuleDrawer))]
-        [ListDrawerSettings(ShowFoldout = false, HideRemoveButton = true, DraggableItems = false, OnTitleBarGUI = nameof(OnModulesListTitleBarGUI))]
+        [ListDrawerSettings(ShowFoldout = false, IsReadOnly = true, OnTitleBarGUI = nameof(OnModulesListTitleBarGUI))]
         [EnhancedValidate(nameof(ValidateAdditionalModules))]
         [HideReferenceObjectPicker]
         [SerializeReference]
@@ -47,6 +44,8 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [InlineProperty]
         [SerializeField]
         protected SerializedBuildSetupData _BuildSetupData;
+        
+        private static TypeEqualityComparer<APlatformModule> CustomModuleComparer => TypeEqualityComparer<APlatformModule>.INSTANCE;
         
         public bool IsValid => BuildTargetModule != null;
         public SerializedBuildSetupData BuildSetupData => _BuildSetupData;
@@ -82,11 +81,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
         {
             yield return BuildSetupData;
         }
-
-        private IEnumerable GetAvailableModulesDropdown()
-        {
-            return GetAvailableModules().Select(m => new ValueDropdownItem<APlatformModule>(m.Label, m));
-        }
         
         private IEnumerable<APlatformModule> GetAvailableModules()
         {
@@ -102,12 +96,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
                 .Select(m => new ValueDropdownItem<ABuildTargetPlatformModule>(m.PlatformName, m));
         }
         
-        private void CustomModuleDrawer(APlatformModule value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
-        {
-            EditorGUILayout.LabelField(GUIHelper.TempContent(value.Label), EditorStyles.boldLabel);
-            callNextDrawer?.Invoke(label);
-        }
-        
         private void OnModulesListTitleBarGUI()
         {
             if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
@@ -116,7 +104,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
                 _AdditionalModules.RemoveAll(m => (BuildTargetModule != null && !m.SupportsTarget(BuildTargetModule.BuildTarget)) || m == null);
                 foreach (var module in GetAvailableModules())
                 {
-                    if (!_AdditionalModules.Contains(module)) 
+                    if (!_AdditionalModules.Contains(module, CustomModuleComparer)) 
                         _AdditionalModules.Add(module);
                 }
                 _AdditionalModules.Sort();
@@ -124,8 +112,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
         }
 
         private string GetBuildTargetModuleLabel(ABuildTargetPlatformModule module) => module.PlatformName;
-
-        private TypeEqualityComparer<APlatformModule> CustomModuleComparer => TypeEqualityComparer<APlatformModule>.INSTANCE;
         
         private void ValidateAdditionalModules(SelfValidationResult result, InspectorProperty property)
         {

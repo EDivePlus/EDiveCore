@@ -24,7 +24,7 @@ namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
         [SerializeField, HideInInspector] private bool _MinifyRelease;
         [SerializeField, HideInInspector] private bool _SplitApplicationBinary;
         [SerializeField, HideInInspector] private DebugSymbolLevel _SymbolLevel;
-        [SerializeField, HideInInspector] private DebugSymbolFormatFlags _SymbolFormat;
+        [SerializeField, HideInInspector] private int _SymbolFormat;
         [SerializeField, HideInInspector] private bool _ForceDisableCloudDiagnostics;
         
         public void Validate(SelfValidationResult result)

@@ -104,6 +104,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         
         public abstract NamedBuildTarget NamedBuildTarget { get; }
         public abstract BuildTarget BuildTarget { get; }
+        public BuildTargetGroup BuildTargetGroup => BuildPipeline.GetBuildTargetGroup(BuildTarget);
         public abstract string BuildExtension { get; }
 
         public virtual void SetupBeforeBuild(BuildContext context)

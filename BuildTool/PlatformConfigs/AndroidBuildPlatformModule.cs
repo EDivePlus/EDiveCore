@@ -61,11 +61,16 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         [EnhancedBoxGroup("Build")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
-        [EnumToggleButtons]
         [SerializeField]
-        private DebugSymbolFormatFlags _SymbolFormat = DebugSymbolFormatFlags.Zip | DebugSymbolFormatFlags.AppBundle;
-        public DebugSymbolFormatFlags SymbolFormat => _SymbolFormat;
+        private DebugSymbolsOutputFormat _SymbolOutputFormat = DebugSymbolsOutputFormat.ZipAndIncludeInBundle;
         
+        [EnhancedBoxGroup("Build")]
+        [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
+        [SerializeField]
+        private DebugSymbolFileExtension _SymbolFileExtension = DebugSymbolFileExtension.Standard;
+
+        public DebugSymbolFormat SymbolFormat => (DebugSymbolFormat)((int) _SymbolOutputFormat | (int) _SymbolFileExtension);
+
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _ForceDisableCloudDiagnostics;
@@ -103,12 +108,21 @@ namespace EDIVE.BuildTool.PlatformConfigs
             UserBuildSettings.DebugSymbols.level = _SymbolLevel;
 
             data._PrevSymbolFormat = UserBuildSettings.DebugSymbols.format;
-            UserBuildSettings.DebugSymbols.format = (DebugSymbolFormat)_SymbolFormat;
+            UserBuildSettings.DebugSymbols.format = SymbolFormat;
             
             data._PrevEnableCloudDiagnostics = CrashReportingSettings.enabled;
             if (_ForceDisableCloudDiagnostics) CrashReportingSettings.enabled = false;
         }
 
+        [Button]
+        public void Test()
+        {
+            UserBuildSettings.DebugSymbols.level = _SymbolLevel;
+            UserBuildSettings.DebugSymbols.format = SymbolFormat;
+            AssetDatabase.SaveAssets();
+        }
+
+        
         public override void RestoreAfterBuild(BuildContext context)
         {
             if (!context.TryGetData<Data>(out var data))
@@ -126,8 +140,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             PlayerSettings.Android.minifyRelease = data._PrevMinifyRelease;
 
             PlayerSettings.Android.splitApplicationBinary = data._PrevSplitAppBinary;
-            UserBuildSettings.DebugSymbols.level = data._PrevSymbolLevel;
-            UserBuildSettings.DebugSymbols.format = data._PrevSymbolFormat;
+          
             
             CrashReportingSettings.enabled = data._PrevEnableCloudDiagnostics;
         }
@@ -173,11 +186,16 @@ namespace EDIVE.BuildTool.PlatformConfigs
         }
     }
     
-    [Flags]
-    public enum DebugSymbolFormatFlags
+    public enum DebugSymbolsOutputFormat
     {
-        [Tooltip("Create .zip file")] Zip = 1,
-        [Tooltip("Include in AppBundle (Requires App Bundle)")] AppBundle = 2,
-        [Tooltip("use .so.dbg instead of .so extension")] LegacyExtensions = 4,
+        [LabelText(".zip")] Zip = 1,
+        IncludeInBundle = 2,
+        [LabelText(".zip & Include In Bundle")] ZipAndIncludeInBundle = 3,
+    }
+    
+    public enum DebugSymbolFileExtension
+    {
+        [LabelText(".so")] Standard = 0,
+        [LabelText(".so.sym")] Legacy = 4,
     }
 }
