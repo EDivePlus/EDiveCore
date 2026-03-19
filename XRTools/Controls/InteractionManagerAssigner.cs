@@ -15,13 +15,17 @@ namespace EDIVE.XRTools.Controls
     {
         private void Awake()
         {
-            if (!TryGetComponent(out XRBaseInteractable interactable) || !AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+            if (!AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
                 return;
 
-            interactable.interactionManager = controlsManager.InteractionManager;
-            if (interactable is BaseTeleportationInteractable teleportationInteractable)
+            var interactables = GetComponents<XRBaseInteractable>();
+            foreach (var interactable in interactables)
             {
-                teleportationInteractable.teleportationProvider = controlsManager.TeleportationProvider;
+                interactable.interactionManager = controlsManager.InteractionManager;
+                if (interactable is BaseTeleportationInteractable teleportationInteractable)
+                {
+                    teleportationInteractable.teleportationProvider = controlsManager.TeleportationProvider;
+                }
             }
         }
     }

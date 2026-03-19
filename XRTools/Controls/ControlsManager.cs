@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.Core.Services;
 using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
@@ -12,7 +13,7 @@ using UnityEditor;
 
 namespace EDIVE.XRTools.Controls
 {
-    public class ControlsManager : AServiceBehaviour<ControlsManager>
+    public class ControlsManager : AServiceBehaviour<ControlsManager>, ISelfValidator
     {
         [SerializeField]
         private AControls _DesktopControls;
@@ -55,22 +56,34 @@ namespace EDIVE.XRTools.Controls
                 _currentControls.RequestTeleport(position, rotation);
             }
         }
-
-#if UNITY_EDITOR
-        [PropertySpace]
-        [Button]
-        private void AssignInteractionManager()
+        
+        public void Validate(SelfValidationResult result)
         {
-            foreach (var component in GetComponentsInChildren<Component>())
+#if UNITY_EDITOR
+            var componentsData = GetComponentsInChildren<Component>(true)
+                .Select(component =>
+                {
+                    var serializedObject = new SerializedObject(component);
+                    var interactionManagerProperty = serializedObject.FindProperty("m_InteractionManager");
+                    return new {component, interactionManagerProperty};
+                })
+                .Where(x => x.interactionManagerProperty != null && x.interactionManagerProperty.objectReferenceValue == null)
+                .ToList();
+
+            if (componentsData.Any())
             {
-                var serializedObject = new SerializedObject(component);
-                var interactionManagerProperty = serializedObject.FindProperty("m_InteractionManager");
-                if (interactionManagerProperty == null)
-                    continue;
-                interactionManagerProperty.objectReferenceValue = InteractionManager;
-                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                result.AddError("Missing Interaction Manager on some components.")
+                    .WithFix(() =>
+                    {
+                        foreach (var componentData in componentsData)
+                        {
+                            if (componentData.interactionManagerProperty == null) continue;
+                            componentData.interactionManagerProperty.objectReferenceValue = InteractionManager;
+                            componentData.interactionManagerProperty.serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                        }
+                    });
             }
-        }
 #endif
+        }
     }
 }
