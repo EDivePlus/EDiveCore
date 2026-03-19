@@ -35,7 +35,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private ActionResolver _onListEndGUIResolver;
         private ValueResolver<bool> _showIfResolver;
         private ValueResolver<IEqualityComparer> _customComparerResolver;
-        private IEqualityComparer _customComparer;
+        private IEqualityComparer _valueComparer;
 
         private ValueResolver<object> _rawGetter;
         private LocalPersistentContext<bool> _isToggled;
@@ -75,8 +75,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             {
                 _customComparerResolver = ValueResolver.Get<IEqualityComparer>(Property, Attribute.CustomComparer);
                 if (!_customComparerResolver.HasError)
-                    _customComparer = _customComparerResolver.GetValue();
+                    _valueComparer = _customComparerResolver.GetValue();
             }
+            _valueComparer ??= EqualityComparer<object>.Default;
 
             _getSelection = () => Property.ValueEntry.WeakValues.Cast<object>();
             _getValues = () =>
@@ -124,7 +125,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (isNamedValueDropdownItems)
             {
                 var vals = _getValues();
-                _nameLookup = new Dictionary<object, string>(new IValueDropdownEqualityComparer(false, _customComparer));
+                _nameLookup = new Dictionary<object, string>(new IValueDropdownEqualityComparer(false, _valueComparer));
                 foreach (var item in vals)
                 {
                     _nameLookup[item] = item.Text;
@@ -235,7 +236,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     for (int i = 0; i < arr.Length; i++)
                     {
                         var newValue = Attribute.CopyValues ? SerializationUtility.CreateCopy(item) : item;
-                        if (Attribute.OverrideExistingValues || !_customComparer.Equals(arr[i], newValue))
+                        if (Attribute.OverrideExistingValues || !_valueComparer.Equals(arr[i], newValue))
                         {
                             arr[i] = newValue;
                         }
@@ -250,7 +251,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 for (int i = 0; i < Property.ValueEntry.WeakValues.Count; i++)
                 {
                     var newValue = Attribute.CopyValues ? SerializationUtility.CreateCopy(first) : first;
-                    if (Attribute.OverrideExistingValues || !_customComparer.Equals(Property.ValueEntry.WeakValues[i], newValue))
+                    if (Attribute.OverrideExistingValues || !_valueComparer.Equals(Property.ValueEntry.WeakValues[i], newValue))
                     {
                         Property.ValueEntry.WeakValues[i] = newValue;
                     }
@@ -409,7 +410,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 {
                     var listProperty = Property.FindParent(x => (x.ChildResolver as ICollectionResolver) != null, true);
                     
-                    var comparer = new IValueDropdownEqualityComparer(false, _customComparer);
+                    var comparer = new IValueDropdownEqualityComparer(false, _valueComparer);
                     listProperty.ValueEntry.WeakValues.Cast<IEnumerable>()
                         .SelectMany(x => x.Cast<object>())
                         .ForEach(x =>
@@ -476,7 +477,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
             
             var normalizedSelection = selection
-                .Select(sel => valueList.FirstOrDefault(item => _customComparer.Equals(item.Value, sel)).Value)
+                .Select(sel => valueList.FirstOrDefault(item => _valueComparer.Equals(item.Value, sel)).Value)
                 .Where(x => x != null);
 
             selector.SetSelection(normalizedSelection);
