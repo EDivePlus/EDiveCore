@@ -50,6 +50,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
             _assetList = new AssetList();
             _assetList.AutoPopulate = attribute.AutoPopulate;
+            _assetList.HideAddButton = attribute.HideAddButton;
+            _assetList.HidePopulateButton = attribute.HidePopulateButton;
             _assetList.ShowInlineEditor = attribute.ShowInlineEditor;
             _assetList.AssetNamePrefix = attribute.AssetNamePrefix;
             _assetList.List = entry;
@@ -255,6 +257,12 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             
             [HideInInspector]
             public bool ShowInlineEditor;
+            
+            [HideInInspector]
+            public bool HideAddButton;
+            
+            [HideInInspector]
+            public bool HidePopulateButton;
 
             [HideInInspector]
             public string AssetNamePrefix;
@@ -516,7 +524,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 }
 
                 GUIHelper.PushGUIEnabled(List.SmartValue.Count != ToggleableAssets.Count);
-                if (!AutoPopulate && SirenixEditorGUI.ToolbarButton(EditorIcons.Stretch) && IsPopulated)
+                if (!AutoPopulate && !HidePopulateButton && SirenixEditorGUI.ToolbarButton(EditorIcons.Stretch) && IsPopulated)
                 {
                     UpdateList(true);
                 }
@@ -527,41 +535,38 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     Rescan();
                 }
 
-                if (EnhancedAssetUtilities.CanCreateNewAsset<TElement>())
+                if (!HideAddButton && EnhancedAssetUtilities.CanCreateNewAsset<TElement>() && SirenixEditorGUI.ToolbarButton(EditorIcons.Plus) && IsPopulated)
                 {
-                    if (SirenixEditorGUI.ToolbarButton(EditorIcons.Plus) && IsPopulated)
+                    string path = null;
+                    if (PrettyPaths != null && PrettyPaths.Length > 0)
                     {
-                        string path = null;
-                        if (PrettyPaths != null && PrettyPaths.Length > 0)
+                        path = PrettyPaths.FirstOrDefault();
+                    }
+                    if (path == null)
+                    {
+                        var lastAsset = List.SmartValue.Count > 0 ? List.SmartValue[^1] : null;
+                        if (lastAsset == null)
                         {
-                            path = PrettyPaths.FirstOrDefault();
-                        }
-                        if (path == null)
-                        {
-                            var lastAsset = List.SmartValue.Count > 0 ? List.SmartValue[List.SmartValue.Count - 1] : null;
-                            if (lastAsset == null)
+                            var lastToggleable = toggleableAssets.LastOrDefault();
+                            if (lastToggleable != null)
                             {
-                                var lastToggleable = toggleableAssets.LastOrDefault();
-                                if (lastToggleable != null)
-                                {
-                                    lastAsset = lastToggleable.Object;
-                                }
-                            }
-                            if (lastAsset != null)
-                            {
-                                path = EnhancedAssetUtilities.GetAssetLocation(lastAsset);
+                                lastAsset = lastToggleable.Object;
                             }
                         }
+                        if (lastAsset != null)
+                        {
+                            path = EnhancedAssetUtilities.GetAssetLocation(lastAsset);
+                        }
+                    }
 
-                        OdinExtensionUtils.DrawSubtypeDropDownOrCall(typeof(TElement), CreateInstance);
-                        void CreateInstance(Type type)
+                    OdinExtensionUtils.DrawSubtypeDropDownOrCall(typeof(TElement), CreateInstance);
+                    void CreateInstance(Type type)
+                    {
+                        Property.Tree.DelayActionUntilRepaint(() =>
                         {
-                            Property.Tree.DelayActionUntilRepaint(() =>
-                            {
-                                OdinExtensionUtils.CreateNewInstanceOfType<TElement>(type, path);
-                                Rescan();
-                            });
-                        }
+                            OdinExtensionUtils.CreateNewInstanceOfType<TElement>(type, path);
+                            Rescan();
+                        });
                     }
                 }
 

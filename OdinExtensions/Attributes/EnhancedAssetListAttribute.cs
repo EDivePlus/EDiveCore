@@ -14,5 +14,7 @@ namespace EDIVE.OdinExtensions.Attributes
         public string Path;
         public string Tags;
         public bool ShowInlineEditor;
+        public bool HideAddButton;
+        public bool HidePopulateButton;
     }
 }
