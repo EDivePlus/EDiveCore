@@ -23,10 +23,9 @@ namespace EDIVE.Configuration
             {
                 // Load existing settings
                 _Settings.LoadConfigs();
-
-                // Save the settings to file if they don't exist
-                _Settings.SaveConfigs();
             }
+            // Save the settings to file if they don't exist
+            _Settings.SaveConfigs();
 
             return UniTask.CompletedTask;
         }

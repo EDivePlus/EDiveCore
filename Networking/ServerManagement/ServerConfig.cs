@@ -17,7 +17,7 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         private int _MaxPlayers;
         
-        [JsonProperty("MaxPlayers")]
+        [JsonProperty("ServerID")]
         private long _serverID;
 
         public string ServerName
