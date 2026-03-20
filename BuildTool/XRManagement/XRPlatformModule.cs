@@ -28,6 +28,7 @@ namespace EDIVE.BuildTool.XRManagement
         [ListDrawerSettings(ShowFoldout = false)]
         [EnhancedValueDropdown(nameof(GetLoadersDropdown), DrawDropdownForListElements = false, IsUniqueList = true, IconGetter = nameof(GetLoaderIcon))]
         [EnhancedValidate(nameof(ValidateLoaders))]
+        [EnhancedValidate(nameof(ValidateLoader), ApplyToListElements = true)]
         private List<XRLoader> _Loaders = new();
         
         private IEnumerable<XRLoader> GetValidLoaders(BuildTargetGroup group) => _Loaders.Where(l => l != null && l.IsSupportedBy(group));
@@ -84,6 +85,18 @@ namespace EDIVE.BuildTool.XRManagement
             return EditorAssetUtils.FindAllAssetsOfType<XRLoader>().Where(l => l.IsSupportedBy(buildTargetGroup));
         }
 
+        private void ValidateLoader(XRLoader value, SelfValidationResult result, InspectorProperty property)
+        {
+            if (!TryGetModuleFromProperty(property, out ABuildTargetPlatformModule module))
+                return;
+
+            var incompatibleLoaders = value.SelectIncompatibleLoaders(_Loaders, module.BuildTargetGroup).ToList();
+            if (incompatibleLoaders.Any())
+            {
+                result.AddError($"Incompatible with: {string.Join(", ", incompatibleLoaders.Select(l => l.name))}.");
+            }
+        }
+        
         private void ValidateLoaders(List<XRLoader> value, SelfValidationResult result, InspectorProperty property)
         {
             if (!TryGetModuleFromProperty(property, out ABuildTargetPlatformModule module))

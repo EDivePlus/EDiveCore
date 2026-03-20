@@ -49,7 +49,24 @@ namespace EDIVE.BuildTool.XRManagement
 
             return _customLoaderUiInfos.TryGetFirst(info => info.LoaderTypeName == loaderTypeName && info.BuildTargetGroup == buildTargetGroup, out loaderUiInfo);
         }
-
+        
+        public static bool TryGetCustomLoaderUiInfo(this XRLoader loader, BuildTargetGroup buildTargetGroup, out CustomLoaderUiInfo loaderUiInfo)
+        { 
+            if (loader == null)
+            {
+                loaderUiInfo = null;
+                return false;
+            }
+            return TryGetCustomLoaderUiInfo(loader.GetType().FullName, buildTargetGroup, out loaderUiInfo);
+        }
+        
+        public static IEnumerable<XRLoader> SelectIncompatibleLoaders(this XRLoader loader, IEnumerable<XRLoader> allLoaders, BuildTargetGroup buildTargetGroup)
+        { 
+            if (loader.TryGetCustomLoaderUiInfo(buildTargetGroup, out var loaderUiInfo) && !loaderUiInfo.IncompatibleLoaders.IsNullOrEmpty())
+                return allLoaders.Where(l => loaderUiInfo.IncompatibleLoaders.Contains(l.GetType().FullName)).ToList();
+            return Enumerable.Empty<XRLoader>();
+        }
+        
         public static (IXRLoaderMetadata loaderMeta, IXRPackageMetadata packageMeta) GetLoaderMetadata(this XRLoader loader)
         {
             if (loader == null)
