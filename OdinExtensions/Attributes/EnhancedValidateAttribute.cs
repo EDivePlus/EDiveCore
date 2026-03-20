@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
-using Sirenix.OdinInspector;
 
 namespace EDIVE.OdinExtensions.Attributes
 {
-    [DontApplyToListElements]
     [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = true)]
     [Conditional("UNITY_EDITOR")]
     public sealed class EnhancedValidateAttribute : Attribute
@@ -12,6 +10,7 @@ namespace EDIVE.OdinExtensions.Attributes
         public string ValidationMethod;
         public bool IncludeChildren;
         public bool ContinuousValidationCheck;
+        public bool ApplyToListElements;
 
         public EnhancedValidateAttribute(string validationMethod)
         {

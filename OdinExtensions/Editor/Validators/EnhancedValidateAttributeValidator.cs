@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.OdinExtensions.Editor.Validators;
 using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.ActionResolvers;
 using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities;
@@ -20,7 +23,10 @@ namespace EDIVE.OdinExtensions.Editor.Validators
             new("value", typeof(T)),
             new("result", typeof(SelfValidationResult))
         };
-
+        
+        private bool _isList;
+        private bool _isListElement;
+        
         private ActionResolver _validationChecker;
 
         public override RevalidationCriteria RevalidationCriteria
@@ -35,16 +41,24 @@ namespace EDIVE.OdinExtensions.Editor.Validators
 
         protected override void Initialize()
         {
+            _isList = Property.ChildResolver is ICollectionResolver;
+            _isListElement = Property.Parent != null && Property.Parent.ChildResolver is ICollectionResolver;
+            
             var context = ActionResolverContext.CreateDefault(Property, Attribute.ValidationMethod, CUSTOM_VALIDATION_ARGS);
             _validationChecker = ActionResolver.GetFromContext(ref context);
         }
 
         protected override void Validate(ValidationResult result)
         {
+            if (_isList && Attribute.ApplyToListElements)
+                return;
+            
+            if (_isListElement && !Attribute.ApplyToListElements)
+                return;
+            
             if (_validationChecker.HasError)
             {
-                result.Message = ActionResolver.GetCombinedErrors(_validationChecker);
-                result.ResultType = ValidationResultType.Error;
+                result.AddError(ActionResolver.GetCombinedErrors(_validationChecker));
             }
             else
             {
@@ -55,30 +69,24 @@ namespace EDIVE.OdinExtensions.Editor.Validators
                 PopulateValidationResult(result, selfResult);
             }
         }
-
+        
         private void PopulateValidationResult(ValidationResult result, SelfValidationResult selfResult)
         {
             var count = selfResult.Count;
             for (var i = 0; i < count; i++)
             {
                 ref var selfEntry = ref selfResult[i];
-                var item = new ResultItem();
-                item.Message = selfEntry.Message;
-
-                switch (selfEntry.ResultType)
+                var item = new ResultItem
                 {
-                    case SelfValidationResult.ResultType.Error:
-                        item.ResultType = ValidationResultType.Error;
-                        break;
-                    case SelfValidationResult.ResultType.Warning:
-                        item.ResultType = ValidationResultType.Warning;
-                        break;
-                    case SelfValidationResult.ResultType.Valid:
-                        item.ResultType = ValidationResultType.Valid;
-                        break;
-                    default:
-                        throw new NotImplementedException(selfEntry.ResultType.ToString());
-                }
+                    Message = selfEntry.Message,
+                    ResultType = selfEntry.ResultType switch
+                    {
+                        SelfValidationResult.ResultType.Error => ValidationResultType.Error,
+                        SelfValidationResult.ResultType.Warning => ValidationResultType.Warning,
+                        SelfValidationResult.ResultType.Valid => ValidationResultType.Valid,
+                        _ => throw new NotImplementedException(selfEntry.ResultType.ToString())
+                    }
+                };
 
                 if (selfEntry.MetaData != null)
                 {
