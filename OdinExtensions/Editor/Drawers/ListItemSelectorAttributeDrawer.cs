@@ -3,10 +3,13 @@ using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.ActionResolvers;
+using Sirenix.OdinInspector.Editor.ValueResolvers;
 using Sirenix.Serialization;
+using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
+using NamedValue = Sirenix.OdinInspector.Editor.ActionResolvers.NamedValue;
 
 namespace EDIVE.OdinExtensions.Editor.Drawers
 {
@@ -21,6 +24,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private bool _isListElement;
         private ActionResolver _selectActionResolver;
         private ActionResolver _setSelectedCallbackSetterResolver;
+        private ValueResolver<string> _selectIconNameResolver;
         
         private InspectorProperty _selectedProperty;
         private PropertyContext<InspectorProperty> _globalSelectedProperty;
@@ -34,26 +38,31 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             var listProperty = isList ? Property : Property.Parent;
             var baseMemberProperty = listProperty?.FindParent(x => x.Info.PropertyType == PropertyType.Value, true);
             _globalSelectedProperty = baseMemberProperty?.Context.GetGlobal("selectedIndex" + baseMemberProperty.GetHashCode(), (InspectorProperty) null);
-            _lastSelectedIndexContext = PersistentContext.GetLocal(TwoWaySerializationBinder.Default.BindToName(listProperty.Tree.TargetType).GetHashCode(), listProperty.Path, listProperty.Index, "SelectedIndex", -1);
+            _lastSelectedIndexContext = PersistentContext.GetLocal(TwoWaySerializationBinder.Default.BindToName(listProperty.Tree.TargetType).GetHashCode(), listProperty.Path, listProperty.Index,
+                "SelectedIndex", -1);
 
+            if(!string.IsNullOrEmpty(Attribute.SelectIconName))
+                _selectIconNameResolver = ValueResolver.GetForString(Property, Attribute.SelectIconName);
+            
             if (isList)
             {
                 switch (Attribute.OnReloadAction)
                 {
-                    case SelectorReloadActionType.None: 
+                    case SelectorReloadActionType.None:
                         break;
-                    
+
                     case SelectorReloadActionType.Clear:
                         SelectIndex(-1);
                         break;
-                    
-                    case SelectorReloadActionType.SelectFirst: 
+
+                    case SelectorReloadActionType.SelectFirst:
                         if (listProperty?.Children.Count > 0)
                         {
                             _selectedProperty = Property.Children[0];
                             _globalSelectedProperty.Value = _selectedProperty;
                             SelectIndex(0);
-                        } 
+                        }
+
                         break;
 
                     case SelectorReloadActionType.SelectPrevious:
@@ -63,7 +72,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                             _globalSelectedProperty.Value = _selectedProperty;
                             SelectIndex(_lastSelectedIndexContext.Value);
                         }
-                        
+
                         break;
 
                     case SelectorReloadActionType.SelectPreviousOrFirst:
@@ -78,9 +87,10 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                             _selectedProperty = Property.Children[0];
                             _globalSelectedProperty.Value = _selectedProperty;
                             SelectIndex(0);
-                        } 
+                        }
+
                         break;
-                        
+
                     default: throw new ArgumentOutOfRangeException();
                 }
 
@@ -105,7 +115,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                             _setSelectedCallbackSetterResolver.Context.NamedValues.Set(SET_SELECTED_INDEX_ARGUMENT_ID, selectActionIndex);
                             _setSelectedCallbackSetterResolver.Context.NamedValues.Set(SET_SELECTED_ELEMENT_ARGUMENT_ID, selectActionElement);
                             _setSelectedCallbackSetterResolver.DoAction();
-                        }); 
+                        });
                     }
                 }
             }
@@ -119,9 +129,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
             else
             {
-                ActionResolver.DrawErrors(
-                    _selectActionResolver, 
-                    _setSelectedCallbackSetterResolver);
+                ActionResolver.DrawErrors(_selectActionResolver, _setSelectedCallbackSetterResolver);
+                ValueResolver.DrawErrors(_selectIconNameResolver);
                 DrawList(label);
             }
         }
@@ -129,24 +138,34 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private void DrawListElement(GUIContent label)
         {
             var eventType = Event.current.type;
-            if (eventType == EventType.Layout)
-            {
-                CallNextDrawer(label);
-            }
-            else
+            if (eventType != EventType.Layout)
             {
                 var rect = GUIHelper.GetCurrentLayoutRect();
                 var isSelected = _globalSelectedProperty.Value == Property;
 
                 switch (eventType)
                 {
-                    case EventType.Repaint when isSelected: EditorGUI.DrawRect(rect, SELECTED_COLOR);
+                    case EventType.Repaint when isSelected:
+                        EditorGUI.DrawRect(rect, SELECTED_COLOR);
                         break;
-                    case EventType.MouseDown when rect.Contains(Event.current.mousePosition): _globalSelectedProperty.Value = Property;
+                    case EventType.MouseDown when rect.Contains(Event.current.mousePosition):
+                        _globalSelectedProperty.Value = Property;
                         break;
                 }
-                CallNextDrawer(label);
             }
+            
+            EditorGUILayout.BeginHorizontal();
+            if (!Attribute.HideSelectIcon)
+            {
+                var iconRect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+                var icon = EditorIconsUtility.GetIcon(_selectIconNameResolver?.GetValue(), Attribute.SelectIconBundle, FontAwesomeEditorIcons.CircleRegular);
+                SirenixEditorGUI.IconButton(iconRect, icon);
+                GUILayout.Space(4);
+            }
+            EditorGUILayout.BeginVertical();
+            CallNextDrawer(label);
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
         }
         
         private void DrawList(GUIContent label)

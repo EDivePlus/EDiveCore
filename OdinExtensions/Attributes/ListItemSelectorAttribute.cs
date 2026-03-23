@@ -9,8 +9,20 @@ namespace EDIVE.OdinExtensions.Attributes
     {
         public string Select;
         public SelectorReloadActionType OnReloadAction;
-        
         public string SetSelectedCallbackSetter;
+        
+        public bool HideSelectIcon;
+        public EditorIconsBundle? SelectIconBundle;
+        public string SelectIconName;
+        
+        public FontAwesomeEditorIconType SelectIconFa
+        {
+            set
+            {
+                SelectIconBundle = EditorIconsBundle.FontAwesome;
+                SelectIconName = value.ToString();
+            }
+        }
         
         public ListItemSelectorAttribute(string select, SelectorReloadActionType onReloadAction = SelectorReloadActionType.SelectPreviousOrFirst)
         {
