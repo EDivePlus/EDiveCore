@@ -12,7 +12,7 @@ using CompressionLevel = System.IO.Compression.CompressionLevel;
 namespace EDIVE.BuildTool.Utils
 {
     [Serializable]
-    public class BuildResultArchiver : ABuildAction, IPostprocessBuildAction
+    public class BuildResultArchiver : ABuildAction, IPostprocessBuildCallback
     {
         public override int Priority => 9999;
         public override string Tooltip => "Zips the build result folder into a single archive file for easier distribution and storage.";
@@ -23,10 +23,10 @@ namespace EDIVE.BuildTool.Utils
             "_ButDontShipItWithYourGame"
         };
 
-        public IEnumerator OnPostprocess(BuildContext buildContext)
+        public IEnumerator OnPostprocess(BuildContext context)
         {
             Debug.Log("[BuildResultArchiver] Attempting to zip build...");
-            var report = buildContext.Report;
+            var report = context.Report;
             if (report.summary.result != BuildResult.Succeeded)
                 yield break;
 

@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -37,6 +38,18 @@ namespace EDIVE.BuildTool.Utils
                 return NamedBuildTarget.FromBuildTargetGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
 #endif
             }
+        }
+
+        public static NamedBuildTarget GetNamedBuildTarget(string name)
+        {
+            var property = typeof(NamedBuildTarget).GetProperty(name, BindingFlags.Public | BindingFlags.Static);
+            if (property != null)
+            {
+                return (NamedBuildTarget)property.GetValue(null);
+            }
+
+            Debug.LogError($"Could not find NamedBuildTarget with name '{name}'");
+            return NamedBuildTarget.Unknown;
         }
 
         public static bool IsBuildTargetSupported(BuildTarget target)

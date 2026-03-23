@@ -10,12 +10,12 @@ using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
-using UnityEditor.Build;
+
 using UnityEngine;
 
 namespace EDIVE.BuildTool.ApplicationConfigs
 {
-    public class ApplicationConfig : ScriptableObject, IBuildSetupDataProvider
+    public class ApplicationConfig : ScriptableObject, IBuildDataProvider
     {
         [SerializeReference]
         [ListDrawerSettings(ShowFoldout = false)]
@@ -27,11 +27,16 @@ namespace EDIVE.BuildTool.ApplicationConfigs
         [HideLabel]
         private MultiPlatformBuildSetupData _BuildSetupData;
 
-        public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target)
+        public IEnumerable<string> GetBuildDefines(BuildContext context)
         {
-            return _BuildSetupData.GetData(namedTarget, target);
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Defines);
         }
 
+        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Actions);
+        }
+        
         public IEnumerator Apply()
         {
             Debug.Log($"[ApplicationConfig] Applying config '{name}'");

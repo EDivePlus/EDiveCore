@@ -2,6 +2,7 @@
 // Created: 18.03.2026
 
 using System;
+using System.Collections;
 using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -12,10 +13,12 @@ using UnityEngine;
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     [Serializable]
-    public abstract class ABuildTargetPlatformModule : IPlatformModule
+    public abstract class ABuildTargetPlatformModule : IPlatformModule, IStateCaptureBuildCallback, IStateRestoreBuildCallback
     {
         public abstract string PlatformName { get; }
-        
+        public virtual int Priority => -100;
+        public string CallbackName => $"Build Target {PlatformName}";
+
         [EnhancedBoxGroup("Backend")]
         [SerializeField]
         protected ScriptingImplementation _ScriptingImplementation = ScriptingImplementation.IL2CPP;
@@ -106,10 +109,10 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public abstract BuildTarget BuildTarget { get; }
         public BuildTargetGroup BuildTargetGroup => BuildPipeline.GetBuildTargetGroup(BuildTarget);
         public abstract string BuildExtension { get; }
-
-        public virtual void SetupBeforeBuild(BuildContext context)
+        
+        public virtual IEnumerator OnStateCapture(BuildContext context)
         {
-            var data = context.GetOrCreateData<Data>();
+             var data = context.GetOrCreateData<Data>();
 
             data._PrevBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget);
             PlayerSettings.SetScriptingBackend(NamedBuildTarget, _ScriptingImplementation);
@@ -146,12 +149,13 @@ namespace EDIVE.BuildTool.PlatformConfigs
             if (_CleanBuildCache) context.Options |= BuildOptions.CleanBuildCache;
             if (_DetailedBuildReport) context.Options |= BuildOptions.DetailedBuildReport;
             context.Options |= _PlayerCompression.ToBuildOptions();
+            yield break;
         }
-
-        public virtual void RestoreAfterBuild(BuildContext context)
+        
+        public virtual IEnumerator OnStateRestore(BuildContext context)
         {
             if (!context.TryGetData<Data>(out var data))
-                return;
+                yield break;
 
             PlayerSettings.SetScriptingBackend(NamedBuildTarget, data._PrevBackend);
             PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget, data._PrevIl2CppConfig);
@@ -199,7 +203,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
             [SerializeField]
             public bool _PrevAutoConnectProfiler;
         }
-        
-        
+
     }
 }

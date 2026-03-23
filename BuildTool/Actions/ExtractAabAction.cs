@@ -9,9 +9,9 @@ using EDIVE.BuildTool.Utils;
 namespace EDIVE.BuildTool.Actions
 {
     [Serializable]
-    public class ExtractAabAction : ABuildAction, IPostprocessBuildAction
+    public class ExtractAabAction : ABuildAction, IPostprocessBuildCallback
     {
-        public override string Label => "Extract AAB";
+        public override string CallbackName => "Extract AAB";
         public override string Tooltip => "Extract AAB from the generated bundle";
         
         public IEnumerator OnPostprocess(BuildContext context)

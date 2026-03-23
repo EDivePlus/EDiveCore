@@ -4,14 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.BuildTool.Actions;
-using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEngine;
 
 namespace EDIVE.BuildTool
@@ -38,7 +35,7 @@ namespace EDIVE.BuildTool
 
         public void Build(BuildOptions options)
         {
-            var buildRunner = new BuildRunner(_PlatformConfig, this, options);
+            var buildRunner = new BuildRunner(this, options);
             buildRunner.StartBuild();
         }
 
@@ -61,32 +58,18 @@ namespace EDIVE.BuildTool
                 throw new ArgumentNullException(nameof(PlatformConfig));
         }
 
-        public IEnumerable<IBuildAction> GetBuildActions(NamedBuildTarget namedTarget, BuildTarget target)
-        {
-            return GetSetupData(namedTarget, target)
-                .SelectMany(d => d.Actions)
-                .Where(a => a != null)
-                .OrderBy(a => a.Priority);
-        }
+        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context) => 
+            GetBuildCallbacks(context, BuildGlobalSettings.Instance, PlatformConfig, UserConfig);
 
-        public IEnumerable<string> GetDefines(NamedBuildTarget namedTarget, BuildTarget target)
-        {
-            return GetSetupData(namedTarget, target)
-                .SelectMany(d => d.Defines)
-                .Where(d => !string.IsNullOrEmpty(d));
-        }
+        public IEnumerable<string> GetBuildDefines(BuildContext context) => 
+            GetBuildDefines(context, BuildGlobalSettings.Instance, PlatformConfig, UserConfig);
 
-        protected IEnumerable<IBuildSetupData> GetSetupData(NamedBuildTarget namedTarget, BuildTarget target)
-        {
-            return GetSetupData(namedTarget, target, BuildGlobalSettings.Instance, PlatformConfig, UserConfig);
-        }
-        
-        protected IEnumerable<IBuildSetupData> GetSetupData(NamedBuildTarget namedTarget, BuildTarget target, params IBuildSetupDataProvider[] providers)
-        {
-            return providers.Where(provider => provider != null)
-                .SelectMany(provider => provider.GetBuildSetupData(namedTarget, target));
-        }
-        
+        protected IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context, params IBuildDataProvider[] providers) => 
+            providers.Where(p => p != null).SelectMany(p => p.GetBuildCallbacks(context));
+
+        protected IEnumerable<string> GetBuildDefines(BuildContext context, params IBuildDataProvider[] providers) => 
+            providers.Where(p => p != null).SelectMany(p => p.GetBuildDefines(context));
+
         public override string ToString()
         {
             return $"User: '{(UserConfig != null ? UserConfig.name : "null")}' Platform: '{(PlatformConfig != null ? PlatformConfig.name : "null")}'";

@@ -3,9 +3,8 @@
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {
-    public interface IPlatformModule
+    public interface IPlatformModule : IBuildCallback
     {
-        void SetupBeforeBuild(BuildContext context);
-        void RestoreAfterBuild(BuildContext context);
+        
     }
 }

@@ -2,19 +2,19 @@
 // Created: 17.03.2025
 
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.Core.Versions;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEngine;
 
 namespace EDIVE.BuildTool
 {
     [GlobalConfig("Assets/_Shared/Settings/Editor/")]
-    public class BuildGlobalSettings : GlobalConfig<BuildGlobalSettings>, IBuildSetupDataProvider
+    public class BuildGlobalSettings : GlobalConfig<BuildGlobalSettings>, IBuildDataProvider
     {
         [SerializeField]
         private AppVersionDefinition _VersionDefinition;
@@ -41,8 +41,6 @@ namespace EDIVE.BuildTool
             set => CurrentUserContext.Value = value != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value)) : null;
         }
 
-        public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);
-
         private const string SETTINGS_PATH = "Project/Build Config";
 
         [SettingsProvider]
@@ -50,6 +48,16 @@ namespace EDIVE.BuildTool
         {
             return Instance == null ? null : AssetSettingsProvider.CreateProviderFromObject(
                 SETTINGS_PATH, Instance, new[] {"Build"});
+        }
+
+        public IEnumerable<string> GetBuildDefines(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Defines);
+        }
+
+        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Actions);
         }
     }
 }

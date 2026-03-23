@@ -16,33 +16,31 @@ using UnityEngine;
 namespace EDIVE.BuildTool.BuildSetupData
 {
     [Serializable]
-    public class SerializedBuildSetupData : IBuildSetupData
+    public class SerializedBuildSetupData
     {
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false)]
         private List<ToggleableField<string>> _Defines = new();
 
         [SerializeReference]
-        [ListDrawerSettings(ShowFoldout = false)]
         [HideReferenceObjectPicker]
+        [ListDrawerSettings(ShowFoldout = false)]
         [CustomValueDrawer(nameof(CustomBuildActionDrawer))]
         [ValueDropdown(nameof(GetAvailableBuildActions), DrawDropdownForListElements = false, ExcludeExistingValuesInList = true)]
-        private List<IBuildAction> _Actions = new();
+        private List<ABuildAction> _Actions = new();
 
         public IEnumerable<string> Defines => _Defines.ToValueList();
-        public IEnumerable<IBuildAction> Actions => _Actions;
+        public IEnumerable<ABuildAction> Actions => _Actions;
         
-        private IEnumerable GetAvailableBuildActions() => 
-            TypeCacheUtils.GetDerivedClassesOfType<IBuildAction>().Select(a => new ValueDropdownItem<IBuildAction>(a.Label, a));
+        private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<ABuildAction>().Select(a => new ValueDropdownItem<ABuildAction>(a.CallbackName, a));
         
         private const char TOOLTIP_ICON = '\u24d8';
         
-        private IBuildAction CustomBuildActionDrawer(IBuildAction value, Func<GUIContent, bool> callNextDrawer)
+        private ABuildAction CustomBuildActionDrawer(ABuildAction value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
-            var content = string.IsNullOrEmpty(value.Tooltip) ? GUIHelper.TempContent(value.Label) : GUIHelper.TempContent($"{value.Label} {TOOLTIP_ICON}", value.Tooltip); 
+            var content = string.IsNullOrEmpty(value.Tooltip) ? GUIHelper.TempContent(value.CallbackName) : GUIHelper.TempContent($"{value.CallbackName} {TOOLTIP_ICON}", value.Tooltip);
             EditorGUILayout.LabelField(content, EditorStyles.boldLabel);
-            
-            callNextDrawer(null);
+            callNextDrawer(label);
             return value;
         }
     }

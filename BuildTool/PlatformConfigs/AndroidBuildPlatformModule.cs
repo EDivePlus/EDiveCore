@@ -2,6 +2,7 @@
 // Created: 18.03.2026
 
 using System;
+using System.Collections;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using Unity.Android.Types;
@@ -82,8 +83,9 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public override BuildTarget BuildTarget => BuildTarget.Android;
         public override string BuildExtension => _BuildAndroidAppBundle ? ".aab" : ".apk";
 
-        public override void SetupBeforeBuild(BuildContext context)
+        public override IEnumerator OnStateCapture(BuildContext context)
         {
+            yield return base.OnStateCapture(context);
             var data = context.GetOrCreateData<Data>();
             
             data._PrevSystem = EditorUserBuildSettings.androidBuildSystem;
@@ -114,19 +116,11 @@ namespace EDIVE.BuildTool.PlatformConfigs
             if (_ForceDisableCloudDiagnostics) CrashReportingSettings.enabled = false;
         }
 
-        [Button]
-        public void Test()
+        public override IEnumerator OnStateRestore(BuildContext context)
         {
-            UserBuildSettings.DebugSymbols.level = _SymbolLevel;
-            UserBuildSettings.DebugSymbols.format = SymbolFormat;
-            AssetDatabase.SaveAssets();
-        }
-
-        
-        public override void RestoreAfterBuild(BuildContext context)
-        {
+            yield return base.OnStateRestore(context);
             if (!context.TryGetData<Data>(out var data))
-                return;
+                yield break;
             
             PlayerSettings.SetScriptingBackend(NamedBuildTarget, data._PrevBackend);
             PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget, data._PrevIl2CppConfig);
@@ -138,9 +132,9 @@ namespace EDIVE.BuildTool.PlatformConfigs
             EditorUserBuildSettings.buildAppBundle = data._PrevBuildAppBundle;
             PlayerSettings.Android.minifyDebug = data._PrevMinifyDebug;
             PlayerSettings.Android.minifyRelease = data._PrevMinifyRelease;
-
             PlayerSettings.Android.splitApplicationBinary = data._PrevSplitAppBinary;
-          
+            UserBuildSettings.DebugSymbols.level = data._PrevSymbolLevel;
+            UserBuildSettings.DebugSymbols.format = data._PrevSymbolFormat;
             
             CrashReportingSettings.enabled = data._PrevEnableCloudDiagnostics;
         }

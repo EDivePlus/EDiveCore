@@ -16,7 +16,7 @@ using UnityEngine;
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {
-    public class BuildPlatformConfig : ScriptableObject, IBuildSetupDataProvider
+    public class BuildPlatformConfig : ScriptableObject, IBuildDataProvider
     {
         [Required]
         [LabelText("Build Target Group")]
@@ -61,8 +61,9 @@ namespace EDIVE.BuildTool.PlatformConfigs
                 yield return _BuildTargetModule;
             if (_AdditionalModules == null) 
                 yield break;
-            foreach (var module in _AdditionalModules.Where(m => m != null).OrderBy(m => m.ExecutionOrder))
-                yield return module;
+            foreach (var module in _AdditionalModules)
+                if(module != null)
+                    yield return module;
         }
 
         public bool TryGetModule<T>(out T module) where T : IPlatformModule
@@ -81,10 +82,9 @@ namespace EDIVE.BuildTool.PlatformConfigs
             EditorUtility.CopySerialized(buildPlatformConfig, this);
         }
 
-        public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target)
-        {
-            yield return BuildSetupData;
-        }
+        
+        public IEnumerable<string> GetBuildDefines(BuildContext context) => BuildSetupData.Defines;
+        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context) => BuildSetupData.Actions;
         
         private IEnumerable<APlatformModule> GetAvailableModules()
         {

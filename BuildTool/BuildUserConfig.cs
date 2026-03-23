@@ -2,6 +2,7 @@
 // Created: 20.03.2025
 
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.BuildTool.PathResolving;
 using Sirenix.OdinInspector;
@@ -11,7 +12,7 @@ using UnityEngine;
 
 namespace EDIVE.BuildTool
 {
-    public class BuildUserConfig : ScriptableObject, IBuildSetupDataProvider
+    public class BuildUserConfig : ScriptableObject, IBuildDataProvider
     {
         [BoxGroup("Path Resolver")]
         [InlineProperty]
@@ -26,6 +27,17 @@ namespace EDIVE.BuildTool
         private MultiPlatformBuildSetupData _BuildSetupData;
 
         public BuildPathResolver PathResolver => _PathResolver;
-        public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target) => _BuildSetupData.GetData(namedTarget, target);
+        
+        public IEnumerable<string> GetBuildDefines(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget)
+                .SelectMany(d => d.Defines);
+        }
+
+        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget)
+                .SelectMany(d => d.Actions);
+        }
     }
 }

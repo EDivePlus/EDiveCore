@@ -19,7 +19,7 @@ using UnityEngine.XR.Management;
 namespace EDIVE.BuildTool.XRManagement
 {
     [Serializable]
-    public class XRPlatformModule : APlatformModule
+    public class XRPlatformModule : APlatformModule, IStateCaptureBuildCallback, IStateRestoreBuildCallback
     {
         public override string Label => "XR Management";
 
@@ -33,7 +33,8 @@ namespace EDIVE.BuildTool.XRManagement
         
         private IEnumerable<XRLoader> GetValidLoaders(BuildTargetGroup group) => _Loaders.Where(l => l != null && l.IsSupportedBy(group));
         
-        public override void SetupBeforeBuild(BuildContext context)
+        
+        public IEnumerator OnStateCapture(BuildContext context)
         {
             var data = context.GetOrCreateData<Data>();
             
@@ -47,12 +48,13 @@ namespace EDIVE.BuildTool.XRManagement
             
             EditorUtility.SetDirty(pluginsSettings);
             AssetDatabase.SaveAssets();
+            yield break;
         }
 
-        public override void RestoreAfterBuild(BuildContext context)
+        public IEnumerator OnStateRestore(BuildContext context)
         {
             if (!context.TryGetData<Data>(out var data))
-                return;
+                yield break;
             
             var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);

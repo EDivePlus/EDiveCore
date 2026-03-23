@@ -6,7 +6,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool.Actions
 {
     [System.Serializable]
-    public class SplashScreenConfigurator : ABuildAction, IPreprocessBuildAction
+    public class SplashScreenConfigurator : ABuildAction, IPreprocessBuildCallback
     {
         [SerializeField]
         [LabelWidth(160)]
@@ -17,7 +17,7 @@ namespace EDIVE.BuildTool.Actions
         public SplashScreenConfigurator() { }
         public SplashScreenConfigurator(bool removeSplashScreen) { _RemoveSplashScreen = removeSplashScreen; }
 
-        public IEnumerator OnPreprocess(BuildContext buildContext)
+        public IEnumerator OnPreprocess(BuildContext context)
         {
             PlayerSettings.SplashScreen.show = !_RemoveSplashScreen;
             PlayerSettings.SplashScreen.showUnityLogo = false;
