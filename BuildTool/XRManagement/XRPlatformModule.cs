@@ -37,7 +37,7 @@ namespace EDIVE.BuildTool.XRManagement
         {
             var data = context.GetOrCreateData<Data>();
             
-            var buildTargetGroup = context.PlatformConfig.BuildTargetModule.BuildTargetGroup;
+            var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);
             var pluginsSettings = buildTargetSettings.AssignedSettings;
 
@@ -54,7 +54,7 @@ namespace EDIVE.BuildTool.XRManagement
             if (!context.TryGetData<Data>(out var data))
                 return;
             
-            var buildTargetGroup = context.PlatformConfig.BuildTargetModule.BuildTargetGroup;
+            var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);
             var pluginsSettings = buildTargetSettings.AssignedSettings;
             

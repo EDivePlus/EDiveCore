@@ -29,11 +29,7 @@ namespace EDIVE.BuildTool.ApplicationConfigs
 
         public IEnumerable<IBuildSetupData> GetBuildSetupData(NamedBuildTarget namedTarget, BuildTarget target)
         {
-            foreach (var setupData in _BuildSetupData.GetData(namedTarget, target))
-            {
-                yield return setupData;
-            }
-            yield return new DynamicBuildSetupData(new ApplicationConfigurator(this));
+            return _BuildSetupData.GetData(namedTarget, target);
         }
 
         public IEnumerator Apply()

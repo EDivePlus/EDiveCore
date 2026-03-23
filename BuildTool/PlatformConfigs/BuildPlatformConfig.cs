@@ -23,7 +23,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeReference]
         [EnhancedValueDropdown(nameof(GetBuildTargetModulesDropdown), SpaceBeforeChildren = 4, ValueLabelGetter = nameof(GetBuildTargetModuleLabel))]
         internal ABuildTargetPlatformModule _BuildTargetModule;
-        public ABuildTargetPlatformModule BuildTargetModule => _BuildTargetModule;
         
         [PropertySpace(4)]
         [ListDrawerSettings(ShowFoldout = false, IsReadOnly = true, OnTitleBarGUI = nameof(OnModulesListTitleBarGUI))]
@@ -44,10 +43,15 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [InlineProperty]
         [SerializeField]
         protected SerializedBuildSetupData _BuildSetupData;
+
+        public NamedBuildTarget NamedBuildTarget => _BuildTargetModule?.NamedBuildTarget ?? NamedBuildTarget.Unknown;
+        public BuildTarget BuildTarget => _BuildTargetModule?.BuildTarget ?? BuildTarget.NoTarget;
+        public BuildTargetGroup BuildTargetGroup => _BuildTargetModule?.BuildTargetGroup ?? BuildTargetGroup.Unknown;
+        public string BuildExtension  => _BuildTargetModule?.BuildExtension ?? string.Empty;
         
         private static TypeEqualityComparer<APlatformModule> CustomModuleComparer => TypeEqualityComparer<APlatformModule>.INSTANCE;
         
-        public bool IsValid => BuildTargetModule != null;
+        public bool IsValid => _BuildTargetModule != null;
         public SerializedBuildSetupData BuildSetupData => _BuildSetupData;
         public SceneListDefinition OverrideSceneList => _OverrideSceneList;
         
@@ -84,9 +88,9 @@ namespace EDIVE.BuildTool.PlatformConfigs
         
         private IEnumerable<APlatformModule> GetAvailableModules()
         {
-            return BuildTargetModule != null 
+            return _BuildTargetModule != null 
                 ? TypeCacheUtils.GetAssignableClassesOfType<APlatformModule>()
-                    .Where(m => m.SupportsTarget(BuildTargetModule.BuildTarget)) 
+                    .Where(m => m.SupportsTarget(_BuildTargetModule.BuildTarget)) 
                 : Enumerable.Empty<APlatformModule>();
         }
         
@@ -101,7 +105,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
             {
                 _AdditionalModules ??= new List<APlatformModule>();
-                _AdditionalModules.RemoveAll(m => (BuildTargetModule != null && !m.SupportsTarget(BuildTargetModule.BuildTarget)) || m == null);
+                _AdditionalModules.RemoveAll(m => (_BuildTargetModule != null && !m.SupportsTarget(_BuildTargetModule.BuildTarget)) || m == null);
                 foreach (var module in GetAvailableModules())
                 {
                     if (!_AdditionalModules.Contains(module, CustomModuleComparer)) 
@@ -115,14 +119,14 @@ namespace EDIVE.BuildTool.PlatformConfigs
         
         private void ValidateAdditionalModules(SelfValidationResult result, InspectorProperty property)
         {
-            if (_AdditionalModules == null || BuildTargetModule == null)
+            if (_AdditionalModules == null || _BuildTargetModule == null)
                 return;
             
-            if (_AdditionalModules.Any(m => m == null || !m.SupportsTarget(BuildTargetModule.BuildTarget)))
+            if (_AdditionalModules.Any(m => m == null || !m.SupportsTarget(_BuildTargetModule.BuildTarget)))
                 result.AddError("Some modules are not supported for this target!")
                     .WithFix(() =>
                     {
-                        _AdditionalModules.RemoveAll(m => m == null || !m.SupportsTarget(BuildTargetModule.BuildTarget));
+                        _AdditionalModules.RemoveAll(m => m == null || !m.SupportsTarget(_BuildTargetModule.BuildTarget));
                         property.MarkSerializationRootDirty();
                     });
             

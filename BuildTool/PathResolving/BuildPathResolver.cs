@@ -70,7 +70,7 @@ namespace EDIVE.BuildTool.PathResolving
                 {
                     builder.Append(segment.GetValue(preset));
                 }
-                builder.Append(preset.PlatformConfig.BuildTargetModule.BuildExtension);
+                builder.Append(preset.PlatformConfig.BuildExtension);
                 fileName = builder.ToString();
             }
 

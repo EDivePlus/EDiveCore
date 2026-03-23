@@ -79,7 +79,7 @@ namespace EDIVE.BuildTool
             yield return DomainReloadUtility.WaitWhileCompiling();
             DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
             
-            var buildTarget = PlatformConfig.BuildTargetModule.BuildTarget;
+            var buildTarget = PlatformConfig.BuildTarget;
             if (Context.State == BuildStateType.NotStarted)
             {
                 TeamCityServiceMessages.SetParameter("UnityBuild.ProductName", PlayerSettings.productName);
@@ -172,10 +172,9 @@ namespace EDIVE.BuildTool
             if (!Application.isBatchMode)
                 Context.VersionDefinition.IncrementCurrentVersion();
             Context.VersionDefinition.ApplyCurrentVersion();
-
-            var platformModule = PlatformConfig.BuildTargetModule;
-            var namedBuildTarget = platformModule.NamedBuildTarget;
-            var buildTarget = platformModule.BuildTarget;
+            
+            var namedBuildTarget = PlatformConfig.NamedBuildTarget;
+            var buildTarget = PlatformConfig.BuildTarget;
             
             Context.ResultPath = UserConfig.PathResolver.ResolvePath(Preset);
             Context.Defines = Preset.GetDefines(namedBuildTarget, buildTarget).ToList();
@@ -212,11 +211,11 @@ namespace EDIVE.BuildTool
         {
             SetContextState(BuildStateType.Preprocess);
 
-            SetupSettingsBeforeBuild();
+            PlatformConfig.GetModules().ForEach(m => m.SetupBeforeBuild(Context));
+            
             DebugLite.Log("[BuildRunner] Preprocess Actions executing");
-            var platformModule = PlatformConfig.BuildTargetModule;
-            var namedBuildTarget = platformModule.NamedBuildTarget;
-            var buildTarget = platformModule.BuildTarget;
+            var namedBuildTarget = PlatformConfig.NamedBuildTarget;
+            var buildTarget = PlatformConfig.BuildTarget;
             var buildActions = Preset.GetBuildActions(namedBuildTarget, buildTarget).ToList();
             yield return ExecuteBuildActions<IPreprocessBuildAction>(buildActions, buildAction => buildAction.OnPreprocess(_Context));
             DebugLite.Log("[BuildRunner] Preprocess Actions completed");
@@ -234,7 +233,7 @@ namespace EDIVE.BuildTool
             try
             {
                 SetContextState(BuildStateType.PipelineInProgress);
-                _Context.Report = BuildPipeline.BuildPlayer(Context.Scenes.ToArray(), Context.ResultPath.FullPath, PlatformConfig.BuildTargetModule.BuildTarget, Context.Options);
+                _Context.Report = BuildPipeline.BuildPlayer(Context.Scenes.ToArray(), Context.ResultPath.FullPath, PlatformConfig.BuildTarget, Context.Options);
                 _Context.Result = _Context.Report.summary.result;
             }
             catch (Exception e)
@@ -253,10 +252,9 @@ namespace EDIVE.BuildTool
         private IEnumerator PostProcessAndChangeEditor()
         {
             SetContextState(BuildStateType.Postprocess);
-
-            var platformModule = PlatformConfig.BuildTargetModule;
-            var namedBuildTarget = platformModule.NamedBuildTarget;
-            var buildTarget = platformModule.BuildTarget;
+            
+            var namedBuildTarget = PlatformConfig.NamedBuildTarget;
+            var buildTarget = PlatformConfig.BuildTarget;
             
             DebugLite.Log("[BuildRunner] Postprocess Actions executing");
             var buildActions = Preset.GetBuildActions(namedBuildTarget, buildTarget).ToList();
@@ -288,11 +286,10 @@ namespace EDIVE.BuildTool
             }
 
             SetContextState(BuildStateType.StateRestore);
-            RestoreSettingsAfterBuild();
-
-            var platformModule = PlatformConfig.BuildTargetModule;
-            var namedBuildTarget = platformModule.NamedBuildTarget;
-            var buildTarget = platformModule.BuildTarget;
+            PlatformConfig.GetModules().ForEach(m => m.RestoreAfterBuild(Context));
+            
+            var namedBuildTarget = PlatformConfig.NamedBuildTarget;
+            var buildTarget = PlatformConfig.BuildTarget;
             
             DebugLite.Log("[BuildRunner] Actions pre defines executing");
             var buildActions = Preset.GetBuildActions(namedBuildTarget, buildTarget).ToList();
@@ -333,16 +330,6 @@ namespace EDIVE.BuildTool
             }
         }
         
-        private void SetupSettingsBeforeBuild()
-        {
-            PlatformConfig.GetModules().ForEach(m => m.SetupBeforeBuild(Context));
-        }
-
-        private void RestoreSettingsAfterBuild()
-        {
-            PlatformConfig.GetModules().ForEach(m => m.RestoreAfterBuild(Context));
-        }
-
         private void SetContextState(BuildStateType state)
         {
             if (Context.State == state)

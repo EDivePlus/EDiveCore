@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections;
-using Sirenix.OdinInspector;
-using Sirenix.Utilities.Editor;
 using UnityEditor;
 
 namespace EDIVE.BuildTool.Actions
@@ -12,18 +10,7 @@ namespace EDIVE.BuildTool.Actions
         public virtual int Priority => 0;
         public virtual string Label => ObjectNames.NicifyVariableName(GetType().Name);
         public virtual string Tooltip => null;
-        
-        private const char TOOLTIP_ICON = '\u24d8';
-        
-        [OnInspectorGUI]
-        [PropertyOrder(-100)]
-        private void DrawLabel()
-        {
-            var tooltip = Tooltip;
-            var content = string.IsNullOrEmpty(tooltip) ? GUIHelper.TempContent(Label) : GUIHelper.TempContent($"{Label} {TOOLTIP_ICON}", tooltip); 
-            EditorGUILayout.LabelField(content, EditorStyles.boldLabel);
-        }
-        
+
         public int CompareTo(IBuildAction other)
         {
             if (ReferenceEquals(this, other)) return 0;
@@ -36,6 +23,7 @@ namespace EDIVE.BuildTool.Actions
     {
         int Priority { get; }
         string Label { get; }
+        string Tooltip { get; }
     }
     
     public interface IStateCaptureBuildAction : IBuildAction
