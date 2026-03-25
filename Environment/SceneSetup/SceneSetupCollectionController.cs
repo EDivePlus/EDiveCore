@@ -2,41 +2,22 @@
 // Created: 26.02.2026
 
 using System.Collections.Generic;
-using EDIVE.NativeUtils;
-using Sirenix.OdinInspector;
-using UnityEditor;
-using UnityEngine;
+using System.Linq;
+using EDIVE.AddressableAssets;
 
 namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneSetupCollectionController : MonoBehaviour
+    public class SceneSetupCollectionController : AddressablePrefabListController<SceneSetupSelector, SceneSetupDefinition>
     {
-        [SerializeField]
-        private List<SceneSetupDefinition> _Collection;
-        
-        [SerializeField]
-        private SceneSetupSelector _DisplayPrefab;
-        
-        [SerializeField]
-        private Transform _Container;
-        
-        [Button]
-        public void Populate()
+        protected override IEnumerable<SceneSetupDefinition> OrderAssets(IEnumerable<SceneSetupDefinition> assets)
         {
-            _Container.DestroyChildren();
-            foreach (var definition in _Collection)
-            {
-#if UNITY_EDITOR
-                if (!Application.isPlaying)
-                {
-                    var displayPrefab = (SceneSetupSelector) PrefabUtility.InstantiatePrefab(_DisplayPrefab, _Container);
-                    displayPrefab.SetDefinition(definition);
-                    continue;
-                }
-#endif
-                var display = Instantiate(_DisplayPrefab, _Container);
-                display.SetDefinition(definition);
-            }
+            return assets.OrderBy(def => def.UniqueID);
+        }
+        
+        protected override void PopulatePrefab(SceneSetupSelector prefab, SceneSetupDefinition asset)
+        {
+            prefab.SetDefinition(asset);
+            prefab.name = _DisplayPrefab.name + "_" + asset.UniqueID;
         }
     }
 }

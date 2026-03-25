@@ -3,6 +3,7 @@
 
 using EDIVE.Core;
 using EDIVE.Utils.Activations;
+using EDIVE.VisualPresets.Switchers;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -19,12 +20,16 @@ namespace EDIVE.Environment.SceneSetup
 
         [SerializeField]
         private TMP_Text _IDText;
+
+        [SerializeField]
+        private VisualSwitcher _Visual;
         
         [Button]
         public void SetDefinition(SceneSetupDefinition definition)
         {
             _Definition = definition;
             _IDText.text = definition.UniqueID;
+            _Visual?.Apply(definition.Visual);
         }
         
         private void OnEnable()

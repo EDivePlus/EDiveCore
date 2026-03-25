@@ -15,7 +15,11 @@
     "EDIVE.VisualPresets",
     "EDIVE.Utils",
     "EDIVE.AssetTranslation",
-    "EDIVE.Utils.Loading"
+    "EDIVE.Utils.Loading",
+    "Unity.Addressables",
+    "Unity.ResourceManager",
+    "UniTask.Addressables",
+    "EDIVE.AddressableAssets"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

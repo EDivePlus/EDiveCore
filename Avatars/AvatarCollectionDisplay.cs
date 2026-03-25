@@ -1,50 +1,23 @@
 ﻿// Author: František Holubec
 // Created: 10.11.2025
 
-using EDIVE.NativeUtils;
-using Sirenix.OdinInspector;
-using UnityEditor;
-using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+using EDIVE.AddressableAssets;
 
 namespace EDIVE.Avatars
 {
-    public class AvatarCollectionDisplay : MonoBehaviour
+    public class AvatarCollectionDisplay : AddressablePrefabListController<AvatarDisplay, AvatarDefinition>
     {
-        [SerializeField]
-        private bool _PopulateOnAwake = true;
-        
-        [SerializeField]
-        private AvatarDefinitionTranslator _Translator;
-        
-        [SerializeField]
-        private AvatarDisplay _AvatarDisplayPrefab;
-        
-        [SerializeField]
-        private Transform _Container;
-        
-        private void Awake()
+        protected override IEnumerable<AvatarDefinition> OrderAssets(IEnumerable<AvatarDefinition> assets)
         {
-            if (_PopulateOnAwake)
-                Populate();
+            return assets.OrderBy(def => def.UniqueID);
         }
         
-        [Button]
-        public void Populate()
+        protected override void PopulatePrefab(AvatarDisplay prefab, AvatarDefinition asset)
         {
-            _Container.DestroyChildren();
-            foreach (var definition in _Translator.Definitions)
-            {
-#if UNITY_EDITOR
-                if (!Application.isPlaying)
-                {
-                    var displayPrefab = ((AvatarDisplay) PrefabUtility.InstantiatePrefab(_AvatarDisplayPrefab, _Container));
-                    displayPrefab.SetDefinition(definition);
-                    continue;
-                }
-#endif
-                var display = Instantiate(_AvatarDisplayPrefab, _Container);
-                display.SetDefinition(definition);
-            }
+            prefab.SetDefinition(asset);
+            prefab.name = _DisplayPrefab.name + "_" + asset.UniqueID;
         }
     }
 }

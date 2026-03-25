@@ -1,4 +1,5 @@
 using EDIVE.AssetTranslation;
+using EDIVE.VisualPresets.Presets;
 using FishNet.CodeGenerating;
 using FishNet.Serializing;
 using JetBrains.Annotations;
@@ -11,8 +12,12 @@ namespace EDIVE.Avatars
     {
         [SerializeField]
         private AvatarController _AvatarPrefab;
+        
+        [SerializeField]
+        private VisualPreset _Visual;
 
         public AvatarController AvatarPrefab => _AvatarPrefab;
+        public VisualPreset Visual => _Visual;
 
         public bool IsValid() => _AvatarPrefab != null;
     }

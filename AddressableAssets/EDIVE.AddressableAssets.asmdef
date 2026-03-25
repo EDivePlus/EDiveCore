@@ -2,9 +2,13 @@
     "name": "EDIVE.AddressableAssets",
     "rootNamespace": "",
     "references": [
+        "UniTask",
+        "UniTask.Addressables",
         "EDIVE.OdinExtensions",
         "Unity.Addressables",
-        "Unity.Addressables.Editor"
+        "Unity.Addressables.Editor",
+        "Unity.ResourceManager",
+        "EDIVE.NativeUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
