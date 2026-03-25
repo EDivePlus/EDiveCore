@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 25.03.2026
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -10,6 +11,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using Object = UnityEngine.Object;
 
 namespace EDIVE.AddressableAssets
 {
@@ -48,28 +50,35 @@ namespace EDIVE.AddressableAssets
             if (!_AssetLabel.RuntimeKeyIsValid())
                 return;
 
-            _assetsHandle = Addressables.LoadAssetsAsync<TAsset>(_AssetLabel.RuntimeKey, null);
-            var definitions = await _assetsHandle.WithCancellation(cancellationToken, false, true);
-
             _Container.DestroyChildren();
-            foreach (var definition in OrderAssets(definitions))
+            try
             {
+                _assetsHandle = Addressables.LoadAssetsAsync<TAsset>(_AssetLabel.RuntimeKey, null);
+                var definitions = await _assetsHandle.WithCancellation(cancellationToken, false, true);
+                
+                foreach (var definition in OrderAssets(definitions))
+                {
 #if UNITY_EDITOR
-                if (!Application.isPlaying)
-                {
-                    var displayPrefab = (TPrefab) PrefabUtility.InstantiatePrefab(_DisplayPrefab, _Container);
-                    if (displayPrefab)
-                        PopulatePrefab(displayPrefab, definition);
-                    continue;
-                }
+                    if (!Application.isPlaying)
+                    {
+                        var displayPrefab = (TPrefab) PrefabUtility.InstantiatePrefab(_DisplayPrefab, _Container);
+                        if (displayPrefab)
+                            PopulatePrefab(displayPrefab, definition);
+                        continue;
+                    }
 #endif
-                var display = Instantiate(_DisplayPrefab, new InstantiateParameters
-                {
-                    parent = _Container,
-                    worldSpace = false
-                });
-                if (display)
-                    PopulatePrefab(display, definition);
+                    var display = Instantiate(_DisplayPrefab, new InstantiateParameters
+                    {
+                        parent = _Container,
+                        worldSpace = false
+                    });
+                    if (display)
+                        PopulatePrefab(display, definition);
+                }
+            }
+            catch (InvalidKeyException e)
+            {
+                // ignore
             }
         }
 
