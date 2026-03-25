@@ -16,6 +16,7 @@ namespace EDIVE.Procedural.MeshScaling
     {
         [PropertyOrder(-1)]
         [ShowInInspector]
+        [OnValueChanged("EditorRefresh", true)]
         public Vector3 Size
         {
             get => _Details.TargetScale.MultiplyElementWise(_Details.Bounds.size);
