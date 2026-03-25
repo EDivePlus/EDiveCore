@@ -1,7 +1,6 @@
 ﻿// Author: Michal Petr
 // Created: 03.03.2026
 
-using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
@@ -52,6 +51,7 @@ namespace EDIVE.Tablet
                 View = _ViewRoot.GetComponentInChildren<ATabletView>();
                 ViewSource = new InstanceTabletViewSource(View);
             }
+            // todo get rid of pattern matching, mae universal method in source ?
             else if (source is InstanceTabletViewSource instanceSource)
             {
                 View = instanceSource.Instance;
@@ -59,7 +59,9 @@ namespace EDIVE.Tablet
             else if (source is ReferenceTabletViewSource referenceSource)
             {
                 var reference = referenceSource.Reference;
-                var viewObj = await reference.InstantiateAsync(_ViewRoot);
+                // todo handle needs to be released when frame is terminated!
+                var handle = reference.InstantiateAsync(_ViewRoot);
+                var viewObj = await handle;
                 View = viewObj.GetComponent<ATabletView>();
             }
             

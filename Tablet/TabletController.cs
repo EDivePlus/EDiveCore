@@ -73,6 +73,7 @@ namespace EDIVE.Tablet
         private void CreateNewFrame(ITabletViewSource view, bool open = true)
         {
             var newFrame = Instantiate(_FramePrefab, _FrameRoot);
+            // todo set frame name to recognize the view
             newFrame.Initialize(this, view).Forget();
             ActiveFrames.Add(newFrame);
             if (open) OpenFrame(newFrame);
@@ -124,6 +125,7 @@ namespace EDIVE.Tablet
         
         private void OnWidgetDisplayClicked(TabletWidgetDefinition definition)
         {
+            // todo get rid of pattern matching ?
             if (CurrentFrame != null && CurrentFrame.ViewSource is ReferenceTabletViewSource currentRef && currentRef.Reference == definition.WidgetView)
             {
                 CollapseCurrentFrame();

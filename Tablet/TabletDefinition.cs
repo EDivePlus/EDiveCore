@@ -17,7 +17,7 @@ namespace EDIVE.Tablet
         private List<TabletWidgetDefinition> _Widgets = new();
         
         [SerializeField]
-        [EnhancedValueDropdown("GetAvailableWidgets")]
+        [EnhancedValueDropdown("GetAvailableWidgets", AppendNextDrawer = true, IsUniqueList = true)]
         private List<TabletWidgetDefinition> _PinnedWidgets = new();
         
         public IReadOnlyList<TabletWidgetDefinition> Widgets => _Widgets;
