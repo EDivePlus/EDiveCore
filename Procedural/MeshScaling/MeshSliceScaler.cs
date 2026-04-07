@@ -83,72 +83,53 @@ namespace EDIVE.Procedural.MeshScaling
 
         private void Recalculate(bool force = false)
         {
-            var changed = false;
             foreach (var component in _Components)
             {
-                changed = changed || (component?.Recalculate(_Details, this, transform, force) ?? false);
+                component?.Recalculate(_Details, this, transform, force);
             }
             foreach (var component in _Components)
             {
-                changed = changed || (component?.Postprocess(_Details, this, transform) ?? false);
-            }
-
-#if UNITY_EDITOR
-            if (changed)
-                EditorUtility.SetDirty(this);
-#endif
-        }
-
-        private void ShowPreviewOriginal()
-        {
-            foreach (var component in _Components)
-            {
-                component?.PreviewOriginal(_Details, this, transform);
+                component?.Postprocess(_Details, this, transform);
             }
         }
-
+        
 #if UNITY_EDITOR
         [PropertyOrder(-10)]
         [ShowInInspector]
         [OnValueChanged("EditorRefresh")]
         private bool PreviewSlicing { get; set; }
 
+        private void RefreshPreviewOriginal()
+        {
+            foreach (var component in _Components) 
+                component?.SetPreviewOriginal(PreviewSlicing);
+        }
+        
         private void EditorRefresh()
         {
             RecalculateBounds();
-            
-            if (PreviewSlicing)
-                ShowPreviewOriginal();
-            else
-                Recalculate();
+            Recalculate();
+            RefreshPreviewOriginal();
         }
 
-        private void HideOriginal()
-        {
-            if (!PreviewSlicing) 
-                return;
-            
-            Recalculate(true);
-            PreviewSlicing = false;
-        }
-        
         [Button]
         private void ForceRecalculate()
         {
             Recalculate(true);
-        }
+        } 
 
         [OnInspectorInit]
         private void OnInspectorInit()
         {
             PreviewSlicing = false;
-            EditorRefresh();
+            RefreshPreviewOriginal();
         }
         
         [OnInspectorDispose]
         private void OnInspectorDispose()
         {
-            HideOriginal();
+            PreviewSlicing = false;
+            RefreshPreviewOriginal();
         }
 
         [OnSceneGUI]

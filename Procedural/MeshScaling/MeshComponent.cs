@@ -13,10 +13,6 @@ namespace EDIVE.Procedural.MeshScaling
         [SerializeField]
         private Mesh _OriginalMesh;
         
-        [ReadOnly]
-        [SerializeField]
-        private Mesh _TargetMesh;
-        
         [SerializeField]
         private MeshFilter _MeshFilter;
         
@@ -26,13 +22,11 @@ namespace EDIVE.Procedural.MeshScaling
         [SerializeField]
         private bool _ContributeToBounds = true;
         
-        [HideInInspector]
-        [SerializeField]
-        private int _SlicedMeshHash;
+        [ShowInInspector]
+        private Mesh _targetMesh;
         
-        [HideInInspector]
-        [SerializeField]
-        private int _ModificationsHash;
+        private int _slicedMeshHash;
+        private int _modificationsHash;
         
         public override string Label => "Mesh";
 
@@ -68,24 +62,23 @@ namespace EDIVE.Procedural.MeshScaling
             return false;
         }
 
-        public override void PreviewOriginal(MeshSliceScaleDetails details, Component container, Transform root)
+        public override void SetPreviewOriginal(bool preview)
         {
-            _SlicedMeshHash = 0;
-            _ModificationsHash = 0;
+            var targetMesh = preview ? _OriginalMesh : _targetMesh;
             if (_MeshFilter != null) 
-                _MeshFilter.sharedMesh = _OriginalMesh;
+                _MeshFilter.sharedMesh = targetMesh;
             if (_MeshCollider != null)
-                _MeshCollider.sharedMesh = _OriginalMesh;
+                _MeshCollider.sharedMesh = targetMesh;
         }
         
         public override bool Recalculate(MeshSliceScaleDetails details, Component container, Transform root, bool force = false)
         {
             if (_OriginalMesh == null)
             {
-                if (_SlicedMeshHash != 0)
+                if (_slicedMeshHash != 0)
                 {
-                    _SlicedMeshHash = 0;
-                    _ModificationsHash = 0;
+                    _slicedMeshHash = 0;
+                    _modificationsHash = 0;
                     return true;
                 }
                 return false;
@@ -96,26 +89,28 @@ namespace EDIVE.Procedural.MeshScaling
 
             var modified = false;
             var newHash = HashCode.Combine(container, _OriginalMesh);
-            if (_TargetMesh == null || newHash != _SlicedMeshHash || force)
+            if (_targetMesh == null || newHash != _slicedMeshHash || force)
             {
-                _TargetMesh = UnityEngine.Object.Instantiate(_OriginalMesh);
-                _TargetMesh.name = $"{_OriginalMesh.name} (sliced)";
-                _SlicedMeshHash = newHash;
+                _targetMesh = UnityEngine.Object.Instantiate(_OriginalMesh);
+                _targetMesh.name = $"{_OriginalMesh.name} (sliced)";
+                _slicedMeshHash = newHash;
                 modified = true;
             }
             
-            var newModsHash = HashCode.Combine(_OriginalMesh, details);
-            if (newModsHash != _ModificationsHash || force)
+            var newModsHash = HashCode.Combine(_targetMesh, details);
+            if (newModsHash != _modificationsHash || force)
             {
-                MeshUtility.SliceScaleMesh(_OriginalMesh, _TargetMesh, details.Bounds.size, details.TargetScale, details.SliceMin, details.SliceMax, tr, root);
-                _ModificationsHash = newModsHash;
+                MeshUtility.SliceScaleMesh(_OriginalMesh, _targetMesh, details.Bounds.size, details.TargetScale, details.SliceMin, details.SliceMax, tr, root);
+                _modificationsHash = newModsHash;
                 modified = true;
             }
-            
+
             if (_MeshFilter != null) 
-                _MeshFilter.sharedMesh = _TargetMesh;
-            if (_MeshCollider != null)
-                _MeshCollider.sharedMesh = _TargetMesh;
+                _MeshFilter.sharedMesh = _targetMesh;
+
+            if (_MeshCollider != null) 
+                _MeshCollider.sharedMesh = _targetMesh;
+            
             return  modified;
         }
     }

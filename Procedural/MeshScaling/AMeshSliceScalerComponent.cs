@@ -11,10 +11,9 @@ namespace EDIVE.Procedural.MeshScaling
     {
         public abstract string Label { get; }
         
-        public virtual void PreviewOriginal(MeshSliceScaleDetails details, Component container, Transform root){}
-
+        public virtual void SetPreviewOriginal(bool preview){}
         public virtual bool Recalculate(MeshSliceScaleDetails details, Component container, Transform root, bool force = false) => false;
-        public virtual bool Postprocess(MeshSliceScaleDetails details, Component container, Transform root) => false;
+        public virtual void Postprocess(MeshSliceScaleDetails details, Component container, Transform root){}
         
         public virtual bool TryCalculateBounds(Transform root, out Bounds bounds)
         {
