@@ -15,7 +15,7 @@ namespace EDIVE.Utils.BugReporting
         [SerializeReference]
         private IActivation _Activation;
         
-        [SerializeReference]
+        [SerializeField]
         private AToggleState _CanSendToggle;
         
         [SerializeField] 
@@ -26,11 +26,14 @@ namespace EDIVE.Utils.BugReporting
         private void OnEnable()
         {
             _Activation?.RegisterActivationListener(OnActivated);
-            if (AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
+            if (!AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
             {
-                bugReportingManager.ReportSent += RefreshState;
-                RefreshState();
+                Debug.LogError("BugReportingManager not found", this);
+                return;
             }
+            
+            bugReportingManager.ReportSent += RefreshState;
+            RefreshState();
         }
 
         private void OnDisable()
@@ -44,7 +47,10 @@ namespace EDIVE.Utils.BugReporting
 
         public void OnActivated()
         {
-            AppCore.Services.Get<BugReportingManager>().TrySendReport();
+            if (!AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
+                return;
+            
+            bugReportingManager.TrySendReport();
             RefreshState();
         }
 
