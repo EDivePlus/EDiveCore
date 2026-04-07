@@ -47,11 +47,8 @@ namespace EDIVE.Utils.BugReporting
 
         public void OnActivated()
         {
-            if (!AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
-                return;
-            
-            bugReportingManager.TrySendReport();
-            RefreshState();
+            if (AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager)) 
+                bugReportingManager.TrySendReport();
         }
 
         private void RefreshState()
