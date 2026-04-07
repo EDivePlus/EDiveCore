@@ -3,6 +3,8 @@
 
 using DG.Tweening;
 using EDIVE.Core;
+using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.Activations;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,8 +12,11 @@ namespace EDIVE.Utils.BugReporting
 {
     public class BugReportButton : MonoBehaviour
     {
-        [SerializeField]
-        private Button _Button;
+        [SerializeReference]
+        private IActivation _Activation;
+        
+        [SerializeReference]
+        private AToggleState _CanSendToggle;
         
         [SerializeField] 
         private Image _CooldownFill;
@@ -20,9 +25,7 @@ namespace EDIVE.Utils.BugReporting
         
         private void OnEnable()
         {
-            if (_Button != null)
-                _Button.onClick.AddListener(OnButtonClick);
-
+            _Activation?.RegisterActivationListener(OnActivated);
             if (AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
             {
                 bugReportingManager.ReportSent += RefreshState;
@@ -32,16 +35,14 @@ namespace EDIVE.Utils.BugReporting
 
         private void OnDisable()
         {
-            if (_Button != null)
-                _Button.onClick.RemoveListener(OnButtonClick);
-            
+            _Activation?.UnregisterActivationListener(OnActivated);
             if (AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
             {
                 bugReportingManager.ReportSent -= RefreshState;
             }
         }
 
-        public void OnButtonClick()
+        public void OnActivated()
         {
             AppCore.Services.Get<BugReportingManager>().TrySendReport();
             RefreshState();
@@ -54,16 +55,16 @@ namespace EDIVE.Utils.BugReporting
             var bugReportingManager = AppCore.Services.Get<BugReportingManager>();
             if (bugReportingManager.CanSendReport)
             {
-                if (_Button != null)
-                    _Button.interactable = true;
+                if (_CanSendToggle != null)
+                    _CanSendToggle.SetState(true);
                 
                 if (_CooldownFill != null)
                     _CooldownFill.fillAmount = 0;
             }else
             {
-                if (_Button != null)
-                    _Button.interactable = false;
-
+                if (_CanSendToggle != null)
+                    _CanSendToggle.SetState(false);
+                
                 if (_CooldownFill != null)
                 {
                     _CooldownFill.fillAmount = 1;
@@ -72,8 +73,8 @@ namespace EDIVE.Utils.BugReporting
                         .SetEase(Ease.Linear)
                         .OnComplete(() =>
                         {
-                            if (_Button != null)
-                                _Button.interactable = true;
+                            if (_CanSendToggle != null)
+                                _CanSendToggle.SetState(true);
                         });
                 }
             }

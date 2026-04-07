@@ -20,10 +20,10 @@ namespace EDIVE.Utils.BugReporting
         private DiscordWebhook _DiscordWebhook;
         
         [SerializeField]
-        private int _MaxLogs = 20;
+        private int _MaxLogs = 30;
         
         [SerializeField]
-        private int _MaxErrors = 10;
+        private int _MaxErrors = 15;
         
         public bool CanSendReport => Time.unscaledTime - _lastSendTime > _SendCooldown;
         public float TimeUntilNextSend => Mathf.Max(0, _SendCooldown - (Time.unscaledTime - _lastSendTime));
