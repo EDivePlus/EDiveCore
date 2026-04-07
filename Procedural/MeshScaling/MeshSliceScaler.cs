@@ -6,8 +6,11 @@ using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace EDIVE.Procedural.MeshScaling
 {
@@ -80,15 +83,20 @@ namespace EDIVE.Procedural.MeshScaling
 
         private void Recalculate(bool force = false)
         {
+            var changed = false;
             foreach (var component in _Components)
             {
-                component?.Recalculate(_Details, this, transform, force);
+                changed = changed || (component?.Recalculate(_Details, this, transform, force) ?? false);
             }
-            
             foreach (var component in _Components)
             {
-                component?.Postprocess(_Details, this, transform);
+                changed = changed || (component?.Postprocess(_Details, this, transform) ?? false);
             }
+
+#if UNITY_EDITOR
+            if (changed)
+                EditorUtility.SetDirty(this);
+#endif
         }
 
         private void ShowPreviewOriginal()
