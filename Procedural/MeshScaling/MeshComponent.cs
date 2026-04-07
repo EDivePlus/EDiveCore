@@ -92,6 +92,7 @@ namespace EDIVE.Procedural.MeshScaling
             if (_targetMesh == null || newHash != _slicedMeshHash || force)
             {
                 _targetMesh = UnityEngine.Object.Instantiate(_OriginalMesh);
+                _targetMesh.hideFlags = HideFlags.DontSave;
                 _targetMesh.name = $"{_OriginalMesh.name} (sliced)";
                 _slicedMeshHash = newHash;
                 modified = true;
