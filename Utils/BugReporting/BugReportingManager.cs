@@ -13,26 +13,27 @@ namespace EDIVE.Utils.BugReporting
 {
     public class BugReportingManager : AServiceBehaviour<BugReportingManager>
     {
+        [SerializeField] 
+        private DiscordWebHookDefinition _DiscordWebhook;
+        
         [SerializeField]
         private float _SendCooldown = 5;
+
+        [SerializeField] 
+        private int _Padding = 5;
         
-        [SerializeField]
-        private DiscordWebhook _DiscordWebhook;
-        
-        [SerializeField]
-        private int _MaxLogs = 30;
-        
-        [SerializeField]
-        private int _MaxErrors = 15;
-        
+        [SerializeField] 
+        private int _MaxLogs = 40;
+
         public bool CanSendReport => Time.unscaledTime - _lastSendTime > _SendCooldown;
         public float TimeUntilNextSend => Mathf.Max(0, _SendCooldown - (Time.unscaledTime - _lastSendTime));
-        
+
         private float _lastSendTime;
         public event Action ReportSent;
-        
-        private readonly Queue<string> _logs = new();
-        private readonly Queue<string> _errors = new();
+
+        private readonly Queue<string> _recent = new();
+        private readonly List<string> _result = new(); 
+        private int _afterRemaining;
 
         protected override void OnEnable()
         {
@@ -45,24 +46,39 @@ namespace EDIVE.Utils.BugReporting
             base.OnDisable();
             Application.logMessageReceived -= HandleLog;
         }
-        
-        private void HandleLog(string condition, string stackTrace, LogType type)
-        {
-            var entry = $"[{type}] {condition}";
 
-            AddToQueue(_logs, entry, _MaxLogs);
-            if (type is LogType.Error or LogType.Assert or LogType.Exception)
+        private void HandleLog(string logString, string stackTrace, LogType type)
+        {
+            if (_result.Count >= _MaxLogs) return;
+
+            var isError = type is LogType.Error or LogType.Assert or LogType.Exception;
+            var entry = isError
+                ? $"[{type}] {logString}\n{stackTrace}"
+                : $"[{type}] {logString}";
+
+            if (isError)
             {
-                AddToQueue(_errors, entry + "\n" + stackTrace, _MaxErrors);
+                while (_recent.Count > 0 && _result.Count < _MaxLogs)
+                    _result.Add(_recent.Dequeue());
+
+                _recent.Clear();
+
+                if (_result.Count < _MaxLogs)
+                    _result.Add(entry);
+
+                _afterRemaining = _Padding;
             }
-        }
-
-        private static void AddToQueue(Queue<string> queue, string entry, int limit)
-        {
-            if (queue.Count >= limit)
-                queue.Dequeue();
-
-            queue.Enqueue(entry);
+            else if (_afterRemaining > 0)
+            {
+                _result.Add(entry);
+                _afterRemaining--;
+            }
+            else
+            {
+                if (_recent.Count >= _Padding)
+                    _recent.Dequeue();
+                _recent.Enqueue(entry);
+            }
         }
 
         public void TrySendReport()
@@ -73,12 +89,11 @@ namespace EDIVE.Utils.BugReporting
             _lastSendTime = Time.unscaledTime;
             SendReport();
         }
-        
+
         [Button]
         private void SendReport()
         {
-            if (!_DiscordWebhook.IsValid) 
-                return;
+            if (!_DiscordWebhook.Webhook.IsValid) return;
 
             var message = new DiscordMessage
             {
@@ -100,14 +115,18 @@ namespace EDIVE.Utils.BugReporting
                     }
                 }
             };
-            
-            var attachments = new List<DiscordFileAttachment>();
-            if(_logs.Count > 0) 
-                attachments.Add(new DiscordFileAttachment("Logs.txt", Encoding.UTF8.GetBytes(string.Join("\n", _logs))));
-            if (_errors.Count > 0) 
-                attachments.Add(new DiscordFileAttachment("Errors.txt", Encoding.UTF8.GetBytes(string.Join("\n", _errors))));
 
-            _DiscordWebhook.SendMessage(message, attachments);
+            var attachments = new List<DiscordFileAttachment>();
+            if (_result.Count > 0)
+                attachments.Add(new DiscordFileAttachment("Report.txt",
+                    Encoding.UTF8.GetBytes(string.Join("\n", _result))));
+
+            _DiscordWebhook.Webhook.SendMessage(message, attachments);
+
+            _result.Clear();
+            _recent.Clear();
+            _afterRemaining = 0;
+
             ReportSent?.Invoke();
         }
     }
