@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 namespace EDIVE.Forms.Answers
 {
     [JsonObject(MemberSerialization.OptIn)]
-    public class FormAnswer<T> : AFormAnswer
+    public class ValueFormAnswer<T> : AFormAnswer
     {
         [JsonProperty("Value")]
         private T _value;
@@ -17,7 +17,7 @@ namespace EDIVE.Forms.Answers
             set => _value = value;
         }
 
-        public FormAnswer(T value)
+        public ValueFormAnswer(T value)
         {
             _value = value;
         }

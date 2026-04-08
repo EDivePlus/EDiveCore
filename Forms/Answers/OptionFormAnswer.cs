@@ -6,12 +6,12 @@ using EDIVE.Forms.Questions;
 
 namespace EDIVE.Forms.Answers
 {
-    public class OptionFormAnswer<TOption> : AFormAnswer where TOption : IQuestionOption
+    public class OptionFormAnswer : AFormAnswer
     {
-        private readonly List<TOption> _options;
-        public IReadOnlyCollection<TOption> Options => _options;
+        private readonly List<IQuestionOption> _options;
+        public IReadOnlyCollection<IQuestionOption> Options => _options;
 
-        public OptionFormAnswer(List<TOption> options)
+        public OptionFormAnswer(List<IQuestionOption> options)
         {
             _options = options;
         }

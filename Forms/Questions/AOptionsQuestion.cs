@@ -13,7 +13,7 @@ using UnityEngine;
 namespace EDIVE.Forms.Questions
 {
     [Serializable]
-    public abstract class AOptionQuestion : AFormQuestion 
+    public abstract class AOptionsQuestion : AFormQuestion 
     {
         [SerializeField]
         [MinMaxSlider(0, "@OptionCount", true)]
@@ -50,7 +50,7 @@ namespace EDIVE.Forms.Questions
     }
     
     [Serializable]
-    public abstract class AOptionQuestion<TOption> : AOptionQuestion where TOption : IQuestionOption
+    public abstract class AOptionsQuestion<TOption> : AOptionsQuestion where TOption : IQuestionOption
     {
         [EnhancedTableList]
         [SerializeField]
@@ -58,24 +58,5 @@ namespace EDIVE.Forms.Questions
         
         public IReadOnlyList<TOption> Options => _Options;
         public override IEnumerable<IQuestionOption> BaseOptions => _Options.Cast<IQuestionOption>();
-    }
-    
-    public interface IQuestionOption
-    {
-        bool IsCorrect { get; }
-    }
-
-    [Serializable]
-    public class QuestionOption<TValue> : IQuestionOption
-    {
-        [SerializeField]
-        private TValue _Value;
-        
-        [EnhancedTableColumn(90)]
-        [SerializeField]
-        private bool _IsCorrect;
-
-        public bool IsCorrect => _IsCorrect;
-        public TValue Value => _Value;
     }
 }

@@ -183,7 +183,7 @@ namespace EDIVE.Forms
         
         private bool IsQuestionAnswered(int questionIndex)
         {
-            var questionID = _Definition.Questions[questionIndex].UniqueID;
+            var questionID = _Definition.Questions[questionIndex].ID;
             return _currentAnswers.TryGet(questionID, out var answer) && answer != null;
         }
         

@@ -2,6 +2,7 @@
 // Created: 07.04.2026
 
 using System;
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using UnityEngine;
@@ -11,60 +12,76 @@ namespace EDIVE.Forms.Controllers
 {
     public interface IOptionSelector
     {
-        void RegisterSelectionListener(Action<bool> onSelected);
-        void UnregisterSelectionListener(Action<bool> onSelected);
+        void Initialize(Action<IOptionSelector, bool> callback);
+        void Terminate();
         void SetSelected(bool selected, bool notify = true);
-        void SetInteractable(bool interactable);
     }
     
     [Serializable]
-    public abstract class AWrapperOptionSelector : IOptionSelector
+    public class CompoundOptionSelector : IOptionSelector
     {
-        private event Action<bool> InnerEvent;
+        [SerializeReference]
+        private List<IOptionSelector> _Selectors = new();
+        
+        private Action<IOptionSelector, bool> _callback;
 
-        public void RegisterSelectionListener(Action<bool> onSelected)
+        public void Initialize(Action<IOptionSelector, bool> callback)
         {
-            var wasEmpty = InnerEvent == null;
-            InnerEvent += onSelected;
-            if (wasEmpty)
-                StartListening();
+            _callback = callback;
+            foreach (var selector in _Selectors)
+                selector?.Initialize(ChildSelectorCallback);
         }
 
-        public void UnregisterSelectionListener(Action<bool> onSelected)
+        public void Terminate()
         {
-            InnerEvent -= onSelected;
-            if (InnerEvent == null)
-                StopListening();
+            foreach (var selector in _Selectors)
+                selector?.Terminate();
+        }
+
+        private void ChildSelectorCallback(IOptionSelector selector, bool value)
+        {
+            // Toggle silently all other selectors
+            foreach (var childSelector in _Selectors)
+            {
+                if (childSelector == selector)
+                    continue;
+                childSelector?.SetSelected(value, false);
+            }
+            _callback?.Invoke(this, value);
         }
         
-        protected void InvokeListeners(bool value) => InnerEvent?.Invoke(value);
-        
-        protected abstract void StartListening();
-        protected abstract void StopListening();
-        
-        public abstract void SetSelected(bool selected, bool notify = true);
-        public abstract void SetInteractable(bool interactable);
+        public void SetSelected(bool selected, bool notify = true)
+        {
+            foreach (var selector in _Selectors)
+                selector?.SetSelected(selected, notify);
+        }
     }
     
     [Serializable]
-    public class ToggleOptionSelector : AWrapperOptionSelector
+    public class ToggleOptionSelector : IOptionSelector
     {
         [SerializeField]
         private Toggle _Toggle;
         
-        protected override void StartListening()
+        private Action<IOptionSelector, bool> _callback;
+        
+        public void Initialize(Action<IOptionSelector, bool> callback)
         {
+            _callback = callback;
             if (_Toggle != null)
-                _Toggle.onValueChanged.AddListener(OnToggled);
+                _Toggle.onValueChanged.AddListener(OnToggleValueChanged);
         }
 
-        protected override void StopListening()
+        public void Terminate()
         {
+            _callback = null;
             if (_Toggle != null)
-                _Toggle.onValueChanged.RemoveListener(OnToggled);
+                _Toggle.onValueChanged.RemoveListener(OnToggleValueChanged);
         }
+
+        private void OnToggleValueChanged(bool value) => _callback?.Invoke(this, value);
         
-        public override void SetSelected(bool selected, bool notify = true)
+        public void SetSelected(bool selected, bool notify = true)
         {
             if (_Toggle)
             {
@@ -74,16 +91,6 @@ namespace EDIVE.Forms.Controllers
                     _Toggle.SetIsOnWithoutNotify(selected);
             }
         }
-        
-        public override void SetInteractable(bool interactable)
-        {
-            if (_Toggle)
-            {
-                _Toggle.interactable = interactable;
-            }
-        }
-
-        private void OnToggled(bool value) => InvokeListeners(value);
         
 #if UNITY_EDITOR
         [OnInspectorInit]

@@ -8,34 +8,36 @@ using UnityEngine;
 
 namespace EDIVE.Forms.Controllers
 {
-    public abstract class AOptionHandler<TOption> : MonoBehaviour where TOption : IQuestionOption
+    public abstract class AOptionHandler : MonoBehaviour
     {
-        [SerializeReference]
-        private IOptionSelector _OptionSelector;
-            
         [SerializeField]
         private AToggleState _VisibleState;
         
-        public TOption Option { get; private set; }
+        [SerializeField]
+        private AToggleState _InteractableState;
 
-        public event Action<AOptionHandler<TOption>, bool> OptionSelectionChanged;
+        [SerializeField]
+        private AQuestionOptionDisplay _OptionDisplay;
+        
+        public IQuestionOption Option { get; private set; }
 
-        public void Initialize(TOption option)
+        public event Action<AOptionHandler, bool> SelectionChanged;
+
+        public void Initialize(IQuestionOption option)
         {
             Option = option;
+            InitializeInternal();
+            if (_OptionDisplay)
+                _OptionDisplay.Initialize(option);
             SetSelected(false, false);
-            _OptionSelector?.RegisterSelectionListener(OnSelectorValueChanged);
         }
         
-        public void Terminate()
+        public virtual void Terminate()
         {
-            Option = default;
-            _OptionSelector?.UnregisterSelectionListener(OnSelectorValueChanged);
-        }
-        
-        private void OnSelectorValueChanged(bool value)
-        { 
-            OptionSelectionChanged?.Invoke(this, value);
+            TerminateInternal();
+            if (_OptionDisplay)
+                _OptionDisplay.Terminate();
+            Option = null;
         }
         
         public void SetVisible(bool visible)
@@ -45,8 +47,20 @@ namespace EDIVE.Forms.Controllers
             else
                 gameObject.SetActive(visible);
         }
+                
+        public virtual void SetInteractable(bool interactable)
+        {
+            if (_InteractableState)
+                _InteractableState.SetState(interactable);
+        }
+
+        public abstract void SetSelected(bool selected, bool notify = true);
+        public abstract void InitializeInternal();
+        public abstract void TerminateInternal();
         
-        public void SetSelected(bool selected, bool notify = true) => _OptionSelector?.SetSelected(selected, notify);
-        public void SetInteractable(bool interactable) => _OptionSelector?.SetInteractable(interactable);
+        protected void InvokeSelectionChanged(bool state)
+        {
+            SelectionChanged?.Invoke(this, state);
+        }
     }
 }

@@ -38,7 +38,7 @@ namespace EDIVE.Forms.Controllers
         public override AFormQuestion BaseQuestion => Question;
         
         protected abstract void Initialize(TQuestion question);
-        public override void Initialize(AFormQuestion formQuestion)
+        public sealed override void Initialize(AFormQuestion formQuestion)
         {
             if (formQuestion is not TQuestion tQuestion)
             {
