@@ -108,7 +108,7 @@ namespace EDIVE.Environment.SceneSetup
             var defScenes = definition.Scenes.ToList();
             if (defScenes.Any() && AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
             {
-                var scenesToUnload = networkSceneManager.LoadedScenes
+                var scenesToUnload = networkSceneManager.LoadedConnectionScenes
                     .Where(loadedScene => defScenes.All(defScene => GetSceneName(defScene) != loadedScene.name))
                     .Select(loadedScene => loadedScene.name);
 

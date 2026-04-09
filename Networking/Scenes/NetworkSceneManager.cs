@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Loadables;
 using EDIVE.Core.Services;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
@@ -26,6 +27,10 @@ namespace EDIVE.Networking.Scenes
     {
         [SerializeField]
         [SceneReference]
+        private string _GlobalScene;
+        
+        [SerializeField]
+        [SceneReference]
         private List<string> _OnlineScenes;
         
         [SerializeField]
@@ -37,8 +42,10 @@ namespace EDIVE.Networking.Scenes
         
         private NetworkManager _networkManager;
         private readonly List<Scene> _loadedScenes = new();
+        public Scene GlobalScene { get; private set; }
         
-        public IReadOnlyList<Scene> LoadedScenes => _loadedScenes;
+        public IEnumerable<Scene> LoadedScenes => _loadedScenes;
+        public IEnumerable<Scene> LoadedConnectionScenes => _loadedScenes.Where(s => s != GlobalScene);
 
         protected override void OnEnable()
         {
@@ -73,7 +80,7 @@ namespace EDIVE.Networking.Scenes
                 _networkManager.ServerManager.OnServerConnectionState -= OnServerConnectionState;
                 _networkManager.SceneManager.OnLoadEnd -= OnSceneLoadEnd;
 
-                _networkManager.ServerManager.UnregisterBroadcast<ConnectionSceneRequest>(OnConnectionSceneRequest);
+               _networkManager.ServerManager.UnregisterBroadcast<ConnectionSceneRequest>(OnConnectionSceneRequest);
             }
         }
 
@@ -126,6 +133,14 @@ namespace EDIVE.Networking.Scenes
 
         private void OnSceneLoadEnd(SceneLoadEndEventArgs args)
         {
+            // Cache global scene if it was just loaded
+            if (!string.IsNullOrEmpty(_GlobalScene))
+            {
+                var globalName = GetSceneName(_GlobalScene);
+                if (!GlobalScene.IsValid() && args.LoadedScenes.TryGetFirst(s => s.name == globalName, out var loaded)) 
+                    GlobalScene = loaded;
+            }
+            
             // Cache newly loaded scenes, clear invalid ones
             _loadedScenes.AddRange(args.LoadedScenes);
             for (var i = _loadedScenes.Count - 1; i >= 0; i--)
@@ -149,8 +164,20 @@ namespace EDIVE.Networking.Scenes
         {
             if (args.ConnectionState == LocalConnectionState.Started && _networkManager.ServerManager.IsOnlyOneServerStarted())
             {
+                if (!string.IsNullOrWhiteSpace(_GlobalScene))
+                {
+                    var globalLoadData = new SceneLoadData(GetSceneName(_GlobalScene))
+                    {
+                        Options = new LoadOptions {AutomaticallyUnload = false}
+                    };
+                    _networkManager.SceneManager.LoadGlobalScenes(globalLoadData);
+                }
+                
                 var allOnlineScenes = _OnlineScenes.Select(GetSceneName).ToList();
-                var loadData = new SceneLoadData(allOnlineScenes) {Options = new LoadOptions {AutomaticallyUnload = false}};
+                var loadData = new SceneLoadData(allOnlineScenes)
+                {
+                    Options = new LoadOptions {AutomaticallyUnload = false}
+                };
                 _networkManager.SceneManager.LoadConnectionScenes(loadData);
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped && _networkManager.ServerManager.AreAllServersStopped())

@@ -14,13 +14,12 @@ namespace EDIVE.Networking.Utils
     public static class NetworkUtils
     {
 #if UNITY_EDITOR
-        private static GlobalPersistentContext<NetworkRuntimeMode> EditorRuntimeModeContext =>
-            PersistentContext.Get(Application.dataPath, nameof(Networking), nameof(NetworkRuntimeMode), NetworkRuntimeMode.Offline);
+        private static readonly EditorPrefInt EDITOR_RUNTIME_MODE_PREF = new("NetworkRuntimeMode", (int) NetworkRuntimeMode.Offline);
 
         public static NetworkRuntimeMode EditorRuntimeMode
         {
-            get => EditorRuntimeModeContext.Value;
-            set => EditorRuntimeModeContext.Value = value;
+            get => (NetworkRuntimeMode) EDITOR_RUNTIME_MODE_PREF.Value;
+            set => EDITOR_RUNTIME_MODE_PREF.Value = (int) value;
         }
 #endif
 

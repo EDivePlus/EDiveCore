@@ -18,6 +18,7 @@ using Random = UnityEngine.Random;
 using Sirenix.OdinInspector;
 using System.Linq;
 using EDIVE.AssetTranslation;
+using EDIVE.Networking.Scenes;
 using EDIVE.Networking.Utils;
 using UnityEngine.SceneManagement;
 
@@ -181,7 +182,8 @@ namespace EDIVE.Networking.Players
                 var rotation = Quaternion.identity;
 
                 var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
-                _networkManager.ServerManager.Spawn(netObj, conn, AppCore.Instance.RootScene);
+                var globalScene = AppCore.Services.Get<NetworkSceneManager>().GlobalScene;
+                _networkManager.ServerManager.Spawn(netObj, conn, globalScene);
                 _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
 
                 var playerController = netObj.GetComponent<NetworkPlayerController>();
