@@ -201,6 +201,34 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		}
 		
 		protected abstract TResponse ProcessRequest(IPEndPoint endpoint);
+		
+		private const int WSAECONNRESET = 10054;
+		
+		private void HandleReceiveException(Exception exception)
+		{
+			var inner = exception is AggregateException agg ? agg.Flatten().InnerException : exception;
+			if (inner is SocketException { ErrorCode: WSAECONNRESET })
+			{
+				LogInformation("Received ICMP port-unreachable. Recycling socket.");
+				return;
+			}
+
+			Debug.LogException(exception, this);
+		}
+		
+		/// <summary>
+		/// Observes a task's exception to prevent UnobservedTaskException.
+		/// Used for abandoned ReceiveAsync tasks when recycling the UDP socket on timeout.
+		/// </summary>
+		private static void ObserveAndForget(Task task)
+		{
+			if (task.IsCompleted)
+			{
+				_ = task.Exception;
+				return;
+			}
+			task.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+		}
 
 		
 		/// <summary>
@@ -229,24 +257,34 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 						if (completedTask == receiveTask)
 						{
-							var result = receiveTask.Result;
-							var receivedSecret = Encoding.UTF8.GetString(result.Buffer);
-							if (receivedSecret == _Secret)
+							if (receiveTask.IsFaulted)
 							{
-								LogInformation($"Received request from {result.RemoteEndPoint}.");
-							
-								var response = ProcessRequest(result.RemoteEndPoint);
-								var bytes = SerializeResponse(response);
-								await udpClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
+								HandleReceiveException(receiveTask.Exception);
+								udpClient.Close();
+								udpClient = null;
 							}
 							else
 							{
-								LogWarning($"Received invalid request from {result.RemoteEndPoint}.");
+								var result = receiveTask.Result;
+								var receivedSecret = Encoding.UTF8.GetString(result.Buffer);
+								if (receivedSecret == _Secret)
+								{
+									LogInformation($"Received request from {result.RemoteEndPoint}.");
+							
+									var response = ProcessRequest(result.RemoteEndPoint);
+									var bytes = SerializeResponse(response);
+									await udpClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
+								}
+								else
+								{
+									LogWarning($"Received invalid request from {result.RemoteEndPoint}.");
+								}
 							}
 						}
 						else
 						{
 							LogInformation("Timed out. Retrying...");
+							ObserveAndForget(receiveTask);
 							udpClient.Close();
 							udpClient = null;
 						}
@@ -304,22 +342,32 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 						if (completedTask == receiveTask)
 						{
-							var result = receiveTask.Result;
-						
-							try
+							if (receiveTask.IsFaulted)
 							{
-								LogInformation($"Received response from {result.RemoteEndPoint}.");
-								var response = DeserializeResponse(result.Buffer);
-								_mainThreadSynchronizationContext?.Post(_ => UpdateServerList(result.RemoteEndPoint, response), null);
+								HandleReceiveException(receiveTask.Exception);
+								udpClient.Close();
+								udpClient = null;
 							}
-							catch (Exception ex)
+							else
 							{
-								LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
+								var result = receiveTask.Result;
+						
+								try
+								{
+									LogInformation($"Received response from {result.RemoteEndPoint}.");
+									var response = DeserializeResponse(result.Buffer);
+									_mainThreadSynchronizationContext?.Post(_ => UpdateServerList(result.RemoteEndPoint, response), null);
+								}
+								catch (Exception ex)
+								{
+									LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
+								}
 							}
 						}
 						else
 						{
 							LogInformation("Timed out. Retrying...");
+							ObserveAndForget(receiveTask);
 							udpClient.Close();
 							udpClient = null;
 						}
@@ -334,7 +382,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 				}
 				LogInformation("Stopped searching for servers.");
 			}
-			catch (Exception exception)
+			catch (Exception exception) when (exception is not TaskCanceledException)
 			{
 				Debug.LogException(exception, this);
 			}
