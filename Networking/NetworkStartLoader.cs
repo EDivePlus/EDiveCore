@@ -18,15 +18,9 @@ namespace EDIVE.Networking
             switch (NetworkUtils.RuntimeMode)
             {
                 case NetworkRuntimeMode.Server:
-                    networkManager.StartRuntime(NetworkRuntimeMode.Server);
-                    break;
-
                 case NetworkRuntimeMode.Host:
-                    networkManager.StartRuntime(NetworkRuntimeMode.Host);
-                    break;
-
                 case NetworkRuntimeMode.Client:
-                    networkManager.StartRuntime(NetworkRuntimeMode.Client);
+                    networkManager.StartRuntime(NetworkUtils.RuntimeMode);
                     break;
                 
                 case NetworkRuntimeMode.Offline:
