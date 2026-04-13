@@ -16,7 +16,7 @@ namespace EDIVE.Utils
                 return null;
             
             var highestID = parentCollection.AsValueEnumerable()
-                .Where(e => e != null && Equals(e, self) && idGetter.Invoke(e).StartsWith(prefix) && int.TryParse(idGetter.Invoke(e)[1..], out _))
+                .Where(e => e != null && !ReferenceEquals(e, self) && idGetter.Invoke(e).StartsWith(prefix) && int.TryParse(idGetter.Invoke(e)[1..], out _))
                 .Select(e => int.Parse(idGetter.Invoke(e)[1..]))
                 .Prepend(0)
                 .Max();
@@ -29,7 +29,7 @@ namespace EDIVE.Utils
                 return null;
             
             var highestIndex = parentCollection.AsValueEnumerable()
-                .Where(e => e != null && Equals(e, self))
+                .Where(e => e != null && !ReferenceEquals(e, self))
                 .Select(e => TryParseAlphaId(idGetter.Invoke(e), out var index) ? index : -1)
                 .Where(i  => i >= 0)
                 .Prepend(-1)
