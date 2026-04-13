@@ -1,10 +1,10 @@
 ﻿// Author: Radim Holub
 // Created: 08.04.2026
 
+using EDIVE.DataStructures.VariableFields;
 using EDIVE.NativeUtils;
-using EDIVE.ScriptableArchitecture.Variables.Impl;
+using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit.Utilities;
 
 namespace EDIVE.XRTools.Utils
 {
@@ -12,13 +12,9 @@ namespace EDIVE.XRTools.Utils
     {
         [Header("References")]
         [SerializeField]
-        [Tooltip("Optional camera transform variable. If not set, will use direct camera transform or Camera.main.")]
-        private TransformScriptableVariable _CameraTransformVariable;
-
-        [SerializeField]
-        [Tooltip("Optional direct camera transform fallback.")]
-        private Transform _CameraTransform;
-
+        [Tooltip("Optional camera transform variable. If not set, will use Camera.main.")]
+        private VariableField<Transform> _CameraTransform;
+        
         [SerializeField]
         [Tooltip("Object that will rotate. If not set, this transform will be used.")]
         private Transform _TargetTransform;
@@ -48,18 +44,12 @@ namespace EDIVE.XRTools.Utils
         [SerializeField, Min(0.001f)]
         private float _RotationSmoothTime = 0.08f;
 
-        private Vector3 _rotationVelocity;
-
         public Transform TargetTransform => _TargetTransform != null ? _TargetTransform : transform;
-
-        public Transform CameraTransform =>
-            _CameraTransformVariable != null && _CameraTransformVariable.Value != null
-                ? _CameraTransformVariable.Value
-                : _CameraTransform != null
-                    ? _CameraTransform
-                    : Camera.main != null
-                        ? Camera.main.transform
-                        : null;
+        public Transform CameraTransform => _CameraTransform.Value != null
+                ? _CameraTransform.Value
+                : Camera.main != null ? Camera.main.transform : null;
+        
+        private Vector3 _rotationVelocity;
 
         private void Awake()
         {
@@ -74,29 +64,25 @@ namespace EDIVE.XRTools.Utils
 
             Refresh(immediate: !_UseSmoothRotation);
         }
-
-        public void SetCamera(Transform cameraTransform)
-        {
-            _CameraTransform = cameraTransform;
-        }
-
+        
+        [Button]
         public void Refresh(bool immediate = false)
         {
-            Transform target = TargetTransform;
-            Transform cameraTransform = CameraTransform;
+            var target = TargetTransform;
+            var cameraTransform = CameraTransform;
 
             if (target == null || cameraTransform == null)
                 return;
 
-            Vector3 direction = cameraTransform.position - target.position;
+            var direction = cameraTransform.position - target.position;
             if (direction.sqrMagnitude < 0.0001f)
                 return;
 
             if (_InvertForward)
                 direction = -direction;
 
-            Vector3 up = _UseWorldUp ? _WorldUp.normalized : cameraTransform.up;
-            Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, up);
+            var up = _UseWorldUp ? _WorldUp.normalized : cameraTransform.up;
+            var targetRotation = Quaternion.LookRotation(direction.normalized, up);
 
             if (immediate || !_UseSmoothRotation)
             {
@@ -109,12 +95,6 @@ namespace EDIVE.XRTools.Utils
                 targetRotation,
                 ref _rotationVelocity,
                 _RotationSmoothTime);
-        }
-
-        [ContextMenu("Refresh Immediate")]
-        private void RefreshImmediateContext()
-        {
-            Refresh(true);
         }
     }
 }
