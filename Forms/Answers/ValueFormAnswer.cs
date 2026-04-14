@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 07.04.2026
 
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace EDIVE.Forms.Answers
@@ -17,7 +18,7 @@ namespace EDIVE.Forms.Answers
             set => _value = value;
         }
 
-        public ValueFormAnswer(T value)
+        public ValueFormAnswer(T value, IEnumerable<IFormAnswerMetadata> metadata = null) : base(metadata)
         {
             _value = value;
         }

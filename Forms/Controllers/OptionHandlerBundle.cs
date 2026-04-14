@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
 using EDIVE.NativeUtils;
 using UnityEngine;
@@ -15,9 +16,9 @@ namespace EDIVE.Forms.Controllers
         [SerializeField]
         private List<AOptionHandler> _OptionHandlers = new();
         
-        public event Action<AOptionHandler, bool> SelectionChanged;
+        public event Action<IQuestionOption, bool> SelectionChanged;
         
-        public void Initialize(AOptionsQuestion question)
+        public virtual void Initialize(AOptionsQuestion question)
         {
             var options = question.BaseOptions.Where(o => o != null).ToList();
             var optionHandlers = _OptionHandlers.Where(h => h != null).ToList();
@@ -49,13 +50,18 @@ namespace EDIVE.Forms.Controllers
             }
         }
         
-        public void Terminate()
+        public virtual void Terminate()
         {
             foreach (var optionHandler in _OptionHandlers)
             {
                 optionHandler.SelectionChanged -= OnOptionSelected; 
                 optionHandler.Terminate();
             }
+        }
+
+        public virtual IEnumerable<IFormAnswerMetadata> CollectMetadata()
+        {
+            return _OptionHandlers.SelectMany(h => h.CollectMetadata());
         }
 
         public void SetSelected(IQuestionOption option, bool selected, bool notify = true)
@@ -77,7 +83,7 @@ namespace EDIVE.Forms.Controllers
         
         private void OnOptionSelected(AOptionHandler handler, bool selected)
         {
-            SelectionChanged?.Invoke(handler, selected);
+            SelectionChanged?.Invoke(handler.Option, selected);
         }
     }
 }

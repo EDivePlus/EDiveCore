@@ -41,17 +41,10 @@ namespace EDIVE.Forms.Controllers
             }
         }
 
-        private void OnSelectionChanged(AOptionHandler handler, bool selected)
+        private void OnSelectionChanged(IQuestionOption option, bool selected)
         {
-            var option = handler.Option;
             if (selected)
             {
-                if (Question.SelectionLimits.y > 0 && _selectedOptions.Count >= Question.SelectionLimits.y)
-                {
-                    handler.SetSelected(false, false);
-                    return;
-                }
-
                 if (!_selectedOptions.Contains(option))
                     _selectedOptions.Add(option);
             }
@@ -61,11 +54,20 @@ namespace EDIVE.Forms.Controllers
             }
             
             SetSelected(option, selected, false);
-
-            SetAnswer(new OptionFormAnswer(_selectedOptions));
+            SetAnswer(CreateAnswer(_selectedOptions));
             RefreshState();
         }
+
+        protected virtual AFormAnswer CreateAnswer(List<IQuestionOption> selectedOptions)
+        {
+            return new OptionFormAnswer(selectedOptions.Select(o => o.ID), CollectMetadata());
+        }
         
+        protected virtual IEnumerable<IFormAnswerMetadata> CollectMetadata()
+        {
+            return _HandlerBundles.SelectMany(h => h.CollectMetadata());
+        }
+
         public void SetSelected(IQuestionOption option, bool selected, bool notify = true)
         {
             FilteredHandlerBundles.ForEach(b => b.SetSelected(option, selected, notify));

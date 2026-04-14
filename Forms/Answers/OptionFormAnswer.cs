@@ -2,18 +2,21 @@
 // Created: 07.04.2026
 
 using System.Collections.Generic;
-using EDIVE.Forms.Questions;
+using System.Linq;
+using Newtonsoft.Json;
 
 namespace EDIVE.Forms.Answers
 {
+    [JsonObject(MemberSerialization.OptIn)]
     public class OptionFormAnswer : AFormAnswer
     {
-        private readonly List<IQuestionOption> _options;
-        public IReadOnlyCollection<IQuestionOption> Options => _options;
+        [JsonProperty("Options")]
+        private List<string> _optionIDs;
+        public IReadOnlyCollection<string> OptionIDs => _optionIDs;
 
-        public OptionFormAnswer(List<IQuestionOption> options)
+        public OptionFormAnswer(IEnumerable<string> optionIDs, IEnumerable<IFormAnswerMetadata> metadata = null) : base(metadata)
         {
-            _options = options;
+            _optionIDs = optionIDs.ToList();
         }
     }
 }

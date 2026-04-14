@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using EDIVE.Forms.Answers;
 using EDIVE.Forms.Controllers;
 using EDIVE.Forms.Questions;
@@ -36,7 +37,7 @@ namespace EDIVE.Forms
         [SerializeField]
         private TMP_Text _TotalQuestionsText;
         
-        [ValidateMultiState(typeof(FormControllerState))]
+        [ValidateMultiState(typeof(FormStateType))]
         [SerializeField]
         private AMultiState _FormState;
         
@@ -45,9 +46,10 @@ namespace EDIVE.Forms
         
         private AFormQuestionController _currentQuestionController;
         private FormAnswerBundle _currentAnswers;
-        private FormControllerState _currentState;
+        private FormStateType _currentFormState;
         
         public event Action<FormDefinition> FormChanged;
+        public event Action<FormStateType> FormStateChanged;
         public event Action<AFormQuestion> CurrentQuestionChanged;
         public event Action<FormAnswerBundle> AnswersChanged;
 
@@ -83,15 +85,15 @@ namespace EDIVE.Forms
         public void Initialize(FormDefinition definition)
         {
             _Definition = definition;
-            _currentState = FormControllerState.Initial;
             FormChanged?.Invoke(_Definition);
+            SetFormState(FormStateType.Initial);
         }
 
         public void Terminate()
         {
             if (_currentQuestionController != null)
             {
-                _currentQuestionController.AnswerChanged -= OnQuestionAnswerChanged;
+                _currentQuestionController.AnswerChanged -= SetAnswerForCurrentQuestion;
                 _currentQuestionController.Terminate();
             }
         }
@@ -100,16 +102,15 @@ namespace EDIVE.Forms
         public void StartForm()
         {
             _currentAnswers = new FormAnswerBundle(Guid.NewGuid().ToString());
-            _currentState = FormControllerState.Question;
+            SetFormState(FormStateType.Question);
             TrySetQuestion(0);
         }
         
         [Button]
         public void EndForm()
         {
-            SaveToFile();
-            
-            _currentState = FormControllerState.Completed;
+            SaveAnswersToFile();
+            SetFormState(FormStateType.Completed);
             UpdateUIDisplay();
         }
         
@@ -135,8 +136,14 @@ namespace EDIVE.Forms
             
             TrySetQuestion(_currentQuestionIndex - 1);
         }
+
+        private void SetFormState(FormStateType state)
+        {
+            _currentFormState = state;
+            FormStateChanged?.Invoke(_currentFormState);
+        }
         
-        private bool TrySetQuestion(int questionIndex)
+        public bool TrySetQuestion(int questionIndex)
         {
             if (questionIndex < 0 || questionIndex >= _Definition.Questions.Count)
             {
@@ -146,10 +153,9 @@ namespace EDIVE.Forms
 
             if (_currentQuestionController != null)
             {
-                _currentQuestionController.AnswerChanged -= OnQuestionAnswerChanged;
+                _currentQuestionController.AnswerChanged -= SetAnswerForCurrentQuestion;
                 _currentQuestionController.Terminate();
             }
-               
             
             _currentQuestionIndex = questionIndex;
             CurrentQuestion = _Definition.Questions[_currentQuestionIndex];
@@ -162,23 +168,26 @@ namespace EDIVE.Forms
 
             _currentQuestionController = controller;
             _currentQuestionController.Initialize(CurrentQuestion);
-            _currentQuestionController.AnswerChanged += OnQuestionAnswerChanged;
+            _currentQuestionController.AnswerChanged += SetAnswerForCurrentQuestion;
             
             UpdateUIDisplay();
             CurrentQuestionChanged?.Invoke(CurrentQuestion);
             return true;
         }
         
-        private void OnQuestionAnswerChanged(AFormAnswer answer)
+        public void SetAnswerForCurrentQuestion(AFormAnswer answer)
         {
-            if (CurrentQuestion != null)
+            if (CurrentQuestion == null)
             {
-                _currentAnswers.Set(CurrentQuestion.ID, answer);
-                AnswersChanged?.Invoke(_currentAnswers);
+                Debug.LogError("No current question to set answer for.");
+                return;
             }
+            
+            _currentAnswers.Set(CurrentQuestion.ID, answer);
+            AnswersChanged?.Invoke(_currentAnswers);
         }
         
-        private bool IsQuestionAnswered(AFormQuestion question)
+        public bool IsQuestionAnswered(AFormQuestion question)
         {
             return question != null && _currentAnswers.TryGet(question.ID, out var answer) && answer != null;
         }
@@ -197,37 +206,24 @@ namespace EDIVE.Forms
                 _TotalQuestionsText.text = _Definition.Questions.Count.ToString();
 
             if (_FormState)
-                _FormState.SetState(_currentState);
+                _FormState.SetState(_currentFormState);
         }
-
-        private void SaveToFile()
+        
+        public void SaveAnswersToFile()
         {
-            var fileName = $"Form_{_Definition.name}_{_currentAnswers.ParticipantID}";
-            var filePath = GetUniqueFilePath(fileName, "json");
+            var fileName = $"Form_{_Definition.UniqueID}_{_currentAnswers.ParticipantID}";
+            var filePath = Path.Combine(PathUtility.GetRootAppDataPath("Forms"), $"{fileName}.json");
+            PathUtility.EnsurePathExists(filePath);
             var json = JsonConvert.SerializeObject(_currentAnswers, Formatting.Indented);
-            System.IO.File.WriteAllText(filePath, json);
+            File.WriteAllText(filePath, json);
             Debug.Log($"Form answers saved to {filePath}");
-        }
-
-        private static string GetUniqueFilePath(string baseName, string extension)
-        {
-            var directory = Application.persistentDataPath;
-            var filePath = System.IO.Path.Combine(directory, $"{baseName}.{extension}");
-            var counter = 1;
-            while (System.IO.File.Exists(filePath))
-            {
-                filePath = System.IO.Path.Combine(directory, $"{baseName}_{counter}.{extension}");
-                counter++;
-            }
-            return filePath;
         }
     }
     
-    public enum FormControllerState
+    public enum FormStateType
     {
         Initial,
         Question,
-        AnswerValidation,
         Completed
     }
 }

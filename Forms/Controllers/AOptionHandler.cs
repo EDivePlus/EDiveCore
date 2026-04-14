@@ -2,6 +2,9 @@
 // Created: 07.04.2026
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
 using EDIVE.StateHandling.ToggleStates;
 using UnityEngine;
@@ -53,6 +56,9 @@ namespace EDIVE.Forms.Controllers
             if (_InteractableState)
                 _InteractableState.SetState(interactable);
         }
+        
+        
+        public virtual IEnumerable<IFormAnswerMetadata> CollectMetadata() => Enumerable.Empty<IFormAnswerMetadata>();
 
         public abstract void SetSelected(bool selected, bool notify = true);
         public abstract void InitializeInternal();
