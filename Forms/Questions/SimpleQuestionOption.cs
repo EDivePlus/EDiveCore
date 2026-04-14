@@ -13,6 +13,4 @@ namespace EDIVE.Forms.Questions
         private string _Text;
         public string Text => _Text;
     }
-
-
 }

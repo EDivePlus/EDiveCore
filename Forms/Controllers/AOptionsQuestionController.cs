@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace EDIVE.Forms.Controllers
 {
-    public class OptionsQuestionController : AFormQuestionController<AOptionsQuestion> 
+    public abstract class AOptionsQuestionController<TOptionQuestion>  : AFormQuestionController<TOptionQuestion> where TOptionQuestion : AOptionsQuestion
     {
         [SerializeField]
         private List<OptionHandlerBundle> _HandlerBundles = new();
@@ -19,16 +19,17 @@ namespace EDIVE.Forms.Controllers
         private IEnumerable<OptionHandlerBundle> FilteredHandlerBundles => _HandlerBundles.Where(b => b != null);
         
         private readonly List<IQuestionOption> _selectedOptions = new();
-        
-        protected override void Initialize(AOptionsQuestion question)
+
+        protected override void Initialize(TOptionQuestion question)
         {
             _selectedOptions.Clear();
-           
+
             foreach (var handlerBundle in FilteredHandlerBundles)
             {
                 handlerBundle.Initialize(question);
                 handlerBundle.SelectionChanged += OnSelectionChanged;
             }
+            RefreshState();
         }
         
         public override void Terminate()

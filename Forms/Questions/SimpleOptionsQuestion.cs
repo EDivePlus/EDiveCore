@@ -2,6 +2,7 @@
 // Created: 05.11.2025
 
 using System;
+using UnityEngine;
 
 namespace EDIVE.Forms.Questions
 {
@@ -9,5 +10,9 @@ namespace EDIVE.Forms.Questions
     public class SimpleOptionsQuestion : AOptionsQuestion<SimpleQuestionOption>
     {
         public override string EditorLabel => "Options";
+        
+        [SerializeField]
+        private string _Description;
+        public string Description => _Description;
     }
 }

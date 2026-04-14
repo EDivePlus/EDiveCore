@@ -185,7 +185,7 @@ namespace EDIVE.Forms
 
         public bool TryGetControllerForQuestion(AFormQuestion question, out AFormQuestionController controller)
         {
-            return _AvailableControllers.TryGetFirst(c => c.IsSuitableFor(question), out controller);
+            return _AvailableControllers.TryGetFirst(c => c != null && c.IsSuitableFor(question), out controller);
         }
         
         private void UpdateUIDisplay()
