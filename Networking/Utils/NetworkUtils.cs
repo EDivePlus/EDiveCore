@@ -6,6 +6,7 @@ using UnityEngine.Rendering;
 using UnityEngine.XR;
 
 #if UNITY_EDITOR
+using System.IO;
 using Sirenix.OdinInspector.Editor;
 #endif
 
@@ -14,7 +15,7 @@ namespace EDIVE.Networking.Utils
     public static class NetworkUtils
     {
 #if UNITY_EDITOR
-        private static readonly EditorPrefInt EDITOR_RUNTIME_MODE_PREF = new("NetworkRuntimeMode", (int) NetworkRuntimeMode.Offline);
+        private static readonly EditorPrefInt EDITOR_RUNTIME_MODE_PREF = new($"NetworkRuntimeMode-{Directory.GetParent(Application.dataPath)?.Name}", (int) NetworkRuntimeMode.Offline);
 
         public static NetworkRuntimeMode EditorRuntimeMode
         {
