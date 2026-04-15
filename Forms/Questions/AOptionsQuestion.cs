@@ -25,6 +25,9 @@ namespace EDIVE.Forms.Questions
         public abstract IEnumerable<IQuestionOption> BaseOptions { get; }
         public Vector2Int SelectionLimits => _SelectionLimits;
 
+        protected AOptionsQuestion() { }
+        protected AOptionsQuestion(string id) : base(id) { }
+
 #if UNITY_EDITOR
         [UsedImplicitly]
         private void ValidateSelectionLimits(SelfValidationResult result, InspectorProperty property)
@@ -58,5 +61,8 @@ namespace EDIVE.Forms.Questions
         
         public IReadOnlyList<TOption> Options => _Options;
         public override IEnumerable<IQuestionOption> BaseOptions => _Options.Cast<IQuestionOption>();
+
+        protected AOptionsQuestion() { }
+        protected AOptionsQuestion(string id, List<TOption> options) : base(id) { _Options = options; }
     }
 }

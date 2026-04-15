@@ -12,5 +12,8 @@ namespace EDIVE.Forms.Questions
         [SerializeField]
         private string _Text;
         public string Text => _Text;
+
+        public SimpleQuestionOption() { }
+        public SimpleQuestionOption(string id, string text, bool isCorrect) : base(id, isCorrect) { _Text = text; }
     }
 }

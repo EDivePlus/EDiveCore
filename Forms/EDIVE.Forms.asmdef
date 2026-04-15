@@ -24,6 +24,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.joshclose.csvhelper",
+            "expression": "",
+            "define": "CSV_HELPER"
+        }
+    ],
     "noEngineReferences": false
 }

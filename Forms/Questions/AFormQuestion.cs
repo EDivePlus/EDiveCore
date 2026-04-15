@@ -32,6 +32,9 @@ namespace EDIVE.Forms.Questions
         public VisualPreset Visual => _Visual;
         public string ID => _ID;
 
+        protected AFormQuestion() { }
+        protected AFormQuestion(string id) { _ID = id; }
+
 #if UNITY_EDITOR
         [OnInspectorInit]
         private void OnInspectorInit(InspectorProperty property)

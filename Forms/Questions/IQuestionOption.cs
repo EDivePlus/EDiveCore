@@ -37,6 +37,9 @@ namespace EDIVE.Forms.Questions
 
         public string ID => _ID;
         public bool IsCorrect => _IsCorrect;
+
+        protected AQuestionOption() { }
+        protected AQuestionOption(string id, bool isCorrect) { _ID = id; _IsCorrect = isCorrect; }
         
 #if UNITY_EDITOR
         [OnInspectorInit]
