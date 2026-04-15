@@ -43,14 +43,13 @@ namespace EDIVE.AddressableAssets
         public override string ToString() => $"[{_Address}]";
 
         [JsonConstructor]
-        protected AssetAddressReference()
-        {
-        }
-
+        protected AssetAddressReference() { }
         protected AssetAddressReference(string address)
         {
             _Address = address;
         }
+        
+        public AssetAddressReference<T> Cast<T>() where T : Object => new(_Address);
 
 #if UNITY_EDITOR
         internal static readonly HashSet<AsyncOperationHandle> ACTIVE_HANDLES = new();

@@ -9,7 +9,8 @@
         "Unity.Addressables.Editor",
         "Unity.ResourceManager",
         "EDIVE.NativeUtils",
-        "Sirenix.OdinInspector.Modules.Unity.Addressables"
+        "Sirenix.OdinInspector.Modules.Unity.Addressables",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
