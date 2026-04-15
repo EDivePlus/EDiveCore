@@ -7,7 +7,8 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.UserCenter.Auth;
-using Newtonsoft.Json.Linq;
+using EDIVE.UserCenter.SaveData;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -29,111 +30,136 @@ namespace EDIVE.UserCenter
 
         public event Action<LoginResponse> OnLoginSucceeded;
         public event Action<long, string> OnLoginFailed;
-        
-        public void Login(string email, string password) { LoginAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget(); }
 
-        public void Logout() => AuthStorage.Clear();
-        
-        private string AuthLoginUrl()
+        public void Login(string email, string password) => LoginAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget();
+
+        public void AnonymousLogin() => AnonymousLoginAsync(this.GetCancellationTokenOnDestroy()).Forget();
+
+        public void Logout() => LogoutAsync(this.GetCancellationTokenOnDestroy()).Forget();
+
+        public async UniTask LogoutAsync(CancellationToken cancellationToken = default)
         {
-            var baseUrl = (_ServiceBaseUrl ?? "").TrimEnd('/');
-            return $"{baseUrl}/auth/login";
+            var effectiveToken = cancellationToken == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : cancellationToken;
+
+            await FlushAllDirtyEntries(effectiveToken);
+            AuthStorage.Clear();
+            _local = new PlayerPrefsSaveDataStore();
+        }
+        
+        private string AuthLoginUrl => $"{ServiceBaseUrl}/auth/app-login";
+        private string AnonymousAuthLoginUrl => $"{ServiceBaseUrl}/auth/anonymous-login";
+
+        public void TryLoadStoredToken()
+        {
+            if (!IsLoggedIn) return;
+            var userId = AuthStorage.GetUserId();
+            if (!string.IsNullOrEmpty(userId))
+                _local = new PlayerPrefsSaveDataStore($"uc.savedata.{userId}.");
         }
 
-        public void TryLoadStoredToken() { }
-        
         [Button]
         [PropertyOrder(99)]
         [EnhancedBoxGroup("Auth")]
-        public async UniTask<(bool ok, LoginResponse resp, long status, string message)> LoginAsync(
+        public async UniTask<NetworkResponse<LoginResponse>> LoginAsync(
             string email,
             string password,
             CancellationToken cancellationToken = default
         )
         {
-            using var linkedCts = cancellationToken.CanBeCanceled 
-                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.GetCancellationTokenOnDestroy()) 
-                : null;
-            var effectiveToken = linkedCts?.Token ?? this.GetCancellationTokenOnDestroy();
+            var request = new LoginRequest(email, password, _AppSecret);
 
-            var url = AuthLoginUrl();
-            var payload = new LoginRequest(email, password);
-
-            var raw = await RestUtils.PostAsync<string, LoginRequest>(
-                url,
-                payload,
-                timeout: GetRequestTimeoutSeconds(_AuthTimeoutSeconds),
-                cancellationToken: effectiveToken
+            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, LoginRequest>(
+                AuthLoginUrl,
+                request,
+                authToken: null,
+                headers: null,
+                timeout: _AuthTimeoutSeconds,
+                cancellationToken: cancellationToken
             );
 
-            if (raw.Success)
-            {
-                try
-                {
-                    var jwt = ExtractJwtFromLoginResponse(raw.Raw);
-                    if (string.IsNullOrEmpty(jwt))
-                    {
-                        var msg = "Invalid server response (token not found).";
-                        OnLoginFailed?.Invoke(200, msg);
-                        return (false, null, 200, msg);
-                    }
-
-                    var expUnix = JwtUtils.GetUnixExp(jwt);
-                    var sub = JwtUtils.GetClaim(jwt, "sub");
-                    var emailFromJwt = JwtUtils.GetClaim(jwt, "email");
-                    var refreshFromJwt = JwtUtils.GetClaim(jwt, "refresh_token");
-
-                    var userUuid = JwtUtils.GetClaim(jwt, "uuid") ?? JwtUtils.GetClaim(jwt, "userUuid");
-                    var chosenUserId = !string.IsNullOrEmpty(userUuid)
-                        ? userUuid
-                        : (!string.IsNullOrEmpty(sub) ? sub : emailFromJwt);
-
-                    var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                    var expiresIn = expUnix.HasValue ? Mathf.Max(0, (int) (expUnix.Value - now)) : 0;
-
-                    var resp = new LoginResponse(jwt, refreshFromJwt, chosenUserId, expiresIn);
-
-                    AuthStorage.Save(resp.AccessToken, resp.RefreshToken, resp.UserId, expUnix, resp.ExpiresIn);
-
-                    // když login proběhne, server index může být jiný uživatel → invalidate
-                    InvalidateIndex();
-
-                    OnLoginSucceeded?.Invoke(resp);
-                    return (true, resp, 200, "ok");
-                }
-                catch (Exception e)
-                {
-                    var msg = $"Login response parse error: {e.Message}";
-                    OnLoginFailed?.Invoke(200, msg);
-                    return (false, null, 200, msg);
-                }
-            }
-
-            var status = raw.StatusCode;
-            var msg2 = raw.Error;
-
-            if (status == 401) msg2 = "Incorrect email or password.";
-            else if (status == 403) msg2 = "Access denied.";
-            else if (status >= 500) msg2 = "Server error. Please try again later.";
-            else if (status == 0) msg2 = "Unable to connect (network/TLS/offline).";
-
-            OnLoginFailed?.Invoke(status, msg2);
-            return (false, null, status, msg2);
+            return HandleLoginResponse(response);
         }
-        
-        private static string ExtractJwtFromLoginResponse(string raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
 
-            try
+        [Button]
+        [PropertyOrder(99)]
+        [EnhancedBoxGroup("Auth")]
+        public async UniTask<NetworkResponse<LoginResponse>> AnonymousLoginAsync(
+            CancellationToken cancellationToken = default
+        )
+        {
+            var token = GetOrCreateAnonymousToken();
+            var request = new AnonymousLoginRequest(token);
+
+            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, AnonymousLoginRequest>(
+                AnonymousAuthLoginUrl,
+                request,
+                authToken: null,
+                headers: null,
+                timeout: _AuthTimeoutSeconds,
+                cancellationToken: cancellationToken
+            );
+
+            return HandleLoginResponse(response);
+        }
+
+        private const string K_ANONYMOUS_TOKEN = "auth.anonymousToken";
+
+        private static string GetOrCreateAnonymousToken()
+        {
+            var existing = PlayerPrefs.GetString(K_ANONYMOUS_TOKEN, "");
+            if (!string.IsNullOrEmpty(existing))
+                return existing;
+
+            var token = Guid.NewGuid().ToString();
+            PlayerPrefs.SetString(K_ANONYMOUS_TOKEN, token);
+            PlayerPrefs.Save();
+            return token;
+        }
+
+        private NetworkResponse<LoginResponse> HandleLoginResponse(NetworkResponse<ApiResponse<LoginResponse>> response)
+        {
+            // Network-level failure (timeout, DNS, etc.)
+            if (!response.IsSuccess)
             {
-                var jo = JToken.Parse(raw);
-                return (string) (jo["token"] ?? jo["access_token"] ?? jo["accessToken"]);
+                Debug.LogError($"[UserCenter] Login request failed: {response.ErrorMessage}");
+                OnLoginFailed?.Invoke(response.StatusCode, response.ErrorMessage);
+                return NetworkResponse<LoginResponse>.Error(response.StatusCode, response.ErrorMessage);
             }
-            catch
+
+            var apiResponse = response.Result;
+
+            // API-level failure (invalid credentials, missing argument, etc.)
+            if (apiResponse == null || apiResponse.Status != 0 || apiResponse.Data == null)
             {
-                return null;
+                var message = apiResponse?.Message ?? "Unknown error";
+                var statusCode = apiResponse?.Status ?? -1;
+                Debug.LogError($"[UserCenter] Login failed ({statusCode}): {message}");
+                OnLoginFailed?.Invoke(statusCode, message);
+                return NetworkResponse<LoginResponse>.Error(response.StatusCode, message);
             }
+
+            var loginResponse = apiResponse.Data;
+            var accessToken = loginResponse.AccessToken;
+
+            // Extract expiration from the JWT itself, fall back to expires_in
+            var expUnix = JwtUtils.GetUnixExp(accessToken);
+            var userId = JwtUtils.GetClaim(accessToken, "sub") ?? "";
+
+            AuthStorage.Save(accessToken, null, userId, expUnix, loginResponse.ExpiresIn);
+            _local = new PlayerPrefsSaveDataStore($"uc.savedata.{userId}.");
+
+            var email = JwtUtils.GetClaim(accessToken, "email") ?? "";
+            if (!string.IsNullOrEmpty(email))
+                AuthStorage.SetLastEmail(email);
+
+            Debug.Log("[UserCenter] Login successful.");
+            OnLoginSucceeded?.Invoke(loginResponse);
+
+            var result = NetworkResponse<LoginResponse>.Success(response.StatusCode, loginResponse);
+            Debug.Log($"[UserCenter] Login response (formatted): {JsonConvert.SerializeObject(result, Formatting.Indented)}");
+            return result;
         }
     }
 }

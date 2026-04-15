@@ -97,7 +97,7 @@ namespace EDIVE.UserCenter.Auth
         {
             SetLoggedInUI(true);
             Debug.Log("Login was successful.");
-            Debug.Log($"Access Token: {r.AccessToken}");
+            // Debug.Log($"Access Token: {r.AccessToken}");
 
             var expUnix = JwtUtils.GetUnixExp(r.AccessToken);
             if (expUnix.HasValue)

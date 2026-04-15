@@ -1,10 +1,9 @@
-﻿// Author: Michal Petr
+// Author: Michal Petr
 // Created: 16.03.2026
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
@@ -12,38 +11,40 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Time.TimeSpanUtils;
 using EDIVE.UserCenter.Auth;
 using EDIVE.UserCenter.SaveData;
-using EDIVE.Utils.Json;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using ZLinq;
 
 namespace EDIVE.UserCenter
 {
     public partial class UserCenterManager
     {
+        private const int MAX_KEY_LENGTH = 256;
+        private const int MAX_VALUE_BYTES = 256 * 1024;
+
         [SerializeField]
         [PropertyOrder(20)]
         [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Orange", SpaceBefore = 8)]
         private UTimeSpan _DirtyDataSyncInterval = TimeSpan.FromSeconds(30);
-        
-        private readonly SemaphoreSlim _indexLock = new(1, 1);
-        private readonly ConcurrentDictionary<string, SemaphoreSlim> _keyLocks = new(StringComparer.OrdinalIgnoreCase);
-        
-        private volatile bool _indexLoaded;
-        private ConcurrentDictionary<string, SaveDataRecord> _index = new(StringComparer.OrdinalIgnoreCase);
-        
-        private readonly ConcurrentDictionary<SaveDataDirtyFlag, List<string>> _dirtyKeys = new();
-        private CancellationTokenSource _syncCts = new();
+
+        private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _dirtyEntries = new();
+        private CancellationTokenSource _syncCts;
+
+        private string SaveDataUserUrl => $"{ServiceBaseUrl}/savedata/user";
+        private string SaveDataKeyUrl(string key) => $"{SaveDataUserUrl}/{Uri.EscapeDataString(key)}";
 
         private void OnEnable()
         {
             if (_syncCts != null)
                 return;
             _syncCts = new CancellationTokenSource();
-            
-            StartSyncLoop(SaveDataDirtyFlag.OnBatch, ct => UniTask.Delay(_DirtyDataSyncInterval, cancellationToken: ct), _syncCts.Token).Forget();
-            StartSyncLoop(SaveDataDirtyFlag.OnEndOfFrame, UniTask.WaitForEndOfFrame, _syncCts.Token).Forget();
+
+            StartSyncLoop(SaveDataDirtyFlag.OnBatch,
+                ct => UniTask.Delay(_DirtyDataSyncInterval, cancellationToken: ct),
+                _syncCts.Token).Forget();
+            StartSyncLoop(SaveDataDirtyFlag.OnEndOfFrame,
+                UniTask.WaitForEndOfFrame,
+                _syncCts.Token).Forget();
         }
 
         private void OnDisable()
@@ -52,277 +53,250 @@ namespace EDIVE.UserCenter
             _syncCts?.Dispose();
             _syncCts = null;
         }
-        
-        private async UniTaskVoid StartSyncLoop(SaveDataDirtyFlag flag, Func<CancellationToken, UniTask> syncTaskFactory, CancellationToken ct)
+
+        private async UniTaskVoid StartSyncLoop(
+            SaveDataDirtyFlag flag,
+            Func<CancellationToken, UniTask> waitFactory,
+            CancellationToken ct)
         {
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    await syncTaskFactory(ct);
-                    await SyncSaveData(_dirtyKeys.GetOrAdd(flag, _ => new List<string>()), ct);
+                    await waitFactory(ct);
+                    await FlushDirtyEntries(flag, ct);
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Error in sync loop for flag {flag}: {e}");
+                    Debug.LogError($"[UserCenter] Sync loop error ({flag}): {e}");
                 }
             }
         }
-        
-        public async UniTask<SaveDataResult<T>> GetSaveData<T>(string key, CancellationToken ct = default, bool forceRefresh = false)
+
+        public async UniTask<SaveDataResult<T>> GetSaveData<T>(
+            string key,
+            CancellationToken ct = default,
+            bool forceRefresh = false)
         {
-            var effectiveToken = ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
-            
+            var effectiveToken = ct == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : ct;
+
+            // When not forcing a refresh, try local first
+            if (!forceRefresh && _local.TryGet(key, out var cachedJson))
+            {
+                try
+                {
+                    var cachedObj = JsonConvert.DeserializeObject<T>(cachedJson);
+                    return SaveDataResult<T>.Success(cachedObj, false);
+                }
+                catch (Exception ex)
+                {
+                    return SaveDataResult<T>.Error($"Local JSON parse error: {ex.Message}");
+                }
+            }
+
             if (IsLoggedIn)
             {
-                var server = await GetJsonDataByKeyAsync(key, effectiveToken, forceRefresh);
+                var response = await RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
+                    SaveDataKeyUrl(key),
+                    AuthStorage.GetAccessToken(),
+                    null,
+                    GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                    effectiveToken
+                );
 
-                if (server.Success)
+                if (response.IsSuccess && response.Result is { Status: 0, Data: not null })
                 {
-                    if (JsonUtils.TryDeserializeObject<T>(server.Result, out var obj, out var derr))
+                    try
                     {
-                        _local.Set(key, server.Result);
-                        return SaveDataResult<T>.Ok(obj, true);
+                        var value = response.Result.Data.Value.ToObject<T>();
+                        _local.Set(key, response.Result.Data.Value.ToString(Formatting.None));
+                        _local.Save();
+                        return SaveDataResult<T>.Success(value, true);
                     }
-
-                    return SaveDataResult<T>.Error($"Savedata JSON parse error: {derr}");
+                    catch (Exception ex)
+                    {
+                        return SaveDataResult<T>.Error($"Deserialization error: {ex.Message}");
+                    }
                 }
 
-                if (server.IsNotFound)
+                // Not found on server — fall through to local
+                if (!response.IsNotFound && !response.IsSuccess)
                 {
-                    if (_local.TryGet(key, out var lj) && JsonUtils.TryDeserializeObject<T>(lj, out var lo, out _))
-                        return SaveDataResult<T>.Ok(lo, false);
-
-                    return SaveDataResult<T>.NotFound();
+                    Debug.LogWarning($"[UserCenter] Server get failed for '{key}': {response.ErrorMessage}");
                 }
             }
 
-            if (_local.TryGet(key, out var json))
-            {
-                if (JsonUtils.TryDeserializeObject<T>(json, out var localObj, out var lerr))
-                    return SaveDataResult<T>.Ok(localObj, false);
-                
-                if (!string.IsNullOrEmpty(json) && !string.IsNullOrEmpty(lerr))
-                    return SaveDataResult<T>.Error($"Local JSON parse error: {lerr}");
-            }
-
-            return SaveDataResult<T>.NotFound();
+            return SaveDataResult<T>.Error("Data not found");
         }
 
-        public async UniTask<SaveDataResult<bool>> SetSaveData<T>(string key, T value, SaveDataDirtyFlag flag = SaveDataDirtyFlag.Immediate, CancellationToken ct = default)
+        public async UniTask<SaveDataStatus> SetSaveData<T>(
+            string key,
+            T value,
+            SaveDataDirtyFlag flag = SaveDataDirtyFlag.Immediate,
+            CancellationToken ct = default)
         {
-            var effectiveToken = ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
+            if (string.IsNullOrWhiteSpace(key) || key.Length > MAX_KEY_LENGTH)
+            {
+                Debug.LogWarning($"[UserCenter] Invalid key: must be non-empty and at most {MAX_KEY_LENGTH} characters.");
+                return SaveDataStatus.Error;
+            }
+
+            var effectiveToken = ct == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : ct;
             var json = JsonConvert.SerializeObject(value);
+
+            if (Encoding.UTF8.GetByteCount(json) > MAX_VALUE_BYTES)
+            {
+                Debug.LogWarning($"[UserCenter] Value for key '{key}' exceeds maximum size of {MAX_VALUE_BYTES / 1024} KB.");
+                return SaveDataStatus.Error;
+            }
+
+            _local.Set(key, json);
+            _local.Save();
 
             if (flag == SaveDataDirtyFlag.Immediate)
             {
-                _local.Set(key, json);
-                
-                if (!IsLoggedIn) 
-                    return SaveDataResult<bool>.Ok(true, false);
-                
-                var up = await UpsertJsonDataByKeyAsync(key, json, effectiveToken);
-                
-                if (up.Success)
-                {
-                    return SaveDataResult<bool>.Ok(true, true);
-                }
-                Debug.LogError($"Server save failed for key '{key}': {up.Error} (saved locally)");
-                return SaveDataResult<bool>.Ok(true, false);
+                if (!IsLoggedIn)
+                    return SaveDataStatus.SavedLocal;
+
+                var response = await PutSaveDataAsync(key, json, effectiveToken);
+
+                if (response.IsSuccess)
+                    return SaveDataStatus.Saved;
+
+                Debug.LogError($"[UserCenter] Server save failed for '{key}': {response.ErrorMessage} (saved locally)");
+                return SaveDataStatus.SavedLocal;
             }
-            
+
             if (flag != SaveDataDirtyFlag.NoChange)
             {
-                var list = _dirtyKeys.GetOrAdd(flag, _ => new List<string>());
-                if (!list.Contains(key)) list.Add(key);
-            }
+                if (!_dirtyEntries.TryGetValue(flag, out var bucket))
+                {
+                    bucket = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    _dirtyEntries[flag] = bucket;
+                }
 
-            return SaveDataResult<bool>.Ok(true, false);
-        }
-        
-        private async UniTask SyncSaveData(List<string> keys, CancellationToken ct)
-        {
+                bucket[key] = json;
+            }
             
+            return SaveDataStatus.SavedLocal;
         }
-        
-        private void InvalidateIndex() => _indexLoaded = false;
-        
-        private string SaveDataBaseUrl()
-        {
-            var baseUrl = (_ServiceBaseUrl ?? "").TrimEnd('/');
-            return $"{baseUrl}/savedata";
-        }
-        
-        private static List<SaveDataRecord> TryParseList(string raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
 
-            try
+        /// <summary>
+        /// Flushes all entries marked with <see cref="SaveDataDirtyFlag.Manual"/>.
+        /// </summary>
+        public UniTask FlushManualEntries(CancellationToken ct = default)
+        {
+            var effectiveToken = ct == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : ct;
+            return FlushDirtyEntries(SaveDataDirtyFlag.Manual, effectiveToken);
+        }
+
+        public async UniTask<SaveDataResult<bool>> DeleteSaveData(
+            string key,
+            CancellationToken ct = default)
+        {
+            var effectiveToken = ct == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : ct;
+
+            _local.Delete(key);
+            _local.Save();
+
+            // Remove from all dirty buckets so a pending PUT doesn't resurrect the key
+            foreach (var bucket in _dirtyEntries.Values)
+                bucket.Remove(key);
+
+            if (!IsLoggedIn)
+                return SaveDataResult<bool>.Success(true, false);
+
+            var response = await RestUtils.DeleteAsync<string>(
+                SaveDataKeyUrl(key),
+                AuthStorage.GetAccessToken(),
+                null,
+                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                effectiveToken
+            );
+
+            if (response.IsSuccess || response.IsNotFound)
+                return SaveDataResult<bool>.Success(true, true);
+
+            Debug.LogError($"[UserCenter] Server delete failed for '{key}': {response.ErrorMessage}");
+            return SaveDataResult<bool>.Error(response.ErrorMessage);
+        }
+
+        public async UniTask FlushAllDirtyEntries(CancellationToken ct = default)
+        {
+            if (!IsLoggedIn)
+                return;
+
+            var effectiveToken = ct == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : ct;
+
+            var flags = new List<SaveDataDirtyFlag>(_dirtyEntries.Keys);
+            foreach (var flag in flags)
+                await FlushDirtyEntries(flag, effectiveToken);
+        }
+
+        private async UniTask FlushDirtyEntries(SaveDataDirtyFlag flag, CancellationToken ct)
+        {
+            if (!_dirtyEntries.TryGetValue(flag, out var bucket) || bucket.Count == 0)
+                return;
+
+            if (!IsLoggedIn)
+                return;
+
+            // Snapshot and clear so new writes during flush go into the next cycle
+            var snapshot = new Dictionary<string, string>(bucket, StringComparer.OrdinalIgnoreCase);
+            var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bucket.Clear();
+
+            foreach (var (key, json) in snapshot)
             {
-                var span = raw.AsSpan().TrimStart();
-                if (span.Length > 0 && span[0] == '{')
+                if (ct.IsCancellationRequested)
                 {
-                    var wrapper = JsonConvert.DeserializeObject<ContentWrapper<SaveDataRecord>>(raw);
-                    return wrapper?.Content;
-                }
-
-                return JsonConvert.DeserializeObject<List<SaveDataRecord>>(raw);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to parse save data list response: {e}");
-                return null;
-            }
-        }
-
-        private async UniTask<List<SaveDataRecord>> FetchAllRecordsAsync(CancellationToken ct)
-        {
-            return await FetchRecordsAsync(ct, page: null, size: 250);
-        }
-        
-        private async UniTask<List<SaveDataRecord>> FetchRecordsAsync(CancellationToken ct, int? page = null, int size = 250)
-        {
-            var records = new List<SaveDataRecord>();
-            var requestSinglePage = page.HasValue;
-            var currentPage = page ?? 0;
-
-            while (true)
-            {
-                var listUrl = $"{SaveDataBaseUrl()}?page={currentPage}&size={size}";
-                var resp = await RestUtils.GetAsync<string>(
-                    listUrl,
-                    AuthStorage.GetAccessToken(),
-                    GetBranchHeadersOrNull(),
-                    GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
-                    ct
-                );
-
-                if (resp.IsNotFound) return records;
-                if (!resp.Success) return null;
-
-                var rows = TryParseList(resp.Raw);
-                if (rows == null || rows.Count == 0) break;
-
-                records.AddRange(rows);
-
-                if (requestSinglePage || rows.Count < size) break;
-
-                currentPage++;
-            }
-
-            return records;
-        }
-
-        private async UniTask EnsureIndexAsync(CancellationToken ct, bool forceRefresh)
-        {
-            if (!forceRefresh && _indexLoaded) return;
-
-            await _indexLock.WaitAsync(ct);
-            try
-            {
-                if (!forceRefresh && _indexLoaded) return;
-
-                var rows = await FetchAllRecordsAsync(ct);
-                if (rows == null) return; 
-
-                var userUuid = AuthStorage.GetUserId();
-        
-                var newIndex = new ConcurrentDictionary<string, SaveDataRecord>(StringComparer.OrdinalIgnoreCase);
-
-                foreach (var r in rows.AsValueEnumerable()
-                             .Where(r => !string.IsNullOrWhiteSpace(r.Key))
-                             .Where(r => string.IsNullOrEmpty(userUuid) || string.Equals(r.UserUuid, userUuid, StringComparison.OrdinalIgnoreCase)))
-                {
-                    newIndex[r.Key] = r;
-                }
-
-                _index = newIndex;
-                _indexLoaded = true;
-            }
-            finally
-            {
-                _indexLock.Release();
-            }
-        }
-
-        private async UniTask<NetworkResponse<string>> GetJsonDataByKeyAsync(string key, CancellationToken ct, bool forceRefresh)
-        {
-            await EnsureIndexAsync(ct, forceRefresh);
-
-            if (!_indexLoaded)
-                return NetworkResponse<string>.Fail(0, "index not loaded (network error)", raw: null);
-
-            if (!_index.TryGetValue(key ?? "", out var rec) || rec == null || string.IsNullOrEmpty(rec.JsonData))
-                return NetworkResponse<string>.Fail(404, "not found", raw: null);
-
-            return NetworkResponse<string>.Ok(200, rec.JsonData, rec.JsonData);
-        }
-        
-        private void UpsertLocalIndexCache(SaveDataRecord record)
-        {
-            if (record == null || string.IsNullOrEmpty(record.Key)) return;
-            _index[record.Key] = record;
-        }
-
-        private async UniTask<NetworkResponse<SaveDataRecord>> UpsertJsonDataByKeyAsync(string key, string jsonData, CancellationToken ct)
-        {
-            await EnsureIndexAsync(ct, forceRefresh: false);
-
-            var safeKey = key ?? string.Empty;
-            var keyLock = _keyLocks.GetOrAdd(safeKey, _ => new SemaphoreSlim(1, 1));
-    
-            await keyLock.WaitAsync(ct);
-            try
-            {
-                _index.TryGetValue(safeKey, out var existing);
-
-                var userUuid = AuthStorage.GetUserId();
-
-                if (existing != null && existing.ID > 0)
-                {
-                    var putUrl = SaveDataBaseUrl() + "/" + existing.ID;
-                    var updatedRecord = await RestUtils.PutAsync<SaveDataRecord, object>(
-                        putUrl,
-                        new { key = safeKey, description = jsonData },
-                        AuthStorage.GetAccessToken(),
-                        GetBranchHeadersOrNull(),
-                        GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
-                        ct
-                    );
-    
-                    if (updatedRecord.Success && updatedRecord.Result != null) 
+                    // Re-queue remaining entries so they aren't lost
+                    foreach (var remaining in snapshot)
                     {
-                        UpsertLocalIndexCache(updatedRecord.Result);
+                        if (!bucket.ContainsKey(remaining.Key) && !processedKeys.Contains(remaining.Key))
+                            bucket[remaining.Key] = remaining.Value;
                     }
-    
-                    return updatedRecord;
+                    break;
                 }
 
-                object obj = string.IsNullOrEmpty(userUuid)
-                    ? new { key = safeKey, description = jsonData }
-                    : new { key = safeKey, description = jsonData, userUuid };
-
-                var newRecord = await RestUtils.PostAsync<SaveDataRecord, object>(
-                    SaveDataBaseUrl(),
-                    obj,
-                    AuthStorage.GetAccessToken(),
-                    GetBranchHeadersOrNull(),
-                    GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
-                    ct
-                );
-
-                if (newRecord.Success && newRecord.Result != null) 
+                var response = await PutSaveDataAsync(key, json, ct);
+                if (!response.IsSuccess)
                 {
-                    UpsertLocalIndexCache(newRecord.Result);
+                    Debug.LogError($"[UserCenter] Sync failed for '{key}': {response.ErrorMessage}");
+                    bucket.TryAdd(key, json);
                 }
+                else
+                {
+                    processedKeys.Add(key);
+                }
+            }
+        }
 
-                return newRecord;
-            }
-            finally
-            {
-                keyLock.Release();
-            }
+        private UniTask<NetworkResponse<ApiResponse<SaveDataResponse>>> PutSaveDataAsync(
+            string key,
+            string json,
+            CancellationToken ct)
+        {
+            var request = new SaveDataWriteRequest(json);
+            return RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
+                SaveDataKeyUrl(key),
+                request,
+                AuthStorage.GetAccessToken(),
+                null,
+                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                ct
+            );
         }
     }
 }

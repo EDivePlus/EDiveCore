@@ -8,5 +8,11 @@ namespace EDIVE.UserCenter.SaveData
         bool TryGet(string key, out string json);
         void Set(string key, string json);
         void Delete(string key);
+        
+        /// <summary>
+        /// Persists any buffered changes to disk. Implementations that
+        /// write-through immediately may leave this as a no-op.
+        /// </summary>
+        void Save();
     }
 }

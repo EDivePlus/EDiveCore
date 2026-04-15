@@ -32,12 +32,16 @@ namespace EDIVE.UserCenter.SaveData
         public void Set(string key, string json)
         {
             PlayerPrefs.SetString(BuildKey(key), json ?? "");
-            PlayerPrefs.Save();
         }
 
         public void Delete(string key)
         {
             PlayerPrefs.DeleteKey(BuildKey(key));
+        }
+
+        public void Save()
+        {
+            PlayerPrefs.Save();
         }
     }
 }

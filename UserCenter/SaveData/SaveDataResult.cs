@@ -1,41 +1,41 @@
 ﻿// Author: Michal Petr
 // Created: 17.03.2026
 
+using System;
+
 namespace EDIVE.UserCenter.SaveData
 {
+    [Flags]
     public enum SaveDataStatus
     {
-        Ok,
-        NotFound,
-        Error
+        Error = 0,
+        SavedLocal,
+        SavedRemote,
+        Saved = SavedLocal | SavedRemote,
     }
     
     public readonly struct SaveDataResult<T>
     {
-        public SaveDataStatus Status { get; }
+        public bool IsSuccess { get; }
         public T Value { get; }
         public string ErrorMessage { get; }
         public bool FromRemote { get; }
-
-        public bool IsOk => Status == SaveDataStatus.Ok;
-        public bool IsNotFound => Status == SaveDataStatus.NotFound;
+        
+        public bool IsError => !IsSuccess;
         public bool FromLocal => !FromRemote;
 
-        private SaveDataResult(SaveDataStatus status, T value, string errorMessage, bool fromRemote)
+        private SaveDataResult(bool isSuccess, T value, string errorMessage, bool fromRemote)
         {
-            Status = status;
+            IsSuccess = isSuccess;
             Value = value;
             ErrorMessage = errorMessage;
             FromRemote = fromRemote;
         }
 
-        public static SaveDataResult<T> Ok(T value, bool fromServer)
-            => new(SaveDataStatus.Ok, value, null, fromServer);
-
-        public static SaveDataResult<T> NotFound()
-            => new(SaveDataStatus.NotFound, default, null, false);
+        public static SaveDataResult<T> Success(T value, bool fromServer)
+            => new(true, value, null, fromServer);
 
         public static SaveDataResult<T> Error(string error, T value = default)
-            => new(SaveDataStatus.Error, value, error, false);
+            => new(false, value, error, false);
     }
 }

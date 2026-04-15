@@ -58,6 +58,8 @@ namespace EDIVE.UserCenter.Auth
             PlayerPrefs.DeleteKey(K_REFRESH);
             PlayerPrefs.DeleteKey(K_USERID);
             PlayerPrefs.DeleteKey(K_EXPIRESAT);
+            PlayerPrefs.DeleteKey(K_EMAIL);
+            PlayerPrefs.Save();
         }
 
         public static void SetLastEmail(string email)

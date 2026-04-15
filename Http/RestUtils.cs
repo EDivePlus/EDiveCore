@@ -14,68 +14,85 @@ namespace EDIVE.Http
 
         public static UniTask<NetworkResponse<TResponse>> PostAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
         {
-            var json = JsonConvert.SerializeObject(request);
-            return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbPOST, json, authToken, headers, timeout, cancellationToken);
+            return SendRequestAsync<TResponse, TRequest>(url, UnityWebRequest.kHttpVerbPOST, request, authToken, headers, timeout, cancellationToken);
         }
 
         public static UniTask<NetworkResponse<TResponse>> PutAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
         {
-            var json = JsonConvert.SerializeObject(request);
-            return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbPUT, json, authToken, headers, timeout, cancellationToken);
+            return SendRequestAsync<TResponse, TRequest>(url, UnityWebRequest.kHttpVerbPUT, request, authToken, headers, timeout, cancellationToken);
         }
 
         public static UniTask<NetworkResponse<TResponse>> PatchAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
         {
-            var json = JsonConvert.SerializeObject(request);
-            return SendRequestAsync<TResponse>(url, "PATCH", json, authToken, headers, timeout, cancellationToken);
+            return SendRequestAsync<TResponse, TRequest>(url, "PATCH", request, authToken, headers, timeout, cancellationToken);
         }
 
-        public static UniTask<NetworkResponse<T>> DeleteAsync<T>(string url, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
+        public static UniTask<NetworkResponse<TResponse>> DeleteAsync<TResponse>(string url, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
         {
-            return SendRequestAsync<T>(url, UnityWebRequest.kHttpVerbDELETE, null, authToken, headers, timeout, cancellationToken);
+            return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbDELETE, authToken, headers, timeout, cancellationToken);
         }
 
-        public static UniTask<NetworkResponse<T>> GetAsync<T>(string url, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
+        public static UniTask<NetworkResponse<TResponse>> GetAsync<TResponse>(string url, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
         {
-            return SendRequestAsync<T>(url, UnityWebRequest.kHttpVerbGET, null, authToken, headers, timeout, cancellationToken);
+            return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbGET, authToken, headers, timeout, cancellationToken);
         }
 
         private static async UniTask<NetworkResponse<TResponse>> SendRequestAsync<TResponse>(
-            string url, 
-            string method, 
-            string jsonPayload, 
-            string authToken, 
+            string url,
+            string method,
+            string jsonPayload,
+            string authToken,
             Dictionary<string, string> headers,
             int timeout,
             CancellationToken cancellationToken)
         {
             var result = await SendRawRequestAsync(url, method, jsonPayload, authToken, headers, timeout, cancellationToken);
-
-            if (!result.Success)
-                return NetworkResponse<TResponse>.Fail(result.StatusCode, result.Error, result.Raw);
+            
+            if (!result.IsSuccess)
+                return NetworkResponse<TResponse>.Error(result.StatusCode, result.ErrorMessage);
 
             if (typeof(TResponse) == typeof(string))
-                return NetworkResponse<TResponse>.Ok(result.StatusCode, (TResponse)(object) result.Raw, result.Raw);
+                return NetworkResponse<TResponse>.Success(result.StatusCode, (TResponse)(object) result.Raw);
 
             if (string.IsNullOrWhiteSpace(result.Raw))
-                return NetworkResponse<TResponse>.Ok(result.StatusCode, default, result.Raw);
+                return NetworkResponse<TResponse>.Success(result.StatusCode, default);
 
             try
             {
-                var deserialized = await UniTask.RunOnThreadPool(() => JsonConvert.DeserializeObject<TResponse>(result.Raw), cancellationToken: cancellationToken);
-                return NetworkResponse<TResponse>.Ok(result.StatusCode, deserialized, result.Raw);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
+                var deserialized = JsonConvert.DeserializeObject<TResponse>(result.Raw);
+                return NetworkResponse<TResponse>.Success(result.StatusCode, deserialized);
             }
             catch (Exception ex)
             {
-                return NetworkResponse<TResponse>.Fail(result.StatusCode, $"Deserialization failed: {ex.Message}", result.Raw);
+                return NetworkResponse<TResponse>.Error(result.StatusCode, $"Deserialization failed: {ex.Message}");
             }
         }
 
-        private static async UniTask<NetworkResponse<string>> SendRawRequestAsync(
+        private static async UniTask<NetworkResponse<TResponse>> SendRequestAsync<TResponse, TRequest>(
+            string url, 
+            string method, 
+            TRequest payload,
+            string authToken, 
+            Dictionary<string, string> headers,
+            int timeout,
+            CancellationToken cancellationToken)
+        {
+            var jsonPayload = payload != null ? JsonConvert.SerializeObject(payload) : null;
+            return await SendRequestAsync<TResponse>(url, method, jsonPayload, authToken, headers, timeout, cancellationToken);
+        }
+        
+        private static async UniTask<NetworkResponse<TResponse>> SendRequestAsync<TResponse>(
+            string url, 
+            string method,
+            string authToken, 
+            Dictionary<string, string> headers,
+            int timeout,
+            CancellationToken cancellationToken)
+        {
+            return await SendRequestAsync<TResponse>(url, method, null, authToken, headers, timeout, cancellationToken);
+        }
+
+        private static async UniTask<RawNetworkResponse> SendRawRequestAsync(
             string url, 
             string method, 
             string jsonPayload, 
@@ -112,7 +129,7 @@ namespace EDIVE.Http
             {
                 await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
                 var rawResponse = webRequest.downloadHandler?.text ?? string.Empty;
-                return NetworkResponse<string>.Ok(webRequest.responseCode, rawResponse, rawResponse);
+                return RawNetworkResponse.Success(webRequest.responseCode, rawResponse);
             }
             catch (OperationCanceledException)
             {
@@ -120,11 +137,11 @@ namespace EDIVE.Http
             }
             catch (UnityWebRequestException ex)
             {
-                return NetworkResponse<string>.Fail(ex.ResponseCode, ex.Message, ex.Text);
+                return RawNetworkResponse.Error(ex.ResponseCode, ex.Message, ex.Text);
             }
             catch (Exception ex)
             {
-                return NetworkResponse<string>.Fail(webRequest.responseCode, ex.Message, string.Empty);
+                return RawNetworkResponse.Error(webRequest.responseCode, ex.Message, string.Empty);
             }
         }
     }

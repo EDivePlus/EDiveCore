@@ -1,8 +1,7 @@
-﻿// Author: Radim Holub
+// Author: Radim Holub
 // Created: 19.02.2026
 
 using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -10,21 +9,19 @@ namespace EDIVE.UserCenter
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class UserBasicPojo
+    public class ApiResponse<T>
     {
-        [SerializeField, JsonProperty("uuid")]
-        private string _Uuid;
-        public string Uuid => _Uuid;
-    }
+        [SerializeField, JsonProperty("status")]
+        private int _Status;
 
-    [Serializable]
-    [JsonObject(MemberSerialization.OptIn)]
-    public class ContentWrapper<TItem>
-    {
-        [SerializeField, JsonProperty("content")]
-        private List<TItem> _Content;
-        public List<TItem> Content => _Content;
+        [SerializeField, JsonProperty("message")]
+        private string _Message;
+
+        [SerializeField, JsonProperty("data")]
+        private T _Data;
+
+        public int Status => _Status;
+        public string Message => _Message;
+        public T Data => _Data;
     }
 }
-
-
