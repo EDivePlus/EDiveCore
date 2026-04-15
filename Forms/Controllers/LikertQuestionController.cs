@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 03.11.2025
 
+using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
 
 namespace EDIVE.Forms.Controllers
@@ -13,6 +14,11 @@ namespace EDIVE.Forms.Controllers
         }
         
         public override void Terminate()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override void SetAnswer(AFormAnswer answer)
         {
             throw new System.NotImplementedException();
         }

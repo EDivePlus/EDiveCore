@@ -24,11 +24,13 @@ namespace EDIVE.Forms.Controllers
         public abstract void Initialize(AFormQuestion formQuestion);
         public abstract void Terminate();
         
-        public void SetAnswer(AFormAnswer answer)
+        protected void SubmitAnswer(AFormAnswer answer)
         {
             Answer = answer;
             AnswerChanged?.Invoke(answer);
         }
+
+        public abstract void SetAnswer(AFormAnswer answer);
     }
 
     public abstract class AFormQuestionController<TQuestion> : AFormQuestionController 

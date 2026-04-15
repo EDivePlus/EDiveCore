@@ -2,14 +2,20 @@
     "name": "EDIVE.Forms",
     "rootNamespace": "",
     "references": [
+        "UniTask",
+        "UniTask.Addressables",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.TextMeshPro",
+        "FishNet.Runtime",
         "EDIVE.NativeUtils",
         "EDIVE.VisualPresets",
         "EDIVE.StateHandling",
-        "Unity.TextMeshPro",
         "EDIVE.Utils",
         "EDIVE.OdinExtensions",
         "EDIVE.AssetTranslation",
-        "EDIVE.EditorUtils"
+        "EDIVE.EditorUtils",
+        "EDIVE.AddressableAssets"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

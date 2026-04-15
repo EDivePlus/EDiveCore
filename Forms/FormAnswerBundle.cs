@@ -19,8 +19,11 @@ namespace EDIVE.Forms
         
         [ShowInInspector]
         [JsonProperty("Responses")]
-        private Dictionary<string, AFormAnswer> Answers { get; } = new();
+        private Dictionary<string, AFormAnswer> _answers = new();
         
+        public IReadOnlyDictionary<string, AFormAnswer> Answers => _answers;
+
+        public FormAnswerBundle() { }
         public FormAnswerBundle(string participantID)
         {
             ParticipantID = participantID;
@@ -28,12 +31,24 @@ namespace EDIVE.Forms
 
         public void Set(string questionId, AFormAnswer answer)
         {
-            Answers[questionId] = answer;
+            if (answer == null)
+            {
+                _answers.Remove(questionId);
+            }
+            else
+            {
+                _answers[questionId] = answer;
+            }
         }
 
         public bool TryGet(string questionId, out AFormAnswer answer)
         {
-            return Answers.TryGetValue(questionId, out answer);
+            return _answers.TryGetValue(questionId, out answer);
+        }
+        
+        public void Clear()
+        {
+            _answers.Clear();
         }
     }
 }

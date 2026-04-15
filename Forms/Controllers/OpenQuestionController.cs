@@ -24,10 +24,10 @@ namespace EDIVE.Forms.Controllers
                 switch (formQuestion.ChangeTrigger)
                 {
                     case OpenQuestion.ChangeTriggerType.ValueChanged:
-                        _InputField.onValueChanged.AddListener(ConfirmAnswer);
+                        _InputField.onValueChanged.AddListener(OnConfirmAnswer);
                         break;
                     case OpenQuestion.ChangeTriggerType.EndEdit: 
-                        _InputField.onEndEdit.AddListener(ConfirmAnswer);
+                        _InputField.onEndEdit.AddListener(OnConfirmAnswer);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -39,14 +39,22 @@ namespace EDIVE.Forms.Controllers
         {
             if (_InputField)
             {
-                _InputField.onValueChanged.RemoveListener(ConfirmAnswer);
-                _InputField.onEndEdit.RemoveListener(ConfirmAnswer);
+                _InputField.onValueChanged.RemoveListener(OnConfirmAnswer);
+                _InputField.onEndEdit.RemoveListener(OnConfirmAnswer);
             }
         }
 
-        private void ConfirmAnswer(string value)
+        public override void SetAnswer(AFormAnswer answer)
         {
-            SetAnswer(new ValueFormAnswer<string>(value));
+            if (answer is not ValueFormAnswer<string> stringAnswer) 
+                return;
+            
+            _InputField.text = stringAnswer.Value;
+        }
+
+        private void OnConfirmAnswer(string value)
+        {
+            SubmitAnswer(new ValueFormAnswer<string>(value));
         }
     }
 }

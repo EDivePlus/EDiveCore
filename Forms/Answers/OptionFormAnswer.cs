@@ -16,7 +16,7 @@ namespace EDIVE.Forms.Answers
 
         public OptionFormAnswer(IEnumerable<string> optionIDs, IEnumerable<IFormAnswerMetadata> metadata = null) : base(metadata)
         {
-            _optionIDs = optionIDs.ToList();
+            _optionIDs = optionIDs?.ToList();
         }
     }
 }

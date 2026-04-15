@@ -31,6 +31,9 @@ namespace EDIVE.Forms
         [SerializeReference]
         private IActivation _PreviousActivation;
         
+        [SerializeReference]
+        private IActivation _RestartActivation;
+        
         [SerializeField]
         private TMP_Text _QuestionNumberText;
         
@@ -44,24 +47,16 @@ namespace EDIVE.Forms
         [SerializeField]
         private List<AFormQuestionController> _AvailableControllers;
         
-        private AFormQuestionController _currentQuestionController;
-        private FormAnswerBundle _currentAnswers;
-        private FormStateType _currentFormState;
-        
-        public event Action<FormDefinition> FormChanged;
         public event Action<FormStateType> FormStateChanged;
-        public event Action<AFormQuestion> CurrentQuestionChanged;
-        public event Action<FormAnswerBundle> AnswersChanged;
-
+        public event Action<int, AFormQuestion> CurrentQuestionChanged;
+        public event Action<string, AFormAnswer> AnswerChanged;
+        
+        public AFormQuestionController CurrentQuestionController { get; private set; }
+        public FormAnswerBundle CurrentAnswers { get; private set; } = new(Guid.NewGuid().ToString());
+        public FormStateType CurrentFormState { get; private set; }
         public AFormQuestion CurrentQuestion { get; private set; }
-        private int _currentQuestionIndex = -1;
-
-        private void Awake()
-        {
-            if (_Definition != null)
-                Initialize(_Definition);
-        }
-
+        public int CurrentQuestionIndex { get; private set; } = -1;
+        
         private void OnDestroy()
         {
             Terminate();
@@ -72,6 +67,7 @@ namespace EDIVE.Forms
             _StartActivation?.RegisterActivationListener(StartForm);
             _NextActivation?.RegisterActivationListener(ShowNextQuestion);
             _PreviousActivation?.RegisterActivationListener(ShowPreviousQuestion);
+            _RestartActivation?.RegisterActivationListener(Initialize);
         }
 
         private void OnDisable()
@@ -79,29 +75,30 @@ namespace EDIVE.Forms
             _StartActivation?.UnregisterActivationListener(StartForm);
             _NextActivation?.UnregisterActivationListener(ShowNextQuestion);
             _PreviousActivation?.UnregisterActivationListener(ShowPreviousQuestion);
+            _RestartActivation?.UnregisterActivationListener(Initialize);
         }
         
         [Button]
-        public void Initialize(FormDefinition definition)
+        public void Initialize()
         {
-            _Definition = definition;
-            FormChanged?.Invoke(_Definition);
+            CurrentAnswers.Clear();
             SetFormState(FormStateType.Initial);
+            TrySetQuestion(-1);
         }
-
+        
         public void Terminate()
         {
-            if (_currentQuestionController != null)
+
+            if (CurrentQuestionController != null)
             {
-                _currentQuestionController.AnswerChanged -= SetAnswerForCurrentQuestion;
-                _currentQuestionController.Terminate();
+                CurrentQuestionController.AnswerChanged -= OnCurrentAnswerChanged;
+                CurrentQuestionController.Terminate();
             }
         }
 
         [Button]
         public void StartForm()
         {
-            _currentAnswers = new FormAnswerBundle(Guid.NewGuid().ToString());
             SetFormState(FormStateType.Question);
             TrySetQuestion(0);
         }
@@ -117,48 +114,54 @@ namespace EDIVE.Forms
         [Button]
         public void ShowNextQuestion()
         {
-            if (_currentQuestionIndex + 1 >= _Definition.Questions.Count)
+            if (CurrentQuestionIndex + 1 >= _Definition.Questions.Count)
             {
                 EndForm();
                 return;
             }
-            TrySetQuestion(_currentQuestionIndex + 1);
+            TrySetQuestion(CurrentQuestionIndex + 1);
         }
 
         [Button]
         public void ShowPreviousQuestion()
         {
-            if (_currentQuestionIndex - 1 < 0)
+            if (CurrentQuestionIndex - 1 < 0)
             {
                 Debug.LogWarning("Already at the first question, cannot go back.");
                 return;
             }
             
-            TrySetQuestion(_currentQuestionIndex - 1);
+            TrySetQuestion(CurrentQuestionIndex - 1);
         }
 
-        private void SetFormState(FormStateType state)
+        public void SetFormState(FormStateType state)
         {
-            _currentFormState = state;
-            FormStateChanged?.Invoke(_currentFormState);
+            CurrentFormState = state;
+            if (_FormState)
+                _FormState.SetState(CurrentFormState);
+            FormStateChanged?.Invoke(CurrentFormState);
         }
-        
+
         public bool TrySetQuestion(int questionIndex)
         {
+            if (CurrentQuestionIndex == questionIndex)
+                return true;
+
+            if (CurrentQuestionController != null)
+            {
+                CurrentQuestionController.AnswerChanged -= OnCurrentAnswerChanged;
+                CurrentQuestionController.Terminate();
+            }
+
+            CurrentQuestionIndex = questionIndex;
             if (questionIndex < 0 || questionIndex >= _Definition.Questions.Count)
             {
-                Debug.LogError("Question index out of range");
+                UpdateUIDisplay();
+                CurrentQuestionChanged?.Invoke(CurrentQuestionIndex, CurrentQuestion);
                 return false;
             }
 
-            if (_currentQuestionController != null)
-            {
-                _currentQuestionController.AnswerChanged -= SetAnswerForCurrentQuestion;
-                _currentQuestionController.Terminate();
-            }
-            
-            _currentQuestionIndex = questionIndex;
-            CurrentQuestion = _Definition.Questions[_currentQuestionIndex];
+            CurrentQuestion = _Definition.Questions[CurrentQuestionIndex];
 
             if (!TryGetControllerForQuestion(CurrentQuestion, out var controller))
             {
@@ -166,16 +169,31 @@ namespace EDIVE.Forms
                 return false;
             }
 
-            _currentQuestionController = controller;
-            _currentQuestionController.Initialize(CurrentQuestion);
-            _currentQuestionController.AnswerChanged += SetAnswerForCurrentQuestion;
+            CurrentQuestionController = controller;
+            CurrentQuestionController.Initialize(CurrentQuestion);
+            if (CurrentAnswers.TryGet(CurrentQuestion.ID, out var existingAnswer))
+                CurrentQuestionController.SetAnswer(existingAnswer);
+
+            CurrentQuestionController.AnswerChanged += OnCurrentAnswerChanged;
             
             UpdateUIDisplay();
-            CurrentQuestionChanged?.Invoke(CurrentQuestion);
+            CurrentQuestionChanged?.Invoke(CurrentQuestionIndex, CurrentQuestion);
             return true;
         }
         
-        public void SetAnswerForCurrentQuestion(AFormAnswer answer)
+        public void SetAnswerForQuestion(string questionID, AFormAnswer answer)
+        {
+            CurrentAnswers.Set(questionID, answer);
+            if (CurrentQuestion != null && CurrentQuestion.ID == questionID)
+            {
+                CurrentQuestionController.AnswerChanged -= OnCurrentAnswerChanged;
+                CurrentQuestionController.SetAnswer(answer);
+                CurrentQuestionController.AnswerChanged += OnCurrentAnswerChanged;
+            }
+            AnswerChanged?.Invoke(questionID, answer);
+        }
+        
+        private void OnCurrentAnswerChanged(AFormAnswer answer)
         {
             if (CurrentQuestion == null)
             {
@@ -183,13 +201,13 @@ namespace EDIVE.Forms
                 return;
             }
             
-            _currentAnswers.Set(CurrentQuestion.ID, answer);
-            AnswersChanged?.Invoke(_currentAnswers);
+            CurrentAnswers.Set(CurrentQuestion.ID, answer);
+            AnswerChanged?.Invoke(CurrentQuestion.ID, answer);
         }
         
         public bool IsQuestionAnswered(AFormQuestion question)
         {
-            return question != null && _currentAnswers.TryGet(question.ID, out var answer) && answer != null;
+            return question != null && CurrentAnswers.TryGet(question.ID, out var answer) && answer != null;
         }
 
         public bool TryGetControllerForQuestion(AFormQuestion question, out AFormQuestionController controller)
@@ -200,21 +218,18 @@ namespace EDIVE.Forms
         private void UpdateUIDisplay()
         {
             if (_QuestionNumberText) 
-                _QuestionNumberText.text = (_currentQuestionIndex + 1).ToString();
+                _QuestionNumberText.text = (CurrentQuestionIndex + 1).ToString();
             
             if (_TotalQuestionsText) 
                 _TotalQuestionsText.text = _Definition.Questions.Count.ToString();
-
-            if (_FormState)
-                _FormState.SetState(_currentFormState);
         }
         
         public void SaveAnswersToFile()
         {
-            var fileName = $"Form_{_Definition.UniqueID}_{_currentAnswers.ParticipantID}";
+            var fileName = $"Form_{_Definition.UniqueID}_{CurrentAnswers.ParticipantID}";
             var filePath = Path.Combine(PathUtility.GetRootAppDataPath("Forms"), $"{fileName}.json");
             PathUtility.EnsurePathExists(filePath);
-            var json = JsonConvert.SerializeObject(_currentAnswers, Formatting.Indented);
+            var json = JsonConvert.SerializeObject(CurrentAnswers, Formatting.Indented);
             File.WriteAllText(filePath, json);
             Debug.Log($"Form answers saved to {filePath}");
         }

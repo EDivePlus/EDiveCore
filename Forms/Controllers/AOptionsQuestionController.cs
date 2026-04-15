@@ -54,13 +54,28 @@ namespace EDIVE.Forms.Controllers
             }
             
             SetSelected(option, selected, false);
-            SetAnswer(CreateAnswer(_selectedOptions));
+            SubmitAnswer(CreateAnswer(_selectedOptions));
             RefreshState();
         }
 
         protected virtual AFormAnswer CreateAnswer(List<IQuestionOption> selectedOptions)
         {
             return new OptionFormAnswer(selectedOptions.Select(o => o.ID), CollectMetadata());
+        }
+        
+        public override void SetAnswer(AFormAnswer answer)
+        {
+            if (answer is not OptionFormAnswer optionFormAnswer) 
+                return;
+            
+            var selectedOptions = Question.BaseOptions.Where(o => optionFormAnswer.OptionIDs.Contains(o.ID)).ToList();
+            _selectedOptions.Clear();
+            _selectedOptions.AddRange(selectedOptions);
+            foreach (var option in Question.BaseOptions)
+            {
+                SetSelected(option, selectedOptions.Contains(option), false);
+            }
+            RefreshState();
         }
         
         protected virtual IEnumerable<IFormAnswerMetadata> CollectMetadata()
