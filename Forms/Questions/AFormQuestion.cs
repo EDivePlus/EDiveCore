@@ -36,6 +36,8 @@ namespace EDIVE.Forms.Questions
         protected AFormQuestion(string id) { _ID = id; }
 
 #if UNITY_EDITOR
+        public string ListElementLabel => $"{ID} ({EditorLabel})";
+        
         [OnInspectorInit]
         private void OnInspectorInit(InspectorProperty property)
         {

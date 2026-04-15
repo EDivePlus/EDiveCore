@@ -33,7 +33,7 @@ namespace EDIVE.Forms
         [SerializeReference]
         [HideReferenceObjectPicker]
         [EnhancedValueDropdown("GetQuestionsDropdown", DrawDropdownForListElements = false)]
-        [CustomValueDrawer("CustomQuestionDrawer")]
+        [ListDrawerSettings(ListElementLabelName = "ListElementLabel")]
         private List<AFormQuestion> _Questions = new();
         
         [SerializeField]
@@ -47,15 +47,6 @@ namespace EDIVE.Forms
         private IEnumerable GetQuestionsDropdown()
         {
             return TypeCacheUtils.GetAssignableClassesOfType<AFormQuestion>().Select(t => new ValueDropdownItem(t.EditorLabel, t));
-        }
-        
-        [UsedImplicitly]
-        private AFormQuestion CustomQuestionDrawer(AFormQuestion value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
-        {
-            if (value != null) 
-                GUILayout.Label(value.EditorLabel, EditorStyles.boldLabel);
-            callNextDrawer(label);
-            return value;
         }
 #endif
         
