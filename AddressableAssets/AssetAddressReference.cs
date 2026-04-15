@@ -5,9 +5,7 @@ using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Modules.Addressables.Editor;
 using Sirenix.Utilities;
-using Sirenix.Utilities.Editor;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -15,8 +13,10 @@ using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using Sirenix.Utilities.Editor;
 using System.Collections.Generic;
 using Sirenix.OdinInspector.Editor;
+using Sirenix.OdinInspector.Modules.Addressables.Editor;
 #endif
 
 namespace EDIVE.AddressableAssets

@@ -4,9 +4,12 @@
 using System;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
 using UnityEngine.UI;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Forms.Controllers
 {

@@ -10,8 +10,11 @@ using EDIVE.Utils;
 using EDIVE.VisualPresets.Presets;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Forms.Questions
 {

@@ -1,12 +1,10 @@
 ﻿// Author: Michal Petr
 // Created: 29.10.2025
 
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.AssetTranslation;
-using EDIVE.EditorUtils;
 using EDIVE.Forms.Questions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.VisualPresets.Presets;
@@ -15,6 +13,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using EDIVE.EditorUtils;
 using UnityEditor;
 #endif
 
