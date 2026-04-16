@@ -2,6 +2,8 @@
 // Created: 14.04.2026
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
 using FishNet.Object;
@@ -19,7 +21,10 @@ namespace EDIVE.Forms.Networking
         private readonly SyncVar<int> _questionIndex = new();
         private readonly SyncVar<FormStateType> _formState = new();
         private readonly SyncDictionary<string, string> _answers = new();
-
+        
+        public event Action<Dictionary<string, AFormAnswer>> AnswersChanged; 
+        private Dictionary<string, AFormAnswer> _parsedAnswers = new();
+        
         private static readonly JsonSerializerSettings JSON_SETTINGS = new()
         {
             TypeNameHandling = TypeNameHandling.Auto
@@ -37,6 +42,7 @@ namespace EDIVE.Forms.Networking
             _formState.Value = _formController.CurrentFormState;
             if (_formController.CurrentAnswers != null)
             {
+                _parsedAnswers = _formController.CurrentAnswers.Answers.ToDictionary(entry => entry.Key, entry => entry.Value);
                 foreach (var (questionID, answer) in _formController.CurrentAnswers.Answers)
                 {
                     _answers[questionID] = JsonConvert.SerializeObject(answer, typeof(AFormAnswer), JSON_SETTINGS);
@@ -44,15 +50,15 @@ namespace EDIVE.Forms.Networking
             }
         }
 
-        public override void OnStartClient()
+        public override void OnStartNetwork()
         {
             RegisterLocalEvents();
             _questionIndex.OnChange += OnSyncCurrentQuestionChanged;
             _formState.OnChange += OnSyncFormStateChanged;
             _answers.OnChange += OnSyncAnswersChanged;
         }
-        
-        public override void OnStopClient()
+
+        public override void OnStopNetwork()
         {
             UnregisterLocalEvents();
             _questionIndex.OnChange -= OnSyncCurrentQuestionChanged;
@@ -102,9 +108,9 @@ namespace EDIVE.Forms.Networking
         }
         
         [ServerRpc(RequireOwnership = false)]
-        private void SetAnswer(string questionID, string answer)
+        private void SetAnswer(string questionID, string answerJson)
         {
-            _answers[questionID] = answer;
+            _answers[questionID] = answerJson;
         }
         
         private void OnSyncAnswersChanged(SyncDictionaryOperation op, string key, string value, bool asServer)
@@ -116,12 +122,18 @@ namespace EDIVE.Forms.Networking
                 case SyncDictionaryOperation.Set:
                 {
                     var answer = JsonConvert.DeserializeObject<AFormAnswer>(value, JSON_SETTINGS);
+                    _parsedAnswers[key] = answer;
                     _formController.SetAnswerForQuestion(key, answer);
                     break;
                 }
                 case SyncDictionaryOperation.Clear:
+                    _parsedAnswers.Clear();
+                    break;
                 case SyncDictionaryOperation.Remove:
+                    _parsedAnswers.Remove(key);
+                    break;
                 case SyncDictionaryOperation.Complete:
+                    AnswersChanged?.Invoke(_parsedAnswers);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(op), op, null);

@@ -17,7 +17,6 @@ using Channel = FishNet.Transporting.Channel;
 using Random = UnityEngine.Random;
 using Sirenix.OdinInspector;
 using System.Linq;
-using EDIVE.AssetTranslation;
 using EDIVE.Networking.Scenes;
 using EDIVE.Networking.Utils;
 using UnityEngine.SceneManagement;
@@ -60,14 +59,14 @@ namespace EDIVE.Networking.Players
 
         private readonly Dictionary<int, PlayerProfile> _playerProfiles = new();
         
-        public event Action<int, PlayerProfile> ServerPlayerJoined;
+        public event Action<int, PlayerProfile, bool> ServerPlayerJoinStateChanged;
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
             _networkManager = InstanceFinder.NetworkManager;
             if (_networkManager == null)
                 return UniTask.CompletedTask;
-
+            
             _networkManager.SceneManager.OnClientLoadedStartScenes += OnClientLoadedStartScenes;
             _networkManager.ServerManager.OnRemoteConnectionState += OnServerRemoteConnectionState;
             _networkManager.ServerManager.RegisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
@@ -153,6 +152,8 @@ namespace EDIVE.Networking.Players
             {
                 if (_currentPlayers.TryGetFirst(p => p.LocalConnection == conn, out var playerController))
                     _currentPlayers.Remove(playerController);
+                _playerProfiles.Remove(conn.ClientId);
+                 ServerPlayerJoinStateChanged?.Invoke(conn.ClientId, null, false);
             }
         }
 
@@ -190,8 +191,8 @@ namespace EDIVE.Networking.Players
                 playerController.ApplyProfile(request.profile);
                 _playerProfiles[conn.ClientId] = request.profile;
                 _currentPlayers.Add(playerController);
-
-                ServerPlayerJoined?.Invoke(conn.ClientId, request.profile);
+                
+                ServerPlayerJoinStateChanged?.Invoke(conn.ClientId, request.profile, true);
                 DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
             });
         }

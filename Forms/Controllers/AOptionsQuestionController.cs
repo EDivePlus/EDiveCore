@@ -13,10 +13,10 @@ namespace EDIVE.Forms.Controllers
     public abstract class AOptionsQuestionController<TOptionQuestion>  : AFormQuestionController<TOptionQuestion> where TOptionQuestion : AOptionsQuestion
     {
         [SerializeField]
-        private List<OptionHandlerBundle> _HandlerBundles = new();
+        private List<AOptionHandlerBundle> _HandlerBundles = new();
         
         // Todo add dynamic/external OptionHandlerBundles - use Scriptable List maybe?
-        private IEnumerable<OptionHandlerBundle> FilteredHandlerBundles => _HandlerBundles.Where(b => b != null);
+        private IEnumerable<AOptionHandlerBundle> FilteredHandlerBundles => _HandlerBundles.Where(b => b != null);
         
         private readonly List<IQuestionOption> _selectedOptions = new();
 
