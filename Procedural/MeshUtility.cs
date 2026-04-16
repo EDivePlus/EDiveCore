@@ -84,6 +84,9 @@ namespace EDIVE.Procedural
                 TEMP_VERTICES[i] = SliceScalePoint(TEMP_VERTICES[i], sliceMin, sliceMax, offset, matrix);
             }
             target.SetVertices(TEMP_VERTICES);
+            target.RecalculateNormals();
+            target.RecalculateTangents();
+            target.RecalculateBounds();
         }
 
         private static Vector3 SliceScalePoint(Vector3 point, Vector3 sliceMin, Vector3 sliceMax, Vector3 offsets, Matrix4x4 matrix)

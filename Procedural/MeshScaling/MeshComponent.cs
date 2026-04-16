@@ -2,6 +2,10 @@
 // Created: 22.10.2025
 
 using System;
+using System.IO;
+using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -22,6 +26,7 @@ namespace EDIVE.Procedural.MeshScaling
         [SerializeField]
         private bool _ContributeToBounds = true;
         
+        [InlineIconButton(FontAwesomeEditorIconType.FloppyDiskSolid, "SaveTargetMesh")]
         [ShowInInspector]
         private Mesh _targetMesh;
         
@@ -102,6 +107,7 @@ namespace EDIVE.Procedural.MeshScaling
             if (newModsHash != _modificationsHash || force)
             {
                 MeshUtility.SliceScaleMesh(_OriginalMesh, _targetMesh, details.Bounds.size, details.TargetScale, details.SliceMin, details.SliceMax, tr, root);
+         
                 _modificationsHash = newModsHash;
                 modified = true;
             }
@@ -114,5 +120,25 @@ namespace EDIVE.Procedural.MeshScaling
             
             return  modified;
         }
+
+#if UNITY_EDITOR
+        private void SaveTargetMesh()
+        {
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                if (_targetMesh == null)
+                    return;
+                
+                _targetMesh.hideFlags = HideFlags.None;
+                var originalPath = Directory.GetParent(PathUtility.GetAbsolutePath(UnityEditor.AssetDatabase.GetAssetPath(_OriginalMesh)))?.FullName;
+                var path = UnityEditor.EditorUtility.SaveFilePanelInProject("Save Sliced Mesh", _targetMesh.name, "mesh", "Select location to save the sliced mesh.", originalPath);
+                if (string.IsNullOrEmpty(path))
+                    return;
+
+                UnityEditor.AssetDatabase.CreateAsset(_targetMesh, path);
+                UnityEditor.AssetDatabase.SaveAssets();
+            };
+        }
+#endif
     }
 }
