@@ -15,7 +15,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.AssetTranslation",
         "EDIVE.EditorUtils",
-        "EDIVE.AddressableAssets"
+        "EDIVE.AddressableAssets",
+        "EDIVE.UIElements"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

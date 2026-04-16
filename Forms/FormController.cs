@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using Slider = UnityEngine.UI.Slider;
 
 namespace EDIVE.Forms
 {
@@ -39,6 +40,9 @@ namespace EDIVE.Forms
         
         [SerializeField]
         private TMP_Text _TotalQuestionsText;
+        
+        [SerializeField]
+        private Slider _QuestionsProgress;
         
         [ValidateMultiState(typeof(FormStateType))]
         [SerializeField]
@@ -222,6 +226,13 @@ namespace EDIVE.Forms
             
             if (_TotalQuestionsText) 
                 _TotalQuestionsText.text = _Definition.Questions.Count.ToString();
+
+            if (_QuestionsProgress)
+            {
+                _QuestionsProgress.minValue = 1;
+                _QuestionsProgress.maxValue = _Definition.Questions.Count;
+                _QuestionsProgress.value = CurrentQuestionIndex + 1;
+            }
         }
         
         public void SaveAnswersToFile()
