@@ -19,8 +19,8 @@ namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
         [SerializeField, HideInInspector] private Il2CppCompilerConfiguration _Il2CppConfig;
         [SerializeField, HideInInspector] private Il2CppCodeGeneration _Il2CppCodeGeneration;
         [SerializeField, HideInInspector] private bool _BuildAndroidAppBundle;
-        [SerializeField, HideInInspector] private bool _ExtractAppBundleApk = true;
-        [SerializeField, HideInInspector]  private bool _MinifyDebug;
+        [SerializeField, HideInInspector] private bool _ExtractAppBundleApk;
+        [SerializeField, HideInInspector] private bool _MinifyDebug;
         [SerializeField, HideInInspector] private bool _MinifyRelease;
         [SerializeField, HideInInspector] private bool _SplitApplicationBinary;
         [SerializeField, HideInInspector] private DebugSymbolLevel _SymbolLevel;
