@@ -15,7 +15,7 @@ namespace EDIVE.UserCenter.Auth
         private const string K_EMAIL = "auth.lastEmail";
         private const string K_USERINFO = "auth.userInfo";
 
-        public static void Save(string accessToken, string refreshToken, long? expUnixFromJwt, int expiresInFromApi, UserInfoResponse userInfo = null)
+        public static void Save(string accessToken, string refreshToken, long? expUnixFromJwt, int expiresInFromApi, AuthUserInfo authUserInfo = null)
         {
             long expiresAtUnix;
             if (expUnixFromJwt.HasValue)
@@ -32,8 +32,8 @@ namespace EDIVE.UserCenter.Auth
             PlayerPrefs.SetString(K_REFRESH, refreshToken ?? "");
             PlayerPrefs.SetString(K_EXPIRESAT, expiresAtUnix.ToString());
 
-            if (userInfo != null)
-                PlayerPrefs.SetString(K_USERINFO, JsonConvert.SerializeObject(userInfo));
+            if (authUserInfo != null)
+                PlayerPrefs.SetString(K_USERINFO, JsonConvert.SerializeObject(authUserInfo));
 
             PlayerPrefs.Save();
         }
@@ -42,11 +42,11 @@ namespace EDIVE.UserCenter.Auth
         public static string GetRefreshToken() => PlayerPrefs.GetString(K_REFRESH, "");
         public static string GetUserId() => GetUserInfo()?.Id ?? "";
 
-        public static UserInfoResponse GetUserInfo()
+        public static AuthUserInfo GetUserInfo()
         {
             var json = PlayerPrefs.GetString(K_USERINFO, "");
             if (string.IsNullOrEmpty(json)) return null;
-            try { return JsonConvert.DeserializeObject<UserInfoResponse>(json); }
+            try { return JsonConvert.DeserializeObject<AuthUserInfo>(json); }
             catch { return null; }
         }
 

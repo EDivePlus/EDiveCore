@@ -66,7 +66,7 @@ namespace EDIVE.UserCenter
 
             var accessToken = AuthStorage.GetAccessToken();
 
-            var response = await RestUtils.GetAsync<ApiResponse<UserInfoResponse>>(
+            var response = await RestUtils.GetAsync<ApiResponse<AuthUserInfo>>(
                 AuthMeUrl,
                 authToken: accessToken,
                 timeout: _AuthTimeoutSeconds,
@@ -156,7 +156,7 @@ namespace EDIVE.UserCenter
         private NetworkResponse<LoginResponse> HandleLoginResponse(NetworkResponse<ApiResponse<LoginResponse>> response)
         {
             // Network-level failure (timeout, DNS, etc.)
-            if (!response.IsSuccess)
+            if (!response.IsSuccess && response.Result is null)
             {
                 Debug.LogError($"[UserCenter] Login request failed: {response.ErrorMessage}");
                 OnLoginFailed?.Invoke(response.StatusCode, response.ErrorMessage);
@@ -177,7 +177,7 @@ namespace EDIVE.UserCenter
 
             var loginResponse = apiResponse.Data;
             var accessToken = loginResponse.AccessToken;
-            var userInfo = loginResponse.User;
+            var userInfo = loginResponse.AuthUser;
 
             // Extract expiration from the JWT itself, fall back to expires_in
             var expUnix = JwtUtils.GetUnixExp(accessToken);

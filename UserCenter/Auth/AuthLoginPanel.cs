@@ -4,28 +4,36 @@
 using System;
 using EDIVE.Core;
 using EDIVE.Http;
+using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace EDIVE.UserCenter.Auth
 {
-    public class AuthPanel : MonoBehaviour
+    public class AuthLoginPanel : MonoBehaviour
     {
         [SerializeField]
+        [Required]
         private TMP_InputField _EmailInput;
         
         [SerializeField]
+        [Required]
         private TMP_InputField _PasswordInput;
         
         [SerializeField]
+        [Required]
         private Button _LoginButton;
         
         [SerializeField]
+        [Optional]
         private Button _LogoutButton;
         
         [SerializeField]
         private Button _TogglePasswordButton;
+        
+        [SerializeField]
+        private TMP_Text _ErrorText;
 
         private UserCenterManager _userCenterManager;
         private bool _isPasswordHidden = true;
@@ -34,12 +42,12 @@ namespace EDIVE.UserCenter.Auth
         {
             _userCenterManager = AppCore.Services.Get<UserCenterManager>();
             _LoginButton.onClick.AddListener(OnLoginClicked);
-            _LogoutButton.onClick.AddListener(OnLogoutClicked);
+            if (_LogoutButton) _LogoutButton.onClick.AddListener(OnLogoutClicked);
             _EmailInput.onEndEdit.AddListener(OnEmailEndEdit);
             if (_TogglePasswordButton != null) _TogglePasswordButton.onClick.AddListener(OnTogglePasswordClicked);
         }
 
-        private void Start()
+        private void OnEnable()
         {
             _userCenterManager.TryLoadStoredToken();
 
@@ -66,14 +74,20 @@ namespace EDIVE.UserCenter.Auth
 
             _userCenterManager.OnLoginSucceeded += OnLoginOk;
             _userCenterManager.OnLoginFailed += OnLoginFail;
+
+            if (_ErrorText)
+            {
+                _ErrorText.text = string.Empty;
+                _ErrorText.gameObject.SetActive(false);
+            }
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             _userCenterManager.OnLoginSucceeded -= OnLoginOk;
             _userCenterManager.OnLoginFailed -= OnLoginFail;
             _LoginButton.onClick.RemoveListener(OnLoginClicked);
-            _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
+            if (_LogoutButton) _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
             _EmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
             if (_TogglePasswordButton != null) _TogglePasswordButton.onClick.RemoveListener(OnTogglePasswordClicked);
         }
@@ -115,14 +129,22 @@ namespace EDIVE.UserCenter.Auth
                 AuthStorage.SetLastEmail(emailNow);
         }
 
-        private void OnLoginFail(long status, string message) { Debug.Log($"{message} {(status > 0 ? $"(HTTP {status})" : "")}"); }
+        private void OnLoginFail(long status, string message)
+        {
+            Debug.Log($"{message} {(status > 0 ? $"(HTTP {status})" : "")}");
+            if (_ErrorText != null)
+            {
+                _ErrorText.text = message;
+                _ErrorText.gameObject.SetActive(true);
+            }
+        }
 
         private void SetLoggedInUI(bool logged)
         {
             _EmailInput.interactable = !logged;
             _PasswordInput.interactable = !logged;
             _LoginButton.interactable = !logged;
-            _LogoutButton.interactable = logged;
+            if (_LogoutButton) _LogoutButton.interactable = logged;
 
             if (logged)
             {

@@ -72,12 +72,12 @@ namespace EDIVE.UserCenter.Auth
 
         [JsonProperty("user")]
         [SerializeField]
-        private UserInfoResponse _User;
+        private AuthUserInfo _AuthUser;
 
         public string AccessToken => _AccessToken;
         public string TokenType => _TokenType;
         public int ExpiresIn => _ExpiresIn;
-        public UserInfoResponse User => _User;
+        public AuthUserInfo AuthUser => _AuthUser;
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ namespace EDIVE.UserCenter.Auth
     /// </summary>
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class UserInfoResponse
+    public class AuthUserInfo
     {
         [JsonProperty("id")]
         [SerializeField]

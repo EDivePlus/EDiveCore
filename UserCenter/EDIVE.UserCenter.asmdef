@@ -9,7 +9,8 @@
         "EDIVE.Http",
         "EDIVE.Utils.Json",
         "EDIVE.OdinExtensions",
-        "EDIVE.Time"
+        "EDIVE.Time",
+        "EDIVE.StateHandling"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
