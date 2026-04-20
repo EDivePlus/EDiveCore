@@ -101,9 +101,9 @@ namespace EDIVE.UserCenter
             CancellationToken cancellationToken = default
         )
         {
-            var request = new AppRequest<LoginRequest>(_AppSecret, new LoginRequest(email, password));
+            var request = new LoginRequest(_AppSecret, email, password);
 
-            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, AppRequest<LoginRequest>>(
+            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, LoginRequest>(
                 AuthLoginUrl,
                 request,
                 authToken: null,
@@ -123,7 +123,7 @@ namespace EDIVE.UserCenter
         )
         {
             var token = GetOrCreateAnonymousToken();
-            var request = new AnonymousLoginRequest(token);
+            var request = new AnonymousLoginRequest(_AppSecret, token);
 
             var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, AnonymousLoginRequest>(
                 AnonymousAuthLoginUrl,

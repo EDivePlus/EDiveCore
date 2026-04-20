@@ -12,6 +12,10 @@ namespace EDIVE.UserCenter.Auth
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginRequest
     {
+        [JsonProperty("app_secret")]
+        [SerializeField]
+        private string _AppSecret;
+        
         [JsonProperty("email")]
         [SerializeField]
         private string _Email;
@@ -20,8 +24,9 @@ namespace EDIVE.UserCenter.Auth
         [SerializeField]
         private string _Password;
 
-        public LoginRequest(string email, string password)
+        public LoginRequest(string appSecret, string email, string password)
         {
+            _AppSecret = appSecret;
             _Email = email;
             _Password = password;
         }
@@ -31,12 +36,17 @@ namespace EDIVE.UserCenter.Auth
     [JsonObject(MemberSerialization.OptIn)]
     public class AnonymousLoginRequest
     {
+        [JsonProperty("app_secret")]
+        [SerializeField]
+        private string _AppSecret;
+        
         [JsonProperty("token")]
         [SerializeField]
         private string _Token;
 
-        public AnonymousLoginRequest(string token)
+        public AnonymousLoginRequest(string appSecret, string token)
         {
+            _AppSecret = appSecret;
             _Token = token;
         }
     }
@@ -97,10 +107,15 @@ namespace EDIVE.UserCenter.Auth
         [JsonProperty("roles")]
         [SerializeField]
         private List<string> _Roles;
+        
+        [JsonProperty("is_anonymous")]
+        [SerializeField]
+        private bool _IsAnonymous;
 
         public string Id => _Id;
         public string Email => _Email;
         public string Name => _Name;
         public List<string> Roles => _Roles;
+        public bool IsAnonymous => _IsAnonymous;
     }
 }
