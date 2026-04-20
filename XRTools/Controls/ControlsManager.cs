@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Core.Services;
 using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions.Attributes;
+using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -13,7 +15,7 @@ using UnityEditor;
 
 namespace EDIVE.XRTools.Controls
 {
-    public class ControlsManager : AServiceBehaviour<ControlsManager>, ISelfValidator
+    public class ControlsManager : AServiceBehaviour<ControlsManager>
     {
         [SerializeField]
         private AControls _DesktopControls;
@@ -23,6 +25,7 @@ namespace EDIVE.XRTools.Controls
 
         [PropertySpace]
         [SerializeField]
+        [EnhancedValidate("ValidateInteractionManager", ContinuousValidationCheck = true)]
         private XRInteractionManager _InteractionManager;
 
         [SerializeField]
@@ -56,11 +59,15 @@ namespace EDIVE.XRTools.Controls
                 _currentControls.RequestTeleport(position, rotation);
             }
         }
-        
-        public void Validate(SelfValidationResult result)
-        {
+       
 #if UNITY_EDITOR
-            var componentsData = GetComponentsInChildren<Component>(true)
+        [UsedImplicitly]
+        public void ValidateInteractionManager(XRInteractionManager value, SelfValidationResult result)
+        {
+            if (value == null)
+                return;
+            
+            var componentsData = value.GetComponentsInChildren<Component>(true)
                 .Select(component =>
                 {
                     var serializedObject = new SerializedObject(component);
@@ -83,7 +90,7 @@ namespace EDIVE.XRTools.Controls
                         }
                     });
             }
-#endif
         }
+#endif
     }
 }
