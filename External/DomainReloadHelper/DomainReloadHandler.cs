@@ -65,6 +65,11 @@ namespace EDIVE.External.DomainReloadHelper
                             clearedValues++;
                     }
                 }
+                else if (member is EventInfo eventInfo)
+                {
+                    if (ClearEvent(eventInfo))
+                        clearedValues++;
+                }
             }
 
             stopwatch.Stop();
@@ -115,6 +120,29 @@ namespace EDIVE.External.DomainReloadHelper
             catch
             {
                 Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
+                return false;
+            }
+        }
+
+        public static bool ClearEvent(EventInfo eventInfo)
+        {
+            if (eventInfo == null || eventInfo.DeclaringType == null)
+                return false;
+            try
+            {
+                var eventField = eventInfo.DeclaringType.GetField(eventInfo.Name, BindingFlags.Static | BindingFlags.NonPublic);
+                if (eventField == null)
+                {
+                    Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to find backing field for event {eventInfo.Name}.");
+                    return false;
+                }
+
+                eventField.SetValue(null, null);
+                return true;
+            }
+            catch
+            {
+                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear event {eventInfo.Name}.");
                 return false;
             }
         }

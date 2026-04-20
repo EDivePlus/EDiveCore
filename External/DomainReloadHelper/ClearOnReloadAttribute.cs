@@ -1,10 +1,12 @@
 // Source: https://forum.unity.com/threads/attribute-to-clear-static-fields-on-play-start.790226/
 // https://github.com/joshcamas/unity-domain-reload-helper/tree/master
 
+using System;
+
 namespace EDIVE.External.DomainReloadHelper
 {
     [System.Diagnostics.Conditional("UNITY_EDITOR")]
-    [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Event)]
     public class ClearOnReloadAttribute : DomainReloadHelperAttribute
     {
         public readonly object ValueToAssign;
