@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -202,8 +204,10 @@ namespace EDIVE.Http.Editor
             DrawReadOnlyField("Duration", log.Status == RequestStatus.Pending ? "Pending..." : $"{log.DurationMs:F0}ms");
             EditorGUILayout.Space(10);
 
-            // Request Headers
-            _requestHeadersFoldout = EditorGUILayout.Foldout(_requestHeadersFoldout, $"Request Headers ({log.RequestHeaders.Count})", true, EditorStyles.foldoutHeader);
+            // Request box
+            SirenixEditorGUI.BeginBox("Request");
+            
+            _requestHeadersFoldout = EditorGUILayout.Foldout(_requestHeadersFoldout, $"Headers ({log.RequestHeaders.Count})", true, EditorStyles.foldoutHeader);
             if (_requestHeadersFoldout)
             {
                 EditorGUI.indentLevel++;
@@ -212,8 +216,7 @@ namespace EDIVE.Http.Editor
             }
             EditorGUILayout.Space(6);
 
-            // Request payload
-            EditorGUILayout.LabelField("Request Payload", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Payload", EditorStyles.boldLabel);
             if (string.IsNullOrEmpty(log.RequestPayload))
             {
                 EditorGUILayout.LabelField("(none)", EditorStyles.miniLabel);
@@ -221,15 +224,22 @@ namespace EDIVE.Http.Editor
             else
             {
                 var formatted = TryFormatJson(log.RequestPayload);
-                EditorGUILayout.TextArea(formatted, EditorStyles.wordWrappedLabel);
+                DrawSyntaxHighlightedJson(formatted);
             }
 
+            SirenixEditorGUI.EndBox();
             EditorGUILayout.Space(10);
 
-            // Response Headers
-            if (log.Status != RequestStatus.Pending)
+            // Response box
+            SirenixEditorGUI.BeginBox("Response");
+
+            if (log.Status == RequestStatus.Pending)
             {
-                _responseHeadersFoldout = EditorGUILayout.Foldout(_responseHeadersFoldout, $"Response Headers ({log.ResponseHeaders.Count})", true, EditorStyles.foldoutHeader);
+                EditorGUILayout.LabelField("⏳ Waiting for response...", EditorStyles.miniLabel);
+            }
+            else
+            {
+                _responseHeadersFoldout = EditorGUILayout.Foldout(_responseHeadersFoldout, $"Headers ({log.ResponseHeaders.Count})", true, EditorStyles.foldoutHeader);
                 if (_responseHeadersFoldout)
                 {
                     EditorGUI.indentLevel++;
@@ -237,24 +247,20 @@ namespace EDIVE.Http.Editor
                     EditorGUI.indentLevel--;
                 }
                 EditorGUILayout.Space(6);
+
+                if (!string.IsNullOrEmpty(log.ErrorMessage))
+                {
+                    EditorGUILayout.HelpBox(log.ErrorMessage, MessageType.Error);
+                }
+
+                if (!string.IsNullOrEmpty(log.ResponsePayload))
+                {
+                    var formattedResp = TryFormatJson(log.ResponsePayload);
+                    DrawSyntaxHighlightedJson(formattedResp);
+                }
             }
 
-            // Response
-            EditorGUILayout.LabelField("Response", EditorStyles.boldLabel);
-            if (log.Status == RequestStatus.Pending)
-            {
-                EditorGUILayout.LabelField("⏳ Waiting for response...", EditorStyles.miniLabel);
-            }
-            else if (!string.IsNullOrEmpty(log.ErrorMessage))
-            {
-                EditorGUILayout.HelpBox(log.ErrorMessage, MessageType.Error);
-            }
-
-            if (!string.IsNullOrEmpty(log.ResponsePayload))
-            {
-                var formatted = TryFormatJson(log.ResponsePayload);
-                EditorGUILayout.TextArea(formatted, EditorStyles.wordWrappedLabel);
-            }
+            SirenixEditorGUI.EndBox();
 
             EditorGUILayout.EndScrollView();
         }
@@ -296,6 +302,81 @@ namespace EDIVE.Http.Editor
             {
                 return json;
             }
+        }
+
+        private static readonly Color JSON_KEY_COLOR = new(0.58f, 0.82f, 0.95f);
+        private static readonly Color JSON_STRING_COLOR = new(0.81f, 0.65f, 0.47f);
+        private static readonly Color JSON_NUMBER_COLOR = new(0.71f, 0.84f, 0.66f);
+        private static readonly Color JSON_BOOL_NULL_COLOR = new(0.78f, 0.57f, 0.82f);
+        private static readonly Color JSON_BRACKET_COLOR = new(0.86f, 0.86f, 0.67f);
+        private static readonly Color JSON_PUNCTUATION_COLOR = new(0.6f, 0.6f, 0.6f);
+
+        private static readonly Regex JSON_TOKEN_REGEX = new(
+            @"(?<indent>^\s+)|" +
+            @"(?<key>""(?:[^""\\]|\\.)*"")(?=\s*:)|" +
+            @"(?<string>""(?:[^""\\]|\\.)*"")|" +
+            @"(?<number>-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|" +
+            @"(?<bool>true|false)|" +
+            @"(?<null>null)|" +
+            @"(?<bracket>[\[\]{}])|" +
+            @"(?<punct>[,:])",
+            RegexOptions.Compiled);
+
+        private void DrawSyntaxHighlightedJson(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+            {
+                EditorGUILayout.LabelField(json, EditorStyles.wordWrappedLabel);
+                return;
+            }
+
+            var style = new GUIStyle(EditorStyles.textArea)
+            {
+                richText = true,
+                wordWrap = true,
+                font = EditorStyles.miniLabel.font,
+                fontSize = EditorStyles.miniLabel.fontSize,
+                padding = new RectOffset(6, 6, 6, 6)
+            };
+
+            var lines = json.Split('\n');
+            var sb = new System.Text.StringBuilder(json.Length * 2);
+
+            foreach (var line in lines)
+            {
+                var lastIdx = 0;
+                var matches = JSON_TOKEN_REGEX.Matches(line);
+                foreach (Match m in matches)
+                {
+                    if (m.Index > lastIdx)
+                        sb.Append(EscapeRichText(line.Substring(lastIdx, m.Index - lastIdx)));
+
+                    Color c;
+                    if (m.Groups["indent"].Success) { sb.Append(m.Value); lastIdx = m.Index + m.Length; continue; }
+                    else if (m.Groups["key"].Success) c = JSON_KEY_COLOR;
+                    else if (m.Groups["string"].Success) c = JSON_STRING_COLOR;
+                    else if (m.Groups["number"].Success) c = JSON_NUMBER_COLOR;
+                    else if (m.Groups["bool"].Success || m.Groups["null"].Success) c = JSON_BOOL_NULL_COLOR;
+                    else if (m.Groups["bracket"].Success) c = JSON_BRACKET_COLOR;
+                    else c = JSON_PUNCTUATION_COLOR;
+
+                    sb.Append($"<color=#{ColorUtility.ToHtmlStringRGB(c)}>{EscapeRichText(m.Value)}</color>");
+                    lastIdx = m.Index + m.Length;
+                }
+                if (lastIdx < line.Length)
+                    sb.Append(EscapeRichText(line.Substring(lastIdx)));
+                sb.Append('\n');
+            }
+
+            var content = new GUIContent(sb.ToString());
+            var height = style.CalcHeight(content, EditorGUIUtility.currentViewWidth - 40);
+            EditorGUILayout.SelectableLabel(sb.ToString(), style, GUILayout.Height(height + 10));
+        }
+
+        private static string EscapeRichText(string text)
+        {
+            // Unity rich text only needs < escaped
+            return text.Replace("<", "<\u200B");
         }
 
         private static string ShortenUrl(string url)
