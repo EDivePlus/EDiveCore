@@ -8,7 +8,8 @@
         "EDIVE.Utils",
         "EDIVE.NativeUtils",
         "EDIVE.StateHandling",
-        "StompyRobot.SRDebugger"
+        "StompyRobot.SRDebugger",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
