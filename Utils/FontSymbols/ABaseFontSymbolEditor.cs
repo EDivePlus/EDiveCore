@@ -21,7 +21,7 @@ namespace EDIVE.Utils.FontSymbols
             SceneView.duringSceneGui += DrawAnchorsOnSceneView;
             foreach (var property in Tree.RootProperty.Children)
             {
-                if (!typeof(FontSymbolTMPTextUI).IsAssignableFrom(property.Info.TypeOfOwner))
+                if (!typeof(T).IsAssignableFrom(property.Info.TypeOfOwner))
                     property.State.Visible = false;
             }
         }
