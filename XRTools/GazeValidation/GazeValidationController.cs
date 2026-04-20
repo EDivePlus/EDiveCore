@@ -55,6 +55,8 @@ namespace EDIVE.XRTools.GazeValidation
             
             if (_PositionSampler && _GazeTraceToggle)
                 _PositionSampler.ShowTargetPoints = _GazeTraceToggle.isOn;
+
+            EnableDwellSelect();
         }
         
         private void OnDisable()
