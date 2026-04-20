@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.External.DomainReloadHelper;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
 
@@ -11,6 +12,11 @@ namespace EDIVE.Http
     public static class RestUtils
     {
         private const int DEFAULT_TIMEOUT = 30;
+        private static long _nextRequestId;
+
+        [ClearOnReload] public static event Action<RequestStartedEvent> OnRequestStarted;
+        [ClearOnReload] public static event Action<RequestCompletedEvent> OnRequestCompleted;
+        [ClearOnReload] public static event Action<RequestCancelledEvent> OnRequestCancelled;
 
         public static UniTask<NetworkResponse<TResponse>> PostAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
         {
@@ -101,6 +107,24 @@ namespace EDIVE.Http
             int timeout = DEFAULT_TIMEOUT, 
             CancellationToken cancellationToken = default)
         {
+            var requestId = _nextRequestId++;
+
+            if (OnRequestStarted != null)
+            {
+                var requestHeaders = new Dictionary<string, string> { ["Accept"] = "application/json" };
+                if (!string.IsNullOrEmpty(jsonPayload))
+                    requestHeaders["Content-Type"] = "application/json";
+                if (!string.IsNullOrEmpty(authToken))
+                    requestHeaders["Authorization"] = $"Bearer {authToken}";
+                if (headers != null)
+                {
+                    foreach (var kvp in headers)
+                        requestHeaders[kvp.Key] = kvp.Value;
+                }
+
+                OnRequestStarted.Invoke(new RequestStartedEvent(requestId, method, url, jsonPayload, requestHeaders));
+            }
+
             using var webRequest = new UnityWebRequest(url, method);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.timeout = timeout;
@@ -129,18 +153,23 @@ namespace EDIVE.Http
             {
                 await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
                 var rawResponse = webRequest.downloadHandler?.text ?? string.Empty;
-                return RawNetworkResponse.Success(webRequest.responseCode, rawResponse);
+                var result = RawNetworkResponse.Success(webRequest.responseCode, rawResponse);
+                OnRequestCompleted?.Invoke(new RequestCompletedEvent(requestId, webRequest.responseCode, true, rawResponse, null, webRequest.GetResponseHeaders()));
+                return result;
             }
             catch (OperationCanceledException)
             {
+                OnRequestCancelled?.Invoke(new RequestCancelledEvent(requestId));
                 throw; 
             }
             catch (UnityWebRequestException ex)
             {
+                OnRequestCompleted?.Invoke(new RequestCompletedEvent(requestId, ex.ResponseCode, false, ex.Text, ex.Message, webRequest.GetResponseHeaders()));
                 return RawNetworkResponse.Error(ex.ResponseCode, ex.Message, ex.Text);
             }
             catch (Exception ex)
             {
+                OnRequestCompleted?.Invoke(new RequestCompletedEvent(requestId, webRequest.responseCode, false, string.Empty, ex.Message, webRequest.GetResponseHeaders()));
                 return RawNetworkResponse.Error(webRequest.responseCode, ex.Message, string.Empty);
             }
         }

@@ -2,7 +2,8 @@
   "name": "EDIVE.Http",
   "rootNamespace": "",
   "references": [
-    "UniTask"
+    "UniTask",
+    "EDIVE.External.DomainReloadHelper"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
