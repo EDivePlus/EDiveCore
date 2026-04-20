@@ -3,7 +3,8 @@
   "rootNamespace": "",
   "references": [
     "UniTask",
-    "EDIVE.External.DomainReloadHelper"
+    "EDIVE.External.DomainReloadHelper",
+    "EDIVE.Utils.Json"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

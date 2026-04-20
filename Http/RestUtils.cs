@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.DomainReloadHelper;
+using EDIVE.Utils.Json;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
 
@@ -53,9 +54,12 @@ namespace EDIVE.Http
             CancellationToken cancellationToken)
         {
             var result = await SendRawRequestAsync(url, method, jsonPayload, authToken, headers, timeout, cancellationToken);
-            
+
             if (!result.IsSuccess)
-                return NetworkResponse<TResponse>.Error(result.StatusCode, result.ErrorMessage);
+            {
+                var errorObj = JsonUtils.TryDeserializeObject<TResponse>(result.Raw, out var response, out _);
+                return NetworkResponse<TResponse>.Error(result.StatusCode, result.ErrorMessage, errorObj ? response : default);
+            }
 
             if (typeof(TResponse) == typeof(string))
                 return NetworkResponse<TResponse>.Success(result.StatusCode, (TResponse)(object) result.Raw);

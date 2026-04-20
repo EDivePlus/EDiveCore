@@ -21,7 +21,7 @@ namespace EDIVE.Http
         }
 
         public static NetworkResponse<T> Success(long status, T result) => new(true, status, null, result);
-        public static NetworkResponse<T> Error(long status, string error) => new(false, status, error, default);
+        public static NetworkResponse<T> Error(long status, string error, T result = default) => new(false, status, error, result);
     }
     
     public readonly struct RawNetworkResponse
