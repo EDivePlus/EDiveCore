@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
+using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Forms.Controllers
@@ -18,7 +20,11 @@ namespace EDIVE.Forms.Controllers
         
         [SerializeField]
         private AToggleState _InteractableState;
-
+        
+        [Required]
+        [SerializeField]
+        private AMultiState _ResultState;
+        
         [SerializeField]
         private AQuestionOptionDisplay _OptionDisplay;
         
@@ -63,10 +69,21 @@ namespace EDIVE.Forms.Controllers
         public abstract void SetSelected(bool selected, bool notify = true);
         public abstract void InitializeInternal();
         public abstract void TerminateInternal();
-        
+
         protected void InvokeSelectionChanged(bool state)
         {
+            var result = ResolveResultType(state);
+            if (_ResultState)
+                _ResultState.SetState(result);
             SelectionChanged?.Invoke(this, state);
+        }
+
+        private OptionResultType ResolveResultType(bool selected)
+        {
+            if (Option == null || !selected)
+                return OptionResultType.None;
+
+            return Option.IsCorrect ? OptionResultType.Correct : OptionResultType.Incorrect;
         }
     }
 }

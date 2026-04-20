@@ -16,12 +16,13 @@ namespace EDIVE.Forms.Controllers
         [SerializeField]
         private TMP_InputField _InputField;
         
-        protected override void Initialize(OpenQuestion formQuestion)
+        protected override void Initialize()
         {
+            base.Initialize();
             if (_InputField)
             {
                 _InputField.text = string.Empty;
-                switch (formQuestion.ChangeTrigger)
+                switch (Question.ChangeTrigger)
                 {
                     case OpenQuestion.ChangeTriggerType.ValueChanged:
                         _InputField.onValueChanged.AddListener(OnConfirmAnswer);
@@ -37,6 +38,7 @@ namespace EDIVE.Forms.Controllers
 
         public override void Terminate()
         {
+            base.Terminate();
             if (_InputField)
             {
                 _InputField.onValueChanged.RemoveListener(OnConfirmAnswer);

@@ -92,7 +92,6 @@ namespace EDIVE.Forms
         
         public void Terminate()
         {
-
             if (CurrentQuestionController != null)
             {
                 CurrentQuestionController.AnswerChanged -= OnCurrentAnswerChanged;
@@ -174,7 +173,7 @@ namespace EDIVE.Forms
             }
 
             CurrentQuestionController = controller;
-            CurrentQuestionController.Initialize(CurrentQuestion);
+            CurrentQuestionController.Initialize(this, CurrentQuestion);
             if (CurrentAnswers.TryGet(CurrentQuestion.ID, out var existingAnswer))
                 CurrentQuestionController.SetAnswer(existingAnswer);
 

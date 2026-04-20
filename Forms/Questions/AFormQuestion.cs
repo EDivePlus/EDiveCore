@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.Forms.Controllers;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils;
@@ -29,9 +30,16 @@ namespace EDIVE.Forms.Questions
         [EnhancedValidate("ValidateID")]
         private string _ID;
         
+        [PropertyOrder(10)]
         [SerializeField]
         private VisualPreset _Visual;
         
+        [PropertyOrder(10)]
+        [SerializeField]
+        [InlineProperty, HideLabel]
+        private QuestionTiming _Timing;
+
+        public QuestionTiming Timing => _Timing;
         public VisualPreset Visual => _Visual;
         public string ID => _ID;
 

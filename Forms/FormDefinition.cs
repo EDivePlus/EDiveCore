@@ -1,4 +1,4 @@
-﻿// Author: Michal Petr
+// Author: Michal Petr
 // Created: 29.10.2025
 
 using System.Collections;
@@ -34,12 +34,13 @@ namespace EDIVE.Forms
         [EnhancedValueDropdown("GetQuestionsDropdown", DrawDropdownForListElements = false)]
         [ListDrawerSettings(ListElementLabelName = "ListElementLabel")]
         private List<AFormQuestion> _Questions = new();
-        
+
         [SerializeField]
         private VisualPreset _Visual;
-        
+
         public List<AFormQuestion> Questions => _Questions;
         public VisualPreset Visual => _Visual;
+        
         
 #if UNITY_EDITOR
         [UsedImplicitly]
@@ -48,7 +49,7 @@ namespace EDIVE.Forms
             return TypeCacheUtils.GetAssignableClassesOfType<AFormQuestion>().Select(t => new ValueDropdownItem(t.EditorLabel, t));
         }
 #endif
-        
+
 #if UNITY_EDITOR && CSV_HELPER
         [Button]
         private async UniTask ImportFromCSV()

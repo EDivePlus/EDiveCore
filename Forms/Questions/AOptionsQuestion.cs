@@ -16,13 +16,14 @@ using Sirenix.OdinInspector.Editor;
 namespace EDIVE.Forms.Questions
 {
     [Serializable]
-    public abstract class AOptionsQuestion : AFormQuestion 
+    public abstract class AOptionsQuestion : AFormQuestion
     {
         [SerializeField]
         [MinMaxSlider(0, "@OptionCount", true)]
         [EnhancedValidate("ValidateSelectionLimits")]
         private Vector2Int _SelectionLimits = new(1, 1);
-        
+
+
         [UsedImplicitly]
         private int OptionCount => BaseOptions.Count();
         public abstract IEnumerable<IQuestionOption> BaseOptions { get; }
@@ -42,7 +43,7 @@ namespace EDIVE.Forms.Questions
                         _SelectionLimits.y = 1;
                         property.MarkSerializationRootDirty();
                     });
-            
+
             var correctCount = BaseOptions.Count(o => o.IsCorrect);
             if (_SelectionLimits.y < correctCount)
                 result.AddError($"Minimum lower than correct options count ({correctCount})")
@@ -54,14 +55,14 @@ namespace EDIVE.Forms.Questions
         }
 #endif
     }
-    
+
     [Serializable]
     public abstract class AOptionsQuestion<TOption> : AOptionsQuestion where TOption : IQuestionOption
     {
         [EnhancedTableList]
         [SerializeField]
         private List<TOption> _Options = new();
-        
+
         public IReadOnlyList<TOption> Options => _Options;
         public override IEnumerable<IQuestionOption> BaseOptions => _Options.Cast<IQuestionOption>();
 

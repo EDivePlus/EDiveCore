@@ -16,7 +16,9 @@
         "EDIVE.AssetTranslation",
         "EDIVE.EditorUtils",
         "EDIVE.AddressableAssets",
-        "EDIVE.UIElements"
+        "EDIVE.UIElements",
+        "EDIVE.DataStructures",
+        "EDIVE.Time"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
