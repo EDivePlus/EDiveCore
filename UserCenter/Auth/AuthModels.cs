@@ -70,19 +70,14 @@ namespace EDIVE.UserCenter.Auth
         [SerializeField]
         private int _ExpiresIn;
 
-        [JsonProperty("app_roles")]
+        [JsonProperty("user")]
         [SerializeField]
-        private List<string> _AppRoles;
-
-        [JsonProperty("app_secret")]
-        [SerializeField]
-        private string _AppSecret;
+        private UserInfoResponse _User;
 
         public string AccessToken => _AccessToken;
         public string TokenType => _TokenType;
         public int ExpiresIn => _ExpiresIn;
-        public List<string> AppRoles => _AppRoles;
-        public string AppSecret => _AppSecret;
+        public UserInfoResponse User => _User;
     }
 
     /// <summary>
@@ -90,7 +85,7 @@ namespace EDIVE.UserCenter.Auth
     /// </summary>
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class MeResponse
+    public class UserInfoResponse
     {
         [JsonProperty("id")]
         [SerializeField]
@@ -112,10 +107,20 @@ namespace EDIVE.UserCenter.Auth
         [SerializeField]
         private bool _IsAnonymous;
 
+        [JsonProperty("app_roles")]
+        [SerializeField]
+        private List<string> _AppRoles;
+
+        [JsonProperty("app_secret")]
+        [SerializeField]
+        private string _AppSecret;
+
         public string Id => _Id;
         public string Email => _Email;
         public string Name => _Name;
         public List<string> Roles => _Roles;
         public bool IsAnonymous => _IsAnonymous;
+        public List<string> AppRoles => _AppRoles;
+        public string AppSecret => _AppSecret;
     }
 }

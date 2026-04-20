@@ -2,6 +2,7 @@
 // Created: 08.09.2025
 
 using System;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace EDIVE.UserCenter.Auth
@@ -10,11 +11,11 @@ namespace EDIVE.UserCenter.Auth
     {
         private const string K_ACCESS = "auth.access";
         private const string K_REFRESH = "auth.refresh";
-        private const string K_USERID = "auth.userId";
         private const string K_EXPIRESAT = "auth.expiresAt";
         private const string K_EMAIL = "auth.lastEmail";
+        private const string K_USERINFO = "auth.userInfo";
 
-        public static void Save(string accessToken, string refreshToken, string userId, long? expUnixFromJwt, int expiresInFromApi)
+        public static void Save(string accessToken, string refreshToken, long? expUnixFromJwt, int expiresInFromApi, UserInfoResponse userInfo = null)
         {
             long expiresAtUnix;
             if (expUnixFromJwt.HasValue)
@@ -29,14 +30,25 @@ namespace EDIVE.UserCenter.Auth
 
             PlayerPrefs.SetString(K_ACCESS, accessToken ?? "");
             PlayerPrefs.SetString(K_REFRESH, refreshToken ?? "");
-            PlayerPrefs.SetString(K_USERID, userId ?? "");
             PlayerPrefs.SetString(K_EXPIRESAT, expiresAtUnix.ToString());
+
+            if (userInfo != null)
+                PlayerPrefs.SetString(K_USERINFO, JsonConvert.SerializeObject(userInfo));
+
             PlayerPrefs.Save();
         }
 
         public static string GetAccessToken() => PlayerPrefs.GetString(K_ACCESS, "");
         public static string GetRefreshToken() => PlayerPrefs.GetString(K_REFRESH, "");
-        public static string GetUserId() => PlayerPrefs.GetString(K_USERID, "");
+        public static string GetUserId() => GetUserInfo()?.Id ?? "";
+
+        public static UserInfoResponse GetUserInfo()
+        {
+            var json = PlayerPrefs.GetString(K_USERINFO, "");
+            if (string.IsNullOrEmpty(json)) return null;
+            try { return JsonConvert.DeserializeObject<UserInfoResponse>(json); }
+            catch { return null; }
+        }
 
         public static long GetExpiresAtUnix()
         {
@@ -56,9 +68,9 @@ namespace EDIVE.UserCenter.Auth
         {
             PlayerPrefs.DeleteKey(K_ACCESS);
             PlayerPrefs.DeleteKey(K_REFRESH);
-            PlayerPrefs.DeleteKey(K_USERID);
             PlayerPrefs.DeleteKey(K_EXPIRESAT);
             PlayerPrefs.DeleteKey(K_EMAIL);
+            PlayerPrefs.DeleteKey(K_USERINFO);
             PlayerPrefs.Save();
         }
 

@@ -66,7 +66,7 @@ namespace EDIVE.UserCenter
 
             var accessToken = AuthStorage.GetAccessToken();
 
-            var response = await RestUtils.GetAsync<ApiResponse<MeResponse>>(
+            var response = await RestUtils.GetAsync<ApiResponse<UserInfoResponse>>(
                 AuthMeUrl,
                 authToken: accessToken,
                 timeout: _AuthTimeoutSeconds,
@@ -75,7 +75,9 @@ namespace EDIVE.UserCenter
 
             if (response.IsSuccess && response.Result?.Status == 0 && response.Result?.Data != null)
             {
-                Debug.Log($"[UserCenter] Auth check passed for user {response.Result.Data.Email ?? response.Result.Data.Id}.");
+                var userInfo = response.Result.Data;
+                AuthStorage.Save(accessToken, null, null, 0, userInfo);
+                Debug.Log($"[UserCenter] Auth check passed for user {userInfo.Email ?? userInfo.Id}.");
                 return true;
             }
 
@@ -175,15 +177,15 @@ namespace EDIVE.UserCenter
 
             var loginResponse = apiResponse.Data;
             var accessToken = loginResponse.AccessToken;
+            var userInfo = loginResponse.User;
 
             // Extract expiration from the JWT itself, fall back to expires_in
             var expUnix = JwtUtils.GetUnixExp(accessToken);
-            var userId = JwtUtils.GetClaim(accessToken, "sub") ?? "";
-
-            AuthStorage.Save(accessToken, null, userId, expUnix, loginResponse.ExpiresIn);
+            AuthStorage.Save(accessToken, null, expUnix, loginResponse.ExpiresIn, userInfo);
+            var userId = userInfo?.Id ?? JwtUtils.GetClaim(accessToken, "sub") ?? "";
             _local = new PlayerPrefsSaveDataStore($"uc.savedata.{userId}.");
 
-            var email = JwtUtils.GetClaim(accessToken, "email") ?? "";
+            var email = userInfo?.Email ?? JwtUtils.GetClaim(accessToken, "email") ?? "";
             if (!string.IsNullOrEmpty(email))
                 AuthStorage.SetLastEmail(email);
 
