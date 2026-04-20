@@ -4,6 +4,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.UserCenter.Auth;
 using EDIVE.UserCenter.SaveData;
 using UnityEngine;
 
@@ -23,10 +24,15 @@ namespace EDIVE.UserCenter
 
         private static int GetRequestTimeoutSeconds(int timeoutSeconds) => Mathf.Max(3, timeoutSeconds);
 
-        protected override UniTask LoadRoutine(Action<float> progressCallback)
+        protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             _local ??= new PlayerPrefsSaveDataStore();
-            return UniTask.CompletedTask;
+
+            if (AuthStorage.IsValid())
+            {
+                TryLoadStoredToken();
+                await CheckAuthAsync(destroyCancellationToken);
+            }
         }
     }
 }

@@ -20,15 +20,10 @@ namespace EDIVE.UserCenter.Auth
         [SerializeField]
         private string _Password;
 
-        [JsonProperty("app_secret")]
-        [SerializeField]
-        private string _AppSecret;
-
-        public LoginRequest(string email, string password, string appSecret)
+        public LoginRequest(string email, string password)
         {
             _Email = email;
             _Password = password;
-            _AppSecret = appSecret;
         }
     }
 
@@ -78,5 +73,34 @@ namespace EDIVE.UserCenter.Auth
         public int ExpiresIn => _ExpiresIn;
         public List<string> AppRoles => _AppRoles;
         public string AppSecret => _AppSecret;
+    }
+
+    /// <summary>
+    /// Matches the backend UserInfoResponse from /auth/me.
+    /// </summary>
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class MeResponse
+    {
+        [JsonProperty("id")]
+        [SerializeField]
+        private string _Id;
+
+        [JsonProperty("email")]
+        [SerializeField]
+        private string _Email;
+
+        [JsonProperty("name")]
+        [SerializeField]
+        private string _Name;
+
+        [JsonProperty("roles")]
+        [SerializeField]
+        private List<string> _Roles;
+
+        public string Id => _Id;
+        public string Email => _Email;
+        public string Name => _Name;
+        public List<string> Roles => _Roles;
     }
 }

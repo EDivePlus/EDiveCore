@@ -48,8 +48,41 @@ namespace EDIVE.UserCenter
             _local = new PlayerPrefsSaveDataStore();
         }
         
-        private string AuthLoginUrl => $"{ServiceBaseUrl}/auth/app-login";
+        private string AuthLoginUrl => $"{ServiceBaseUrl}/auth/login";
         private string AnonymousAuthLoginUrl => $"{ServiceBaseUrl}/auth/anonymous-login";
+        private string AuthMeUrl => $"{ServiceBaseUrl}/auth/me";
+
+        /// <summary>
+        /// Calls /auth/me to verify the stored token is still valid server-side.
+        /// If the server rejects it, the user is logged out locally.
+        /// </summary>
+        [Button]
+        [PropertyOrder(98)]
+        [EnhancedBoxGroup("Auth")]
+        public async UniTask<bool> CheckAuthAsync(CancellationToken cancellationToken = default)
+        {
+            if (!AuthStorage.IsValid())
+                return false;
+
+            var accessToken = AuthStorage.GetAccessToken();
+
+            var response = await RestUtils.GetAsync<ApiResponse<MeResponse>>(
+                AuthMeUrl,
+                authToken: accessToken,
+                timeout: _AuthTimeoutSeconds,
+                cancellationToken: cancellationToken
+            );
+
+            if (response.IsSuccess && response.Result?.Status == 0 && response.Result?.Data != null)
+            {
+                Debug.Log($"[UserCenter] Auth check passed for user {response.Result.Data.Email ?? response.Result.Data.Id}.");
+                return true;
+            }
+
+            Debug.LogWarning("[UserCenter] Auth check failed — token is no longer valid. Logging out.");
+            await LogoutAsync(cancellationToken);
+            return false;
+        }
 
         public void TryLoadStoredToken()
         {
@@ -68,9 +101,9 @@ namespace EDIVE.UserCenter
             CancellationToken cancellationToken = default
         )
         {
-            var request = new LoginRequest(email, password, _AppSecret);
+            var request = new AppRequest<LoginRequest>(_AppSecret, new LoginRequest(email, password));
 
-            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, LoginRequest>(
+            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, AppRequest<LoginRequest>>(
                 AuthLoginUrl,
                 request,
                 authToken: null,

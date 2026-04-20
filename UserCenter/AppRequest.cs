@@ -12,7 +12,7 @@ namespace EDIVE.UserCenter
     public class AppRequest
     {
         [JsonProperty("app_secret"), SerializeField]
-        private string _AppSecret;
+        protected string _AppSecret;
         
         public AppRequest(string appSecret)
         {
