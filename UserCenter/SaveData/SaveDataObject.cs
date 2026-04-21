@@ -16,7 +16,7 @@ namespace EDIVE.UserCenter.SaveData
     
     public abstract class ASaveDataObject
     {
-        public SaveDataDirtyFlag DirtyFlag { get; protected set; } = SaveDataDirtyFlag.NoChange;
+        private SaveDataDirtyFlag DirtyFlag { get; set; } = SaveDataDirtyFlag.NoChange;
         public bool IsDirty => DirtyFlag != SaveDataDirtyFlag.NoChange;
 
         protected virtual SaveDataDirtyFlag DefaultDirtyFlag => SaveDataDirtyFlag.OnBatch;
@@ -36,10 +36,13 @@ namespace EDIVE.UserCenter.SaveData
         public void SetDirty(SaveDataDirtyFlag? flag = null)
         {
             var effectiveFlag = flag ?? DefaultDirtyFlag;
-            if (flag <= DirtyFlag) return;
-            if (DirtyFlag == SaveDataDirtyFlag.NoChange)
-                MarkedAsDirty?.Invoke();
+            if (effectiveFlag <= DirtyFlag) return;
+
+            var wasClean = DirtyFlag == SaveDataDirtyFlag.NoChange;
             DirtyFlag = effectiveFlag;
+
+            if (wasClean)
+                MarkedAsDirty?.Invoke();
             DirtyFlagChanged?.Invoke(DirtyFlag);
         }
         
