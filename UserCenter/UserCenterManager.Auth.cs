@@ -74,12 +74,7 @@ namespace EDIVE.UserCenter
             );
 
             if (response.IsSuccess && response.Result?.Status == 0 && response.Result?.Data != null)
-            {
-                var userInfo = response.Result.Data;
-                AuthStorage.Save(accessToken, null, null, 0, userInfo);
-                Debug.Log($"[UserCenter] Auth check passed for user {userInfo.Email ?? userInfo.Id}.");
                 return true;
-            }
 
             Debug.LogWarning("[UserCenter] Auth check failed — token is no longer valid. Logging out.");
             await LogoutAsync(cancellationToken);
