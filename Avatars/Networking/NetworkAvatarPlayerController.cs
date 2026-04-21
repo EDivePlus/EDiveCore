@@ -2,10 +2,13 @@
 // Created: 17.03.2026
 
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
 using EDIVE.Networking.Utils;
+using EDIVE.UserCenter;
+using EDIVE.UserCenter.SaveData;
 using EDIVE.XRTools.Controls;
 using FishNet;
 using FishNet.Connection;
@@ -20,23 +23,71 @@ namespace EDIVE.Avatars.Networking
     {
         [SerializeField]
         private IKTargetAssigner _IKAssigner;
-        
+
         [SerializeField, Min(0f)]
         private float _PlayerSummonRadius = 0.75f;
-        
+
         private NetworkPlayerManager _networkPlayerManager;
-        
+        private UserCenterManager _userCenterManager;
+        private AvatarPlayerSaveData _saveData;
+
         private readonly SyncVar<AvatarDefinition> _avatarDefinition = new();
-        
+
         private readonly SyncVar<int> _avatarObjectId = new(0);
         private readonly SyncVarNetworkBehaviourResolver<AvatarController> _avatarResolver = new();
-        
+
         private void Awake()
         {
             _avatarResolver.BindToSyncVar(_avatarObjectId);
             _avatarResolver.OnChanged += OnAvatarChanged;
-            
+
             _networkPlayerManager = AppCore.Services.Get<NetworkPlayerManager>();
+            _userCenterManager = AppCore.Services.Get<UserCenterManager>();
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            if (IsOwner)
+                LoadAndApplySavedAvatar().Forget();
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            if (_saveData != null)
+            {
+                _saveData.MarkedAsDirty -= OnSaveDataMarkedAsDirty;
+                _saveData = null;
+            }
+        }
+
+        private async UniTaskVoid LoadAndApplySavedAvatar()
+        {
+            if (_userCenterManager == null)
+                return;
+
+            var ct = this.GetCancellationTokenOnDestroy();
+            var result = await _userCenterManager.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
+            if (ct.IsCancellationRequested)
+                return;
+
+            _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
+            _saveData.ClearDirty();
+            _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
+
+            if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
+                SetAvatar(_saveData.PlayerAvatar);
+        }
+
+        private void OnSaveDataMarkedAsDirty()
+        {
+            var data = _saveData;
+            if (_userCenterManager == null || data == null)
+                return;
+
+            data.ClearDirty();
+            _userCenterManager.SetSaveData(AvatarPlayerSaveData.KEY, data, SaveDataDirtyFlag.OnEndOfFrame, this.GetCancellationTokenOnDestroy()).Forget();
         }
         
         private void OnAvatarChanged(AvatarController avatar)
@@ -85,6 +136,14 @@ namespace EDIVE.Avatars.Networking
         public void SetAvatar(AvatarDefinition avatarDef)
         {
             ServerApplyAvatar(avatarDef);
+        }
+
+        public void SelectAvatar(AvatarDefinition avatarDef)
+        {
+            if (_saveData != null)
+                _saveData.PlayerAvatar = avatarDef;
+
+            SetAvatar(avatarDef);
         }
 
         private Transform GetWorldPoseTransform()

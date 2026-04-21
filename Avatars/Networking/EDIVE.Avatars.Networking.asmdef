@@ -11,7 +11,9 @@
     "EDIVE.Utils",
     "EDIVE.NativeUtils",
     "EDIVE.AppLoading",
-    "Unity.XR.Interaction.Toolkit"
+    "Unity.XR.Interaction.Toolkit",
+    "EDIVE.UserCenter",
+    "UniTask"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
