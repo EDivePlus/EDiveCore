@@ -4,6 +4,8 @@
 using System;
 using EDIVE.Core;
 using EDIVE.Http;
+using EDIVE.OdinExtensions.Attributes;
+using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -13,27 +15,40 @@ namespace EDIVE.UserCenter.Auth
 {
     public class AuthLoginPanel : MonoBehaviour
     {
+        [EnhancedBoxGroup("Credentials login", Color = "@ColorTools.Cyan")]
         [SerializeField]
         [Required]
-        private TMP_InputField _EmailInput;
+        private TMP_InputField _CredentialsEmailInput;
+        
+        [EnhancedBoxGroup("Credentials login")]
+        [SerializeField]
+        [Required]
+        private TMP_InputField _CredentialsPasswordInput;
+        
+        [EnhancedBoxGroup("Credentials login")]
+        [SerializeField]
+        [Required]
+        private Button _CredentialsLoginButton;
+        
+        [EnhancedBoxGroup("Credentials login")]
+        [SerializeField]
+        private Button _CredentialsTogglePasswordButton;
+        
+        [EnhancedBoxGroup("Anonymous login", Color = "@ColorTools.Green")]
+        [SerializeField]
+        private Button _AnonymousLoginButton;
         
         [SerializeField]
-        [Required]
-        private TMP_InputField _PasswordInput;
+        [EnhancedBoxGroup("Error display", Color = "@ColorTools.Red")]
+        private AToggleState _ErrorState;
         
         [SerializeField]
-        [Required]
-        private Button _LoginButton;
+        [EnhancedBoxGroup("Error display")]
+        private TMP_Text _ErrorText;
         
         [SerializeField]
         [Optional]
         private Button _LogoutButton;
-        
-        [SerializeField]
-        private Button _TogglePasswordButton;
-        
-        [SerializeField]
-        private TMP_Text _ErrorText;
 
         private UserCenterManager _userCenterManager;
         private bool _isPasswordHidden = true;
@@ -41,10 +56,6 @@ namespace EDIVE.UserCenter.Auth
         private void Awake()
         {
             _userCenterManager = AppCore.Services.Get<UserCenterManager>();
-            _LoginButton.onClick.AddListener(OnLoginClicked);
-            if (_LogoutButton) _LogoutButton.onClick.AddListener(OnLogoutClicked);
-            _EmailInput.onEndEdit.AddListener(OnEmailEndEdit);
-            if (_TogglePasswordButton != null) _TogglePasswordButton.onClick.AddListener(OnTogglePasswordClicked);
         }
 
         private void OnEnable()
@@ -65,8 +76,8 @@ namespace EDIVE.UserCenter.Auth
             var lastEmail = AuthStorage.GetLastEmail(); // see previous step with storing the email
             if (!string.IsNullOrEmpty(lastEmail))
             {
-                _EmailInput.SetTextWithoutNotify(lastEmail);
-                _EmailInput.caretPosition = _EmailInput.text.Length;
+                _CredentialsEmailInput.SetTextWithoutNotify(lastEmail);
+                _CredentialsEmailInput.caretPosition = _CredentialsEmailInput.text.Length;
             }
 
             _isPasswordHidden = true;
@@ -80,22 +91,30 @@ namespace EDIVE.UserCenter.Auth
                 _ErrorText.text = string.Empty;
                 _ErrorText.gameObject.SetActive(false);
             }
+            if (_ErrorState) _ErrorState.SetState(false);
+            
+            _CredentialsLoginButton.onClick.AddListener(OnLoginClicked);
+            if (_LogoutButton) _LogoutButton.onClick.AddListener(OnLogoutClicked);
+            _CredentialsEmailInput.onEndEdit.AddListener(OnEmailEndEdit);
+            if (_CredentialsTogglePasswordButton != null) _CredentialsTogglePasswordButton.onClick.AddListener(OnTogglePasswordClicked);
+            if (_AnonymousLoginButton != null) _AnonymousLoginButton.onClick.AddListener(OnAnonymousLoginClicked);
         }
-
+        
         private void OnDisable()
         {
             _userCenterManager.OnLoginSucceeded -= OnLoginOk;
             _userCenterManager.OnLoginFailed -= OnLoginFail;
-            _LoginButton.onClick.RemoveListener(OnLoginClicked);
+            _CredentialsLoginButton.onClick.RemoveListener(OnLoginClicked);
             if (_LogoutButton) _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
-            _EmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
-            if (_TogglePasswordButton != null) _TogglePasswordButton.onClick.RemoveListener(OnTogglePasswordClicked);
+            _CredentialsEmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
+            if (_CredentialsTogglePasswordButton != null) _CredentialsTogglePasswordButton.onClick.RemoveListener(OnTogglePasswordClicked);
+            if (_AnonymousLoginButton != null) _AnonymousLoginButton.onClick.RemoveListener(OnAnonymousLoginClicked);
         }
 
         private void OnLoginClicked()
         {
-            var email = _EmailInput.text?.Trim();
-            var pass = _PasswordInput.text ?? "";
+            var email = _CredentialsEmailInput.text?.Trim();
+            var pass = _CredentialsPasswordInput.text ?? "";
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pass))
             {
@@ -105,6 +124,12 @@ namespace EDIVE.UserCenter.Auth
 
             Debug.Log("Logging in…");
             _userCenterManager.Login(email, pass);
+        }
+        
+        private void OnAnonymousLoginClicked()
+        {
+            Debug.Log("Logging in anonymously…");
+            _userCenterManager.AnonymousLogin();
         }
 
         private void OnLoginOk(LoginResponse r)
@@ -124,7 +149,7 @@ namespace EDIVE.UserCenter.Auth
             if (!string.IsNullOrEmpty(sub))
                 Debug.Log($"JWT sub: {sub}");
 
-            var emailNow = _EmailInput.text?.Trim();
+            var emailNow = _CredentialsEmailInput.text?.Trim();
             if (!string.IsNullOrEmpty(emailNow))
                 AuthStorage.SetLastEmail(emailNow);
         }
@@ -136,29 +161,30 @@ namespace EDIVE.UserCenter.Auth
             {
                 _ErrorText.text = message;
                 _ErrorText.gameObject.SetActive(true);
+                if (_ErrorState) _ErrorState.SetState(true);
             }
         }
 
         private void SetLoggedInUI(bool logged)
         {
-            _EmailInput.interactable = !logged;
-            _PasswordInput.interactable = !logged;
-            _LoginButton.interactable = !logged;
+            _CredentialsEmailInput.interactable = !logged;
+            _CredentialsPasswordInput.interactable = !logged;
+            _CredentialsLoginButton.interactable = !logged;
             if (_LogoutButton) _LogoutButton.interactable = logged;
 
             if (logged)
             {
                 _isPasswordHidden = true;
-                _PasswordInput.SetTextWithoutNotify("*****");
+                _CredentialsPasswordInput.SetTextWithoutNotify("*****");
                 ApplyPasswordMaskState();
-                if (_TogglePasswordButton != null) _TogglePasswordButton.interactable = false;
+                if (_CredentialsTogglePasswordButton != null) _CredentialsTogglePasswordButton.interactable = false;
             }
             else
             {
                 _isPasswordHidden = true;
-                _PasswordInput.SetTextWithoutNotify(string.Empty);
+                _CredentialsPasswordInput.SetTextWithoutNotify(string.Empty);
                 ApplyPasswordMaskState();
-                if (_TogglePasswordButton != null) _TogglePasswordButton.interactable = true;
+                if (_CredentialsTogglePasswordButton != null) _CredentialsTogglePasswordButton.interactable = true;
             }
         }
 
@@ -178,11 +204,11 @@ namespace EDIVE.UserCenter.Auth
 
         private void ApplyPasswordMaskState()
         {
-            if (_PasswordInput == null) return;
-            _PasswordInput.contentType = _isPasswordHidden
+            if (_CredentialsPasswordInput == null) return;
+            _CredentialsPasswordInput.contentType = _isPasswordHidden
                 ? TMP_InputField.ContentType.Password
                 : TMP_InputField.ContentType.Standard;
-            _PasswordInput.ForceLabelUpdate();
+            _CredentialsPasswordInput.ForceLabelUpdate();
         }
 
         private void OnTogglePasswordClicked()

@@ -41,7 +41,7 @@ namespace EDIVE.UserCenter.Auth
             if (_DisplayNameText) _DisplayNameText.text = userInfo.Name;
             if (_EmailText) _EmailText.text = userInfo.Email;
             if (_RolesText) _RolesText.text = string.Join(", ", userInfo.Roles);
-            if (_UserIdText) _UserIdText.text = $"ID: {userInfo.Id}";
+            if (_UserIdText) _UserIdText.text = userInfo.Id;
             
             if (_AvatarInitialsText) _AvatarInitialsText.text = !string.IsNullOrEmpty(userInfo.Name) ? GetInitials(userInfo.Name) : "?";
             if (_AvatarBackground) _AvatarBackground.color = ColorFromString(userInfo.Id);
