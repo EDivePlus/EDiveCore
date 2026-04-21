@@ -2,9 +2,9 @@
 using System.IO;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using EDIVE.NativeUtils;
 
 #if SPECTRE_CONSOLE
-using EDIVE.NativeUtils;
 using Spectre.Console;
 #endif
 
