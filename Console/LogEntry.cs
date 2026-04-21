@@ -1,9 +1,10 @@
 ﻿// Author: František Holubec
 // Created: 20.04.2026
 
+#if SPECTRE_CONSOLE
 using Spectre.Console.Rendering;
 
-namespace EDIVE.Utils
+namespace EDIVE.Console
 {
     public readonly struct LogEntry
     {
@@ -21,3 +22,4 @@ namespace EDIVE.Utils
         public static LogEntry FromRenderable(IRenderable r) => new(null, r);
     }
 }
+#endif

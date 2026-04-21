@@ -1,10 +1,11 @@
 ﻿{
-  "name": "EDIVE.Utils.Console",
+  "name": "EDIVE.Console",
   "rootNamespace": "",
   "references": [
     "EDIVE.Core",
     "UniTask",
-    "EDIVE.OdinExtensions"
+    "EDIVE.OdinExtensions",
+    "EDIVE.NativeUtils"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace EDIVE.Utils
 {
-    public static class WindowsConsole
+    public static class WindowsConsoleHelper
     {
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GetStdHandle(int handle);

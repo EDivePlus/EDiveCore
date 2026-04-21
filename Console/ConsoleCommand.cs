@@ -1,7 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 
-namespace EDIVE.Utils
+namespace EDIVE.Console
 {
     public sealed class ConsoleCommand
     {

@@ -1,3 +1,4 @@
+#if SPECTRE_CONSOLE
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,21 +7,22 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.NativeUtils;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 using UnityEngine;
 
-namespace EDIVE.Utils
+namespace EDIVE.Console
 {
-    public static class SpectreBootstrap
+    public static class ConsoleCommandHandler
     {
-        private static readonly ConcurrentQueue<LogEntry> _pendingOutput = new();
-        private static readonly List<string> _history = new();
-        private static readonly StringBuilder _currentInput = new();
-        private static readonly Dictionary<string, ConsoleCommand> _commands = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly object _commandsLock = new();
-        private static readonly object _writeLock = new();
-        private static readonly ManualResetEventSlim _renderPaused = new(true);
+        private static readonly ConcurrentQueue<LogEntry> PENDING_OUTPUT = new();
+        private static readonly List<string> HISTORY = new();
+        private static readonly StringBuilder CURRENT_INPUT = new();
+        private static readonly Dictionary<string, ConsoleCommand> COMMANDS = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object COMMANDS_LOCK = new();
+        private static readonly object WRITE_LOCK = new();
+        private static readonly ManualResetEventSlim RENDER_PAUSED = new(true);
 
         private static CancellationTokenSource _cts;
         private static int _historyIndex = -1;
@@ -35,9 +37,8 @@ namespace EDIVE.Utils
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void OnLoad()
         {
-#if !UNITY_EDITOR
-            Initialize();
-#endif
+            if (PlatformUtils.IsHeadless())
+                Initialize();
         }
 
         private static void Initialize()
@@ -47,17 +48,14 @@ namespace EDIVE.Utils
 
             try
             {
-                Console.OutputEncoding = Encoding.UTF8;
-                Console.InputEncoding = Encoding.UTF8;
+                System.Console.OutputEncoding = Encoding.UTF8;
+                System.Console.InputEncoding = Encoding.UTF8;
             }
             catch { }
 
 #if UNITY_STANDALONE_WIN
-            WindowsConsole.Configure();
+            WindowsConsoleHelper.Configure();
 #endif
-            Debug.unityLogger.logHandler = new CapturingLogHandler();
-            Console.Out.Flush();
-
             _cts = new CancellationTokenSource();
             Application.quitting += OnQuitting;
 
@@ -71,11 +69,11 @@ namespace EDIVE.Utils
             _cts?.Cancel();
             try
             {
-                lock (_writeLock)
+                lock (WRITE_LOCK)
                 {
-                    Console.Write(CURSOR_TO_COL0 + ERASE_LINE);
-                    Console.Write(SHOW_CURSOR);
-                    Console.Out.Flush();
+                    System.Console.Write(CURSOR_TO_COL0 + ERASE_LINE);
+                    System.Console.Write(SHOW_CURSOR);
+                    System.Console.Out.Flush();
                 }
             }
             catch { }
@@ -84,8 +82,8 @@ namespace EDIVE.Utils
         public static void RegisterCommand(ConsoleCommand command)
         {
             if (command == null) throw new ArgumentNullException(nameof(command));
-            lock (_commandsLock)
-                _commands[command.Name] = command;
+            lock (COMMANDS_LOCK)
+                COMMANDS[command.Name] = command;
         }
 
         public static void RegisterCommands(params ConsoleCommand[] commands)
@@ -96,31 +94,27 @@ namespace EDIVE.Utils
         public static bool UnregisterCommand(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return false;
-            lock (_commandsLock)
-                return _commands.Remove(name.Trim().ToLowerInvariant());
+            lock (COMMANDS_LOCK)
+                return COMMANDS.Remove(name.Trim().ToLowerInvariant());
         }
 
         public static IReadOnlyCollection<ConsoleCommand> GetCommands()
         {
-            lock (_commandsLock)
-                return new List<ConsoleCommand>(_commands.Values);
+            lock (COMMANDS_LOCK)
+                return new List<ConsoleCommand>(COMMANDS.Values);
         }
 
         public static void AppendLog(string markup)
         {
-            var timestamp = $"[grey58]{DateTime.Now:HH:mm:ss}[/]";
-            _pendingOutput.Enqueue(LogEntry.FromMarkup($"{timestamp} {markup}"));
+            var timestamp = $"[grey58]{DateTime.Now:u}[/]";
+            PENDING_OUTPUT.Enqueue(LogEntry.FromMarkup($"{timestamp} {markup}"));
         }
 
         public static void AppendRenderable(IRenderable renderable)
         {
             if (renderable == null) return;
-            _pendingOutput.Enqueue(LogEntry.FromRenderable(renderable));
+            PENDING_OUTPUT.Enqueue(LogEntry.FromRenderable(renderable));
         }
-
-        
-
-       
 
         private static async UniTaskVoid RunConsoleLoop(CancellationToken ct)
         {
@@ -130,36 +124,36 @@ namespace EDIVE.Utils
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    _renderPaused.Wait(ct);
+                    RENDER_PAUSED.Wait(ct);
 
                     try
                     {
-                        while (Console.KeyAvailable)
-                            HandleKey(Console.ReadKey(intercept: true));
+                        while (System.Console.KeyAvailable)
+                            HandleKey(System.Console.ReadKey(intercept: true));
 
                         Redraw();
                     }
                     catch (Exception ex)
                     {
-                        _pendingOutput.Enqueue(LogEntry.FromMarkup($"[red]Render error:[/] {Markup.Escape(ex.Message)}"));
+                        PENDING_OUTPUT.Enqueue(LogEntry.FromMarkup($"[red]Render error:[/] {Markup.Escape(ex.Message)}"));
                     }
 
                     Thread.Sleep(FRAME_INTERVAL_MS);
                 }
             }
-            catch { }
+            catch (OperationCanceledException) { }
         }
 
         private static void Redraw()
         {
-            lock (_writeLock)
+            lock (WRITE_LOCK)
             {
                 var sb = new StringBuilder();
                 sb.Append(HIDE_CURSOR);
                 sb.Append(CURSOR_TO_COL0);
                 sb.Append(ERASE_LINE);
 
-                while (_pendingOutput.TryDequeue(out var entry))
+                while (PENDING_OUTPUT.TryDequeue(out var entry))
                 {
                     var text = entry.IsRenderable
                         ? RenderRenderable(entry.Renderable)
@@ -168,10 +162,10 @@ namespace EDIVE.Utils
                     sb.Append('\n');
                 }
 
-                sb.Append(RenderMarkup($"[bold green]>[/] {Markup.Escape(_currentInput.ToString())}"));
+                sb.Append(RenderMarkup($"[bold green]>[/] {Markup.Escape(CURRENT_INPUT.ToString())}"));
 
-                Console.Write(sb.ToString());
-                Console.Out.Flush();
+                System.Console.Write(sb.ToString());
+                System.Console.Out.Flush();
             }
         }
 
@@ -213,11 +207,11 @@ namespace EDIVE.Utils
 
         public static void Exclusive(Action action)
         {
-            lock (_writeLock)
+            lock (WRITE_LOCK)
             {
-                _renderPaused.Reset();
-                Console.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
-                Console.Out.Flush();
+                RENDER_PAUSED.Reset();
+                System.Console.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
+                System.Console.Out.Flush();
             }
 
             try
@@ -226,22 +220,22 @@ namespace EDIVE.Utils
             }
             finally
             {
-                lock (_writeLock)
+                lock (WRITE_LOCK)
                 {
-                    Console.Write(HIDE_CURSOR);
-                    Console.Out.Flush();
-                    _renderPaused.Set();
+                    System.Console.Write(HIDE_CURSOR);
+                    System.Console.Out.Flush();
+                    RENDER_PAUSED.Set();
                 }
             }
         }
 
         public static async UniTask ExclusiveAsync(Func<UniTask> action)
         {
-            lock (_writeLock)
+            lock (WRITE_LOCK)
             {
-                _renderPaused.Reset();
-                Console.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
-                Console.Out.Flush();
+                RENDER_PAUSED.Reset();
+                System.Console.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
+                System.Console.Out.Flush();
             }
             try
             {
@@ -249,11 +243,11 @@ namespace EDIVE.Utils
             }
             finally
             {
-                lock (_writeLock)
+                lock (WRITE_LOCK)
                 {
-                    Console.Write(HIDE_CURSOR);
-                    Console.Out.Flush();
-                    _renderPaused.Set();
+                    System.Console.Write(HIDE_CURSOR);
+                    System.Console.Out.Flush();
+                    RENDER_PAUSED.Set();
                 }
             }
         }
@@ -263,57 +257,57 @@ namespace EDIVE.Utils
             switch (key.Key)
             {
                 case ConsoleKey.Enter:
-                    var cmd = _currentInput.ToString().Trim();
-                    _currentInput.Clear();
+                    var cmd = CURRENT_INPUT.ToString().Trim();
+                    CURRENT_INPUT.Clear();
                     _historyIndex = -1;
 
                     if (!string.IsNullOrEmpty(cmd))
                     {
-                        _history.Add(cmd);
+                        HISTORY.Add(cmd);
                         DispatchCommand(cmd);
                     }
                     break;
 
                 case ConsoleKey.Backspace:
-                    if (_currentInput.Length > 0)
-                        _currentInput.Length--;
+                    if (CURRENT_INPUT.Length > 0)
+                        CURRENT_INPUT.Length--;
                     break;
 
                 case ConsoleKey.UpArrow:
-                    if (_history.Count > 0)
+                    if (HISTORY.Count > 0)
                     {
-                        if (_historyIndex == -1) _historyIndex = _history.Count;
+                        if (_historyIndex == -1) _historyIndex = HISTORY.Count;
                         _historyIndex = Math.Max(0, _historyIndex - 1);
-                        _currentInput.Clear();
-                        _currentInput.Append(_history[_historyIndex]);
+                        CURRENT_INPUT.Clear();
+                        CURRENT_INPUT.Append(HISTORY[_historyIndex]);
                     }
                     break;
 
                 case ConsoleKey.DownArrow:
-                    if (_history.Count > 0 && _historyIndex != -1)
+                    if (HISTORY.Count > 0 && _historyIndex != -1)
                     {
                         _historyIndex++;
-                        if (_historyIndex >= _history.Count)
+                        if (_historyIndex >= HISTORY.Count)
                         {
                             _historyIndex = -1;
-                            _currentInput.Clear();
+                            CURRENT_INPUT.Clear();
                         }
                         else
                         {
-                            _currentInput.Clear();
-                            _currentInput.Append(_history[_historyIndex]);
+                            CURRENT_INPUT.Clear();
+                            CURRENT_INPUT.Append(HISTORY[_historyIndex]);
                         }
                     }
                     break;
 
                 case ConsoleKey.Escape:
-                    _currentInput.Clear();
+                    CURRENT_INPUT.Clear();
                     _historyIndex = -1;
                     break;
 
                 default:
                     if (!char.IsControl(key.KeyChar))
-                        _currentInput.Append(key.KeyChar);
+                        CURRENT_INPUT.Append(key.KeyChar);
                     break;
             }
         }
@@ -327,8 +321,8 @@ namespace EDIVE.Utils
             var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
 
             ConsoleCommand command;
-            lock (_commandsLock)
-                _commands.TryGetValue(name, out command);
+            lock (COMMANDS_LOCK)
+                COMMANDS.TryGetValue(name, out command);
 
             if (command == null)
             {
@@ -351,10 +345,10 @@ namespace EDIVE.Utils
 
         public static void ClearScreen()
         {
-            lock (_writeLock)
+            lock (WRITE_LOCK)
             {
-                Console.Write("\u001b[2J\u001b[H");
-                Console.Out.Flush();
+                System.Console.Write("\u001b[2J\u001b[H");
+                System.Console.Out.Flush();
             }
         }
 
@@ -397,24 +391,6 @@ namespace EDIVE.Utils
             });
             return result ?? new List<T>();
         }
-
-        public static bool Confirm(string question)
-        {
-            var result = false;
-            
-            return result;
-        }
-
-        public static string Ask(string question)
-        {
-            return Ask<string>(question);
-        }
-
-        public static T Ask<T>(string question)
-        {
-            T result = default;
-            Exclusive(() => result = AnsiConsole.Ask<T>(question));
-            return result;
-        }
     }
 }
+#endif
