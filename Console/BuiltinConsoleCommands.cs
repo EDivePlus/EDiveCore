@@ -1,6 +1,7 @@
 #if SPECTRE_CONSOLE
 using System;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core.Restart;
 using Spectre.Console;
 using UnityEngine;
 
@@ -12,15 +13,24 @@ namespace EDIVE.Console
         private static void Register()
         {
             ConsoleCommandHandler.RegisterCommands(
-                Quit(),
                 Help(),
+                Quit(),
+                Restart(),
                 Status(),
                 Clear(),
                 Throw()
             );
         }
 
-        private static ConsoleCommand Quit() => new("quit", "shutdown server",
+        private static ConsoleCommand Help() => new("help", "show this message",
+            _ =>
+            {
+                ConsoleCommandHandler.AppendLog("[cyan]Available commands:[/]");
+                foreach (var c in ConsoleCommandHandler.GetCommands())
+                    ConsoleCommandHandler.AppendLog($"  [yellow]{Markup.Escape(c.Name),-18}[/] - {Markup.Escape(c.Description)}");
+            });
+        
+        private static ConsoleCommand Quit() => new("quit", "shutdown app",
             async _ =>
             {
                 var result = false;
@@ -35,15 +45,23 @@ namespace EDIVE.Console
                     ConsoleCommandHandler.AppendLog("[grey]Shutdown cancelled.[/]");
                 }
             });
-
-        private static ConsoleCommand Help() => new("help", "show this message",
-            _ =>
+        
+        private static ConsoleCommand Restart() => new("restart", "restart app",
+            async _ =>
             {
-                ConsoleCommandHandler.AppendLog("[cyan]Available commands:[/]");
-                foreach (var c in ConsoleCommandHandler.GetCommands())
-                    ConsoleCommandHandler.AppendLog($"  [yellow]{Markup.Escape(c.Name),-18}[/] - {Markup.Escape(c.Description)}");
+                var result = false;
+                ConsoleCommandHandler.Exclusive(() => result = AnsiConsole.Confirm("[red]Really restart?[/]"));
+                if (result)
+                {
+                    ConsoleCommandHandler.AppendLog("[red]Restarting...[/]");
+                    await ConsoleCommandHandler.OnMainThread(AppRestartUtility.Restart);
+                }
+                else
+                {
+                    ConsoleCommandHandler.AppendLog("[grey]Restart cancelled.[/]");
+                }
             });
-
+      
         private static ConsoleCommand Status() => new("status", "app status",
             async _ =>
             {
