@@ -24,6 +24,9 @@ namespace EDIVE.Console
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool SetConsoleCP(uint codePageId);
 
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern bool SetConsoleTitleW(string lpConsoleTitle);
+
         private const int STD_OUTPUT_HANDLE = -11;
         private const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
         private const uint CP_UTF8 = 65001;
@@ -39,6 +42,13 @@ namespace EDIVE.Console
                 if (GetConsoleMode(handle, out var mode))
                     SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
             }
+            catch { }
+        }
+
+        public static void SetTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return;
+            try { SetConsoleTitleW(title); }
             catch { }
         }
     }

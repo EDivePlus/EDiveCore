@@ -28,6 +28,10 @@ namespace EDIVE.Console
         private static int _historyIndex = -1;
         private static bool _initialized;
 
+        private static TextWriter _originalOut;
+        private static TextWriter _originalError;
+        private static ForwardingWriter _forwarder;
+
         private const int FRAME_INTERVAL_MS = 50;
         private const string ERASE_LINE = "\u001b[2K";
         private const string CURSOR_TO_COL0 = "\r";
@@ -55,7 +59,17 @@ namespace EDIVE.Console
 
 #if UNITY_STANDALONE_WIN
             WindowsConsoleHelper.Configure();
+            WindowsConsoleHelper.SetTitle(ResolveConsoleTitle());
+#elif UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX
+            SetPosixTitle(ResolveConsoleTitle());
 #endif
+            _originalOut = System.Console.Out;
+            _originalError = System.Console.Error;
+            _forwarder = new ForwardingWriter();
+            var synchronized = TextWriter.Synchronized(_forwarder);
+            System.Console.SetOut(synchronized);
+            System.Console.SetError(synchronized);
+
             _cts = new CancellationTokenSource();
             Application.quitting += OnQuitting;
 
@@ -69,11 +83,16 @@ namespace EDIVE.Console
             _cts?.Cancel();
             try
             {
+                _forwarder?.FlushPending();
+                if (_originalOut != null) System.Console.SetOut(_originalOut);
+                if (_originalError != null) System.Console.SetError(_originalError);
+
                 lock (WRITE_LOCK)
                 {
-                    System.Console.Write(CURSOR_TO_COL0 + ERASE_LINE);
-                    System.Console.Write(SHOW_CURSOR);
-                    System.Console.Out.Flush();
+                    var target = _originalOut ?? System.Console.Out;
+                    target.Write(CURSOR_TO_COL0 + ERASE_LINE);
+                    target.Write(SHOW_CURSOR);
+                    target.Flush();
                 }
             }
             catch { }
@@ -164,8 +183,9 @@ namespace EDIVE.Console
 
                 sb.Append(RenderMarkup($"[bold green]>[/] {Markup.Escape(CURRENT_INPUT.ToString())}"));
 
-                System.Console.Write(sb.ToString());
-                System.Console.Out.Flush();
+                var target = _originalOut ?? System.Console.Out;
+                target.Write(sb.ToString());
+                target.Flush();
             }
         }
 
@@ -207,11 +227,16 @@ namespace EDIVE.Console
 
         public static void Exclusive(Action action)
         {
+            var savedOut = System.Console.Out;
+            var savedError = System.Console.Error;
             lock (WRITE_LOCK)
             {
                 RENDER_PAUSED.Reset();
-                System.Console.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
-                System.Console.Out.Flush();
+                var target = _originalOut ?? savedOut;
+                target.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
+                target.Flush();
+                if (_originalOut != null) System.Console.SetOut(_originalOut);
+                if (_originalError != null) System.Console.SetError(_originalError);
             }
 
             try
@@ -222,8 +247,11 @@ namespace EDIVE.Console
             {
                 lock (WRITE_LOCK)
                 {
-                    System.Console.Write(HIDE_CURSOR);
-                    System.Console.Out.Flush();
+                    System.Console.SetOut(savedOut);
+                    System.Console.SetError(savedError);
+                    var target = _originalOut ?? savedOut;
+                    target.Write(HIDE_CURSOR);
+                    target.Flush();
                     RENDER_PAUSED.Set();
                 }
             }
@@ -231,11 +259,16 @@ namespace EDIVE.Console
 
         public static async UniTask ExclusiveAsync(Func<UniTask> action)
         {
+            var savedOut = System.Console.Out;
+            var savedError = System.Console.Error;
             lock (WRITE_LOCK)
             {
                 RENDER_PAUSED.Reset();
-                System.Console.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
-                System.Console.Out.Flush();
+                var target = _originalOut ?? savedOut;
+                target.Write(CURSOR_TO_COL0 + ERASE_LINE + SHOW_CURSOR);
+                target.Flush();
+                if (_originalOut != null) System.Console.SetOut(_originalOut);
+                if (_originalError != null) System.Console.SetError(_originalError);
             }
             try
             {
@@ -245,8 +278,11 @@ namespace EDIVE.Console
             {
                 lock (WRITE_LOCK)
                 {
-                    System.Console.Write(HIDE_CURSOR);
-                    System.Console.Out.Flush();
+                    System.Console.SetOut(savedOut);
+                    System.Console.SetError(savedError);
+                    var target = _originalOut ?? savedOut;
+                    target.Write(HIDE_CURSOR);
+                    target.Flush();
                     RENDER_PAUSED.Set();
                 }
             }
@@ -343,12 +379,37 @@ namespace EDIVE.Console
             }).Forget();
         }
 
+        private static string ResolveConsoleTitle()
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (var i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] == "-consoleTitle")
+                    return args[i + 1];
+            }
+            return Application.productName;
+        }
+
+#if UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX
+        private static void SetPosixTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return;
+            try
+            {
+                System.Console.Write($"\u001b]0;{title}\u0007");
+                System.Console.Out.Flush();
+            }
+            catch { }
+        }
+#endif
+
         public static void ClearScreen()
         {
             lock (WRITE_LOCK)
             {
-                System.Console.Write("\u001b[2J\u001b[H");
-                System.Console.Out.Flush();
+                var target = _originalOut ?? System.Console.Out;
+                target.Write("\u001b[2J\u001b[H");
+                target.Flush();
             }
         }
 
@@ -390,6 +451,54 @@ namespace EDIVE.Console
                     .AddChoices(choices));
             });
             return result ?? new List<T>();
+        }
+
+        private sealed class ForwardingWriter : TextWriter
+        {
+            private readonly StringBuilder _buffer = new();
+
+            public override Encoding Encoding => Encoding.UTF8;
+
+            public override void Write(char value)
+            {
+                if (value == '\n') EmitBuffered();
+                else if (value != '\r') _buffer.Append(value);
+            }
+
+            public override void Write(string value)
+            {
+                if (string.IsNullOrEmpty(value)) return;
+                foreach (var ch in value)
+                {
+                    if (ch == '\n') EmitBuffered();
+                    else if (ch != '\r') _buffer.Append(ch);
+                }
+            }
+
+            public override void Write(char[] buffer, int index, int count)
+            {
+                var end = index + count;
+                for (var i = index; i < end; i++)
+                {
+                    var ch = buffer[i];
+                    if (ch == '\n') EmitBuffered();
+                    else if (ch != '\r') _buffer.Append(ch);
+                }
+            }
+
+            public void FlushPending() => EmitBuffered();
+
+            private void EmitBuffered()
+            {
+                string line;
+                lock (_buffer)
+                {
+                    if (_buffer.Length == 0) return;
+                    line = _buffer.ToString();
+                    _buffer.Clear();
+                }
+                AppendLog(Markup.Escape(line));
+            }
         }
     }
 }
