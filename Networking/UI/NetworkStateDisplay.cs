@@ -68,7 +68,7 @@ namespace EDIVE.Networking.UI
                 _RuntimeModeState.SetState(_networkManager.RuntimeMode);
 
             if (_CurrentServerNameText)
-                _CurrentServerNameText.text = _serverManager.ServerConfig.ServerName;
+                _CurrentServerNameText.text = _serverManager.CurrentServer?.ServerName ?? "None";
         }
     }
 }

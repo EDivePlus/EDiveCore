@@ -18,7 +18,6 @@ namespace EDIVE.Networking.ServerManagement.UI
         [SerializeField]
         private TMP_Text _ServerIdText;
         
-
         [SerializeField]
         private TMP_Text _ClientsCountText;
 
@@ -50,8 +49,10 @@ namespace EDIVE.Networking.ServerManagement.UI
         private void OnConnectClicked()
         {
             var networkManager = AppCore.Services.Get<MasterNetworkManager>();
+            var serverManager = AppCore.Services.Get<NetworkServerManager>();
             UniTask.Void(async () =>
             {
+                serverManager.CurrentServer = _serverRecord;
                 var success = await _serverRecord.PrepareForConnect();
                 if (!success) 
                     return;

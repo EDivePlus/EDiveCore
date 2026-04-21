@@ -35,6 +35,8 @@ namespace EDIVE.Networking.ServerManagement
         public ServerConfig ServerConfig => _ServerConfig;
         
         private readonly Dictionary<long, AServerRecord> _servers = new();
+        
+        public AServerRecord CurrentServer { get; set; }
 
         private bool _serverRunning;
         
@@ -54,10 +56,11 @@ namespace EDIVE.Networking.ServerManagement
                 await adapter.Initialize(_ServerConfig);
             }
             InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
+            InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
             var masterNetworkManager = await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
             masterNetworkManager.ServerPrepareHandlers += OnServerPrepareHandlers;
         }
-
+        
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
@@ -95,15 +98,31 @@ namespace EDIVE.Networking.ServerManagement
         {
             if (args.ConnectionState == LocalConnectionState.Started && InstanceFinder.ServerManager.IsOnlyOneServerStarted())
             {
+                CurrentServer = new EmptyServerRecord
+                {
+                    ServerID = _ServerConfig.ServerID,
+                    ServerName = _ServerConfig.ServerName,
+                    MaxPlayers = _ServerConfig.MaxPlayers,
+                    CurrentPlayers = InstanceFinder.ServerManager.Clients.Count
+                };
                 EnumerateAdapters(adapter => adapter.StartServer());
             }
             else if (args.ConnectionState == LocalConnectionState.Stopped && !InstanceFinder.ServerManager.IsAnyServerStarted())
             {
                 _serverRunning = false;
                 EnumerateAdapters(adapter => adapter.StopServer());
+                CurrentServer = null;
             }
         }
 
+        private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
+        {
+            if (args.ConnectionState == LocalConnectionState.Stopped)
+            {
+                CurrentServer = null;
+            }
+        }
+        
         public void StartSearch()
         {
             if (_serverRunning)
