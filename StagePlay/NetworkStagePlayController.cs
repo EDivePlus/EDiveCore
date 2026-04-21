@@ -26,7 +26,7 @@ namespace EDIVE.StagePlay
         public override void OnStartClient()
         {
             base.OnStartClient();
-
+            _controller = GetComponent<StagePlayController>();
             OnLocalDefinitionChanged(_controller.Definition, _controller.CurrentState);
             _controller.DefinitionChanged += OnLocalDefinitionChanged;
 
@@ -46,10 +46,13 @@ namespace EDIVE.StagePlay
         private void OnLocalDefinitionChanged(StagePlayDefinition definition, StagePlayState state)
         {
             SetDefinition(definition);
-            SetCurrentSegment(state.CurrentSegmentIndex);
-
+            
             if (_currentState != null)
                 _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
+            
+            if (state == null)
+                return;
+            SetCurrentSegment(state.CurrentSegmentIndex);
             _currentState = state;
             _currentState.CurrentSegmentChanged += OnLocalCurrentSegmentChanged;
         }

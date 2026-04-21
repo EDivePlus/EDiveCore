@@ -22,7 +22,7 @@ namespace EDIVE.StagePlay
         public StagePlayDefinition Definition => _Definition;
         
         [ShowInInspector, ReadOnly]
-        public StagePlayState CurrentState { get; private set; }
+        public StagePlayState CurrentState { get; private set; } = new();
         
         public event Action<StagePlayDefinition, StagePlayState> DefinitionChanged;
 
