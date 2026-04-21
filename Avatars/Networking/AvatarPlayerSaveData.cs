@@ -21,7 +21,5 @@ namespace EDIVE.Avatars.Networking
             get => _PlayerAvatar;
             set => SetProperty(ref _PlayerAvatar, value);
         }
-
-        protected override SaveDataDirtyFlag DefaultDirtyFlag => SaveDataDirtyFlag.Immediate;
     }
 }
