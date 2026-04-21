@@ -15,7 +15,9 @@ namespace EDIVE.Console
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
         {
-            var logPath = GetArgValue("-logCustom");
+            var logPath = GetArgValue("-customLogPath");
+            if (PlatformUtils.IsHeadless() && string.IsNullOrWhiteSpace(logPath))
+                logPath = "server.log";
             Debug.unityLogger.logHandler = new CustomLogHandler(Debug.unityLogger.logHandler, logPath);
         }
 
@@ -40,7 +42,7 @@ namespace EDIVE.Console
         {
             _default = defaultHandler;
 
-            if (logPath != null)
+            if (!string.IsNullOrWhiteSpace(logPath) && logPath != "-")
                 _logFile = new StreamWriter(logPath, append: true) {AutoFlush = true};
 
             Application.quitting += Shutdown;
