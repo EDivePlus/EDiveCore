@@ -5,7 +5,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace EDIVE.Utils
+namespace EDIVE.Console
 {
     public static class WindowsConsoleHelper
     {
