@@ -44,12 +44,12 @@ namespace EDIVE.Console
                     ConsoleCommandHandler.AppendLog($"  [yellow]{Markup.Escape(c.Name),-18}[/] - {Markup.Escape(c.Description)}");
             });
 
-        private static ConsoleCommand Status() => new("status", "server status",
+        private static ConsoleCommand Status() => new("status", "app status",
             async _ =>
             {
                 await ConsoleCommandHandler.OnMainThread(() =>
                 {
-                    ConsoleCommandHandler.AppendLog($"[green]Server running[/] - uptime: {Time.realtimeSinceStartup:F1}s");
+                    ConsoleCommandHandler.AppendLog($"[green]App running[/] - uptime: {Time.realtimeSinceStartup:F1}s");
                 });
             });
 

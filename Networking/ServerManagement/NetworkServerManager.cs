@@ -121,6 +121,9 @@ namespace EDIVE.Networking.ServerManagement
             {
                 CurrentServer = null;
             }
+
+            if (CurrentServer != null) 
+                CurrentServer.CurrentPlayers = InstanceFinder.ServerManager.Clients.Count;
         }
         
         public void StartSearch()
