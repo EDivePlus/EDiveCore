@@ -10,11 +10,21 @@ namespace EDIVE.NativeUtils
 {
     public static class PlatformUtils
     {
+#if !(UNITY_SERVER && !UNITY_EDITOR)
+        private static bool? _isHeadless;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void CacheIsHeadless()
+        {
+            _isHeadless = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
+        }
+#endif
+
         public static bool IsHeadless() =>
 #if UNITY_SERVER && !UNITY_EDITOR
             true;
 #else
-            SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
+            _isHeadless ??= SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
 #endif
         
         public static RuntimePlatform GetCurrentBuildTarget()
