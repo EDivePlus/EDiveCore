@@ -4,7 +4,9 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core;
 using EDIVE.Http;
+using EDIVE.Networking;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.UserCenter.Auth;
 using EDIVE.UserCenter.SaveData;
@@ -42,8 +44,16 @@ namespace EDIVE.UserCenter
             var effectiveToken = cancellationToken == CancellationToken.None
                 ? this.GetCancellationTokenOnDestroy()
                 : cancellationToken;
-
+            
             await FlushAllDirtyEntries(effectiveToken);
+
+            var networkManager = AppCore.Services.Get<MasterNetworkManager>();
+            if (networkManager != null && networkManager.ConnectionState == ConnectionState.Connected)
+            {
+                networkManager.StopRuntime();
+                Debug.Log("[UserCenter] Disconnected from server as part of logout.");
+            }
+            
             AuthStorage.Clear();
             _local = new PlayerPrefsSaveDataStore();
         }

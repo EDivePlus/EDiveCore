@@ -10,7 +10,8 @@
         "EDIVE.Utils.Json",
         "EDIVE.OdinExtensions",
         "EDIVE.Time",
-        "EDIVE.StateHandling"
+        "EDIVE.StateHandling",
+        "EDIVE.Networking"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

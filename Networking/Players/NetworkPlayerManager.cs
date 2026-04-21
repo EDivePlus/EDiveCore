@@ -14,20 +14,13 @@ using FishNet.Managing;
 using FishNet.Transporting;
 using UnityEngine;
 using Channel = FishNet.Transporting.Channel;
-using Random = UnityEngine.Random;
-using Sirenix.OdinInspector;
-using System.Linq;
-using EDIVE.AssetTranslation;
 using EDIVE.Networking.Scenes;
 using EDIVE.Networking.Utils;
-using EDIVE.UserCenter;
 
 namespace EDIVE.Networking.Players
 {
     public class NetworkPlayerManager : ALoadableServiceBehaviour<NetworkPlayerManager>
     {
-        private const string PLAYER_PROFILE_SD_KEY = "PlayerProfile";
-        
         [SerializeField]
         private NetworkPlayerController _PlayerPrefab;
 
@@ -96,7 +89,6 @@ namespace EDIVE.Networking.Players
         {
             base.PopulateDependencies(dependencies);
             dependencies.Add(typeof(MasterNetworkManager));
-            dependencies.Add(typeof(UserCenterManager));
         }
 
         protected override void OnDestroy()

@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 20.04.2026
 
+using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -28,6 +29,10 @@ namespace EDIVE.UserCenter.Auth
         
         [SerializeField]
         private Image _AvatarBackground;
+        
+        [SerializeField]
+        [PropertySpace]
+        private AToggleState _IsAnonymousToggle;
 
         private void OnEnable()
         {
@@ -45,6 +50,8 @@ namespace EDIVE.UserCenter.Auth
             
             if (_AvatarInitialsText) _AvatarInitialsText.text = !string.IsNullOrEmpty(userInfo.Name) ? GetInitials(userInfo.Name) : "?";
             if (_AvatarBackground) _AvatarBackground.color = ColorFromString(userInfo.Id);
+            
+            if (_IsAnonymousToggle) _IsAnonymousToggle.SetState(userInfo.IsAnonymous);
         }
         
         private static string GetInitials(string name)

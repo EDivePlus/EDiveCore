@@ -35,8 +35,7 @@
         "FishyUnityTransport",
         "GameKit.Dependencies",
         "Unity.Collections",
-        "EDIVE.EditorUtils",
-        "EDIVE.UserCenter"
+        "EDIVE.EditorUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
