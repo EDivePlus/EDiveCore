@@ -46,4 +46,29 @@ namespace EDIVE.UserCenter.SaveData
             _Value = new JRaw(serializedJson);
         }
     }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class SaveDataBatchWriteRequest
+    {
+        [JsonProperty("entries")]
+        private Dictionary<string, JRaw> _Entries;
+
+        public SaveDataBatchWriteRequest(IReadOnlyDictionary<string, string> entries)
+        {
+            _Entries = new Dictionary<string, JRaw>(entries.Count);
+            foreach (var (key, json) in entries)
+                _Entries[key] = new JRaw(json);
+        }
+    }
+
+    [Serializable]
+    public class SaveDataBatchResponse
+    {
+        [JsonProperty("saved")]
+        public List<SaveDataResponse> Saved;
+
+        [JsonProperty("errors")]
+        public Dictionary<string, string> Errors;
+    }
 }

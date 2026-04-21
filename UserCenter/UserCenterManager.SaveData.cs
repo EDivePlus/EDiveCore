@@ -21,6 +21,9 @@ namespace EDIVE.UserCenter
     {
         private const int MAX_KEY_LENGTH = 256;
         private const int MAX_VALUE_BYTES = 256 * 1024;
+        
+        private const int BATCH_ENTRY_SIZE_THRESHOLD = 16 * 1024;
+        private const int BATCH_TOTAL_SIZE_THRESHOLD = 128 * 1024;
 
         [SerializeField]
         [PropertyOrder(20)]
@@ -32,6 +35,7 @@ namespace EDIVE.UserCenter
 
         private string SaveDataUserUrl => $"{ServiceBaseUrl}/savedata/user";
         private string SaveDataKeyUrl(string key) => $"{SaveDataUserUrl}/{Uri.EscapeDataString(key)}";
+        private string SaveDataBatchUrl => $"{SaveDataUserUrl}/batch";
 
         private void OnEnable()
         {
@@ -254,31 +258,106 @@ namespace EDIVE.UserCenter
 
             // Snapshot and clear so new writes during flush go into the next cycle
             var snapshot = new Dictionary<string, string>(bucket, StringComparer.OrdinalIgnoreCase);
-            var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             bucket.Clear();
+
+            // Partition entries: large ones go as single PUTs, small ones are batched.
+            var batch = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var batchByteSize = 0;
 
             foreach (var (key, json) in snapshot)
             {
                 if (ct.IsCancellationRequested)
                 {
-                    // Re-queue remaining entries so they aren't lost
-                    foreach (var remaining in snapshot)
-                    {
-                        if (!bucket.ContainsKey(remaining.Key) && !processedKeys.Contains(remaining.Key))
-                            bucket[remaining.Key] = remaining.Value;
-                    }
-                    break;
+                    RequeueRemaining(bucket, snapshot, alreadyHandled: null, skipKey: key);
+                    bucket.TryAdd(key, json);
+                    return;
                 }
 
-                var response = await PutSaveDataAsync(key, json, ct);
-                if (!response.IsSuccess)
+                var byteSize = Encoding.UTF8.GetByteCount(json);
+                if (byteSize > BATCH_ENTRY_SIZE_THRESHOLD)
                 {
-                    Debug.LogError($"[UserCenter] Sync failed for '{key}': {response.ErrorMessage}");
+                    var response = await PutSaveDataAsync(key, json, ct);
+                    if (!response.IsSuccess)
+                    {
+                        Debug.LogError($"[UserCenter] Sync failed for '{key}': {response.ErrorMessage}");
+                        bucket.TryAdd(key, json);
+                    }
+                    continue;
+                }
+
+                // Flush the accumulated batch before it grows too large.
+                if (batch.Count > 0 && batchByteSize + byteSize > BATCH_TOTAL_SIZE_THRESHOLD)
+                {
+                    await FlushBatchAsync(batch, bucket, ct);
+                    batch.Clear();
+                    batchByteSize = 0;
+                }
+
+                batch[key] = json;
+                batchByteSize += byteSize;
+            }
+
+            if (batch.Count > 0)
+                await FlushBatchAsync(batch, bucket, ct);
+        }
+
+        private static void RequeueRemaining(
+            Dictionary<string, string> bucket,
+            Dictionary<string, string> snapshot,
+            HashSet<string> alreadyHandled,
+            string skipKey)
+        {
+            foreach (var (k, v) in snapshot)
+            {
+                if (k == skipKey) continue;
+                if (alreadyHandled != null && alreadyHandled.Contains(k)) continue;
+                bucket.TryAdd(k, v);
+            }
+        }
+
+        private async UniTask FlushBatchAsync(
+            Dictionary<string, string> batch,
+            Dictionary<string, string> bucket,
+            CancellationToken ct)
+        {
+            if (batch.Count == 1)
+            {
+                // No point batching a single entry — issue it directly.
+                using var e = batch.GetEnumerator();
+                e.MoveNext();
+                var (key, json) = (e.Current.Key, e.Current.Value);
+                var single = await PutSaveDataAsync(key, json, ct);
+                if (!single.IsSuccess)
+                {
+                    Debug.LogError($"[UserCenter] Sync failed for '{key}': {single.ErrorMessage}");
                     bucket.TryAdd(key, json);
                 }
-                else
+                return;
+            }
+
+            var response = await PutSaveDataBatchAsync(batch, ct);
+
+            if (!response.IsSuccess || response.Result is not { Status: 0, Data: not null })
+            {
+                var err = response.IsSuccess
+                    ? response.Result?.Message ?? "Unknown error"
+                    : response.ErrorMessage;
+                Debug.LogError($"[UserCenter] Batch sync failed ({batch.Count} entries): {err}");
+                foreach (var (k, v) in batch)
+                    bucket.TryAdd(k, v);
+                return;
+            }
+
+            // Per-key errors come back in `errors`; re-queue only those so
+            // successfully saved keys aren't resent on the next cycle.
+            var errors = response.Result.Data.Errors;
+            if (errors is { Count: > 0 })
+            {
+                foreach (var (k, msg) in errors)
                 {
-                    processedKeys.Add(key);
+                    Debug.LogError($"[UserCenter] Batch sync rejected '{k}': {msg}");
+                    if (batch.TryGetValue(k, out var v))
+                        bucket.TryAdd(k, v);
                 }
             }
         }
@@ -291,6 +370,21 @@ namespace EDIVE.UserCenter
             var request = new SaveDataWriteRequest(json);
             return RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
                 SaveDataKeyUrl(key),
+                request,
+                AuthStorage.GetAccessToken(),
+                null,
+                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                ct
+            );
+        }
+
+        private UniTask<NetworkResponse<ApiResponse<SaveDataBatchResponse>>> PutSaveDataBatchAsync(
+            IReadOnlyDictionary<string, string> entries,
+            CancellationToken ct)
+        {
+            var request = new SaveDataBatchWriteRequest(entries);
+            return RestUtils.PutAsync<ApiResponse<SaveDataBatchResponse>, SaveDataBatchWriteRequest>(
+                SaveDataBatchUrl,
                 request,
                 AuthStorage.GetAccessToken(),
                 null,
