@@ -50,7 +50,7 @@ namespace EDIVE.Console
 
         public void LogFormat(LogType logType, Object context, string format, params object[] args)
         {
-            var timestamp = DateTime.UtcNow.ToString("u");
+            var timestamp = GetTimeStamp();
             var message = string.Format(format, args);
             _logFile?.WriteLine($"{timestamp} {message}");
 
@@ -66,9 +66,7 @@ namespace EDIVE.Console
 
         public void LogException(Exception exception, Object context)
         {
-            var timestamp = DateTime.UtcNow.ToString("u");
-            _logFile?.WriteLine($"{timestamp} {exception}");
-
+            _logFile?.WriteLine($"{GetTimeStamp()} {exception}");
 #if SPECTRE_CONSOLE
             if (PlatformUtils.IsHeadless())
                 ConsoleCommandHandler.AppendRenderable(exception.GetRenderable());
@@ -78,6 +76,8 @@ namespace EDIVE.Console
             _default.LogException(exception, context);
 #endif
         }
+
+        private static string GetTimeStamp() => $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss}";
 
         private void Shutdown()
         {

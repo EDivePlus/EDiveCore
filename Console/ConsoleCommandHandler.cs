@@ -106,7 +106,7 @@ namespace EDIVE.Console
 
         public static void AppendLog(string markup)
         {
-            var timestamp = $"[grey58]{DateTime.Now:u}[/]";
+            var timestamp = $"[grey58]{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss}[/]";
             PENDING_OUTPUT.Enqueue(LogEntry.FromMarkup($"{timestamp} {markup}"));
         }
 
