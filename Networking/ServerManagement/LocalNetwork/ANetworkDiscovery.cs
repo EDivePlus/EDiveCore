@@ -59,6 +59,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		
 		private const int LINUX_SO_REUSEPORT = 15;
 		private const int MACOS_SO_REUSEPORT = 0x0200;
+		private const int WSAECONNRESET = 10054;
 
 		private void Awake()
 		{
@@ -194,12 +195,10 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		
 		protected abstract TResponse ProcessRequest(IPEndPoint endpoint);
 		
-		private const int WSAECONNRESET = 10054;
-		
 		private void HandleReceiveException(Exception exception)
 		{
 			var inner = exception is AggregateException agg ? agg.Flatten().InnerException : exception;
-			if (inner is SocketException { ErrorCode: WSAECONNRESET })
+			if (inner is SocketException socketException && socketException.ErrorCode == WSAECONNRESET)
 			{
 				LogInformation("Received ICMP port-unreachable. Recycling socket.");
 				return;
