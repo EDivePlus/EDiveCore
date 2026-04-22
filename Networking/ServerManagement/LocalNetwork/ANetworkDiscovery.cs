@@ -260,7 +260,19 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					listenClient ??= CreateSharedListenClient(_Port);
+					if (listenClient == null)
+					{
+						try
+						{
+							listenClient = CreateSharedListenClient(_Port);
+						}
+						catch (SocketException bindException)
+						{
+							Debug.LogWarning($"[{GetType().Name}] Failed to bind discovery port {_Port}: {bindException.SocketErrorCode}. Retrying in 5s.");
+							await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+							continue;
+						}
+					}
 
 					LogInformation("Waiting for request...");
 					var receiveTask = listenClient.ReceiveAsync();
