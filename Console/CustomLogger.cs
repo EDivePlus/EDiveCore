@@ -66,10 +66,14 @@ namespace EDIVE.Console
 
         public void LogException(Exception exception, Object context)
         {
-            _logFile?.WriteLine($"{GetTimeStamp()} {exception}");
+            var timestamp = GetTimeStamp();
+            _logFile?.WriteLine($"{timestamp} {exception}");
 #if SPECTRE_CONSOLE
             if (PlatformUtils.IsHeadless())
+            {
+                ConsoleCommandHandler.AppendLog(timestamp);
                 ConsoleCommandHandler.AppendRenderable(exception.GetRenderable());
+            }
             else 
                 _default.LogException(exception, context);
 #else
