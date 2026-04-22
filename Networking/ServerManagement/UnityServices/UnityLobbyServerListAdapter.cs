@@ -134,9 +134,16 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     await UniTask.Delay(TimeSpan.FromSeconds(25), true, cancellationToken: cancellationToken);
-                    if (_hostLobby == null) 
+                    if (_hostLobby == null)
                         break;
-                    await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
+                    try
+                    {
+                        await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
+                    }
+                    catch (Exception e) when (e is not OperationCanceledException)
+                    {
+                        Debug.LogWarning($"[UnityLobbyServerListAdapter] Lobby heartbeat failed: {e.Message}");
+                    }
                 }
             }, _heartbeatCancellation.Token);
         }
