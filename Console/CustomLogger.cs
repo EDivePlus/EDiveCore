@@ -72,9 +72,19 @@ namespace EDIVE.Console
             if (PlatformUtils.IsHeadless())
             {
                 ConsoleCommandHandler.AppendLog(timestamp);
-                ConsoleCommandHandler.AppendRenderable(exception.GetRenderable());
+                try
+                {
+                    ConsoleCommandHandler.AppendRenderable(exception.GetRenderable());
+                }
+                catch (Exception renderEx)
+                {
+                    // Spectre's exception renderer occasionally NREs on reflection over certain frames;
+                    // fall back to plain text so the original exception isn't swallowed.
+                    ConsoleCommandHandler.AppendLog(FormatForConsole(LogType.Exception, exception.ToString()));
+                    ConsoleCommandHandler.AppendLog(FormatForConsole(LogType.Warning, $"(Spectre render failed: {renderEx.GetType().Name})"));
+                }
             }
-            else 
+            else
                 _default.LogException(exception, context);
 #else
             _default.LogException(exception, context);
