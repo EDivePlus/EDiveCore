@@ -140,7 +140,8 @@ namespace EDIVE.XRTools.Controls.Legacy
             //controls.Controls.DesktopCamera.Move.performed -= MoveCamera;
             //controls.Controls.DesktopCamera.LeftMouse.performed -= LeftMousePress;
 
-            UnityEngine.InputSystem.Keyboard.current.onTextInput -= OnKeyboardInput;
+            if (UnityEngine.InputSystem.Keyboard.current != null)
+                UnityEngine.InputSystem.Keyboard.current.onTextInput -= OnKeyboardInput;
         }
 
         private void Awake()
