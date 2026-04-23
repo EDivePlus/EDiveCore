@@ -55,7 +55,7 @@ namespace EDIVE.XRTools.DeviceSimulator
         [MainToolbarElement("EDive/XRDeviceSimulator Toggle", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = 15)]
         public static MainToolbarElement CreateToolbarButton()
         {
-            return MainToolbarElementFactory.Create(() =>
+            return MainToolbarUtility.CreateElement(() =>
             {
                 var toggle = new EditorToolbarToggle();
                 toggle.AddToClassList("unity-editor-toolbar-element");

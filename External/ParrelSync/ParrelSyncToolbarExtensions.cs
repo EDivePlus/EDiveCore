@@ -33,7 +33,7 @@ namespace EDIVE.External.ParrelSync
         [MainToolbarElement("EDive/Parrel Sync", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = 10)]
         public static MainToolbarElement CreateToolbarButton()
         {
-            return MainToolbarElementFactory.Create(() =>
+            return MainToolbarUtility.CreateElement(() =>
             {
                 var dropdown = new EditorToolbarDropdown();
                 dropdown.AddToClassList("unity-editor-toolbar-element");
