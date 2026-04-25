@@ -12,13 +12,21 @@ namespace EDIVE.Console
 {
     public static class CustomLogger
     {
+        private static ILogHandler _baseHandler;
+        private static CustomLogHandler _installedHandler;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
         {
             var logPath = GetArgValue("-customLogPath");
             if (PlatformUtils.IsHeadless() && string.IsNullOrWhiteSpace(logPath))
                 logPath = "server.log";
-            Debug.unityLogger.logHandler = new CustomLogHandler(Debug.unityLogger.logHandler, logPath);
+
+            // Cache the original handler once, then always wrap that same base to avoid chaining.
+            _baseHandler ??= Debug.unityLogger.logHandler;
+            _installedHandler?.Detach();
+            _installedHandler = new CustomLogHandler(_baseHandler, logPath);
+            Debug.unityLogger.logHandler = _installedHandler;
         }
 
         private static string GetArgValue(string argName)
@@ -95,6 +103,12 @@ namespace EDIVE.Console
 
         private void Shutdown()
         {
+            _logFile?.Close();
+        }
+
+        public void Detach()
+        {
+            Application.quitting -= Shutdown;
             _logFile?.Close();
         }
 
