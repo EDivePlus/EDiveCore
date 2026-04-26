@@ -14,9 +14,16 @@ namespace EDIVE.Console
     {
         private static ILogHandler _baseHandler;
         private static CustomLogHandler _installedHandler;
-
+        
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
+        {
+#if !UNITY_EDITOR
+            SetCustomLogger();
+#endif
+        }
+
+        private static void SetCustomLogger()
         {
             var logPath = GetArgValue("-customLogPath");
             if (PlatformUtils.IsHeadless() && string.IsNullOrWhiteSpace(logPath))
@@ -28,7 +35,7 @@ namespace EDIVE.Console
             _installedHandler = new CustomLogHandler(_baseHandler, logPath);
             Debug.unityLogger.logHandler = _installedHandler;
         }
-
+        
         private static string GetArgValue(string argName)
         {
             var args = Environment.GetCommandLineArgs();
