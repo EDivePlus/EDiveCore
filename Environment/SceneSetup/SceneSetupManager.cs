@@ -118,17 +118,17 @@ namespace EDIVE.Environment.SceneSetup
                 }
 
                 loadedScenes = await UniTask.WhenAll(defScenes.Select(defScene => networkSceneManager.AwaitLoadConnectionScene(GetSceneName(defScene))));
-                if (!loadedScenes.Any())
-                    return;
-
-                if (definition.SetFirstSceneActive)
+                if (loadedScenes.Any())
                 {
-                    var firstScene = loadedScenes.FirstOrDefault(scene => scene != null && scene.Value.isLoaded);
-                    if (firstScene != null)
-                        UnitySceneManager.SetActiveScene(firstScene.Value);
-                }
+                    if (definition.SetFirstSceneActive)
+                    {
+                        var firstScene = loadedScenes.FirstOrDefault(scene => scene != null && scene.Value.isLoaded);
+                        if (firstScene != null)
+                            UnitySceneManager.SetActiveScene(firstScene.Value);
+                    }
 
-                await UniTask.Yield();
+                    await UniTask.Yield();
+                }
             }
 
             // Apply visual
