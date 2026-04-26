@@ -97,7 +97,7 @@ namespace EDIVE.External.DomainReloadHelper
             }
             catch
             {
-                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
+                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name} in class {field.DeclaringType?.Name}.");
                 return false;
             }
         }
