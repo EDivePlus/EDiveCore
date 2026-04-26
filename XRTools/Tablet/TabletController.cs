@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 26.06.2025
 
+using System;
 using DG.Tweening;
 using EDIVE.Core.Services;
 using EDIVE.Utils.Activations;
@@ -62,16 +63,22 @@ namespace EDIVE.XRTools.Tablet
         private bool _isOpen;
         private Tween _animTween;
 
-        protected void Awake()
+        protected override void OnEnable()
         {
-            _isOpen = true;
+            base.OnEnable();
             _RepositionAction?.RegisterActivationListener(ToggleTablet);
         }
 
-        protected void OnDestroy()
+        protected override void OnDisable()
         {
+            base.OnDisable();
             _RepositionAction?.UnregisterActivationListener(ToggleTablet);
             _animTween?.Kill();
+        }
+
+        private void Awake()
+        {
+            _isOpen = true;
         }
 
         [Button]
