@@ -89,9 +89,13 @@ namespace EDIVE.External.DomainReloadHelper
                 return false;
             try
             {
-                var value = Convert.ChangeType(valueToAssign, field.FieldType);
-                if (value == null)
-                    Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {field.FieldType}.");
+                var value = valueToAssign;
+                if (valueToAssign != null)
+                {
+                    value = Convert.ChangeType(valueToAssign, field.FieldType);
+                    if (value == null)
+                        Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {field.FieldType}.");
+                }
                 
                 field.SetValue(null, value);
                 return true;
