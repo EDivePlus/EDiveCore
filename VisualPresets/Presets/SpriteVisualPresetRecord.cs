@@ -19,16 +19,14 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Sprite";
 
-        public override bool Equals(AVisualPresetRecord other)
+        public override bool EqualsInternal(AVisualPresetRecord other)
         {
-            if (other is not SpriteVisualPresetRecord spriteRecord)
-                return false;
-            return base.Equals(other) && Sprite == spriteRecord.Sprite;
+            return other is SpriteVisualPresetRecord spriteRecord && Sprite == spriteRecord.Sprite;
         }
 
-        public override int GetHashCode()
+        public override int GetHashCodeInternal()
         {
-            return HashCode.Combine(base.GetHashCode(), Sprite != null ? Sprite.GetHashCode() : 0);
+            return Sprite != null ? Sprite.GetHashCode() : 0;
         }
     }
 }

@@ -27,23 +27,15 @@ namespace EDIVE.VisualPresets.Localization
         }
         
         public override string EditorLabel => "Localized String";
-
-        protected bool Equals(LocalizedStringVisualPresetRecord other)
+        
+        public override bool EqualsInternal(AVisualPresetRecord other)
         {
-            return Equals(_LocalizedText, other._LocalizedText) && Equals(_VisualID, other._VisualID);
+            return other is LocalizedStringVisualPresetRecord localizedPreset && Equals(LocalizedText, localizedPreset.LocalizedText);
         }
 
-        public override bool Equals(object obj)
+        public override int GetHashCodeInternal()
         {
-            if (obj is null) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((LocalizedStringVisualPresetRecord) obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(_LocalizedText, _VisualID);
+            return _LocalizedText?.GetHashCode() ?? 0;
         }
     }
 }

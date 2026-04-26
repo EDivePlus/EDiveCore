@@ -19,16 +19,14 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Prefab";
 
-        public override bool Equals(AVisualPresetRecord other)
+        public override bool EqualsInternal(AVisualPresetRecord other)
         {
-            if (other is not PrefabVisualPresetRecord prefabRecord)
-                return false;
-            return base.Equals(other) && _Prefab == prefabRecord._Prefab;
+            return other is PrefabVisualPresetRecord prefabRecord && _Prefab == prefabRecord._Prefab;
         }
 
-        public override int GetHashCode()
+        public override int GetHashCodeInternal()
         {
-            return HashCode.Combine(base.GetHashCode(), Prefab != null ? Prefab.GetHashCode() : 0);
+            return Prefab != null ? Prefab.GetHashCode() : 0;
         }
     }
 }

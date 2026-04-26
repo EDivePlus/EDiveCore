@@ -19,16 +19,14 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "String";
 
-        public override bool Equals(AVisualPresetRecord other)
+        public override bool EqualsInternal(AVisualPresetRecord other)
         {
-            if (other is not StringVisualPresetRecord tOther)
-                return false;
-            return base.Equals(other) && Text == tOther.Text;
+            return other is StringVisualPresetRecord tOther && Text == tOther.Text;
         }
 
-        public override int GetHashCode()
+        public override int GetHashCodeInternal()
         {
-            return HashCode.Combine(base.GetHashCode(), Text);
+            return Text.GetHashCode();
         }
     }
 }
