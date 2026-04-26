@@ -138,6 +138,8 @@ namespace EDIVE.Environment.SceneSetup
                     sceneController.ApplyDefinition(definition);
             }
 
+            await UniTask.Yield();
+            
             // Find spawn place and teleport
             if (_spawnPlaces.TryGetFirst(s => s != null && loadedScenes != null && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
             {
