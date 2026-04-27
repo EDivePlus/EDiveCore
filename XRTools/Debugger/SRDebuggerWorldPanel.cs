@@ -92,6 +92,10 @@ namespace EDIVE.Utils
             // Fix panels not hiding properly when enabled at start
             SRDebug.Instance?.ShowDebugPanel();
             SRDebug.Instance?.HideDebugPanel();
+       
+            await UniTask.WaitForEndOfFrame();
+            SRDebug.Instance?.ShowDebugPanel();
+            SRDebug.Instance?.HideDebugPanel();
         }
 
         private void OnDisable()
