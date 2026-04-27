@@ -6,10 +6,10 @@ using EDIVE.AppLoading.Finalizers;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.Core;
 using EDIVE.Core.Services;
-using EDIVE.External.Signals;
-using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 
 namespace EDIVE.AppLoading
@@ -17,24 +17,33 @@ namespace EDIVE.AppLoading
     public class AppLoaderController : MonoBehaviour, IService
     {
         [SerializeField]
-        [ShowCreateNew]
-        private LoadSetupDefinition _Setup;
+        private AssetReferenceT<LoadSetupDefinition> _Setup;
 
         private float _totalLoadWeight;
 
         private float _currentLoadCompletedWeight;
         private readonly List<ALoadItemDefinition> _currentLoadingItems = new();
+        private AsyncOperationHandle<LoadSetupDefinition> _setupHandle;
 
         protected float? LoadTime { get; private set; }
-        public LoadSetupDefinition Setup => _Setup;
+        public LoadSetupDefinition Setup { get; private set; }
 
-        public Signal LoadCompletedSignal { get; } = new Signal();
-        public Signal LoadFinalizedSignal { get; } = new Signal();
+        public event Action LoadStartedSignal;
+        public event Action LoadCompletedSignal;
+        public event Action LoadFinalizedSignal;
+       
+        public bool IsLoading { get; private set; }
 
+        
         // ReSharper disable once Unity.IncorrectMethodSignature
         [UsedImplicitly]
         private async UniTaskVoid Start()
         {
+            _setupHandle = _Setup.LoadAssetAsync();
+            Setup = await _setupHandle;
+            IsLoading = true;
+            LoadStartedSignal?.Invoke();
+            
             AppCore.Services.Register(this);
             DebugLite.Log("[AppLoader] Initializing");
             LoadTime = null;
@@ -72,17 +81,19 @@ namespace EDIVE.AppLoading
             DebugLite.Log($"[AppLoader] Load Times:\n{string.Join("\n", validLoadItems.Select(l => $"{l.UniqueID}: {l.LoadTime}ms"))}");
 
             OnLoadCompleted();
-            LoadCompletedSignal.Dispatch();
+            LoadCompletedSignal?.Invoke();
 
             var finalizer = ResolveLoadFinalizer();
             if (finalizer != null)
                 await finalizer.TryFinalizeLoad();
 
-            LoadFinalizedSignal.Dispatch();
+            LoadFinalizedSignal?.Invoke();
+            IsLoading = false;
             Application.runInBackground = prevRunInBackground;
             AppCore.SetLoadCompleted();
 
             AppCore.Services.Unregister<AppLoaderController>();
+            _setupHandle.Release();
             GC.Collect();
             DebugLite.Log("[AppLoader] Load completed");
 
@@ -107,7 +118,7 @@ namespace EDIVE.AppLoading
 
         protected virtual ILoadFinalizer ResolveLoadFinalizer()
         {
-            return _Setup.Finalizer;
+            return Setup.Finalizer;
         }
 
         public float GetLoadingProgress()
@@ -124,7 +135,7 @@ namespace EDIVE.AppLoading
 
         private float CalculateTotalLoadWeight()
         {
-            return _Setup.GetValidLoadItems().Sum(loadItem => loadItem.LoadWeight);
+            return Setup.GetValidLoadItems().Sum(loadItem => loadItem.LoadWeight);
         }
 
         private void OnLoadStarted(ALoadItemDefinition loadItem)

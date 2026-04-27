@@ -274,7 +274,7 @@ namespace EDIVE.AppLoading.LoadItems
                 result.AddError($"Cyclic dependency detected: {string.Join("-", cycle.Select(node => node.name))}");
             }
 
-            var providedTypes = _Dependencies.Where(d => d != null).SelectMany(d => d.GetRepresentedTypes()).ToList();
+            var providedTypes = _Dependencies.Append(this).Where(d => d != null).SelectMany(d => d.GetRepresentedTypes()).ToList();
             var missingTypes = GetTypeDependencies().Where(requiredType => !providedTypes.Any(requiredType.IsAssignableFrom)).ToList();
 
             if (missingTypes.Count > 0)
