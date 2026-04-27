@@ -65,6 +65,7 @@ namespace EDIVE.Networking.Scenes
             }
         }
 
+        
         public override float GetPercentComplete()
         {
             var max = base.GetPercentComplete();
@@ -84,17 +85,16 @@ namespace EDIVE.Networking.Scenes
             return max;
         }
 
-        public override bool IsPercentComplete() => GetPercentComplete() >= 1f;
+        public override bool IsPercentComplete() => GetPercentComplete() >= 0.9f;
 
         public override UnityScene GetLastLoadedScene()
         {
             for (var i = _activeLoads.Count - 1; i >= 0; i--)
             {
                 var h = _activeLoads[i];
-                if (h.IsValid() && h.IsDone && h.Status == AsyncOperationStatus.Succeeded)
+                if (h.IsValid() && h.Result.Scene.IsValid())
                     return h.Result.Scene;
             }
-
             return base.GetLastLoadedScene();
         }
 
@@ -114,13 +114,10 @@ namespace EDIVE.Networking.Scenes
         public override void ActivateLoadedScenes()
         {
             base.ActivateLoadedScenes();
-
             foreach (var h in _activeLoads)
             {
-                if (!h.IsValid() || !h.IsDone) continue;
-                if (h.Status != AsyncOperationStatus.Succeeded) continue;
+                if (!h.IsValid()) continue;
                 if (!h.Result.Scene.IsValid()) continue;
-
                 h.Result.ActivateAsync();
             }
         }
