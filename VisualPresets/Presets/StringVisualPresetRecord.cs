@@ -26,7 +26,7 @@ namespace EDIVE.VisualPresets.Presets
 
         public override int GetHashCodeInternal()
         {
-            return Text.GetHashCode();
+            return Text?.GetHashCode() ?? 0;
         }
     }
 }

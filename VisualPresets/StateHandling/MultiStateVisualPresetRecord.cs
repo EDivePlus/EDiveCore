@@ -43,7 +43,7 @@ namespace EDIVE.VisualPresets.StateHandling
 
         public override int GetHashCodeInternal()
         {
-            return State.GetHashCode();
+            return State?.GetHashCode() ?? 0;
         }
 
 #if UNITY_EDITOR
