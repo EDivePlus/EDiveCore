@@ -8,7 +8,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Utils",
         "EDIVE.StateHandling",
-        "EDIVE.VisualPresets"
+        "EDIVE.VisualPresets",
+        "EDIVE.AssetTranslation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

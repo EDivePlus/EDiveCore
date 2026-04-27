@@ -57,7 +57,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override void TryApply(AVisualPresetRecord preset)
         {
-            if (BaseVisualID == preset.BaseVisualID && !Equals(_currentPreset, preset) && preset is AVisualPresetRecord<TVisualID> tPreset)
+            if (Equals(BaseVisualID.UniqueID, preset.BaseVisualID.UniqueID) && !Equals(_currentPreset, preset) && preset is AVisualPresetRecord<TVisualID> tPreset)
                 TryApply(tPreset);
         }
 
