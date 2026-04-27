@@ -24,7 +24,18 @@ namespace EDIVE.VisualPresets.Switchers
         public abstract void TryApply(AVisualPresetRecord preset);
         
         private static List<IVisualSwitcherStrategy> _strategyCatalog;
-        protected static List<IVisualSwitcherStrategy> StrategyCatalog => _strategyCatalog ??= ReflectionExtensions.GetAssignableClassesOfType<IVisualSwitcherStrategy>().ToList();
+        protected static List<IVisualSwitcherStrategy> StrategyCatalog
+        {
+            get
+            {
+                if (_strategyCatalog != null)
+                    return _strategyCatalog;
+
+                _strategyCatalog = ReflectionExtensions.GetAssignableClassesOfType<IVisualSwitcherStrategy>().ToList();
+                Debug.Log($"[VisualSwitcherRecord] Built StrategyCatalog. Count={_strategyCatalog.Count}");
+                return _strategyCatalog;
+            }
+        }
     }
     
     [Serializable]
