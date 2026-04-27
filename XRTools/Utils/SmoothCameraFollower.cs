@@ -65,21 +65,24 @@ namespace EDIVE.XRTools
         private Vector3 _positionVelocity;
         private Vector3 _rotationVelocity;
         private Tween _repositionTween;
+
+        private void OnEnable()
+        {
+            _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow);
+        }
+
+        private void OnDisable()
+        {
+            _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
+        }
         
-        protected void Awake()
+        private void Start()
         {
             if (_RepositionOnAwake)
                 Reposition(true);
             
             if (_FollowOnAwake)
                 SetFollowing(true);
-            
-            _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow);
-        }
-
-        private void OnDestroy()
-        {
-            _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
         }
 
         private void LateUpdate()
