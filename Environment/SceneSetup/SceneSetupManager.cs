@@ -103,7 +103,6 @@ namespace EDIVE.Environment.SceneSetup
                 await overlay.RequestOverlayAndWait(this);
 
             // Load the scenes
-
             Scene?[] loadedScenes = null;
             var defScenes = definition.Scenes.ToList();
             if (defScenes.Any() && AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
@@ -126,18 +125,16 @@ namespace EDIVE.Environment.SceneSetup
                         if (firstScene != null)
                             UnitySceneManager.SetActiveScene(firstScene.Value);
                     }
-
-                    await UniTask.Yield();
                 }
             }
-
+            await UniTask.Yield();
+            
             // Apply visual
             foreach (var sceneController in _sceneControllers)
             {
                 if (sceneController != null)
                     sceneController.ApplyDefinition(definition);
             }
-
             await UniTask.Yield();
             
             // Find spawn place and teleport
