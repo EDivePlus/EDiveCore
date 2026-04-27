@@ -17,7 +17,10 @@ namespace EDIVE.AppLoading
     public class AppLoaderController : MonoBehaviour, IService
     {
         [SerializeField]
-        private AssetReferenceT<LoadSetupDefinition> _Setup;
+        private AssetReferenceT<LoadSetupDefinition> _SetupReference;
+        
+        [SerializeField]
+        private LoadSetupDefinition _Setup;
 
         private float _totalLoadWeight;
 
@@ -26,7 +29,7 @@ namespace EDIVE.AppLoading
         private AsyncOperationHandle<LoadSetupDefinition> _setupHandle;
 
         protected float? LoadTime { get; private set; }
-        public LoadSetupDefinition Setup { get; private set; }
+        public LoadSetupDefinition Setup => _Setup;
 
         public event Action LoadStartedSignal;
         public event Action LoadCompletedSignal;
@@ -39,11 +42,15 @@ namespace EDIVE.AppLoading
         [UsedImplicitly]
         private async UniTaskVoid Start()
         {
-            _setupHandle = _Setup.LoadAssetAsync();
-            Setup = await _setupHandle;
+            if (_Setup == null && _SetupReference.IsValid())
+            {
+                _setupHandle = _SetupReference.LoadAssetAsync();
+                _Setup = await _setupHandle;
+            }
+
             IsLoading = true;
             LoadStartedSignal?.Invoke();
-            
+
             AppCore.Services.Register(this);
             DebugLite.Log("[AppLoader] Initializing");
             LoadTime = null;
@@ -93,7 +100,8 @@ namespace EDIVE.AppLoading
             AppCore.SetLoadCompleted();
 
             AppCore.Services.Unregister<AppLoaderController>();
-            _setupHandle.Release();
+            if (_setupHandle.IsValid())
+                _setupHandle.Release();
             GC.Collect();
             DebugLite.Log("[AppLoader] Load completed");
 
