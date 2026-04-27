@@ -3,7 +3,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using FishNet.Managing.Scened;
-using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
@@ -15,19 +14,26 @@ namespace EDIVE.Networking.Scenes
     public class AddressableSceneProcessor : DefaultSceneProcessor
     {
         private readonly List<AsyncOperationHandle<SceneInstance>> _activeLoads = new();
+        private readonly List<AsyncOperationHandle<SceneInstance>> _activeUnloads = new();
         private readonly Dictionary<UnityScene, AsyncOperationHandle<SceneInstance>> _loadedScenes = new();
-        private readonly List<AsyncOperationHandle> _activeUnloads = new();
+
+        private AsyncOperationHandle<SceneInstance> _currentLoad;
+        private bool _currentIsAddressable;
 
         public override void LoadStart(LoadQueueData queueData)
         {
             base.LoadStart(queueData);
             _activeLoads.Clear();
+            _currentLoad = default;
+            _currentIsAddressable = false;
         }
 
         public override void LoadEnd(LoadQueueData queueData)
         {
             base.LoadEnd(queueData);
             _activeLoads.Clear();
+            _currentLoad = default;
+            _currentIsAddressable = false;
         }
 
         public override void UnloadStart(UnloadQueueData queueData)
@@ -40,24 +46,24 @@ namespace EDIVE.Networking.Scenes
         {
             if (TryLocateAddressableScene(sceneName))
             {
-                var handle = Addressables.LoadSceneAsync(sceneName, parameters, activateOnLoad: false);
-                _activeLoads.Add(handle);
+                _currentLoad = Addressables.LoadSceneAsync(sceneName, parameters, activateOnLoad: false);
+                _currentIsAddressable = true;
+                _activeLoads.Add(_currentLoad);
             }
             else
             {
+                _currentLoad = default;
+                _currentIsAddressable = false;
                 base.BeginLoadAsync(sceneName, parameters);
             }
         }
 
         public override void BeginUnloadAsync(UnityScene scene)
         {
-            if (_loadedScenes.Remove(scene, out var handle))
+            if (_loadedScenes.Remove(scene, out var handle) && handle.IsValid())
             {
-                if (handle.IsValid())
-                {
-                    var unloadHandle = Addressables.UnloadSceneAsync(handle, autoReleaseHandle: true);
-                    _activeUnloads.Add(unloadHandle);
-                }
+                var unload = Addressables.UnloadSceneAsync(handle, autoReleaseHandle: true);
+                _activeUnloads.Add(unload);
             }
             else
             {
@@ -65,50 +71,27 @@ namespace EDIVE.Networking.Scenes
             }
         }
 
-        
         public override float GetPercentComplete()
         {
-            var max = base.GetPercentComplete();
-
-            foreach (var h in _activeLoads)
-            {
-                if (h.IsValid())
-                    max = Mathf.Max(max, h.PercentComplete);
-            }
-
-            foreach (var h in _activeUnloads)
-            {
-                if (h.IsValid())
-                    max = Mathf.Max(max, h.PercentComplete);
-            }
-
-            return max;
+            if (_currentIsAddressable)
+                return _currentLoad.IsValid() ? _currentLoad.PercentComplete : 1f;
+            return base.GetPercentComplete();
         }
 
         public override bool IsPercentComplete() => GetPercentComplete() >= 0.9f;
 
         public override UnityScene GetLastLoadedScene()
         {
-            for (var i = _activeLoads.Count - 1; i >= 0; i--)
-            {
-                var h = _activeLoads[i];
-                if (h.IsValid() && h.Result.Scene.IsValid())
-                    return h.Result.Scene;
-            }
+            if (_currentIsAddressable && _currentLoad.IsValid() && _currentLoad.Result.Scene.IsValid())
+                return _currentLoad.Result.Scene;
             return base.GetLastLoadedScene();
         }
 
         public override void AddLoadedScene(UnityScene scene)
         {
             base.AddLoadedScene(scene);
-
-            foreach (var h in _activeLoads)
-            {
-                if (!h.IsValid() || !h.IsDone || h.Status != AsyncOperationStatus.Succeeded || h.Result.Scene != scene) 
-                    continue;
-                _loadedScenes[scene] = h;
-                break;
-            }
+            if (_currentIsAddressable && _currentLoad.IsValid() && _currentLoad.Result.Scene == scene)
+                _loadedScenes[scene] = _currentLoad;
         }
 
         public override void ActivateLoadedScenes()
@@ -116,9 +99,8 @@ namespace EDIVE.Networking.Scenes
             base.ActivateLoadedScenes();
             foreach (var h in _activeLoads)
             {
-                if (!h.IsValid()) continue;
-                if (!h.Result.Scene.IsValid()) continue;
-                h.Result.ActivateAsync();
+                if (h.IsValid() && h.Result.Scene.IsValid())
+                    h.Result.ActivateAsync();
             }
         }
 
