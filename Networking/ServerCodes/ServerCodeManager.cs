@@ -37,7 +37,8 @@ namespace EDIVE.Networking.ServerCodes
 
         private const string CODE_CHARS = "AB0123456789";
         private const float HEARTBEAT_INTERVAL = 10;
-        private readonly HttpClient _client = new();
+        private const int REQUEST_TIMEOUT_SECONDS = 15;
+        private readonly HttpClient _client = new() { Timeout = TimeSpan.FromSeconds(REQUEST_TIMEOUT_SECONDS) };
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -148,7 +149,7 @@ namespace EDIVE.Networking.ServerCodes
             {
                 var req = new ServerDisposeRequest {secret = _serverSecret};
                 const string endpoint = "server/dispose";
-                var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(req));
+                var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(req), destroyCancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
                     Debug.LogError($"Server dispose failed: '{response.StatusCode}'.");
@@ -161,7 +162,7 @@ namespace EDIVE.Networking.ServerCodes
                     Debug.LogError($"Server dispose failed: '{responseObject.message}'. Will still be disposed after a minute or so.");
                 }
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 Debug.LogException(e);
             }
@@ -192,8 +193,8 @@ namespace EDIVE.Networking.ServerCodes
 
                 const string endpoint = "server/register";
                 const string errorMessage = "Server code registration failed, but the server will still be accessible via its IP.";
-                
-                var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(req));
+
+                var response = await _client.PostAsync(CombineUrl(serverManagerURL, endpoint), ToJsonContent(req), destroyCancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
                     PrintErrorMsg(errorMessage, response.StatusCode.ToString());
@@ -205,13 +206,13 @@ namespace EDIVE.Networking.ServerCodes
                     PrintErrorMsg(errorMessage, responseObject.message);
                     return;
                 }
-                
+
                 var responseData = responseObject.data;
                 DebugLite.Log($"[ServerCodeManager] Server registered with code {responseData.code}");
 
                 RegisteredWithCode = responseData.code;
                 _serverSecret = responseData.secret;
-                
+
                 _heartbeatCts?.Cancel();
                 _heartbeatCts?.Dispose();
                 _heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
@@ -221,7 +222,7 @@ namespace EDIVE.Networking.ServerCodes
                     secret = _serverSecret
                 }, _heartbeatCts.Token).Forget();
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 Debug.LogException(e);
             }
@@ -248,7 +249,7 @@ namespace EDIVE.Networking.ServerCodes
             try
             {
                 Debug.Log("Request url: " + url);
-                var response = await _client.GetAsync(url);
+                var response = await _client.GetAsync(url, destroyCancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
                     Debug.LogError($"Client request failed for server from code failed: '{response.StatusCode}'.");
@@ -262,7 +263,7 @@ namespace EDIVE.Networking.ServerCodes
                 }
                 callback?.Invoke(responseObject.data);
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 Debug.LogException(e);
             }
@@ -309,10 +310,12 @@ namespace EDIVE.Networking.ServerCodes
         {
             try
             {
-                var s = await _client.GetStringAsync("http://ipv4.icanhazip.com");
+                var response = await _client.GetAsync("http://ipv4.icanhazip.com", destroyCancellationToken);
+                response.EnsureSuccessStatusCode();
+                var s = await response.Content.ReadAsStringAsync();
                 return new string(s.Where(c => !char.IsWhiteSpace(c)).ToArray());
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 Debug.LogException(e);
                 return "0.0.0.0";
