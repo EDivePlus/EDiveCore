@@ -1,7 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 16.03.2026
 
-namespace EDIVE.UserCenter.SaveData
+namespace EDIVE.ServiceHub.SaveData
 {
     public interface ISaveDataLocalStore
     {

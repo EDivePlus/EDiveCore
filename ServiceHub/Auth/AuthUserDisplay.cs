@@ -7,7 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.UserCenter.Auth
+namespace EDIVE.ServiceHub.Auth
 {
     public class AuthUserDisplay : MonoBehaviour
     {

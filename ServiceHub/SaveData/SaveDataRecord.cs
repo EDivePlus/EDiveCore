@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace EDIVE.UserCenter.SaveData
+namespace EDIVE.ServiceHub.SaveData
 {
     [Serializable]
     public class SaveDataResponse

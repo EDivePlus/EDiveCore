@@ -8,15 +8,15 @@ using EDIVE.Core;
 using EDIVE.Http;
 using EDIVE.Networking;
 using EDIVE.OdinExtensions.Attributes;
-using EDIVE.UserCenter.Auth;
-using EDIVE.UserCenter.SaveData;
+using EDIVE.ServiceHub.Auth;
+using EDIVE.ServiceHub.SaveData;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.ServiceHub
 {
-    public partial class UserCenterManager
+    public partial class ServiceHubManager
     {
         [SerializeField]
         [PropertyOrder(10)]
@@ -51,7 +51,7 @@ namespace EDIVE.UserCenter
             if (networkManager != null && networkManager.ConnectionState == ConnectionState.Connected)
             {
                 networkManager.StopRuntime();
-                Debug.Log("[UserCenter] Disconnected from server as part of logout.");
+                Debug.Log("[ServiceHub] Disconnected from server as part of logout.");
             }
             
             AuthStorage.Clear();
@@ -86,7 +86,7 @@ namespace EDIVE.UserCenter
             if (response.IsSuccess && response.Result?.Status == 0 && response.Result?.Data != null)
                 return true;
 
-            Debug.LogWarning("[UserCenter] Auth check failed — token is no longer valid. Logging out.");
+            Debug.LogWarning("[ServiceHub] Auth check failed — token is no longer valid. Logging out.");
             await LogoutAsync(cancellationToken);
             return false;
         }
@@ -163,7 +163,7 @@ namespace EDIVE.UserCenter
             // Network-level failure (timeout, DNS, etc.)
             if (!response.IsSuccess && response.Result is null)
             {
-                Debug.LogError($"[UserCenter] Login request failed: {response.ErrorMessage}");
+                Debug.LogError($"[ServiceHub] Login request failed: {response.ErrorMessage}");
                 OnLoginFailed?.Invoke(response.StatusCode, response.ErrorMessage);
                 return NetworkResponse<LoginResponse>.Error(response.StatusCode, response.ErrorMessage);
             }
@@ -175,7 +175,7 @@ namespace EDIVE.UserCenter
             {
                 var message = apiResponse?.Message ?? "Unknown error";
                 var statusCode = apiResponse?.Status ?? -1;
-                Debug.LogError($"[UserCenter] Login failed ({statusCode}): {message}");
+                Debug.LogError($"[ServiceHub] Login failed ({statusCode}): {message}");
                 OnLoginFailed?.Invoke(statusCode, message);
                 return NetworkResponse<LoginResponse>.Error(response.StatusCode, message);
             }
@@ -194,11 +194,11 @@ namespace EDIVE.UserCenter
             if (!string.IsNullOrEmpty(email))
                 AuthStorage.SetLastEmail(email);
 
-            Debug.Log("[UserCenter] Login successful.");
+            Debug.Log("[ServiceHub] Login successful.");
             OnLoginSucceeded?.Invoke(loginResponse);
 
             var result = NetworkResponse<LoginResponse>.Success(response.StatusCode, loginResponse);
-            Debug.Log($"[UserCenter] Login response (formatted): {JsonConvert.SerializeObject(result, Formatting.Indented)}");
+            Debug.Log($"[ServiceHub] Login response (formatted): {JsonConvert.SerializeObject(result, Formatting.Indented)}");
             return result;
         }
     }

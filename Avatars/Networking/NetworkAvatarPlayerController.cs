@@ -7,8 +7,8 @@ using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
 using EDIVE.Networking.Utils;
-using EDIVE.UserCenter;
-using EDIVE.UserCenter.SaveData;
+using EDIVE.ServiceHub;
+using EDIVE.ServiceHub.SaveData;
 using EDIVE.XRTools.Controls;
 using FishNet;
 using FishNet.Connection;
@@ -28,7 +28,7 @@ namespace EDIVE.Avatars.Networking
         private float _PlayerSummonRadius = 0.75f;
 
         private NetworkPlayerManager _networkPlayerManager;
-        private UserCenterManager _userCenterManager;
+        private ServiceHubManager _serviceHubManager;
         private AvatarPlayerSaveData _saveData;
 
         private readonly SyncVar<AvatarDefinition> _avatarDefinition = new();
@@ -42,7 +42,7 @@ namespace EDIVE.Avatars.Networking
             _avatarResolver.OnChanged += OnAvatarChanged;
 
             _networkPlayerManager = AppCore.Services.Get<NetworkPlayerManager>();
-            _userCenterManager = AppCore.Services.Get<UserCenterManager>();
+            _serviceHubManager = AppCore.Services.Get<ServiceHubManager>();
         }
 
         public override void OnStartClient()
@@ -64,11 +64,11 @@ namespace EDIVE.Avatars.Networking
 
         private async UniTaskVoid LoadAndApplySavedAvatar()
         {
-            if (_userCenterManager == null)
+            if (_serviceHubManager == null)
                 return;
 
             var ct = this.GetCancellationTokenOnDestroy();
-            var result = await _userCenterManager.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
+            var result = await _serviceHubManager.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
             if (ct.IsCancellationRequested)
                 return;
 
@@ -83,11 +83,11 @@ namespace EDIVE.Avatars.Networking
         private void OnSaveDataMarkedAsDirty()
         {
             var data = _saveData;
-            if (_userCenterManager == null || data == null)
+            if (_serviceHubManager == null || data == null)
                 return;
 
             data.ClearDirty();
-            _userCenterManager.SetSaveData(AvatarPlayerSaveData.KEY, data, SaveDataDirtyFlag.OnEndOfFrame, this.GetCancellationTokenOnDestroy()).Forget();
+            _serviceHubManager.SetSaveData(AvatarPlayerSaveData.KEY, data, SaveDataDirtyFlag.OnEndOfFrame, this.GetCancellationTokenOnDestroy()).Forget();
         }
         
         private void OnAvatarChanged(AvatarController avatar)

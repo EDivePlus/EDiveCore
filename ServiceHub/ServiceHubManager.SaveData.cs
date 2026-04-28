@@ -8,16 +8,16 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.ServiceHub.Auth;
+using EDIVE.ServiceHub.SaveData;
 using EDIVE.Time.TimeSpanUtils;
-using EDIVE.UserCenter.Auth;
-using EDIVE.UserCenter.SaveData;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.ServiceHub
 {
-    public partial class UserCenterManager
+    public partial class ServiceHubManager
     {
         private const int MAX_KEY_LENGTH = 256;
         private const int MAX_VALUE_BYTES = 256 * 1024;
@@ -73,7 +73,7 @@ namespace EDIVE.UserCenter
                 catch (OperationCanceledException) { }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[UserCenter] Sync loop error ({flag}): {e}");
+                    Debug.LogError($"[ServiceHub] Sync loop error ({flag}): {e}");
                 }
             }
         }
@@ -129,7 +129,7 @@ namespace EDIVE.UserCenter
                 // Not found on server — fall through to local
                 if (!response.IsNotFound && !response.IsSuccess)
                 {
-                    Debug.LogWarning($"[UserCenter] Server get failed for '{key}': {response.ErrorMessage}");
+                    Debug.LogWarning($"[ServiceHub] Server get failed for '{key}': {response.ErrorMessage}");
                 }
             }
 
@@ -144,7 +144,7 @@ namespace EDIVE.UserCenter
         {
             if (string.IsNullOrWhiteSpace(key) || key.Length > MAX_KEY_LENGTH)
             {
-                Debug.LogWarning($"[UserCenter] Invalid key: must be non-empty and at most {MAX_KEY_LENGTH} characters.");
+                Debug.LogWarning($"[ServiceHub] Invalid key: must be non-empty and at most {MAX_KEY_LENGTH} characters.");
                 return SaveDataStatus.Error;
             }
 
@@ -155,7 +155,7 @@ namespace EDIVE.UserCenter
 
             if (Encoding.UTF8.GetByteCount(json) > MAX_VALUE_BYTES)
             {
-                Debug.LogWarning($"[UserCenter] Value for key '{key}' exceeds maximum size of {MAX_VALUE_BYTES / 1024} KB.");
+                Debug.LogWarning($"[ServiceHub] Value for key '{key}' exceeds maximum size of {MAX_VALUE_BYTES / 1024} KB.");
                 return SaveDataStatus.Error;
             }
 
@@ -172,7 +172,7 @@ namespace EDIVE.UserCenter
                 if (response.IsSuccess)
                     return SaveDataStatus.Saved;
 
-                Debug.LogError($"[UserCenter] Server save failed for '{key}': {response.ErrorMessage} (saved locally)");
+                Debug.LogError($"[ServiceHub] Server save failed for '{key}': {response.ErrorMessage} (saved locally)");
                 return SaveDataStatus.SavedLocal;
             }
 
@@ -230,7 +230,7 @@ namespace EDIVE.UserCenter
             if (response.IsSuccess || response.IsNotFound)
                 return SaveDataResult<bool>.Success(true, true);
 
-            Debug.LogError($"[UserCenter] Server delete failed for '{key}': {response.ErrorMessage}");
+            Debug.LogError($"[ServiceHub] Server delete failed for '{key}': {response.ErrorMessage}");
             return SaveDataResult<bool>.Error(response.ErrorMessage);
         }
 
@@ -279,7 +279,7 @@ namespace EDIVE.UserCenter
                     var response = await PutSaveDataAsync(key, json, ct);
                     if (!response.IsSuccess)
                     {
-                        Debug.LogError($"[UserCenter] Sync failed for '{key}': {response.ErrorMessage}");
+                        Debug.LogError($"[ServiceHub] Sync failed for '{key}': {response.ErrorMessage}");
                         bucket.TryAdd(key, json);
                     }
                     continue;
@@ -329,7 +329,7 @@ namespace EDIVE.UserCenter
                 var single = await PutSaveDataAsync(key, json, ct);
                 if (!single.IsSuccess)
                 {
-                    Debug.LogError($"[UserCenter] Sync failed for '{key}': {single.ErrorMessage}");
+                    Debug.LogError($"[ServiceHub] Sync failed for '{key}': {single.ErrorMessage}");
                     bucket.TryAdd(key, json);
                 }
                 return;
@@ -342,7 +342,7 @@ namespace EDIVE.UserCenter
                 var err = response.IsSuccess
                     ? response.Result?.Message ?? "Unknown error"
                     : response.ErrorMessage;
-                Debug.LogError($"[UserCenter] Batch sync failed ({batch.Count} entries): {err}");
+                Debug.LogError($"[ServiceHub] Batch sync failed ({batch.Count} entries): {err}");
                 foreach (var (k, v) in batch)
                     bucket.TryAdd(k, v);
                 return;
@@ -355,7 +355,7 @@ namespace EDIVE.UserCenter
             {
                 foreach (var (k, msg) in errors)
                 {
-                    Debug.LogError($"[UserCenter] Batch sync rejected '{k}': {msg}");
+                    Debug.LogError($"[ServiceHub] Batch sync rejected '{k}': {msg}");
                     if (batch.TryGetValue(k, out var v))
                         bucket.TryAdd(k, v);
                 }

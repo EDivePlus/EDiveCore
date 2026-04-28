@@ -151,7 +151,7 @@ namespace EDIVE.Networking.Players
             var playerCreationRequest = new PlayerCreationRequestMessage();
 
             _networkManager.ClientManager.Broadcast(playerCreationRequest);
-            DebugLite.Log("[NetworkPlayerManager] Sending request for player creation (after UserCenter profile load).");
+            DebugLite.Log("[NetworkPlayerManager] Sending request for player creation (after ServiceHub profile load).");
         }
 
         private void OnServerPlayerCreationRequest(NetworkConnection conn, PlayerCreationRequestMessage request, Channel channel)

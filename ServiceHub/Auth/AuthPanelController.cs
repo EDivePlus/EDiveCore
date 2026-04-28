@@ -1,13 +1,12 @@
 ﻿// Author: Michal Petr
 // Created: 08.04.2026
 
-using System;
 using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.UserCenter.Auth
+namespace EDIVE.ServiceHub.Auth
 {
     public class AuthPanelController : MonoBehaviour
     {
@@ -17,25 +16,25 @@ namespace EDIVE.UserCenter.Auth
         [SerializeField]
         private Button _LogoutButton;
         
-        private UserCenterManager _userCenter;
+        private ServiceHubManager _serviceHub;
 
         private void Awake()
         {
-            _userCenter = AppCore.Services.Get<UserCenterManager>();
+            _serviceHub = AppCore.Services.Get<ServiceHubManager>();
         }
 
         private void OnEnable()
         {
-            _userCenter.OnLoginSucceeded += OnLoginSucceeded;
-            _userCenter.OnLoginFailed += OnLoginFailed;
+            _serviceHub.OnLoginSucceeded += OnLoginSucceeded;
+            _serviceHub.OnLoginFailed += OnLoginFailed;
             _LogoutButton.onClick.AddListener(LogOut);
             RefreshUI();
         }
 
         private void OnDisable()
         {
-            _userCenter.OnLoginSucceeded -= OnLoginSucceeded;
-            _userCenter.OnLoginFailed -= OnLoginFailed;
+            _serviceHub.OnLoginSucceeded -= OnLoginSucceeded;
+            _serviceHub.OnLoginFailed -= OnLoginFailed;
             _LogoutButton.onClick.RemoveListener(LogOut);
         }
         
@@ -51,7 +50,7 @@ namespace EDIVE.UserCenter.Auth
 
         private void RefreshUI()
         {
-            if (UserCenterManager.IsLoggedIn)
+            if (ServiceHubManager.IsLoggedIn)
             {
                 _LoggedInToggle.SetState(true);
                 _LogoutButton.interactable = true;
@@ -65,7 +64,7 @@ namespace EDIVE.UserCenter.Auth
 
         private void LogOut()
         {
-            _userCenter.Logout();
+            _serviceHub.Logout();
             RefreshUI();
         }
     }

@@ -3,13 +3,13 @@
 
 using System;
 
-namespace EDIVE.UserCenter.SaveData
+namespace EDIVE.ServiceHub.SaveData
 {
     public enum SaveDataDirtyFlag
     {
         NoChange,       // No changes to be made
         Manual,         // Synced with remote only when manually triggered
-        OnBatch,        // Synced with remote once UserCenterManager calls BatchSync (can be triggered manually or automatically at certain intervals/events)
+        OnBatch,        // Synced with remote once ServiceHubManager calls BatchSync (can be triggered manually or automatically at certain intervals/events)
         OnEndOfFrame,   // Synced with remote at the end of the frame (after all changes for the frame are done)
         Immediate,      // Synced with remote immediately whenever a change is made
     }

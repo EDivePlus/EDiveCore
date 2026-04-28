@@ -5,7 +5,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.UserCenter
+namespace EDIVE.ServiceHub
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]

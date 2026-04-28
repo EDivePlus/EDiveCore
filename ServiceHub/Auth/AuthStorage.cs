@@ -5,7 +5,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.UserCenter.Auth
+namespace EDIVE.ServiceHub.Auth
 {
     public static class AuthStorage
     {

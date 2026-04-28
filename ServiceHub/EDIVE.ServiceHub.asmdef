@@ -1,5 +1,5 @@
 {
-    "name": "EDIVE.UserCenter",
+    "name": "EDIVE.ServiceHub",
     "rootNamespace": "",
     "references": [
         "UniTask",
@@ -11,7 +11,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Time",
         "EDIVE.StateHandling",
-        "EDIVE.Networking"
+        "EDIVE.Networking",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

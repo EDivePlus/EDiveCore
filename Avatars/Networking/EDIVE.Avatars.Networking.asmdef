@@ -12,7 +12,7 @@
     "EDIVE.NativeUtils",
     "EDIVE.AppLoading",
     "Unity.XR.Interaction.Toolkit",
-    "EDIVE.UserCenter",
+    "EDIVE.ServiceHub",
     "UniTask"
   ],
   "includePlatforms": [],

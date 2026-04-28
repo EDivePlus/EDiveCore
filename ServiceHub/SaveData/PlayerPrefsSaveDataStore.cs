@@ -3,7 +3,7 @@
 
 using UnityEngine;
 
-namespace EDIVE.UserCenter.SaveData
+namespace EDIVE.ServiceHub.SaveData
 {
     public sealed class PlayerPrefsSaveDataStore : ISaveDataLocalStore
     {

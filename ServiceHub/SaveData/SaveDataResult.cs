@@ -3,7 +3,7 @@
 
 using System;
 
-namespace EDIVE.UserCenter.SaveData
+namespace EDIVE.ServiceHub.SaveData
 {
     [Flags]
     public enum SaveDataStatus
