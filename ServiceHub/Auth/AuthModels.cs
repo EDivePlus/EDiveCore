@@ -8,6 +8,10 @@ using UnityEngine;
 
 namespace EDIVE.ServiceHub.Auth
 {
+    // --------
+    // Requests
+    // --------
+    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginRequest
@@ -51,9 +55,29 @@ namespace EDIVE.ServiceHub.Auth
         }
     }
 
-    /// <summary>
-    /// Matches the backend AuthTokenResponse.
-    /// </summary>
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ServerLoginRequest
+    {
+        [JsonProperty("server_id")]
+        [SerializeField]
+        private string _ServerId;
+
+        [JsonProperty("secret")]
+        [SerializeField]
+        private string _ServerSecret;
+        
+        public ServerLoginRequest(string serverId, string serverSecret)
+        {
+            _ServerId = serverId;
+            _ServerSecret = serverSecret;
+        }
+    }
+    
+    // ---------
+    // Responses
+    // ---------
+    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginResponse
@@ -79,10 +103,7 @@ namespace EDIVE.ServiceHub.Auth
         public int ExpiresIn => _ExpiresIn;
         public AuthUserInfo AuthUser => _AuthUser;
     }
-
-    /// <summary>
-    /// Matches the backend UserInfoResponse from /auth/me.
-    /// </summary>
+    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class AuthUserInfo
@@ -121,6 +142,42 @@ namespace EDIVE.ServiceHub.Auth
         public List<string> Roles => _Roles;
         public bool IsAnonymous => _IsAnonymous;
         public List<string> AppRoles => _AppRoles;
+        public string AppSecret => _AppSecret;
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ServerLoginResponse
+    {
+        [JsonProperty("access_token")]
+        [SerializeField]
+        private string _AccessToken;
+
+        [JsonProperty("token_type")]
+        [SerializeField]
+        private string _TokenType;
+
+        [JsonProperty("expires_in")]
+        [SerializeField]
+        private int _ExpiresIn;
+        
+        [JsonProperty("server_id")]
+        [SerializeField]
+        private string _ServerId;
+        
+        [JsonProperty("name")]
+        [SerializeField]
+        private string _Name;
+        
+        [JsonProperty("app_secret")]
+        [SerializeField]
+        private string _AppSecret;
+
+        public string AccessToken => _AccessToken;
+        public string TokenType => _TokenType;
+        public int ExpiresIn => _ExpiresIn;
+        public string ServerId => _ServerId;
+        public string Name => _Name;
         public string AppSecret => _AppSecret;
     }
 }

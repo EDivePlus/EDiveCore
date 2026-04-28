@@ -83,8 +83,8 @@ namespace EDIVE.ServiceHub.Auth
             _isPasswordHidden = true;
             ApplyPasswordMaskState();
 
-            _serviceHubManager.OnLoginSucceeded += OnLoginOk;
-            _serviceHubManager.OnLoginFailed += OnLoginFail;
+            _serviceHubManager.OnClientLoginSucceeded += OnClientLoginOk;
+            _serviceHubManager.OnClientLoginFailed += OnClientLoginFail;
 
             if (_ErrorText)
             {
@@ -102,8 +102,8 @@ namespace EDIVE.ServiceHub.Auth
         
         private void OnDisable()
         {
-            _serviceHubManager.OnLoginSucceeded -= OnLoginOk;
-            _serviceHubManager.OnLoginFailed -= OnLoginFail;
+            _serviceHubManager.OnClientLoginSucceeded -= OnClientLoginOk;
+            _serviceHubManager.OnClientLoginFailed -= OnClientLoginFail;
             _CredentialsLoginButton.onClick.RemoveListener(OnLoginClicked);
             if (_LogoutButton) _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
             _CredentialsEmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
@@ -123,16 +123,16 @@ namespace EDIVE.ServiceHub.Auth
             }
 
             Debug.Log("Logging in…");
-            _serviceHubManager.Login(email, pass);
+            _serviceHubManager.LoginClient(email, pass);
         }
         
         private void OnAnonymousLoginClicked()
         {
             Debug.Log("Logging in anonymously…");
-            _serviceHubManager.AnonymousLogin();
+            _serviceHubManager.AnonymousLoginClient();
         }
 
-        private void OnLoginOk(LoginResponse r)
+        private void OnClientLoginOk(LoginResponse r)
         {
             SetLoggedInUI(true);
             Debug.Log("Login was successful.");
@@ -154,7 +154,7 @@ namespace EDIVE.ServiceHub.Auth
                 AuthStorage.SetLastEmail(emailNow);
         }
 
-        private void OnLoginFail(long status, string message)
+        private void OnClientLoginFail(long status, string message)
         {
             Debug.Log($"{message} {(status > 0 ? $"(HTTP {status})" : "")}");
             if (_ErrorText != null)
@@ -190,7 +190,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private void OnLogoutClicked()
         {
-            _serviceHubManager.Logout();
+            _serviceHubManager.LogoutClient();
             SetLoggedInUI(false);
             Debug.Log("User has been logged out.");
         }

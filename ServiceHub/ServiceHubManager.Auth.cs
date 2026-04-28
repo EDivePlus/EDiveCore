@@ -30,46 +30,23 @@ namespace EDIVE.ServiceHub
 
         public static bool IsLoggedIn => AuthStorage.IsValid();
 
-        public event Action<LoginResponse> OnLoginSucceeded;
-        public event Action<long, string> OnLoginFailed;
+        public event Action<LoginResponse> OnClientLoginSucceeded;
+        public event Action<long, string> OnClientLoginFailed;
 
-        public void Login(string email, string password) => LoginAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget();
+        public void LoginClient(string email, string password) => LoginClientAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget();
 
-        public void AnonymousLogin() => AnonymousLoginAsync(this.GetCancellationTokenOnDestroy()).Forget();
+        public void AnonymousLoginClient() => AnonymousLoginClientAsync(this.GetCancellationTokenOnDestroy()).Forget();
 
-        public void Logout() => LogoutAsync(this.GetCancellationTokenOnDestroy()).Forget();
-
-        public async UniTask LogoutAsync(CancellationToken cancellationToken = default)
-        {
-            var effectiveToken = cancellationToken == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
-                : cancellationToken;
-            
-            await FlushAllDirtyEntries(effectiveToken);
-
-            var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            if (networkManager != null && networkManager.ConnectionState == ConnectionState.Connected)
-            {
-                networkManager.StopRuntime();
-                Debug.Log("[ServiceHub] Disconnected from server as part of logout.");
-            }
-            
-            AuthStorage.Clear();
-            _local = new PlayerPrefsSaveDataStore();
-        }
+        public void LogoutClient() => LogoutClientAsync(this.GetCancellationTokenOnDestroy()).Forget();
         
         private string AuthLoginUrl => $"{ServiceBaseUrl}/auth/login";
         private string AnonymousAuthLoginUrl => $"{ServiceBaseUrl}/auth/anonymous-login";
         private string AuthMeUrl => $"{ServiceBaseUrl}/auth/me";
-
-        /// <summary>
-        /// Calls /auth/me to verify the stored token is still valid server-side.
-        /// If the server rejects it, the user is logged out locally.
-        /// </summary>
+        
         [Button]
         [PropertyOrder(98)]
         [EnhancedBoxGroup("Auth")]
-        public async UniTask<bool> CheckAuthAsync(CancellationToken cancellationToken = default)
+        public async UniTask<bool> CheckClientAuthAsync(CancellationToken cancellationToken = default)
         {
             if (!AuthStorage.IsValid())
                 return false;
@@ -87,7 +64,7 @@ namespace EDIVE.ServiceHub
                 return true;
 
             Debug.LogWarning("[ServiceHub] Auth check failed — token is no longer valid. Logging out.");
-            await LogoutAsync(cancellationToken);
+            await LogoutClientAsync(cancellationToken);
             return false;
         }
 
@@ -102,7 +79,7 @@ namespace EDIVE.ServiceHub
         [Button]
         [PropertyOrder(99)]
         [EnhancedBoxGroup("Auth")]
-        public async UniTask<NetworkResponse<LoginResponse>> LoginAsync(
+        public async UniTask<NetworkResponse<LoginResponse>> LoginClientAsync(
             string email,
             string password,
             CancellationToken cancellationToken = default
@@ -119,13 +96,13 @@ namespace EDIVE.ServiceHub
                 cancellationToken: cancellationToken
             );
 
-            return HandleLoginResponse(response);
+            return HandleClientLoginResponse(response);
         }
 
         [Button]
         [PropertyOrder(99)]
         [EnhancedBoxGroup("Auth")]
-        public async UniTask<NetworkResponse<LoginResponse>> AnonymousLoginAsync(
+        public async UniTask<NetworkResponse<LoginResponse>> AnonymousLoginClientAsync(
             CancellationToken cancellationToken = default
         )
         {
@@ -141,7 +118,7 @@ namespace EDIVE.ServiceHub
                 cancellationToken: cancellationToken
             );
 
-            return HandleLoginResponse(response);
+            return HandleClientLoginResponse(response);
         }
 
         private const string K_ANONYMOUS_TOKEN = "auth.anonymousToken";
@@ -157,14 +134,33 @@ namespace EDIVE.ServiceHub
             PlayerPrefs.Save();
             return token;
         }
+        
+        public async UniTask LogoutClientAsync(CancellationToken cancellationToken = default)
+        {
+            var effectiveToken = cancellationToken == CancellationToken.None
+                ? this.GetCancellationTokenOnDestroy()
+                : cancellationToken;
+            
+            await FlushAllDirtyEntries(effectiveToken);
 
-        private NetworkResponse<LoginResponse> HandleLoginResponse(NetworkResponse<ApiResponse<LoginResponse>> response)
+            var networkManager = AppCore.Services.Get<MasterNetworkManager>();
+            if (networkManager != null && networkManager.ConnectionState == ConnectionState.Connected)
+            {
+                networkManager.StopRuntime();
+                Debug.Log("[ServiceHub] Disconnected from server as part of logout.");
+            }
+            
+            AuthStorage.Clear();
+            _local = new PlayerPrefsSaveDataStore();
+        }
+
+        private NetworkResponse<LoginResponse> HandleClientLoginResponse(NetworkResponse<ApiResponse<LoginResponse>> response)
         {
             // Network-level failure (timeout, DNS, etc.)
             if (!response.IsSuccess && response.Result is null)
             {
                 Debug.LogError($"[ServiceHub] Login request failed: {response.ErrorMessage}");
-                OnLoginFailed?.Invoke(response.StatusCode, response.ErrorMessage);
+                OnClientLoginFailed?.Invoke(response.StatusCode, response.ErrorMessage);
                 return NetworkResponse<LoginResponse>.Error(response.StatusCode, response.ErrorMessage);
             }
 
@@ -176,7 +172,7 @@ namespace EDIVE.ServiceHub
                 var message = apiResponse?.Message ?? "Unknown error";
                 var statusCode = apiResponse?.Status ?? -1;
                 Debug.LogError($"[ServiceHub] Login failed ({statusCode}): {message}");
-                OnLoginFailed?.Invoke(statusCode, message);
+                OnClientLoginFailed?.Invoke(statusCode, message);
                 return NetworkResponse<LoginResponse>.Error(response.StatusCode, message);
             }
 
@@ -195,7 +191,7 @@ namespace EDIVE.ServiceHub
                 AuthStorage.SetLastEmail(email);
 
             Debug.Log("[ServiceHub] Login successful.");
-            OnLoginSucceeded?.Invoke(loginResponse);
+            OnClientLoginSucceeded?.Invoke(loginResponse);
 
             var result = NetworkResponse<LoginResponse>.Success(response.StatusCode, loginResponse);
             Debug.Log($"[ServiceHub] Login response (formatted): {JsonConvert.SerializeObject(result, Formatting.Indented)}");

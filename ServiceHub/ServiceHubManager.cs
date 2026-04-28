@@ -40,7 +40,7 @@ namespace EDIVE.ServiceHub
             if (AuthStorage.IsValid())
             {
                 TryLoadStoredToken();
-                await CheckAuthAsync(destroyCancellationToken);
+                await CheckClientAuthAsync(destroyCancellationToken);
             }
             
             _networkManager = InstanceFinder.NetworkManager;

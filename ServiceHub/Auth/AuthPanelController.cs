@@ -25,25 +25,25 @@ namespace EDIVE.ServiceHub.Auth
 
         private void OnEnable()
         {
-            _serviceHub.OnLoginSucceeded += OnLoginSucceeded;
-            _serviceHub.OnLoginFailed += OnLoginFailed;
+            _serviceHub.OnClientLoginSucceeded += OnClientLoginSucceeded;
+            _serviceHub.OnClientLoginFailed += OnClientLoginFailed;
             _LogoutButton.onClick.AddListener(LogOut);
             RefreshUI();
         }
 
         private void OnDisable()
         {
-            _serviceHub.OnLoginSucceeded -= OnLoginSucceeded;
-            _serviceHub.OnLoginFailed -= OnLoginFailed;
+            _serviceHub.OnClientLoginSucceeded -= OnClientLoginSucceeded;
+            _serviceHub.OnClientLoginFailed -= OnClientLoginFailed;
             _LogoutButton.onClick.RemoveListener(LogOut);
         }
         
-        private void OnLoginSucceeded(LoginResponse response)
+        private void OnClientLoginSucceeded(LoginResponse response)
         {
             RefreshUI();
         }
         
-        private void OnLoginFailed(long statusCode, string errorMessage)
+        private void OnClientLoginFailed(long statusCode, string errorMessage)
         {
             RefreshUI();
         }
@@ -64,7 +64,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private void LogOut()
         {
-            _serviceHub.Logout();
+            _serviceHub.LogoutClient();
             RefreshUI();
         }
     }
