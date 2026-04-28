@@ -7,10 +7,12 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.External.Signals;
+using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
 using FishNet;
 using FishNet.Transporting;
+using FishNet.Transporting.Tugboat;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -86,11 +88,31 @@ namespace EDIVE.Networking.ServerManagement
         private async UniTask OnServerPrepareHandlers()
         {
             _serverRunning = true;
+            ResolveServerPort();
             foreach (var adapter in _Adapters)
-            { 
+            {
                 if (adapter ==null)
                     continue;
                 await adapter.PrepareServerStart();
+            }
+        }
+
+        private void ResolveServerPort()
+        {
+            var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
+            if (tugboat == null)
+                return;
+
+            if (_ServerConfig.Port > 0)
+            {
+                tugboat.SetPort(_ServerConfig.Port);
+                Debug.Log($"[NetworkServerManager] Using configured port {_ServerConfig.Port}");
+            }
+            else
+            {
+                var port = NetworkUtils.FindFreeUdpPort();
+                tugboat.SetPort(port);
+                Debug.Log($"[NetworkServerManager] Using dynamic port {port}");
             }
         }
         
@@ -98,12 +120,15 @@ namespace EDIVE.Networking.ServerManagement
         {
             if (args.ConnectionState == LocalConnectionState.Started && InstanceFinder.ServerManager.IsOnlyOneServerStarted())
             {
+                var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
                 CurrentServer = new EmptyServerRecord
                 {
                     ServerID = _ServerConfig.ServerID,
                     ServerName = _ServerConfig.ServerName,
                     MaxPlayers = _ServerConfig.MaxPlayers,
-                    CurrentPlayers = InstanceFinder.ServerManager.Clients.Count
+                    CurrentPlayers = InstanceFinder.ServerManager.Clients.Count,
+                    DirectAddress = NetworkUtils.GetLocalIPv4(),
+                    DirectPort = tugboat != null ? tugboat.GetPort() : (ushort) 0,
                 };
                 EnumerateAdapters(adapter => adapter.StartServer());
             }

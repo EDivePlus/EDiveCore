@@ -2,8 +2,8 @@
 // Created: 21.11.2025
 
 using System;
-using System.Net.Sockets;
 using Cysharp.Threading.Tasks;
+using EDIVE.Networking.Utils;
 using FishNet;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
@@ -25,7 +25,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             var transportManager = InstanceFinder.TransportManager;
             var multiPass = transportManager.GetTransport<Multipass>();
 
-            if (!string.IsNullOrEmpty(DirectAddress) && DirectPort > 0 && await IsServerReachable(DirectAddress, DirectPort))
+            if (!string.IsNullOrEmpty(DirectAddress) && DirectPort > 0 && await NetworkUtils.IsServerReachable(DirectAddress, DirectPort))
             {
                 if (multiPass != null)
                     multiPass.SetClientTransport<Tugboat>();
@@ -57,17 +57,6 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 Debug.LogException(e);
                 return false;
             }
-        }
-
-        public static async UniTask<bool> IsServerReachable(string ip, int port, int timeoutMs = 1000)
-        {
-            using var client = new TcpClient();
-            var connectTask = client.ConnectAsync(ip, port);
-
-            if (await UniTask.WhenAny(connectTask.AsUniTask(), UniTask.Delay(timeoutMs)) == 0)
-                return true;
-
-            return false;
         }
     }
 }

@@ -22,9 +22,12 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
     {
         private CancellationTokenSource _searchCancellation;
         private CancellationTokenSource _heartbeatCancellation;
-        
+
         private Lobby _hostLobby;
         private float _lastQueryTime;
+
+        public string CurrentJoinCode { get; private set; }
+        public Lobby CurrentLobby => _hostLobby;
 
         public override async UniTask Initialize()
         {
@@ -115,6 +118,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             
             var allocation = await RelayService.Instance.CreateAllocationAsync(_serverConfig.MaxPlayers);
             var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            CurrentJoinCode = joinCode;
 
             var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
             var serverData = allocation.ToRelayServerData("dtls");
@@ -162,8 +166,13 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _heartbeatCancellation?.Cancel();
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
+            CurrentJoinCode = null;
             if (_hostLobby != null)
-                await LobbyService.Instance.DeleteLobbyAsync(_hostLobby.Id);
+            {
+                var lobbyId = _hostLobby.Id;
+                _hostLobby = null;
+                await LobbyService.Instance.DeleteLobbyAsync(lobbyId);
+            }
         }
         
         private static async UniTask<string> GetPublicIPAsync()

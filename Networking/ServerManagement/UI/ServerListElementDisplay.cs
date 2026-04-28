@@ -54,9 +54,12 @@ namespace EDIVE.Networking.ServerManagement.UI
             {
                 serverManager.CurrentServer = _serverRecord;
                 var success = await _serverRecord.PrepareForConnect();
-                if (!success) 
+                if (!success)
+                {
+                    serverManager.CurrentServer = null;
                     return;
-                
+                }
+
                 networkManager.StartRuntime(NetworkRuntimeMode.Client);
             });
         }

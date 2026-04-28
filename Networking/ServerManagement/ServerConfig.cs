@@ -16,7 +16,12 @@ namespace EDIVE.Networking.ServerManagement
         [JsonProperty("MaxPlayers")]
         [SerializeField]
         private int _MaxPlayers;
-        
+
+        [JsonProperty("Port")]
+        [SerializeField]
+        [Tooltip("Game port for the host transport. Set to 0 to assign a free port dynamically (useful for hosting multiple servers on one machine).")]
+        private ushort _Port;
+
         [JsonProperty("ServerID")]
         private long _serverID;
 
@@ -28,8 +33,14 @@ namespace EDIVE.Networking.ServerManagement
 
         public int MaxPlayers
         {
-            get => _MaxPlayers; 
+            get => _MaxPlayers;
             set => _MaxPlayers = value;
+        }
+
+        public ushort Port
+        {
+            get => _Port;
+            set => _Port = value;
         }
 
         public long ServerID

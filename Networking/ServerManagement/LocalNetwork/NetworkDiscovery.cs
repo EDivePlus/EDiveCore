@@ -3,6 +3,7 @@
 
 using System.Net;
 using FishNet;
+using FishNet.Transporting.Tugboat;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.LocalNetwork
@@ -14,11 +15,12 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         
         protected override NetworkDiscoveryResponse ProcessRequest(IPEndPoint endpoint)
         {
+            var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
             return new NetworkDiscoveryResponse
             {
                 ServerID = _Config.ServerID,
                 ServerName = _Config.ServerName,
-                Port = InstanceFinder.TransportManager.Transport.GetPort(),
+                Port = tugboat != null ? tugboat.GetPort() : (ushort) 0,
                 MaxPlayers = _Config.MaxPlayers,
                 CurrentPlayers = InstanceFinder.ServerManager.Clients.Count,
             };
