@@ -17,7 +17,7 @@ namespace EDIVE.Tweening.ObjectActions
 
         private bool TryGetMaterial(TRenderer target, out Material material)
         {
-            var materials = _UseSharedMaterial ? target.sharedMaterials : target.materials;
+            var materials = Application.isPlaying || _UseSharedMaterial ? target.sharedMaterials : target.materials;
             material = null;
 
             if (materials.Length == 0 || _MaterialIndex >= materials.Length)
@@ -62,9 +62,24 @@ namespace EDIVE.Tweening.ObjectActions
     [Serializable]
     public class RendererColorTweenAction : ARendererMaterialTweenAction<Renderer>
     {
+        [ColorUsage(true, true)]
         [SerializeField]
         private Color _EndColor;
 
         protected override Tween GetTween(Material target) => target.DOColor(_EndColor, _Duration);
+    }
+    
+        
+    [Serializable]
+    public class RendererColorPropertyTweenAction : ARendererMaterialTweenAction<Renderer>
+    {
+        [SerializeField]
+        private string _Property;
+
+        [ColorUsage(true, true)]
+        [SerializeField]
+        private Color _EndColor;
+
+        protected override Tween GetTween(Material target) => target.DOColor(_EndColor, _Property, _Duration);
     }
 }
