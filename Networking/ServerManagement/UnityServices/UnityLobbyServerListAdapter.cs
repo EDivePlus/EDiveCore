@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using FishNet;
+using FishNet.Transporting.Tugboat;
 using FishNet.Transporting.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
@@ -84,6 +85,10 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                     if (!lobby.Data.TryGetValue("uniqueID", out var uniqueID) || !long.TryParse(uniqueID.Value, out var serverID))
                         continue;
                 
+                    ushort directPort = 0;
+                    if (lobby.Data.TryGetValue("publicPort", out var publicPort))
+                        ushort.TryParse(publicPort.Value, out directPort);
+
                     AddServer(new UnityLobbyServerRecord
                     {
                         ServerID = serverID,
@@ -92,7 +97,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                         MaxPlayers = lobby.MaxPlayers,
                         Lobby = lobby,
                         RelayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty,
-                        DirectConnectAddress = lobby.Data.TryGetValue("publicIP", out var publicIP) ? publicIP.Value : string.Empty,
+                        DirectAddress = lobby.Data.TryGetValue("publicIP", out var publicIP) ? publicIP.Value : string.Empty,
+                        DirectPort = directPort,
                     });
                 }
                 await UniTask.Delay(TimeSpan.FromSeconds(4), true, cancellationToken: cancellationToken);
@@ -115,6 +121,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             unityTransport.SetRelayServerData(serverData);
 
             var publicIP = await GetPublicIPAsync();
+            var tugboat = networkManager.TransportManager.GetTransport<Tugboat>();
+            var publicPort = tugboat != null ? tugboat.GetPort() : (ushort)0;
             var options = new CreateLobbyOptions
             {
                 IsPrivate = false,
@@ -122,7 +130,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 {
                     { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) },
                     { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
-                    { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) }
+                    { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) },
+                    { "publicPort", new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString()) }
                 }
             };
 

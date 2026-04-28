@@ -18,6 +18,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             {
                 ServerID = _Config.ServerID,
                 ServerName = _Config.ServerName,
+                Port = InstanceFinder.TransportManager.Transport.GetPort(),
                 MaxPlayers = _Config.MaxPlayers,
                 CurrentPlayers = InstanceFinder.ServerManager.Clients.Count,
             };

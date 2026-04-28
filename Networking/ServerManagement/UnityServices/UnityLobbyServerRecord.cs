@@ -1,11 +1,9 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 21.11.2025
 
 using System;
 using System.Net.Sockets;
 using Cysharp.Threading.Tasks;
-using EDIVE.Core;
-using EDIVE.Networking.Utils;
 using FishNet;
 using FishNet.Transporting.Multipass;
 using FishNet.Transporting.Tugboat;
@@ -17,40 +15,40 @@ using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.UnityServices
 {
-    public class UnityLobbyServerRecord : AServerRecord
+    public class UnityLobbyServerRecord : ADirectServerRecord
     {
         public Lobby Lobby;
         public string RelayJoinCode;
-        public string DirectConnectAddress;
-        
+
         public override async UniTask<bool> PrepareForConnect()
         {
             var transportManager = InstanceFinder.TransportManager;
-
             var multiPass = transportManager.GetTransport<Multipass>();
-            if (await IsServerReachable(DirectConnectAddress, 7766))
+
+            if (!string.IsNullOrEmpty(DirectAddress) && DirectPort > 0 && await IsServerReachable(DirectAddress, DirectPort))
             {
-                if (multiPass != null) 
+                if (multiPass != null)
                     multiPass.SetClientTransport<Tugboat>();
-                
+
                 var tugboat = transportManager.GetTransport<Tugboat>();
                 if (tugboat != null)
                 {
-                    tugboat.SetClientAddress(DirectConnectAddress);
-                    Debug.Log($"[ServerRecord] Connect using direct address {DirectConnectAddress}");
+                    tugboat.SetClientAddress(DirectAddress);
+                    tugboat.SetPort(DirectPort);
+                    Debug.Log($"[ServerRecord] Connect using direct address {DirectAddress}:{DirectPort}");
                     return true;
                 }
             }
-            
+
             var unityTransport = transportManager.GetTransport<UnityTransport>();
             if (unityTransport == null)
                 return false;
-            
+
             try
             {
                 var allocation = await RelayService.Instance.JoinAllocationAsync(RelayJoinCode);
                 unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
-                multiPass.SetClientTransport<UnityTransport>();
+                multiPass?.SetClientTransport<UnityTransport>();
                 Debug.Log($"[ServerRecord] Connect using relay code {RelayJoinCode}");
                 return true;
             }
@@ -60,7 +58,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 return false;
             }
         }
-        
+
         public static async UniTask<bool> IsServerReachable(string ip, int port, int timeoutMs = 1000)
         {
             using var client = new TcpClient();

@@ -37,9 +37,10 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
         private static AddressServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
         {
-            return new AddressServerRecord()
+            return new AddressServerRecord
             {
-                Address = endPoint.Address.ToString(),
+                DirectAddress = endPoint.Address.ToString(),
+                DirectPort = response.Port,
                 ServerID = response.ServerID,
                 ServerName = response.ServerName,
                 MaxPlayers = response.MaxPlayers,

@@ -1,4 +1,4 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 14.07.2025
 
 using Cysharp.Threading.Tasks;
@@ -9,24 +9,24 @@ using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
 {
-    public class AddressServerRecord : AServerRecord
+    public class AddressServerRecord : ADirectServerRecord
     {
-        public string Address;
-        
         public override UniTask<bool> PrepareForConnect()
         {
             var transportManager = InstanceFinder.TransportManager;
             var multiPass = transportManager.GetTransport<Multipass>();
-            if (multiPass != null) 
+            if (multiPass != null)
                 multiPass.SetClientTransport<Tugboat>();
-            
+
             var tugboat = transportManager.GetTransport<Tugboat>();
-            if (tugboat == null) 
+            if (tugboat == null)
                 return UniTask.FromResult(false);
-            
-            tugboat.SetClientAddress(Address);
-            
-            Debug.Log($"[ServerRecord] Connect using direct address {Address}");
+
+            tugboat.SetClientAddress(DirectAddress);
+            if (DirectPort > 0)
+                tugboat.SetPort(DirectPort);
+
+            Debug.Log($"[ServerRecord] Connect using direct address {DirectAddress}:{tugboat.GetPort()}");
             return UniTask.FromResult(true);
         }
     }
