@@ -413,7 +413,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		private void UpdateServerList(IPEndPoint endpoint, TResponse data)
 		{
 			var changed = !_serverList.ContainsKey(endpoint) || !EqualityComparer<TResponse>.Default.Equals(_serverList[endpoint].response, data);
-			_serverList[endpoint] = (data, Time.realtimeSinceStartup);
+			_serverList[endpoint] = (data, UnityEngine.Time.realtimeSinceStartup);
 			if (changed)
 				ServerListUpdated?.Invoke();
 		}
@@ -421,7 +421,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		private void RemoveExpiredServers()
 		{
 			var changed = false;
-			var now = Time.realtimeSinceStartup;
+			var now = UnityEngine.Time.realtimeSinceStartup;
 
 			foreach (var (endpoint, (_, lastSeen)) in _serverList.ToList())
 			{

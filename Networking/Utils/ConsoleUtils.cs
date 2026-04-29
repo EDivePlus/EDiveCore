@@ -39,6 +39,13 @@ namespace EDIVE.Networking.Utils
                     ConsoleCommandHandler.AppendLog(serverRunning ? "[green]Server running[/]" : "[red]Server stopped[/]");
                     ConsoleCommandHandler.AppendLog($"Server name: [yellow]{serverName}[/]");
                     ConsoleCommandHandler.AppendLog($"Players connected: [cyan]{playerCount}[/]/[cyan]{maxPlayers}[/]");
+
+                    var endpoints = serverManager.CurrentServer?.Endpoints;
+                    if (endpoints != null)
+                    {
+                        foreach (var endpoint in endpoints)
+                            ConsoleCommandHandler.AppendLog($"Endpoint: [cyan]{endpoint}[/]");
+                    }
                 });
             });
     }

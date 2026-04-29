@@ -3,6 +3,7 @@
 
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
+using EDIVE.Networking.ServerManagement.UI;
 using EDIVE.StateHandling.MultiStates;
 using TMPro;
 using UnityEngine;
@@ -18,6 +19,9 @@ namespace EDIVE.Networking.UI
         [SerializeField]
         [ValidateMultiState(typeof(NetworkRuntimeMode))]
         private AMultiState _RuntimeModeState;
+        
+        [SerializeField]
+        private ServerRecordDisplay _ServerDisplay;
 
         [SerializeField]
         private TMP_Text _CurrentServerNameText;
@@ -67,7 +71,13 @@ namespace EDIVE.Networking.UI
             if (_RuntimeModeState)
                 _RuntimeModeState.SetState(_networkManager.RuntimeMode);
 
-            if (_CurrentServerNameText)
+            if (_ServerDisplay)
+            {
+                _ServerDisplay.Terminate();
+                _ServerDisplay.Initialize(_serverManager.CurrentServer);
+            }
+            
+            if(_CurrentServerNameText)
                 _CurrentServerNameText.text = _serverManager.CurrentServer?.ServerName ?? "None";
         }
     }

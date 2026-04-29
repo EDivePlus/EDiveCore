@@ -36,7 +36,8 @@
         "GameKit.Dependencies",
         "Unity.Collections",
         "EDIVE.EditorUtils",
-        "EDIVE.Console"
+        "EDIVE.Console",
+        "EDIVE.Time"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

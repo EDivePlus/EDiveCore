@@ -22,9 +22,6 @@ namespace EDIVE.Networking.ServerManagement
         [Tooltip("Game port for the host transport. Set to 0 to assign a free port dynamically (useful for hosting multiple servers on one machine).")]
         private ushort _Port;
 
-        [JsonProperty("ServerID")]
-        private long _serverID;
-
         public string ServerName
         {
             get => _ServerName; 
@@ -42,11 +39,9 @@ namespace EDIVE.Networking.ServerManagement
             get => _Port;
             set => _Port = value;
         }
-
-        public long ServerID
-        {
-            get => _serverID;
-            set => _serverID = value;
-        }
+        
+        // DYNAMIC 
+        
+        public long ServerID { get; set; }
     }
 }

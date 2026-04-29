@@ -22,7 +22,7 @@ namespace EDIVE.Networking.ServerManagement.UI
         [SerializeField]
         private Button _RefreshButton;
 
-        private readonly List<AServerRecord> _currentServers = new();
+        private readonly List<ServerRecord> _currentServers = new();
         private NetworkServerManager _serverManager;
         
         private CancellationTokenSource _cancellationTokenSource;
@@ -91,7 +91,7 @@ namespace EDIVE.Networking.ServerManagement.UI
             if (!cell)
                 return null;
 
-            cell.SetRoom(_currentServers[dataIndex]);
+            cell.SetServer(_currentServers[dataIndex]);
             return cell;
         }
     }
