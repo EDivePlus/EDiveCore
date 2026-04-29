@@ -100,7 +100,7 @@ namespace EDIVE.ServiceHub
             await FlushAllServerDirtyEntries(effectiveToken);
 
             AuthStorage.Server.Clear();
-            _serverLocal = new PlayerPrefsSaveDataStore("uc.savedata.server.");
+            _serverLocal = CreateServerLocalStore(_ServerConfig != null ? _ServerConfig.ServerID : null);
         }
 
         private NetworkResponse<ServerLoginResponse> HandleServerLoginResponse(NetworkResponse<ApiResponse<ServerLoginResponse>> response)
