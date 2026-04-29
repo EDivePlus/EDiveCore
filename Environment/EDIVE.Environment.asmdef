@@ -19,7 +19,8 @@
     "Unity.Addressables",
     "Unity.ResourceManager",
     "UniTask.Addressables",
-    "EDIVE.AddressableAssets"
+    "EDIVE.AddressableAssets",
+    "EDIVE.AppLoading"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

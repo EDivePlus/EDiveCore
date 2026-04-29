@@ -6,10 +6,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
+using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
 using EDIVE.Utils.Loading;
 using EDIVE.XRTools.Controls;
@@ -22,7 +24,7 @@ using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneSetupManager : AServiceBehaviour<SceneSetupManager>
+    public class SceneSetupManager : AServiceBehaviour<SceneSetupManager>, IDependencyOwner
     {
         [SerializeField]
         private SceneSetupDefinition _DefaultSetup;
@@ -39,8 +41,11 @@ namespace EDIVE.Environment.SceneSetup
         {
             _networkManager = InstanceFinder.NetworkManager;
             if (_networkManager == null)
+            {
+                Debug.LogError("[SceneSetupManager] NetworkManager is not initialized.");
                 return;
-            
+            }
+
             _networkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
         }
 
@@ -51,7 +56,12 @@ namespace EDIVE.Environment.SceneSetup
                 _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
             }
         }
-        
+
+        public IEnumerable<Type> GetDependencies()
+        {
+            yield return typeof(MasterNetworkManager);
+        }
+
         public void RegisterSceneController(SceneSetupController sceneController)
         {
             if (!_sceneControllers.Contains(sceneController))
