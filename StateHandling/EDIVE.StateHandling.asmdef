@@ -7,7 +7,8 @@
         "EDIVE.EditorUtils",
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

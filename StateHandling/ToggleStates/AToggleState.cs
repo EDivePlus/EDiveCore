@@ -1,3 +1,4 @@
+using System;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -46,12 +47,15 @@ namespace EDIVE.StateHandling.ToggleStates
         
         public string Description => _Description;
 
+        public event Action<bool, bool> StateChanged;
+        
         private bool _state;
 
         public void SetState(bool state, bool immediate = false)
         {
             _state = state;
             SetStateInternal(state, immediate);
+            StateChanged?.Invoke(state, immediate);
         }
 
         protected abstract void SetStateInternal(bool state, bool immediate = false);
