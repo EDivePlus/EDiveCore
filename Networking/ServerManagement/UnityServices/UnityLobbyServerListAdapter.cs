@@ -92,7 +92,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         {
             foreach (var lobby in lobbies)
             {
-                if (!lobby.Data.TryGetValue("uniqueID", out var uniqueID) || !long.TryParse(uniqueID.Value, out var serverID))
+                if (!lobby.Data.TryGetValue("uniqueID", out var uniqueID) || string.IsNullOrEmpty(uniqueID.Value))
                     continue;
 
                 ushort publicPort = 0;
@@ -121,7 +121,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
 
                 yield return new ServerRecord
                 {
-                    ServerID = serverID,
+                    InstanceID = uniqueID.Value,
                     ServerName = lobby.Name,
                     CurrentPlayers = lobby.Players.Count,
                     MaxPlayers = lobby.MaxPlayers,
@@ -153,7 +153,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 IsPrivate = false,
                 Data = new Dictionary<string, DataObject>
                 {
-                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) },
+                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.InstanceID.ToString()) },
                     { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
                     { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) },
                     { "publicPort", new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString()) }

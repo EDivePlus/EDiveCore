@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.Configuration;
 using EDIVE.Core;
 using EDIVE.External.Signals;
 using EDIVE.Networking.Utils;
@@ -36,7 +37,7 @@ namespace EDIVE.Networking.ServerManagement
         public Signal ServerListUpdated { get; } = new();
         public ServerConfig ServerConfig => _ServerConfig;
 
-        private readonly Dictionary<long, ServerRecord> _servers = new();
+        private readonly Dictionary<string, ServerRecord> _servers = new();
         
         public ServerRecord HostServer { get; private set; }
         public ServerRecord JoinedServer { get; private set; }
@@ -48,7 +49,10 @@ namespace EDIVE.Networking.ServerManagement
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             _masterNetworkManager = await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
-            _ServerConfig.ServerID = GenerateServerID();
+            
+            _ServerConfig.ServerID ??= Guid.NewGuid().ToString();
+            _ServerConfig.InstanceID ??= Guid.NewGuid().ToString();
+            await AppCore.Services.Get<LocalConfigLoader>().SaveConfig(_ServerConfig);
 
             if (string.IsNullOrWhiteSpace(_ServerConfig.ServerName))
                 _ServerConfig.ServerName = _ServerNameGenerator.Generate();
@@ -74,6 +78,9 @@ namespace EDIVE.Networking.ServerManagement
         {
             base.OnDestroy();
             InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionStateChanged;
+            InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
+            if (_masterNetworkManager != null)                
+                _masterNetworkManager.ServerPrepareHandlers -= OnServerPrepareHandlers;
         }
         
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
@@ -153,7 +160,7 @@ namespace EDIVE.Networking.ServerManagement
             {
                 HostServer = new ServerRecord
                 {
-                    ServerID = _ServerConfig.ServerID,
+                    InstanceID = _ServerConfig.InstanceID,
                     ServerName = _ServerConfig.ServerName,
                     MaxPlayers = _ServerConfig.MaxPlayers,
                     CurrentPlayers = InstanceFinder.ServerManager.Clients.Count,
@@ -223,10 +230,10 @@ namespace EDIVE.Networking.ServerManagement
             {
                 foreach (var contribution in adapter.Servers.Values)
                 {
-                    if (!_servers.TryGetValue(contribution.ServerID, out var record))
+                    if (!_servers.TryGetValue(contribution.InstanceID, out var record))
                     {
-                        record = new ServerRecord(contribution.ServerID);
-                        _servers[contribution.ServerID] = record;
+                        record = new ServerRecord(contribution.InstanceID);
+                        _servers[contribution.InstanceID] = record;
                     }
 
                     if (contribution.Endpoints != null)
@@ -242,13 +249,6 @@ namespace EDIVE.Networking.ServerManagement
                 }
             });
             ServerListUpdated.Dispatch();
-        }
-
-        private static long GenerateServerID()
-        {
-            var value1 = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
-            var value2 = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
-            return value1 + ((long) value2 << 32);
         }
     }
 }

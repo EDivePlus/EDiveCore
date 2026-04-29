@@ -18,7 +18,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
             return new NetworkDiscoveryResponse
             {
-                ServerID = _Config.ServerID,
+                InstanceID = _Config.InstanceID,
                 ServerName = _Config.ServerName,
                 Port = tugboat != null ? tugboat.GetPort() : (ushort) 0,
                 MaxPlayers = _Config.MaxPlayers,

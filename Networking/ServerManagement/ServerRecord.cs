@@ -9,16 +9,16 @@ namespace EDIVE.Networking.ServerManagement
 {
     public class ServerRecord
     {
-        public long ServerID;
+        public string InstanceID;
         public string ServerName;
         public int MaxPlayers;
         public int CurrentPlayers;
         public DateTime LastUpdated;
 
         public ServerRecord() { }
-        public ServerRecord(long serverID)
+        public ServerRecord(string instanceID)
         {
-            ServerID = serverID;
+            InstanceID = instanceID;
         }
 
         public List<AServerEndpoint> Endpoints = new();

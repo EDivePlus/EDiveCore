@@ -70,7 +70,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
             return new ServerRecord
             {
-                ServerID = response.ServerID,
+                InstanceID = response.InstanceID,
                 ServerName = response.ServerName,
                 MaxPlayers = response.MaxPlayers,
                 CurrentPlayers = response.CurrentPlayers,

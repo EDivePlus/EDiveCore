@@ -8,7 +8,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
     [Serializable]
     public class NetworkDiscoveryResponse
     {
-        public long ServerID;
+        public string InstanceID;
         public string ServerName;
         public ushort Port;
         public int MaxPlayers;

@@ -43,7 +43,7 @@ namespace EDIVE.Networking.ServerManagement.UI
                 return;
             
             if (_IDText)
-                _IDText.text = $"{serverRecord.ServerID}";
+                _IDText.text = $"{serverRecord.InstanceID}";
             
             if(_NameText)
                 _NameText.text = serverRecord.ServerName;

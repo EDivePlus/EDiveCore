@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.Json;
@@ -19,7 +20,7 @@ namespace EDIVE.Configuration
         [SerializeField]
         private List<ConfigRecord> _Records = new();
 
-        public void LoadConfigs()
+        public async UniTask LoadConfigs()
         {
             var serializerSettings = new JsonSerializerSettings(ConfigUtility.SerializerSettings)
             {
@@ -29,11 +30,11 @@ namespace EDIVE.Configuration
             var serializer = JsonSerializer.Create(serializerSettings);
             foreach (var record in _Records)
             {
-                record.LoadConfig(serializer);
+                await record.LoadConfig(serializer);
             }
         }
 
-        public void SaveConfigs()
+        public async UniTask SaveConfigs(Predicate<ConfigRecord> recordFilter = null)
         {
             var serializerSettings = new JsonSerializerSettings(ConfigUtility.SerializerSettings)
             {
@@ -43,7 +44,10 @@ namespace EDIVE.Configuration
             var serializer = JsonSerializer.Create(serializerSettings);
             foreach (var record in _Records)
             {
-                record.SaveConfig(serializer);
+                if (recordFilter != null && !recordFilter(record))
+                    continue;
+                
+                await record.SaveConfig(serializer);
             }
         }
 
@@ -62,7 +66,7 @@ namespace EDIVE.Configuration
             public string FilePath => _FilePath;
             public ScriptableObject Asset => _Asset;
 
-            public void LoadConfig(JsonSerializer serializer)
+            public async UniTask LoadConfig(JsonSerializer serializer)
             {
                 var path = ConfigUtility.GetConfigPath(FilePath);
                 if (!File.Exists(path))
@@ -70,7 +74,7 @@ namespace EDIVE.Configuration
 
                 try
                 {
-                    var json = File.ReadAllText(path);
+                    var json = await File.ReadAllTextAsync(path);
                     JsonAssetUtils.PopulateAsset(serializer, json, Asset);
                 }
                 catch (Exception e)
@@ -79,14 +83,14 @@ namespace EDIVE.Configuration
                 }
             }
 
-            public void SaveConfig(JsonSerializer serializer)
+            public async UniTask SaveConfig(JsonSerializer serializer)
             {
                 var path = ConfigUtility.GetConfigPath(FilePath);
                 try
                 {
                     var json = JsonAssetUtils.SerializeAsset(serializer, Asset);
                     PathUtility.EnsurePathExists(path);
-                    File.WriteAllText(path, json.ToString(Formatting.Indented));
+                    await File.WriteAllTextAsync(path, json.ToString(Formatting.Indented));
                 }
                 catch (Exception e)
                 {

@@ -37,7 +37,8 @@
         "Unity.Collections",
         "EDIVE.EditorUtils",
         "EDIVE.Console",
-        "EDIVE.Time"
+        "EDIVE.Time",
+        "EDIVE.Configuration"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -12,7 +12,7 @@ namespace EDIVE.Networking.ServerManagement
 {
     public abstract class AServerListAdapter : MonoBehaviour
     {
-        public Dictionary<long, ServerRecord> Servers { get; } = new();
+        public Dictionary<string, ServerRecord> Servers { get; } = new();
         public Signal ServerListUpdated { get; } = new();
 
         protected ServerConfig _serverConfig;
@@ -54,7 +54,7 @@ namespace EDIVE.Networking.ServerManagement
                 if (record == null)
                     continue;
                 record.LastUpdated = now;
-                Servers[record.ServerID] = record;
+                Servers[record.InstanceID] = record;
             }
             ServerListUpdated.Dispatch();
         }

@@ -38,7 +38,7 @@ namespace EDIVE.Networking.ServerManagement.UI
                 _ServerNameText.text = _serverRecord.ServerName;
 
             if (_ServerIdText)
-                _ServerIdText.text = $"{_serverRecord.ServerID}";
+                _ServerIdText.text = $"{_serverRecord.InstanceID}";
 
             if (_ClientsCountText)
                 _ClientsCountText.text = $"{_serverRecord.CurrentPlayers}/{_serverRecord.MaxPlayers}";
