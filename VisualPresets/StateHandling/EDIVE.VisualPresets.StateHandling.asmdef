@@ -5,7 +5,8 @@
         "EDIVE.VisualPresets",
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "EDIVE.AssetTranslation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

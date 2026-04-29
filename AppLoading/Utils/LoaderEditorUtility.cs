@@ -37,7 +37,7 @@ namespace EDIVE.AppLoading.Utils
         [MainToolbarElement("EDive/Play Root Scene", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = -1)]
         public static MainToolbarElement CreateToolbarButton()
         {
-            return MainToolbarElementFactory.Create(() =>
+            return MainToolbarUtility.CreateElement(() =>
             {
                 var button = new Button(() => TryPlayRootScene());
                 button.style.paddingLeft = 4;

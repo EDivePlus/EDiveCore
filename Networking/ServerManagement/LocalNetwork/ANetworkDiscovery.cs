@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,6 +56,10 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		private SynchronizationContext _mainThreadSynchronizationContext;
 		private CancellationTokenSource _cancellationTokenSource;
 		private byte[] _secretBytes;
+		
+		private const int LINUX_SO_REUSEPORT = 15;
+		private const int MACOS_SO_REUSEPORT = 0x0200;
+		private const int WSAECONNRESET = 10054;
 
 		private void Awake()
 		{
@@ -64,7 +69,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 			if (_networkManager == null)
 			{
-				LogError($"No NetworkManager found for {gameObject.name}.");
+				Debug.LogError($"No NetworkManager found for {gameObject.name}.");
 				enabled = false;
 				return;
 			}
@@ -103,9 +108,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			Shutdown();
 		}
 
-		/// <summary>
-		/// Shuts the NetworkDiscovery.
-		/// </summary>
 		private void Shutdown()
 		{
 			if (_networkManager != null)
@@ -145,15 +147,12 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 				SearchForServers();
 			}
 		}
-
-		/// <summary>
-		/// Advertises the server on the local network.
-		/// </summary>
+		
 		public void AdvertiseServer()
 		{
 			if (IsAdvertising)
 			{
-				LogWarning("Server is already being advertised.");
+				Debug.LogWarning("Server is already being advertised.");
 				return;
 			}
 
@@ -161,15 +160,12 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			_cancellationTokenSource = new CancellationTokenSource();
 			AdvertiseServerAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
 		}
-
-		/// <summary>
-		/// Searches for servers on the local network.
-		/// </summary>
+		
 		public void SearchForServers()
 		{
 			if (IsSearching)
 			{
-				LogWarning("Already searching for servers.");
+				Debug.LogWarning("Already searching for servers.");
 				return;
 			}
 
@@ -178,9 +174,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			SearchForServersAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
 		}
 
-		/// <summary>
-		/// Stops searching or advertising.
-		/// </summary>
 		public void StopSearchingOrAdvertising()
 		{
 			_cancellationTokenSource?.Cancel();
@@ -202,12 +195,10 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		
 		protected abstract TResponse ProcessRequest(IPEndPoint endpoint);
 		
-		private const int WSAECONNRESET = 10054;
-		
 		private void HandleReceiveException(Exception exception)
 		{
 			var inner = exception is AggregateException agg ? agg.Flatten().InnerException : exception;
-			if (inner is SocketException { ErrorCode: WSAECONNRESET })
+			if (inner is SocketException socketException && socketException.ErrorCode == WSAECONNRESET)
 			{
 				LogInformation("Received ICMP port-unreachable. Recycling socket.");
 				return;
@@ -216,10 +207,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			Debug.LogException(exception, this);
 		}
 		
-		/// <summary>
-		/// Observes a task's exception to prevent UnobservedTaskException.
-		/// Used for abandoned ReceiveAsync tasks when recycling the UDP socket on timeout.
-		/// </summary>
 		private static void ObserveAndForget(Task task)
 		{
 			if (task.IsCompleted)
@@ -229,75 +216,104 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			}
 			task.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
 		}
-
 		
-		/// <summary>
-		/// Advertises the server on the local network.
-		/// </summary>
-		/// <param name="cancellationToken">Used to cancel advertising.</param>
+		private static UdpClient CreateSharedListenClient(int port)
+		{
+			var client = new UdpClient();
+			client.ExclusiveAddressUse = false;
+			client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+			var reusePort = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? LINUX_SO_REUSEPORT
+				: RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? MACOS_SO_REUSEPORT
+				: 0;
+
+			if (reusePort != 0)
+			{
+				try
+				{
+					client.Client.SetSocketOption(SocketOptionLevel.Socket, (SocketOptionName)reusePort, 1);
+				}
+				catch (SocketException)
+				{
+					Debug.LogWarning("SO_REUSEPORT not supported on this platform. Multiple instances of the server may not work correctly.");
+				}
+			}
+
+			client.Client.Bind(new IPEndPoint(IPAddress.Any, port));
+			return client;
+		}
+		
 		private async Task AdvertiseServerAsync(CancellationToken cancellationToken)
 		{
-			UdpClient udpClient = null;
+			UdpClient listenClient = null;
+			UdpClient sendClient = null;
 
 			try
 			{
 				LogInformation("Started advertising server.");
 				IsAdvertising = true;
 
+				// Separate send socket on an ephemeral port so each server on the same PC
+				// replies from a unique source endpoint — the client's server list is keyed
+				// by IPEndPoint, so a shared source port would collapse them into one entry.
+				sendClient = new UdpClient(0);
+
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					udpClient ??= new UdpClient(_Port);
+					if (listenClient == null)
+					{
+						try
+						{
+							listenClient = CreateSharedListenClient(_Port);
+						}
+						catch (SocketException bindException)
+						{
+							Debug.LogWarning($"[{GetType().Name}] Failed to bind discovery port {_Port}: {bindException.SocketErrorCode}. Retrying in 5s.");
+							await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+							continue;
+						}
+					}
 
 					LogInformation("Waiting for request...");
-					var timeoutTask = Task.Delay(TimeSpan.FromSeconds(SearchTimeout), cancellationToken);
+					var receiveTask = listenClient.ReceiveAsync();
+					var cancellationTask = Task.Delay(Timeout.Infinite, cancellationToken);
+					var completedTask = await Task.WhenAny(receiveTask, cancellationTask);
+
+					if (completedTask != receiveTask)
+					{
+						ObserveAndForget(receiveTask);
+						break;
+					}
+
 					try
 					{
-						var receiveTask = udpClient.ReceiveAsync();
-						var completedTask = await Task.WhenAny(receiveTask, timeoutTask);
+						if (receiveTask.IsFaulted)
+						{
+							HandleReceiveException(receiveTask.Exception);
+							listenClient.Close();
+							listenClient = null;
+							continue;
+						}
 
-						if (completedTask == receiveTask)
+						var result = receiveTask.Result;
+						var receivedSecret = Encoding.UTF8.GetString(result.Buffer);
+						if (receivedSecret != _Secret)
 						{
-							if (receiveTask.IsFaulted)
-							{
-								HandleReceiveException(receiveTask.Exception);
-								udpClient.Close();
-								udpClient = null;
-							}
-							else
-							{
-								var result = receiveTask.Result;
-								var receivedSecret = Encoding.UTF8.GetString(result.Buffer);
-								if (receivedSecret == _Secret)
-								{
-									LogInformation($"Received request from {result.RemoteEndPoint}.");
-							
-									var response = ProcessRequest(result.RemoteEndPoint);
-									var bytes = SerializeResponse(response);
-									await udpClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
-								}
-								else
-								{
-									LogWarning($"Received invalid request from {result.RemoteEndPoint}.");
-								}
-							}
+							Debug.LogWarning($"Received invalid request from {result.RemoteEndPoint}.");
+							continue;
 						}
-						else
-						{
-							LogInformation("Timed out. Retrying...");
-							ObserveAndForget(receiveTask);
-							udpClient.Close();
-							udpClient = null;
-						}
+
+						LogInformation($"Received request from {result.RemoteEndPoint}.");
+						var response = ProcessRequest(result.RemoteEndPoint);
+						var bytes = SerializeResponse(response);
+						await sendClient.SendAsync(bytes, bytes.Length, result.RemoteEndPoint);
 					}
 					catch (Exception exception)
 					{
 						Debug.LogException(exception, this);
-						udpClient?.Close();
-						udpClient = null;
+						listenClient?.Close();
+						listenClient = null;
 					}
-					
-					// wait for timeout
-					await timeoutTask;
 				}
 
 				LogInformation("Stopped advertising server.");
@@ -309,15 +325,12 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			finally
 			{
 				IsAdvertising = false;
-				LogInformation("Closing UDP client...");
-				udpClient?.Close();
+				LogInformation("Closing UDP clients...");
+				listenClient?.Close();
+				sendClient?.Close();
 			}
 		}
-
-		/// <summary>
-		/// Searches for servers on the local network.
-		/// </summary>
-		/// <param name="cancellationToken">Used to cancel searching.</param>
+		
 		private async Task SearchForServersAsync(CancellationToken cancellationToken)
 		{
 			UdpClient udpClient = null;
@@ -329,7 +342,11 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					udpClient ??= new UdpClient();
+					if (udpClient == null)
+					{
+						udpClient = new UdpClient();
+						udpClient.EnableBroadcast = true;
+					}
 					try
 					{
 						LogInformation("Sending request...");
@@ -360,7 +377,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 								}
 								catch (Exception ex)
 								{
-									LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
+									Debug.LogWarning($"Invalid JSON response from {result.RemoteEndPoint}: {ex.Message}");
 								}
 							}
 						}
@@ -396,7 +413,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		private void UpdateServerList(IPEndPoint endpoint, TResponse data)
 		{
 			var changed = !_serverList.ContainsKey(endpoint) || !EqualityComparer<TResponse>.Default.Equals(_serverList[endpoint].response, data);
-			_serverList[endpoint] = (data, Time.realtimeSinceStartup);
+			_serverList[endpoint] = (data, UnityEngine.Time.realtimeSinceStartup);
 			if (changed)
 				ServerListUpdated?.Invoke();
 		}
@@ -404,7 +421,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		private void RemoveExpiredServers()
 		{
 			var changed = false;
-			var now = Time.realtimeSinceStartup;
+			var now = UnityEngine.Time.realtimeSinceStartup;
 
 			foreach (var (endpoint, (_, lastSeen)) in _serverList.ToList())
 			{
@@ -418,34 +435,11 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			if (changed)
 				ServerListUpdated?.Invoke();
 		}
-		
 
-		/// <summary>
-		/// Logs a message if the NetworkManager can log.
-		/// </summary>
-		/// <param name="message">Message to log.</param>
 		[System.Diagnostics.Conditional("NET_DISCOVERY_LOGS")]
 		private void LogInformation(string message)
 		{
 			if (NetworkManagerExtensions.CanLog(LoggingType.Common)) Debug.Log($"[{GetType().Name}] {message}", this);
-		}
-
-		/// <summary>
-		/// Logs a warning if the NetworkManager can log.
-		/// </summary>
-		/// <param name="message">Message to log.</param>
-		private void LogWarning(string message)
-		{
-			if (NetworkManagerExtensions.CanLog(LoggingType.Warning)) Debug.LogWarning($"[{GetType().Name}] {message}", this);
-		}
-
-		/// <summary>
-		/// Logs an error if the NetworkManager can log.
-		/// </summary>
-		/// <param name="message">Message to log.</param>
-		private void LogError(string message)
-		{
-			if (NetworkManagerExtensions.CanLog(LoggingType.Error)) Debug.LogError($"[{GetType().Name}] {message}", this);
 		}
 	}
 }

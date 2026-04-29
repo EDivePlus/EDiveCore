@@ -25,6 +25,16 @@ namespace EDIVE.VisualPresets.Switchers
         }
         
         public override string EditorLabel => "Font Symbol";
+        
+        public override bool EqualsInternal(AVisualPresetRecord other)
+        {
+            return other is FontSymbolVisualPresetRecord symbolRecord && Equals(symbolRecord.FontSymbol, FontSymbol);
+        }
+
+        public override int GetHashCodeInternal()
+        {
+            return _FontSymbol.GetHashCode();
+        }
     }
     
     [Serializable]

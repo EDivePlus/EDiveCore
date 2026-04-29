@@ -10,6 +10,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
     {
         public long ServerID;
         public string ServerName;
+        public ushort Port;
         public int MaxPlayers;
         public int CurrentPlayers;
     }

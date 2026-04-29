@@ -1,6 +1,7 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 15.07.2025
 
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.Signals;
@@ -11,20 +12,20 @@ namespace EDIVE.Networking.ServerManagement
 {
     public abstract class AServerListAdapter : MonoBehaviour
     {
-        public Dictionary<long, AServerRecord> Servers { get; } = new();
+        public Dictionary<long, ServerRecord> Servers { get; } = new();
         public Signal ServerListUpdated { get; } = new();
 
         protected ServerConfig _serverConfig;
-        
+
         [ShowInInspector]
-        private IEnumerable<AServerRecord> ServersPreview => Servers.Values;
+        private IEnumerable<ServerRecord> ServersPreview => Servers.Values;
 
         public async UniTask Initialize(ServerConfig serverConfig)
         {
             _serverConfig = serverConfig;
             await Initialize();
         }
-        
+
         public virtual UniTask Initialize() => UniTask.CompletedTask;
 
         public virtual UniTask PrepareServerStart()
@@ -32,24 +33,28 @@ namespace EDIVE.Networking.ServerManagement
             StopSearch();
             return UniTask.CompletedTask;
         }
-        
+
         public virtual void StartServer(){}
         public virtual void StopServer(){}
-        
+
         public virtual void StartSearch(){}
         public virtual void StopSearch(){}
 
-        protected void AddServer(AServerRecord serverRecord)
+        /// <summary>
+        /// Endpoints this adapter contributes for the locally-running server.
+        /// </summary>
+        public virtual IEnumerable<AServerEndpoint> GetLocalServerEndpoints() => Array.Empty<AServerEndpoint>();
+
+        protected void SetServers(IEnumerable<ServerRecord> records)
         {
-            Servers[serverRecord.ServerID] = serverRecord;
-            ServerListUpdated.Dispatch();
-        }
-        
-        protected void AddServers(IEnumerable<AServerRecord> serverRecords)
-        {
-            foreach (var serverRecord in serverRecords)
+            Servers.Clear();
+            var now = DateTime.UtcNow;
+            foreach (var record in records)
             {
-                Servers[serverRecord.ServerID] = serverRecord;
+                if (record == null)
+                    continue;
+                record.LastUpdated = now;
+                Servers[record.ServerID] = record;
             }
             ServerListUpdated.Dispatch();
         }

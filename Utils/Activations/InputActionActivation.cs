@@ -17,13 +17,21 @@ namespace EDIVE.Utils.Activations
         protected override void StartListening()
         {
             if (_InputAction != null)
+            {
+                _InputAction.action.actionMap.Enable();
+                _InputAction.action.Enable();
                 _InputAction.action.performed += OnInputActionPerformed;
+       
+            }
         }
 
         protected override void StopListening()
         {
             if (_InputAction != null)
+            {
                 _InputAction.action.performed -= OnInputActionPerformed;
+                _InputAction.action.Disable();
+            }
         }
 
         private void OnInputActionPerformed(InputAction.CallbackContext ctx) => InvokeListeners();

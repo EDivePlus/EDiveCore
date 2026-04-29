@@ -29,7 +29,7 @@ namespace EDIVE.Networking.Utils
         [MainToolbarElement("EDive/Network State", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = -5)]
         public static MainToolbarElement CreatePlayRootSceneButton()
         {
-            return MainToolbarElementFactory.Create(() =>
+            return MainToolbarUtility.CreateElement(() =>
             {
                 var dropdown = new EditorToolbarDropdown
                 {

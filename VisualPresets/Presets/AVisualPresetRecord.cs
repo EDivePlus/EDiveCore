@@ -19,12 +19,12 @@ namespace EDIVE.VisualPresets.Presets
 
         public virtual bool Equals(AVisualPresetRecord other)
         {
-            return other != null && Equals(BaseVisualID, other.BaseVisualID);
+            return other != null && Equals(BaseVisualID, other.BaseVisualID) && EqualsInternal(other); 
         }
 
         public override int GetHashCode()
         {
-            return BaseVisualID != null ? BaseVisualID.GetHashCode() : 0;
+            return HashCode.Combine( BaseVisualID != null ? BaseVisualID.GetHashCode() : 0, GetHashCodeInternal());
         }
 
         public override bool Equals(object obj)
@@ -34,6 +34,9 @@ namespace EDIVE.VisualPresets.Presets
             if (obj.GetType() != GetType()) return false;
             return Equals((AVisualPresetRecord) obj);
         }
+
+        public abstract bool EqualsInternal(AVisualPresetRecord other);
+        public abstract int GetHashCodeInternal();
     }
     
     [Serializable]

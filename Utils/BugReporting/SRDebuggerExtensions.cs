@@ -14,7 +14,11 @@ namespace EDIVE.Utils.BugReporting
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Init()
         {
-            SRDebug.Instance.AddOptionContainer(new DebugOptions()); 
+            // SRDebug spins up a KeyboardShortcutListenerService that NREs without an input device on headless builds.
+            if (PlatformUtils.IsHeadless())
+                return;
+
+            SRDebug.Instance.AddOptionContainer(new DebugOptions());
         }
         
         public class DebugOptions

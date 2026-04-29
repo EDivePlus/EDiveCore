@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
@@ -93,16 +94,21 @@ namespace EDIVE.External.DomainReloadHelper
                 return false;
             try
             {
-                var value = System.Convert.ChangeType(valueToAssign, field.FieldType);
-                if (value == null)
-                    Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {field.FieldType}.");
+                var value = valueToAssign;
+                if (valueToAssign != null)
+                {
+                    value = Convert.ChangeType(valueToAssign, field.FieldType);
+                    if (value == null)
+                        Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {field.FieldType}.");
+                }
                 
                 field.SetValue(null, value);
                 return true;
             }
-            catch
+            catch (Exception e)
             {
-                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
+                Debug.LogException(e);
+                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name} in class {field.DeclaringType?.Name}.");
                 return false;
             }
         }
@@ -113,12 +119,13 @@ namespace EDIVE.External.DomainReloadHelper
                 return false;
             try
             {
-                var value = System.Activator.CreateInstance(field.FieldType);
+                var value = Activator.CreateInstance(field.FieldType);
                 field.SetValue(null, value);
                 return true;
             }
-            catch
+            catch (Exception e)
             {
+                Debug.LogException(e);
                 Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
                 return false;
             }

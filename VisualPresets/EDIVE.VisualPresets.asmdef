@@ -8,7 +8,8 @@
     "EDIVE.NativeUtils",
     "EDIVE.EditorUtils",
     "EDIVE.Utils.Json",
-    "EDIVE.DataStructures"
+    "EDIVE.DataStructures",
+    "EDIVE.AssetTranslation"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

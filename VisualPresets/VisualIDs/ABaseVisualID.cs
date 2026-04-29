@@ -1,12 +1,12 @@
 ﻿// Author: Michal Petr
 // Created: 29.10.2025
 
-using UnityEngine;
+using EDIVE.AssetTranslation;
 
 namespace EDIVE.VisualPresets.VisualIDs
 {
-    public abstract class ABaseVisualID : ScriptableObject
+    public abstract class ABaseVisualID : AUniqueDefinition
     {
-        
+      
     }
 }

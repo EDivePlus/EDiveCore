@@ -48,7 +48,13 @@ namespace EDIVE.Avatars.Networking
             if (Definition == null)
                 return;
 
-            var localPlayer = AppCore.Services.Get<NetworkPlayerManager>().LocalPlayer;
+            if (!AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
+            {
+                Debug.LogWarning("Network player manager not found.");
+                return;
+            }
+            
+            var localPlayer = playerManager.LocalPlayer;
             if (localPlayer == null)
             {
                 Debug.LogWarning("Local player not found, cannot set avatar");

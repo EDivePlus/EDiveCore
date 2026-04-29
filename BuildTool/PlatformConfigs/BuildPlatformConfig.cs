@@ -169,10 +169,10 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeField, HideInInspector] private bool _EnableDeepProfile;
         [SerializeField, HideInInspector] private bool _CleanBuildCache;
         [SerializeField, HideInInspector] private bool _DetailedBuildReport;
-        [SerializeField, HideInInspector] private bool _StripEngineCode = true;
-        [SerializeField, HideInInspector] private ManagedStrippingLevel _ManagedStrippingLevel = ManagedStrippingLevel.Low;
-        [SerializeField, HideInInspector] private PlayerCompressionType _PlayerCompression = PlayerCompressionType.Default;
-        [SerializeField, HideInInspector] private bool _UseIncrementalGC = true;
+        [SerializeField, HideInInspector] private bool _StripEngineCode;
+        [SerializeField, HideInInspector] private ManagedStrippingLevel _ManagedStrippingLevel;
+        [SerializeField, HideInInspector] private PlayerCompressionType _PlayerCompression;
+        [SerializeField, HideInInspector] private bool _UseIncrementalGC;
         [SerializeField, HideInInspector] private LoggingSetup _LoggingSetup;
         [SerializeField, HideInInspector] private string _PlatformName;
         [SerializeField, HideInInspector] private string _ConfigType;

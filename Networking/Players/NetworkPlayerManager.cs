@@ -45,15 +45,13 @@ namespace EDIVE.Networking.Players
 
         private readonly List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
         private Promise<NetworkPlayerController> _localPlayerRequest;
-        
-         public event Action<int> ServerPlayerJoined;
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
             _networkManager = InstanceFinder.NetworkManager;
             if (_networkManager == null)
                 return UniTask.CompletedTask;
-
+            
             _networkManager.SceneManager.OnClientLoadedStartScenes += OnClientLoadedStartScenes;
             _networkManager.ServerManager.OnRemoteConnectionState += OnServerRemoteConnectionState;
             _networkManager.ServerManager.RegisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
@@ -170,7 +168,6 @@ namespace EDIVE.Networking.Players
                 var playerController = netObj.GetComponent<NetworkPlayerController>();
                 CurrentPlayers.Add(playerController);
 
-                ServerPlayerJoined?.Invoke(conn.ClientId);
                 DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
             });
         }

@@ -1,7 +1,6 @@
 // Author: František Holubec
 // Created: 13.06.2025
 
-using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EnhancedUI.EnhancedScroller;
 using TMPro;
@@ -13,30 +12,34 @@ namespace EDIVE.Networking.ServerManagement.UI
     public class ServerListElementDisplay : EnhancedScrollerCellView
     {
         [SerializeField]
+        private ServerRecordDisplay _Display;
+        
+        [SerializeField]
         private TMP_Text _ServerNameText;
 
         [SerializeField]
         private TMP_Text _ServerIdText;
-        
 
         [SerializeField]
         private TMP_Text _ClientsCountText;
-
+        
         [SerializeField]
         private Button _ConnectButton;
 
-        private AServerRecord _serverRecord;
+        private ServerRecord _serverRecord;
 
-        public void SetRoom(AServerRecord serverRecord)
+        public void SetServer(ServerRecord serverRecord)
         {
             _serverRecord = serverRecord;
+            _Display.Terminate();
+            _Display.Initialize(serverRecord);
 
             if (_ServerNameText)
                 _ServerNameText.text = _serverRecord.ServerName;
 
             if (_ServerIdText)
                 _ServerIdText.text = $"{_serverRecord.ServerID}";
-            
+
             if (_ClientsCountText)
                 _ClientsCountText.text = $"{_serverRecord.CurrentPlayers}/{_serverRecord.MaxPlayers}";
 
@@ -49,15 +52,10 @@ namespace EDIVE.Networking.ServerManagement.UI
 
         private void OnConnectClicked()
         {
-            var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            UniTask.Void(async () =>
+            if (AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
             {
-                var success = await _serverRecord.PrepareForConnect();
-                if (!success) 
-                    return;
-                
-                networkManager.StartRuntime(NetworkRuntimeMode.Client);
-            });
+                serverManager.ConnectToServer(_serverRecord);
+            }
         }
     }
 }

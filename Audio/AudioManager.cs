@@ -31,6 +31,9 @@ namespace EDIVE.Audio
         private int _MicFrameDuration = 60;
         
         [SerializeField]
+        private int _MicSamplingFrequency = 12000;
+        
+        [SerializeField]
         private float _VoiceChatDistance = 25f;
         
         private ClientSession<int> _voiceChatSession;
@@ -120,7 +123,7 @@ namespace EDIVE.Audio
             _voiceChatSession = new ClientSession<int>(_uniVoiceClient, _currentAudioInput, () =>
             {
                 var audioOutput = StreamedAudioSourceOutput.New();
-                audioOutput.Stream.TargetLatency = 0.3f;
+                audioOutput.Stream.TargetLatency = 0.5f;
                 audioOutput.Stream.PitchMaxCorrection = 0.05f;
                 audioOutput.Stream.PitchProportionalGain = 0.2f;
                 audioOutput.Stream.DownwardPitchCorrectionScale = 1f;
@@ -131,7 +134,7 @@ namespace EDIVE.Audio
             {
                 new RNNoiseFilter(), // Noise suppression
                 new SimpleVadFilter(new SimpleVad()), // Voice activity detection
-                new ConcentusEncodeFilter() // Opus encoding
+                new ConcentusEncodeFilter(ConcentusFrequencies.Frequency_12000) // Opus encoding
             };
             _voiceChatSession.InputFilters.AddRange(_encodeFilters);
             _voiceChatSession.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter()); // Opus decoding
@@ -333,7 +336,7 @@ namespace EDIVE.Audio
             if (micDevice != null)
             {
                 Debug.Log($"[AudioManager] Using microphone: {micDevice.Name}");
-                micDevice.StartRecording(_MicFrameDuration);
+                micDevice.StartRecording(ResolveMicrophoneFrequency(micDevice), _MicFrameDuration);
             }
             else
             {
@@ -350,6 +353,18 @@ namespace EDIVE.Audio
             _currentAudioInput.OnFrameReady += OnAudioFrameReady;
             if (_voiceChatSession != null)
                 _voiceChatSession.Input = _currentAudioInput;
+        }
+        
+        private int ResolveMicrophoneFrequency(Mic.Device micDevice)
+        {
+            if (micDevice.SupportsAnyFrequency)
+                return _MicSamplingFrequency;
+            
+            if (micDevice.MaxFrequency == _MicSamplingFrequency || micDevice.MinFrequency == _MicSamplingFrequency)
+                return _MicSamplingFrequency;
+            
+            // If the desired frequency is not supported, use the maximum supported frequency
+            return micDevice.MaxFrequency;
         }
         
         private void OnAudioFrameReady(AudioFrame frame)

@@ -19,17 +19,14 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Material";
 
-        public override bool Equals(AVisualPresetRecord other)
+        public override bool EqualsInternal(AVisualPresetRecord other)
         {
-            if (other is not MaterialVisualPresetRecord materialRecord)
-                return false;
-
-            return base.Equals(other) && Equals(Material, materialRecord.Material);
+            return other is MaterialVisualPresetRecord materialRecord && Equals(Material, materialRecord.Material);
         }
 
-        public override int GetHashCode()
+        public override int GetHashCodeInternal()
         {
-            return HashCode.Combine(base.GetHashCode(), Material != null ? Material.GetHashCode() : 0);
+            return Material != null ? Material.GetHashCode() : 0;
         }
     }
 }

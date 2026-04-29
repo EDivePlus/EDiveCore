@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using FishNet;
+using FishNet.Transporting.Tugboat;
 using FishNet.Transporting.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
@@ -21,10 +22,11 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
     {
         private CancellationTokenSource _searchCancellation;
         private CancellationTokenSource _heartbeatCancellation;
-        
+
         private Lobby _hostLobby;
         private float _lastQueryTime;
-
+        private AServerEndpoint[] _localEndpoints;
+        
         public override async UniTask Initialize()
         {
             await Unity.Services.Core.UnityServices.InitializeAsync();
@@ -60,14 +62,16 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _searchCancellation = null;
         }
 
+        public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
+            => _localEndpoints ?? Array.Empty<AServerEndpoint>();
+
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
-            if (Time.realtimeSinceStartup - _lastQueryTime < 2f)
+            if (UnityEngine.Time.realtimeSinceStartup - _lastQueryTime < 2f)
                 await UniTask.Delay(TimeSpan.FromSeconds(2), true, cancellationToken: cancellationToken);
                 
             while (!cancellationToken.IsCancellationRequested)
             {
-                Servers.Clear();
                 var options = new QueryLobbiesOptions
                 {
                     Count = 5,
@@ -76,26 +80,53 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                         new(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
                     }
                 };
-                
-                _lastQueryTime = Time.realtimeSinceStartup;
+
+                _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
                 var response = await LobbyService.Instance.QueryLobbiesAsync(options);
-                foreach (var lobby in response.Results)
+                SetServers(BuildRecords(response.Results));
+                await UniTask.Delay(TimeSpan.FromSeconds(4), true, cancellationToken: cancellationToken);
+            }
+        }
+
+        private static IEnumerable<ServerRecord> BuildRecords(IEnumerable<Lobby> lobbies)
+        {
+            foreach (var lobby in lobbies)
+            {
+                if (!lobby.Data.TryGetValue("uniqueID", out var uniqueID) || !long.TryParse(uniqueID.Value, out var serverID))
+                    continue;
+
+                ushort publicPort = 0;
+                if (lobby.Data.TryGetValue("publicPort", out var publicPortData))
+                    ushort.TryParse(publicPortData.Value, out publicPort);
+
+                var publicAddress = lobby.Data.TryGetValue("publicIP", out var publicIP) ? publicIP.Value : string.Empty;
+                var relayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty;
+
+                var endpoints = new List<AServerEndpoint>();
+                if (!string.IsNullOrEmpty(publicAddress) && publicPort > 0)
                 {
-                    if (!lobby.Data.TryGetValue("uniqueID", out var uniqueID) || !long.TryParse(uniqueID.Value, out var serverID))
-                        continue;
-                
-                    AddServer(new UnityLobbyServerRecord
+                    endpoints.Add(new AddressServerEndpoint
                     {
-                        ServerID = serverID,
-                        ServerName = lobby.Name,
-                        CurrentPlayers = lobby.Players.Count,
-                        MaxPlayers = lobby.MaxPlayers,
-                        Lobby = lobby,
-                        RelayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty,
-                        DirectConnectAddress = lobby.Data.TryGetValue("publicIP", out var publicIP) ? publicIP.Value : string.Empty,
+                        Name = "Unity Direct",
+                        Address = publicAddress,
+                        Port = publicPort,
                     });
                 }
-                await UniTask.Delay(TimeSpan.FromSeconds(4), true, cancellationToken: cancellationToken);
+                endpoints.Add(new UnityRelayServerEndpoint
+                {
+                    Name = "Unity Relay",
+                    Lobby = lobby,
+                    RelayJoinCode = relayJoinCode,
+                });
+
+                yield return new ServerRecord
+                {
+                    ServerID = serverID,
+                    ServerName = lobby.Name,
+                    CurrentPlayers = lobby.Players.Count,
+                    MaxPlayers = lobby.MaxPlayers,
+                    Endpoints = endpoints,
+                };
             }
         }
         
@@ -115,6 +146,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             unityTransport.SetRelayServerData(serverData);
 
             var publicIP = await GetPublicIPAsync();
+            var tugboat = networkManager.TransportManager.GetTransport<Tugboat>();
+            var publicPort = tugboat != null ? tugboat.GetPort() : (ushort)0;
             var options = new CreateLobbyOptions
             {
                 IsPrivate = false,
@@ -122,21 +155,47 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 {
                     { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) },
                     { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
-                    { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) }
+                    { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) },
+                    { "publicPort", new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString()) }
                 }
             };
 
             _hostLobby = await LobbyService.Instance.CreateLobbyAsync(_serverConfig.ServerName, _serverConfig.MaxPlayers + 1, options);
-            
+
+            var endpoints = new List<AServerEndpoint>();
+            if (!string.IsNullOrEmpty(publicIP) && publicPort > 0)
+            {
+                endpoints.Add(new AddressServerEndpoint
+                {
+                    Name = "Unity Direct",
+                    Address = publicIP,
+                    Port = publicPort,
+                });
+            }
+            endpoints.Add(new UnityRelayServerEndpoint
+            {
+                Name = "Unity Relay",
+                Lobby = _hostLobby,
+                RelayJoinCode = joinCode,
+            });
+            _localEndpoints = endpoints.ToArray();
+
             _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             UniTask.Void(async cancellationToken =>
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     await UniTask.Delay(TimeSpan.FromSeconds(25), true, cancellationToken: cancellationToken);
-                    if (_hostLobby == null) 
+                    if (_hostLobby == null)
                         break;
-                    await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
+                    try
+                    {
+                        await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
+                    }
+                    catch (Exception e) when (e is not OperationCanceledException)
+                    {
+                        Debug.LogWarning($"[UnityLobbyServerListAdapter] Lobby heartbeat failed: {e.Message}");
+                    }
                 }
             }, _heartbeatCancellation.Token);
         }
@@ -146,8 +205,13 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _heartbeatCancellation?.Cancel();
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
+            _localEndpoints = null;
             if (_hostLobby != null)
-                await LobbyService.Instance.DeleteLobbyAsync(_hostLobby.Id);
+            {
+                var lobbyId = _hostLobby.Id;
+                _hostLobby = null;
+                await LobbyService.Instance.DeleteLobbyAsync(lobbyId);
+            }
         }
         
         private static async UniTask<string> GetPublicIPAsync()

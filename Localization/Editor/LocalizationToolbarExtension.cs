@@ -32,7 +32,7 @@ namespace EDIVE.Localization.Editor
         [MainToolbarElement("EDive/Locale Selector", defaultDockPosition = MainToolbarDockPosition.Right)]
         public static MainToolbarElement CreatePlayRootSceneButton()
         {
-            return MainToolbarElementFactory.Create(() =>
+            return MainToolbarUtility.CreateElement(() =>
             {
                 var settings = LocalizationEditorSettings.ActiveLocalizationSettings;
                 var dropdown = new EditorToolbarDropdown

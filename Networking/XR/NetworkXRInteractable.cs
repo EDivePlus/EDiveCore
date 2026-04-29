@@ -77,7 +77,7 @@ namespace EDIVE.Networking.XR
         
         private void ResetInteractableVelocity()
         {
-            if (_rigidbody)
+            if (_rigidbody && !_rigidbody.isKinematic)
             {
                 _rigidbody.linearVelocity = Vector3.zero;
                 _rigidbody.angularVelocity = Vector3.zero;

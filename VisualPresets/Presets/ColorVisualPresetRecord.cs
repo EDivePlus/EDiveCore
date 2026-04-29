@@ -19,17 +19,14 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Color";
 
-        public override bool Equals(AVisualPresetRecord other)
+        public override bool EqualsInternal(AVisualPresetRecord other)
         {
-            if (other is not ColorVisualPresetRecord colorRecord)
-                return false;
-            
-            return base.Equals(other) && Color.Equals(colorRecord.Color);
+            return other is ColorVisualPresetRecord colorRecord && Color.Equals(colorRecord.Color);
         }
 
-        public override int GetHashCode()
+        public override int GetHashCodeInternal()
         {
-            return HashCode.Combine(base.GetHashCode(), Color);
+            return Color.GetHashCode();
         }
     }
 }

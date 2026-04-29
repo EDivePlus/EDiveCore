@@ -14,7 +14,7 @@ using UnityEditor;
 namespace EDIVE.Utils.FontSymbols
 {
     [Serializable]
-    public struct FontSymbol
+    public struct FontSymbol : IEquatable<FontSymbol>
     {
         [SerializeField]
         private FontSymbolsDefinition _Definition;
@@ -68,6 +68,21 @@ namespace EDIVE.Utils.FontSymbols
             {
                 return '\0';
             }
+        }
+
+        public bool Equals(FontSymbol other)
+        {
+            return Equals(_Definition, other._Definition) && _Symbol == other._Symbol;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is FontSymbol other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(_Definition, _Symbol);
         }
     }
 

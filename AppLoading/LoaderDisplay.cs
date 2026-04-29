@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.Core;
 using Sirenix.OdinInspector;
@@ -58,9 +59,7 @@ namespace EDIVE.AppLoading
             {
                 OnToggleValueChanged(EnableLoadReportByDefault);
             }
-
-            _loadItems = _LoaderController.Setup.GetValidLoadItemsSorted().ToList();
-            _LoaderController.LoadFinalizedSignal.AddListener(OnLoadFinalized);
+            _LoaderController.LoadFinalizedSignal += OnLoadFinalized;
         }
         
         private void OnDestroy()
@@ -82,6 +81,10 @@ namespace EDIVE.AppLoading
 
         private void Update()
         {
+            if (!_LoaderController.IsLoading)
+                return;
+            
+            _loadItems ??= _LoaderController.Setup.GetValidLoadItemsSorted().ToList();
             var progress = Mathf.Clamp01(_LoaderController.GetLoadingProgress());
 
             _ProgressSlider.value = progress;

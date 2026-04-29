@@ -35,6 +35,16 @@ namespace EDIVE.VisualPresets.StateHandling
         }
         
         public override string EditorLabel => "MultiState";
+        
+        public override bool EqualsInternal(AVisualPresetRecord other)
+        {
+            return other is MultiStateVisualPresetRecord multiStatePreset && Equals(multiStatePreset.State, State);
+        }
+
+        public override int GetHashCodeInternal()
+        {
+            return State?.GetHashCode() ?? 0;
+        }
 
 #if UNITY_EDITOR
         [UsedImplicitly]

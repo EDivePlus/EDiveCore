@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 03.03.2026
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
@@ -41,6 +42,12 @@ namespace EDIVE.Tablet
                 else
                     Destroy(persistentFrame.gameObject);
             });
+        }
+        
+        private void Start()
+        {
+            if (_Definition.DefaultWidget)
+                OpenWidget(_Definition.DefaultWidget);
         }
 
         public void OpenWidget(TabletWidgetDefinition definition)

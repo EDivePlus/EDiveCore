@@ -123,6 +123,17 @@ namespace EDIVE.AppLoading.Utils
             var converted = definition.ChangeScriptType<PrefabReferenceLoadItemDefinition>();
             converted.SetPrefabReference(prefabReference);
         }
+        
+        [MenuItem("CONTEXT/PrefabReferenceLoadItemDefinition/Convert to Prefab", false, 10000)]
+        public static void ConvertAddressableLoadItemToPrefab(MenuCommand command)
+        {
+            if (command.context is not PrefabReferenceLoadItemDefinition definition)
+                return;
+
+            var prefab = definition.PrefabReference.editorAsset;
+            var converted = definition.ChangeScriptType<PrefabLoadItemDefinition>();
+            converted.SetPrefab(prefab);
+        }
 #endif
 #endif
     }

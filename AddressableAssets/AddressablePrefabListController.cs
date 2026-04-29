@@ -75,7 +75,7 @@ namespace EDIVE.AddressableAssets
                         PopulatePrefab(display, definition);
                 }
             }
-            catch (InvalidKeyException e)
+            catch (InvalidKeyException)
             {
                 // ignore
             }

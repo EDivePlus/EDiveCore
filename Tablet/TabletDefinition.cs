@@ -15,11 +15,15 @@ namespace EDIVE.Tablet
         [SerializeField]
         [EnhancedAssetList]
         private List<TabletWidgetDefinition> _Widgets = new();
+
+        [SerializeField]
+        private TabletWidgetDefinition _DefaultWidget;
         
         [SerializeField]
         [EnhancedValueDropdown("GetAvailableWidgets", AppendNextDrawer = true, IsUniqueList = true)]
         private List<TabletWidgetDefinition> _PinnedWidgets = new();
-        
+
+        public TabletWidgetDefinition DefaultWidget => _DefaultWidget;
         public IReadOnlyList<TabletWidgetDefinition> Widgets => _Widgets;
         public IReadOnlyList<TabletWidgetDefinition> PinnedWidgets => _PinnedWidgets;
 
