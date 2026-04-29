@@ -60,11 +60,11 @@ namespace EDIVE.ServiceHub.Auth
 
         private void OnEnable()
         {
-            _serviceHubManager.TryLoadStoredToken();
+            _serviceHubManager.TryLoadStoredClientToken();
 
             if (ServiceHubManager.IsLoggedIn)
             {
-                Debug.Log($"Logged in (UserId): {AuthStorage.GetUserId()}");
+                Debug.Log($"Logged in (UserId): {AuthStorage.Client.GetInfo<AuthUserInfo>()?.Id ?? ""}");
                 SetLoggedInUI(true);
             }
             else
@@ -73,7 +73,7 @@ namespace EDIVE.ServiceHub.Auth
                 SetLoggedInUI(false);
             }
 
-            var lastEmail = AuthStorage.GetLastEmail(); // see previous step with storing the email
+            var lastEmail = AuthStorage.Client.GetLastEmail(); // see previous step with storing the email
             if (!string.IsNullOrEmpty(lastEmail))
             {
                 _CredentialsEmailInput.SetTextWithoutNotify(lastEmail);
@@ -151,7 +151,7 @@ namespace EDIVE.ServiceHub.Auth
 
             var emailNow = _CredentialsEmailInput.text?.Trim();
             if (!string.IsNullOrEmpty(emailNow))
-                AuthStorage.SetLastEmail(emailNow);
+                AuthStorage.Client.SetLastEmail(emailNow);
         }
 
         private void OnClientLoginFail(long status, string message)
@@ -199,7 +199,7 @@ namespace EDIVE.ServiceHub.Auth
         {
             var v = value?.Trim();
             if (!string.IsNullOrEmpty(v))
-                AuthStorage.SetLastEmail(v);
+                AuthStorage.Client.SetLastEmail(v);
         }
 
         private void ApplyPasswordMaskState()

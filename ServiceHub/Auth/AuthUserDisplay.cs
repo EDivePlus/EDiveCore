@@ -36,7 +36,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private void OnEnable()
         {
-            var userInfo = AuthStorage.GetUserInfo();
+            var userInfo = AuthStorage.Client.GetInfo<AuthUserInfo>();
             if (userInfo != null)
                 SetUserInfo(userInfo);
         }

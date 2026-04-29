@@ -25,7 +25,8 @@ namespace EDIVE.ServiceHub
         private string _AppSecret = "";
         
         private ISaveDataLocalStore _local;
-        
+        private ISaveDataLocalStore _serverLocal;
+
         private NetworkManager _networkManager;
         private MasterNetworkManager _masterNetworkManager;
 
@@ -36,11 +37,18 @@ namespace EDIVE.ServiceHub
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             _local ??= new PlayerPrefsSaveDataStore();
+            _serverLocal ??= new PlayerPrefsSaveDataStore("uc.savedata.server.");
 
-            if (AuthStorage.IsValid())
+            if (AuthStorage.Client.IsValid())
             {
-                TryLoadStoredToken();
+                TryLoadStoredClientToken();
                 await CheckClientAuthAsync(destroyCancellationToken);
+            }
+
+            if (AuthStorage.Server.IsValid())
+            {
+                TryLoadStoredServerToken();
+                await CheckServerAuthAsync(destroyCancellationToken);
             }
             
             _networkManager = InstanceFinder.NetworkManager;
@@ -79,6 +87,10 @@ namespace EDIVE.ServiceHub
         private async UniTask OnServerPrepareHandlers()
         {
             // Authenticate server to backend
+            
+            // Attempt to read server credentials from AuthStorage first
+            
+            // If not available or invalid, try read from ServerConfig
         }
     }
 }

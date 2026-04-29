@@ -1,4 +1,4 @@
-﻿// Author: Radim Holub
+// Author: Radim Holub
 // Created: 08.09.2025
 
 using System;
@@ -7,15 +7,31 @@ using UnityEngine;
 
 namespace EDIVE.ServiceHub.Auth
 {
-    public static class AuthStorage
+    public class AuthStorage
     {
-        private const string K_ACCESS = "auth.access";
-        private const string K_REFRESH = "auth.refresh";
-        private const string K_EXPIRESAT = "auth.expiresAt";
-        private const string K_EMAIL = "auth.lastEmail";
-        private const string K_USERINFO = "auth.userInfo";
+        private readonly string _kAccess;
+        private readonly string _kRefresh;
+        private readonly string _kExpiresAt;
+        private readonly string _kInfo;
+        private readonly string _kLastEmail;
 
-        public static void Save(string accessToken, string refreshToken, long? expUnixFromJwt, int expiresInFromApi, AuthUserInfo authUserInfo = null)
+        private static AuthStorage _client;
+        private static AuthStorage _server;
+
+        public static AuthStorage Client => _client ??= new AuthStorage("auth.");
+        public static AuthStorage Server => _server ??= new AuthStorage("server.auth.");
+
+        public AuthStorage(string prefix)
+        {
+            var p = prefix ?? "";
+            _kAccess = p + "access";
+            _kRefresh = p + "refresh";
+            _kExpiresAt = p + "expiresAt";
+            _kInfo = p + "info";
+            _kLastEmail = p + "lastEmail";
+        }
+
+        public void Save(string accessToken, string refreshToken, long? expUnixFromJwt, int expiresInFromApi, string infoJson = null)
         {
             long expiresAtUnix;
             if (expUnixFromJwt.HasValue)
@@ -28,35 +44,36 @@ namespace EDIVE.ServiceHub.Auth
                 expiresAtUnix = dt.ToUnixTimeSeconds();
             }
 
-            PlayerPrefs.SetString(K_ACCESS, accessToken ?? "");
-            PlayerPrefs.SetString(K_REFRESH, refreshToken ?? "");
-            PlayerPrefs.SetString(K_EXPIRESAT, expiresAtUnix.ToString());
+            PlayerPrefs.SetString(_kAccess, accessToken ?? "");
+            PlayerPrefs.SetString(_kRefresh, refreshToken ?? "");
+            PlayerPrefs.SetString(_kExpiresAt, expiresAtUnix.ToString());
 
-            if (authUserInfo != null)
-                PlayerPrefs.SetString(K_USERINFO, JsonConvert.SerializeObject(authUserInfo));
+            if (infoJson != null)
+                PlayerPrefs.SetString(_kInfo, infoJson);
 
             PlayerPrefs.Save();
         }
 
-        public static string GetAccessToken() => PlayerPrefs.GetString(K_ACCESS, "");
-        public static string GetRefreshToken() => PlayerPrefs.GetString(K_REFRESH, "");
-        public static string GetUserId() => GetUserInfo()?.Id ?? "";
+        public string GetAccessToken() => PlayerPrefs.GetString(_kAccess, "");
+        public string GetRefreshToken() => PlayerPrefs.GetString(_kRefresh, "");
 
-        public static AuthUserInfo GetUserInfo()
+        public string GetInfoJson() => PlayerPrefs.GetString(_kInfo, "");
+
+        public T GetInfo<T>() where T : class
         {
-            var json = PlayerPrefs.GetString(K_USERINFO, "");
+            var json = GetInfoJson();
             if (string.IsNullOrEmpty(json)) return null;
-            try { return JsonConvert.DeserializeObject<AuthUserInfo>(json); }
+            try { return JsonConvert.DeserializeObject<T>(json); }
             catch { return null; }
         }
 
-        public static long GetExpiresAtUnix()
+        public long GetExpiresAtUnix()
         {
-            var s = PlayerPrefs.GetString(K_EXPIRESAT, "0");
+            var s = PlayerPrefs.GetString(_kExpiresAt, "0");
             return long.TryParse(s, out var v) ? v : 0;
         }
 
-        public static bool IsValid()
+        public bool IsValid()
         {
             var token = GetAccessToken();
             if (string.IsNullOrEmpty(token)) return false;
@@ -64,22 +81,22 @@ namespace EDIVE.ServiceHub.Auth
             return now < GetExpiresAtUnix();
         }
 
-        public static void Clear()
+        public void Clear()
         {
-            PlayerPrefs.DeleteKey(K_ACCESS);
-            PlayerPrefs.DeleteKey(K_REFRESH);
-            PlayerPrefs.DeleteKey(K_EXPIRESAT);
-            PlayerPrefs.DeleteKey(K_EMAIL);
-            PlayerPrefs.DeleteKey(K_USERINFO);
+            PlayerPrefs.DeleteKey(_kAccess);
+            PlayerPrefs.DeleteKey(_kRefresh);
+            PlayerPrefs.DeleteKey(_kExpiresAt);
+            PlayerPrefs.DeleteKey(_kLastEmail);
+            PlayerPrefs.DeleteKey(_kInfo);
             PlayerPrefs.Save();
         }
 
-        public static void SetLastEmail(string email)
+        public void SetLastEmail(string email)
         {
-            PlayerPrefs.SetString(K_EMAIL, email ?? "");
+            PlayerPrefs.SetString(_kLastEmail, email ?? "");
             PlayerPrefs.Save();
         }
 
-        public static string GetLastEmail() { return PlayerPrefs.GetString(K_EMAIL, ""); }
+        public string GetLastEmail() => PlayerPrefs.GetString(_kLastEmail, "");
     }
 }

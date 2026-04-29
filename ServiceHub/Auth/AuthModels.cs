@@ -180,4 +180,40 @@ namespace EDIVE.ServiceHub.Auth
         public string Name => _Name;
         public string AppSecret => _AppSecret;
     }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ServerCredentialResponse
+    {
+        [JsonProperty("id")]
+        [SerializeField]
+        private int _Id;
+
+        [JsonProperty("server_id")]
+        [SerializeField]
+        private string _ServerId;
+
+        [JsonProperty("name")]
+        [SerializeField]
+        private string _Name;
+
+        [JsonProperty("is_active")]
+        [SerializeField]
+        private bool _IsActive;
+
+        [JsonProperty("created_at")]
+        [SerializeField]
+        private DateTime _CreatedAt;
+
+        [JsonProperty("last_authenticated_at")]
+        [SerializeField]
+        private DateTime? _LastAuthenticatedAt;
+
+        public int Id => _Id;
+        public string ServerId => _ServerId;
+        public string Name => _Name;
+        public bool IsActive => _IsActive;
+        public DateTime CreatedAt => _CreatedAt;
+        public DateTime? LastAuthenticatedAt => _LastAuthenticatedAt;
+    }
 }

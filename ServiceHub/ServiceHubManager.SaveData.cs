@@ -21,7 +21,7 @@ namespace EDIVE.ServiceHub
     {
         private const int MAX_KEY_LENGTH = 256;
         private const int MAX_VALUE_BYTES = 256 * 1024;
-        
+
         private const int BATCH_ENTRY_SIZE_THRESHOLD = 16 * 1024;
         private const int BATCH_TOTAL_SIZE_THRESHOLD = 128 * 1024;
 
@@ -31,11 +31,28 @@ namespace EDIVE.ServiceHub
         private UTimeSpan _DirtyDataSyncInterval = TimeSpan.FromSeconds(30);
 
         private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _dirtyEntries = new();
+        private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _serverDirtyEntries = new();
+        private readonly object _dirtyLock = new();
+        private readonly object _serverDirtyLock = new();
         private CancellationTokenSource _syncCts;
 
-        private string SaveDataUserUrl => $"{ServiceBaseUrl}/savedata/user";
-        private string SaveDataKeyUrl(string key) => $"{SaveDataUserUrl}/{Uri.EscapeDataString(key)}";
-        private string SaveDataBatchUrl => $"{SaveDataUserUrl}/batch";
+        private SaveDataContext _userCtx;
+        private SaveDataContext _serverCtx;
+        private bool _contextsReady;
+
+        private void EnsureContexts()
+        {
+            if (_contextsReady) return;
+            _userCtx = new SaveDataContext(this, false, $"{ServiceBaseUrl}/savedata/user", _dirtyEntries, _dirtyLock, "user");
+            _serverCtx = new SaveDataContext(this, true, $"{ServiceBaseUrl}/savedata/server", _serverDirtyEntries, _serverDirtyLock, "server");
+            _contextsReady = true;
+        }
+
+        private SaveDataContext UserCtx() { EnsureContexts(); return _userCtx; }
+        private SaveDataContext ServerCtx() { EnsureContexts(); return _serverCtx; }
+
+        private CancellationToken GetEffectiveToken(CancellationToken ct)
+            => ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
 
         private void OnEnable()
         {
@@ -68,7 +85,8 @@ namespace EDIVE.ServiceHub
                 try
                 {
                     await waitFactory(ct);
-                    await FlushDirtyEntries(flag, ct);
+                    await FlushDirtyEntries(UserCtx(), flag, ct);
+                    await FlushDirtyEntries(ServerCtx(), flag, ct);
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception e)
@@ -78,17 +96,52 @@ namespace EDIVE.ServiceHub
             }
         }
 
-        public async UniTask<SaveDataResult<T>> GetSaveData<T>(
-            string key,
-            CancellationToken ct = default,
-            bool forceRefresh = false)
-        {
-            var effectiveToken = ct == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
-                : ct;
+        // ---- User-scoped public API ----
 
-            // When not forcing a refresh, try local first
-            if (!forceRefresh && _local.TryGet(key, out var cachedJson))
+        public UniTask<SaveDataResult<T>> GetSaveData<T>(string key, CancellationToken ct = default, bool forceRefresh = false)
+            => GetSaveDataInternal<T>(UserCtx(), key, ct, forceRefresh);
+
+        public UniTask<SaveDataStatus> SetSaveData<T>(string key, T value, SaveDataDirtyFlag flag = SaveDataDirtyFlag.Immediate, CancellationToken ct = default)
+            => SetSaveDataInternal(UserCtx(), key, value, flag, ct);
+
+        public UniTask<SaveDataResult<bool>> DeleteSaveData(string key, CancellationToken ct = default)
+            => DeleteSaveDataInternal(UserCtx(), key, ct);
+
+        public UniTask FlushManualEntries(CancellationToken ct = default)
+            => FlushDirtyEntries(UserCtx(), SaveDataDirtyFlag.Manual, GetEffectiveToken(ct));
+
+        public UniTask FlushAllDirtyEntries(CancellationToken ct = default)
+            => FlushAllDirtyEntriesInternal(UserCtx(), GetEffectiveToken(ct));
+
+        // ---- Server-scoped public API ----
+
+        public UniTask<SaveDataResult<T>> GetServerSaveData<T>(string key, CancellationToken ct = default, bool forceRefresh = false)
+            => GetSaveDataInternal<T>(ServerCtx(), key, ct, forceRefresh);
+
+        public UniTask<SaveDataStatus> SetServerSaveData<T>(string key, T value, SaveDataDirtyFlag flag = SaveDataDirtyFlag.Immediate, CancellationToken ct = default)
+            => SetSaveDataInternal(ServerCtx(), key, value, flag, ct);
+
+        public UniTask<SaveDataResult<bool>> DeleteServerSaveData(string key, CancellationToken ct = default)
+            => DeleteSaveDataInternal(ServerCtx(), key, ct);
+
+        public UniTask FlushServerManualEntries(CancellationToken ct = default)
+            => FlushDirtyEntries(ServerCtx(), SaveDataDirtyFlag.Manual, GetEffectiveToken(ct));
+
+        public UniTask FlushAllServerDirtyEntries(CancellationToken ct = default)
+            => FlushAllDirtyEntriesInternal(ServerCtx(), GetEffectiveToken(ct));
+
+        // ---- Internals (context-driven) ----
+
+        private async UniTask<SaveDataResult<T>> GetSaveDataInternal<T>(
+            SaveDataContext ctx,
+            string key,
+            CancellationToken ct,
+            bool forceRefresh)
+        {
+            var effectiveToken = GetEffectiveToken(ct);
+            var local = ctx.Local;
+
+            if (!forceRefresh && local.TryGet(key, out var cachedJson))
             {
                 try
                 {
@@ -101,11 +154,11 @@ namespace EDIVE.ServiceHub
                 }
             }
 
-            if (IsLoggedIn)
+            if (ctx.IsAuthValid)
             {
                 var response = await RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
-                    SaveDataKeyUrl(key),
-                    AuthStorage.GetAccessToken(),
+                    ctx.KeyUrl(key),
+                    ctx.AccessToken,
                     null,
                     GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
                     effectiveToken
@@ -116,8 +169,8 @@ namespace EDIVE.ServiceHub
                     try
                     {
                         var value = response.Result.Data.Value.ToObject<T>();
-                        _local.Set(key, response.Result.Data.Value.ToString(Formatting.None));
-                        _local.Save();
+                        local.Set(key, response.Result.Data.Value.ToString(Formatting.None));
+                        local.Save();
                         return SaveDataResult<T>.Success(value, true);
                     }
                     catch (Exception ex)
@@ -126,21 +179,35 @@ namespace EDIVE.ServiceHub
                     }
                 }
 
-                // Not found on server — fall through to local
                 if (!response.IsNotFound && !response.IsSuccess)
                 {
-                    Debug.LogWarning($"[ServiceHub] Server get failed for '{key}': {response.ErrorMessage}");
+                    Debug.LogWarning($"[ServiceHub] {ctx.LogScope} get failed for '{key}': {response.ErrorMessage}");
+                }
+            }
+
+            // forceRefresh fallback: surface stale local data instead of dropping the op
+            if (forceRefresh && local.TryGet(key, out var fallbackJson))
+            {
+                try
+                {
+                    var fallbackObj = JsonConvert.DeserializeObject<T>(fallbackJson);
+                    return SaveDataResult<T>.Success(fallbackObj, false);
+                }
+                catch
+                {
+                    // fall through to "Data not found"
                 }
             }
 
             return SaveDataResult<T>.Error("Data not found");
         }
 
-        public async UniTask<SaveDataStatus> SetSaveData<T>(
+        private async UniTask<SaveDataStatus> SetSaveDataInternal<T>(
+            SaveDataContext ctx,
             string key,
             T value,
-            SaveDataDirtyFlag flag = SaveDataDirtyFlag.Immediate,
-            CancellationToken ct = default)
+            SaveDataDirtyFlag flag,
+            CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(key) || key.Length > MAX_KEY_LENGTH)
             {
@@ -148,9 +215,7 @@ namespace EDIVE.ServiceHub
                 return SaveDataStatus.Error;
             }
 
-            var effectiveToken = ct == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
-                : ct;
+            var effectiveToken = GetEffectiveToken(ct);
             var json = JsonConvert.SerializeObject(value);
 
             if (Encoding.UTF8.GetByteCount(json) > MAX_VALUE_BYTES)
@@ -159,69 +224,69 @@ namespace EDIVE.ServiceHub
                 return SaveDataStatus.Error;
             }
 
-            _local.Set(key, json);
-            _local.Save();
+            var local = ctx.Local;
+            local.Set(key, json);
+            local.Save();
 
             if (flag == SaveDataDirtyFlag.Immediate)
             {
-                if (!IsLoggedIn)
+                if (!ctx.IsAuthValid)
                     return SaveDataStatus.SavedLocal;
 
-                var response = await PutSaveDataAsync(key, json, effectiveToken);
+                try
+                {
+                    var response = await PutSaveDataAsync(ctx, key, json, effectiveToken);
+                    if (response.IsSuccess)
+                        return SaveDataStatus.Saved;
 
-                if (response.IsSuccess)
-                    return SaveDataStatus.Saved;
-
-                Debug.LogError($"[ServiceHub] Server save failed for '{key}': {response.ErrorMessage} (saved locally)");
-                return SaveDataStatus.SavedLocal;
+                    Debug.LogError($"[ServiceHub] {ctx.LogScope} save failed for '{key}': {response.ErrorMessage} (saved locally)");
+                    return SaveDataStatus.SavedLocal;
+                }
+                catch (OperationCanceledException)
+                {
+                    return SaveDataStatus.SavedLocal;
+                }
             }
 
             if (flag != SaveDataDirtyFlag.NoChange)
             {
-                if (!_dirtyEntries.TryGetValue(flag, out var bucket))
+                lock (ctx.DirtyLock)
                 {
-                    bucket = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    _dirtyEntries[flag] = bucket;
+                    if (!ctx.DirtyEntries.TryGetValue(flag, out var bucket))
+                    {
+                        bucket = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        ctx.DirtyEntries[flag] = bucket;
+                    }
+                    bucket[key] = json;
                 }
-
-                bucket[key] = json;
             }
-            
+
             return SaveDataStatus.SavedLocal;
         }
 
-        /// <summary>
-        /// Flushes all entries marked with <see cref="SaveDataDirtyFlag.Manual"/>.
-        /// </summary>
-        public UniTask FlushManualEntries(CancellationToken ct = default)
-        {
-            var effectiveToken = ct == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
-                : ct;
-            return FlushDirtyEntries(SaveDataDirtyFlag.Manual, effectiveToken);
-        }
-
-        public async UniTask<SaveDataResult<bool>> DeleteSaveData(
+        private async UniTask<SaveDataResult<bool>> DeleteSaveDataInternal(
+            SaveDataContext ctx,
             string key,
-            CancellationToken ct = default)
+            CancellationToken ct)
         {
-            var effectiveToken = ct == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
-                : ct;
+            var effectiveToken = GetEffectiveToken(ct);
 
-            _local.Delete(key);
-            _local.Save();
+            var local = ctx.Local;
+            local.Delete(key);
+            local.Save();
 
-            // Remove from all dirty buckets so a pending PUT doesn't resurrect the key
-            foreach (var bucket in _dirtyEntries.Values)
-                bucket.Remove(key);
+            lock (ctx.DirtyLock)
+            {
+                foreach (var bucket in ctx.DirtyEntries.Values)
+                    bucket.Remove(key);
+            }
 
-            if (!IsLoggedIn)
+            if (!ctx.IsAuthValid)
                 return SaveDataResult<bool>.Success(true, false);
 
             var response = await RestUtils.DeleteAsync<string>(
-                SaveDataKeyUrl(key),
-                AuthStorage.GetAccessToken(),
+                ctx.KeyUrl(key),
+                ctx.AccessToken,
                 null,
                 GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
                 effectiveToken
@@ -230,37 +295,40 @@ namespace EDIVE.ServiceHub
             if (response.IsSuccess || response.IsNotFound)
                 return SaveDataResult<bool>.Success(true, true);
 
-            Debug.LogError($"[ServiceHub] Server delete failed for '{key}': {response.ErrorMessage}");
+            Debug.LogError($"[ServiceHub] {ctx.LogScope} delete failed for '{key}': {response.ErrorMessage}");
             return SaveDataResult<bool>.Error(response.ErrorMessage);
         }
 
-        public async UniTask FlushAllDirtyEntries(CancellationToken ct = default)
+        private async UniTask FlushAllDirtyEntriesInternal(SaveDataContext ctx, CancellationToken ct)
         {
-            if (!IsLoggedIn)
+            if (!ctx.IsAuthValid)
                 return;
 
-            var effectiveToken = ct == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
-                : ct;
-
-            var flags = new List<SaveDataDirtyFlag>(_dirtyEntries.Keys);
+            List<SaveDataDirtyFlag> flags;
+            lock (ctx.DirtyLock)
+            {
+                flags = new List<SaveDataDirtyFlag>(ctx.DirtyEntries.Keys);
+            }
             foreach (var flag in flags)
-                await FlushDirtyEntries(flag, effectiveToken);
+                await FlushDirtyEntries(ctx, flag, ct);
         }
 
-        private async UniTask FlushDirtyEntries(SaveDataDirtyFlag flag, CancellationToken ct)
+        private async UniTask FlushDirtyEntries(SaveDataContext ctx, SaveDataDirtyFlag flag, CancellationToken ct)
         {
-            if (!_dirtyEntries.TryGetValue(flag, out var bucket) || bucket.Count == 0)
+            if (!ctx.IsAuthValid)
                 return;
 
-            if (!IsLoggedIn)
-                return;
+            Dictionary<string, string> bucket;
+            Dictionary<string, string> snapshot;
+            lock (ctx.DirtyLock)
+            {
+                if (!ctx.DirtyEntries.TryGetValue(flag, out bucket) || bucket.Count == 0)
+                    return;
 
-            // Snapshot and clear so new writes during flush go into the next cycle
-            var snapshot = new Dictionary<string, string>(bucket, StringComparer.OrdinalIgnoreCase);
-            bucket.Clear();
+                snapshot = new Dictionary<string, string>(bucket, StringComparer.OrdinalIgnoreCase);
+                bucket.Clear();
+            }
 
-            // Partition entries: large ones go as single PUTs, small ones are batched.
             var batch = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var batchByteSize = 0;
 
@@ -268,27 +336,29 @@ namespace EDIVE.ServiceHub
             {
                 if (ct.IsCancellationRequested)
                 {
-                    RequeueRemaining(bucket, snapshot, alreadyHandled: null, skipKey: key);
-                    bucket.TryAdd(key, json);
+                    lock (ctx.DirtyLock)
+                    {
+                        RequeueRemaining(bucket, snapshot, alreadyHandled: null, skipKey: key);
+                        bucket.TryAdd(key, json);
+                    }
                     return;
                 }
 
                 var byteSize = Encoding.UTF8.GetByteCount(json);
                 if (byteSize > BATCH_ENTRY_SIZE_THRESHOLD)
                 {
-                    var response = await PutSaveDataAsync(key, json, ct);
+                    var response = await PutSaveDataAsync(ctx, key, json, ct);
                     if (!response.IsSuccess)
                     {
-                        Debug.LogError($"[ServiceHub] Sync failed for '{key}': {response.ErrorMessage}");
-                        bucket.TryAdd(key, json);
+                        Debug.LogError($"[ServiceHub] {ctx.LogScope} sync failed for '{key}': {response.ErrorMessage}");
+                        lock (ctx.DirtyLock) bucket.TryAdd(key, json);
                     }
                     continue;
                 }
 
-                // Flush the accumulated batch before it grows too large.
                 if (batch.Count > 0 && batchByteSize + byteSize > BATCH_TOTAL_SIZE_THRESHOLD)
                 {
-                    await FlushBatchAsync(batch, bucket, ct);
+                    await FlushBatchAsync(ctx, batch, bucket, ct);
                     batch.Clear();
                     batchByteSize = 0;
                 }
@@ -298,7 +368,7 @@ namespace EDIVE.ServiceHub
             }
 
             if (batch.Count > 0)
-                await FlushBatchAsync(batch, bucket, ct);
+                await FlushBatchAsync(ctx, batch, bucket, ct);
         }
 
         private static void RequeueRemaining(
@@ -316,62 +386,69 @@ namespace EDIVE.ServiceHub
         }
 
         private async UniTask FlushBatchAsync(
+            SaveDataContext ctx,
             Dictionary<string, string> batch,
             Dictionary<string, string> bucket,
             CancellationToken ct)
         {
             if (batch.Count == 1)
             {
-                // No point batching a single entry — issue it directly.
                 using var e = batch.GetEnumerator();
                 e.MoveNext();
                 var (key, json) = (e.Current.Key, e.Current.Value);
-                var single = await PutSaveDataAsync(key, json, ct);
+                var single = await PutSaveDataAsync(ctx, key, json, ct);
                 if (!single.IsSuccess)
                 {
-                    Debug.LogError($"[ServiceHub] Sync failed for '{key}': {single.ErrorMessage}");
-                    bucket.TryAdd(key, json);
+                    Debug.LogError($"[ServiceHub] {ctx.LogScope} sync failed for '{key}': {single.ErrorMessage}");
+                    lock (ctx.DirtyLock) bucket.TryAdd(key, json);
                 }
                 return;
             }
 
-            var response = await PutSaveDataBatchAsync(batch, ct);
+            var response = await PutSaveDataBatchAsync(ctx, batch, ct);
 
             if (!response.IsSuccess || response.Result is not { Status: 0, Data: not null })
             {
                 var err = response.IsSuccess
                     ? response.Result?.Message ?? "Unknown error"
                     : response.ErrorMessage;
-                Debug.LogError($"[ServiceHub] Batch sync failed ({batch.Count} entries): {err}");
-                foreach (var (k, v) in batch)
-                    bucket.TryAdd(k, v);
+                Debug.LogError($"[ServiceHub] {ctx.LogScope} batch sync failed ({batch.Count} entries): {err}");
+                lock (ctx.DirtyLock)
+                {
+                    foreach (var (k, v) in batch)
+                        bucket.TryAdd(k, v);
+                }
                 return;
             }
 
-            // Per-key errors come back in `errors`; re-queue only those so
-            // successfully saved keys aren't resent on the next cycle.
             var errors = response.Result.Data.Errors;
             if (errors is { Count: > 0 })
             {
                 foreach (var (k, msg) in errors)
+                    Debug.LogError($"[ServiceHub] {ctx.LogScope} batch sync rejected '{k}': {msg}");
+
+                lock (ctx.DirtyLock)
                 {
-                    Debug.LogError($"[ServiceHub] Batch sync rejected '{k}': {msg}");
-                    if (batch.TryGetValue(k, out var v))
-                        bucket.TryAdd(k, v);
+                    foreach (var (k, _) in errors)
+                    {
+                        if (batch.TryGetValue(k, out var v))
+                            bucket.TryAdd(k, v);
+                    }
                 }
             }
         }
 
         private UniTask<NetworkResponse<ApiResponse<SaveDataResponse>>> PutSaveDataAsync(
+            SaveDataContext ctx,
             string key,
             string json,
             CancellationToken ct)
         {
             var request = new SaveDataWriteRequest(json);
             return RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
-                SaveDataKeyUrl(key),
+                ctx.KeyUrl(key),
                 request,
-                AuthStorage.GetAccessToken(),
+                ctx.AccessToken,
                 null,
                 GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
                 ct
@@ -379,18 +456,52 @@ namespace EDIVE.ServiceHub
         }
 
         private UniTask<NetworkResponse<ApiResponse<SaveDataBatchResponse>>> PutSaveDataBatchAsync(
+            SaveDataContext ctx,
             IReadOnlyDictionary<string, string> entries,
             CancellationToken ct)
         {
             var request = new SaveDataBatchWriteRequest(entries);
             return RestUtils.PutAsync<ApiResponse<SaveDataBatchResponse>, SaveDataBatchWriteRequest>(
-                SaveDataBatchUrl,
+                ctx.BatchUrl,
                 request,
-                AuthStorage.GetAccessToken(),
+                ctx.AccessToken,
                 null,
                 GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
                 ct
             );
+        }
+        
+        private readonly struct SaveDataContext
+        {
+            private readonly ServiceHubManager _manager;
+            private readonly bool _isServer;
+
+            public readonly string RemoteBaseUrl;
+            public readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> DirtyEntries;
+            public readonly object DirtyLock;
+            public readonly string LogScope;
+
+            public SaveDataContext(
+                ServiceHubManager manager,
+                bool isServer,
+                string remoteBaseUrl,
+                Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> dirtyEntries,
+                object dirtyLock,
+                string logScope)
+            {
+                _manager = manager;
+                _isServer = isServer;
+                RemoteBaseUrl = remoteBaseUrl;
+                DirtyEntries = dirtyEntries;
+                DirtyLock = dirtyLock;
+                LogScope = logScope;
+            }
+
+            public ISaveDataLocalStore Local => _isServer ? _manager._serverLocal : _manager._local;
+            public bool IsAuthValid => _isServer ? AuthStorage.Server.IsValid() : AuthStorage.Client.IsValid();
+            public string AccessToken => _isServer ? AuthStorage.Server.GetAccessToken() : AuthStorage.Client.GetAccessToken();
+            public string KeyUrl(string key) => $"{RemoteBaseUrl}/{Uri.EscapeDataString(key)}";
+            public string BatchUrl => $"{RemoteBaseUrl}/batch";
         }
     }
 }

@@ -28,33 +28,33 @@ namespace EDIVE.ServiceHub
         [EnhancedBoxGroup("Auth")]
         private int _AuthTimeoutSeconds = 5;
 
-        public static bool IsLoggedIn => AuthStorage.IsValid();
+        public static bool IsLoggedIn => AuthStorage.Client.IsValid();
 
         public event Action<LoginResponse> OnClientLoginSucceeded;
         public event Action<long, string> OnClientLoginFailed;
-
+        
+        private string ClientAuthLoginUrl => $"{ServiceBaseUrl}/auth/login";
+        private string ClientAnonymousAuthLoginUrl => $"{ServiceBaseUrl}/auth/anonymous-login";
+        private string ClientAuthMeUrl => $"{ServiceBaseUrl}/auth/me";
+        
         public void LoginClient(string email, string password) => LoginClientAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget();
 
         public void AnonymousLoginClient() => AnonymousLoginClientAsync(this.GetCancellationTokenOnDestroy()).Forget();
 
         public void LogoutClient() => LogoutClientAsync(this.GetCancellationTokenOnDestroy()).Forget();
         
-        private string AuthLoginUrl => $"{ServiceBaseUrl}/auth/login";
-        private string AnonymousAuthLoginUrl => $"{ServiceBaseUrl}/auth/anonymous-login";
-        private string AuthMeUrl => $"{ServiceBaseUrl}/auth/me";
-        
         [Button]
         [PropertyOrder(98)]
         [EnhancedBoxGroup("Auth")]
         public async UniTask<bool> CheckClientAuthAsync(CancellationToken cancellationToken = default)
         {
-            if (!AuthStorage.IsValid())
+            if (!AuthStorage.Client.IsValid())
                 return false;
 
-            var accessToken = AuthStorage.GetAccessToken();
+            var accessToken = AuthStorage.Client.GetAccessToken();
 
             var response = await RestUtils.GetAsync<ApiResponse<AuthUserInfo>>(
-                AuthMeUrl,
+                ClientAuthMeUrl,
                 authToken: accessToken,
                 timeout: _AuthTimeoutSeconds,
                 cancellationToken: cancellationToken
@@ -68,10 +68,12 @@ namespace EDIVE.ServiceHub
             return false;
         }
 
-        public void TryLoadStoredToken()
+        public void TryLoadStoredClientToken()
         {
             if (!IsLoggedIn) return;
-            var userId = AuthStorage.GetUserId();
+            var userId = AuthStorage.Client.GetInfo<AuthUserInfo>()?.Id
+                         ?? JwtUtils.GetClaim(AuthStorage.Client.GetAccessToken(), "sub")
+                         ?? "";
             if (!string.IsNullOrEmpty(userId))
                 _local = new PlayerPrefsSaveDataStore($"uc.savedata.{userId}.");
         }
@@ -88,7 +90,7 @@ namespace EDIVE.ServiceHub
             var request = new LoginRequest(_AppSecret, email, password);
 
             var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, LoginRequest>(
-                AuthLoginUrl,
+                ClientAuthLoginUrl,
                 request,
                 authToken: null,
                 headers: null,
@@ -110,7 +112,7 @@ namespace EDIVE.ServiceHub
             var request = new AnonymousLoginRequest(_AppSecret, token);
 
             var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, AnonymousLoginRequest>(
-                AnonymousAuthLoginUrl,
+                ClientAnonymousAuthLoginUrl,
                 request,
                 authToken: null,
                 headers: null,
@@ -150,7 +152,7 @@ namespace EDIVE.ServiceHub
                 Debug.Log("[ServiceHub] Disconnected from server as part of logout.");
             }
             
-            AuthStorage.Clear();
+            AuthStorage.Client.Clear();
             _local = new PlayerPrefsSaveDataStore();
         }
 
@@ -182,13 +184,14 @@ namespace EDIVE.ServiceHub
 
             // Extract expiration from the JWT itself, fall back to expires_in
             var expUnix = JwtUtils.GetUnixExp(accessToken);
-            AuthStorage.Save(accessToken, null, expUnix, loginResponse.ExpiresIn, userInfo);
+            var infoJson = userInfo != null ? JsonConvert.SerializeObject(userInfo) : null;
+            AuthStorage.Client.Save(accessToken, null, expUnix, loginResponse.ExpiresIn, infoJson);
             var userId = userInfo?.Id ?? JwtUtils.GetClaim(accessToken, "sub") ?? "";
             _local = new PlayerPrefsSaveDataStore($"uc.savedata.{userId}.");
 
             var email = userInfo?.Email ?? JwtUtils.GetClaim(accessToken, "email") ?? "";
             if (!string.IsNullOrEmpty(email))
-                AuthStorage.SetLastEmail(email);
+                AuthStorage.Client.SetLastEmail(email);
 
             Debug.Log("[ServiceHub] Login successful.");
             OnClientLoginSucceeded?.Invoke(loginResponse);
