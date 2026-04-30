@@ -1,3 +1,4 @@
+#if UNITY_ANDROID
 using System.Collections.Generic;
 using EDIVE.EditorUtils;
 using Sirenix.OdinInspector;
@@ -43,3 +44,4 @@ namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
     #endregion
     }
 }
+#endif

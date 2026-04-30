@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 18.03.2026
 
+#if UNITY_ANDROID
 using System;
 using System.Collections;
 using EDIVE.OdinExtensions.Attributes;
@@ -193,3 +194,4 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [LabelText(".so.sym")] Legacy = 4,
     }
 }
+#endif
