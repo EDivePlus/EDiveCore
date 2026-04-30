@@ -2,8 +2,11 @@
     "name": "EDIVE.View",
     "rootNamespace": "",
     "references": [
+        "UniTask",
         "EDIVE.Core",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "EDIVE.AppLoading",
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
