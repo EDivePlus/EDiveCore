@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Dependencies;
 using EDIVE.AppLoading.Finalizers;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.AppLoading.Utils;
@@ -38,11 +39,15 @@ namespace EDIVE.AppLoading
 
         public IEnumerable<LoadGroupDefinition> Groups => _Groups;
 
+        private DependencyResolutionContext _runtimeContext;
+        public DependencyResolutionContext RuntimeContext => _runtimeContext;
+
         public void Initialize()
         {
+            _runtimeContext = new DependencyResolutionContext(GetValidLoadItems());
             foreach (var group in _Groups)
             {
-                group.Initialize();
+                group.Initialize(_runtimeContext);
             }
         }
 
@@ -52,6 +57,7 @@ namespace EDIVE.AppLoading
             {
                 group.Terminate();
             }
+            _runtimeContext = null;
         }
 
         public async UniTask Load()
@@ -110,7 +116,8 @@ namespace EDIVE.AppLoading
 
         public IEnumerable<LoadItemDefinition> GetValidLoadItemsSorted()
         {
-            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups()).Where(l => l.IsValid);
+            var ctx = _runtimeContext ?? new DependencyResolutionContext(GetValidLoadItems());
+            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups(), ctx).Where(l => l.IsValid);
         }
 
 #if UNITY_EDITOR
@@ -140,7 +147,7 @@ namespace EDIVE.AppLoading
 
             if (SirenixEditorGUI.ToolbarButton(FontAwesomeEditorIcons.ArrowDownAZSolid))
             {
-                AllLoadItems = LoaderUtils.SortLoadItems(_Groups);
+                AllLoadItems = LoaderUtils.SortLoadItems(_Groups, DependencyResolutionContext.EditorContext);
             }
         }
 
@@ -197,7 +204,7 @@ namespace EDIVE.AppLoading
                 foreach (var loadItem in group.LoadItems)
                 {
                     if (loadItem == null) continue;
-                    loadItem.ResolveCompleteDependencies();
+                    loadItem.ResolveTransitiveDependencies();
                     var missingItems = loadItem.TransitiveDependencies.Except(AllLoadItems).ToList();
                     if (missingItems.Count > 0)
                         missingItemsTexts.Add($"[{group.name}:{loadItem.name} - {string.Join(", ", missingItems.Select(v => v.name))}]");
@@ -220,6 +227,38 @@ namespace EDIVE.AppLoading
             {
                 result.AddError($"There are duplicate items: {string.Join(", ", duplicateItems)}");
             }
+
+            // Warn when a setup contains >1 item representing the same type referenced by any TypedDependency.
+            // At runtime the context would resolve the type to multiple candidates — ambiguous and likely wrong.
+            var setupItems = _Groups.Where(g => g != null).SelectMany(g => g.LoadItems).Where(i => i != null).Distinct().ToList();
+            // Build map: Type → items in this setup that represent it
+            var typeToItems = new Dictionary<Type, List<LoadItemDefinition>>();
+            foreach (var item in setupItems)
+            {
+                if (item.RepresentedTypes == null) continue;
+                foreach (var ut in item.RepresentedTypes)
+                {
+                    var t = ut?.Value;
+                    if (t == null) continue;
+                    if (!typeToItems.TryGetValue(t, out var list))
+                        typeToItems[t] = list = new List<LoadItemDefinition>();
+                    list.Add(item);
+                }
+            }
+
+            var ambiguousTexts = new List<string>();
+            foreach (var item in setupItems)
+            {
+                foreach (var td in item.ResolvedDependencies)
+                {
+                    var t = td?.Type;
+                    if (t == null) continue;
+                    if (!typeToItems.TryGetValue(t, out var candidates) || candidates.Count <= 1) continue;
+                    ambiguousTexts.Add($"{item.name} → {t.Name} ({string.Join(", ", candidates.Select(c => c.name))})");
+                }
+            }
+            if (ambiguousTexts.Count > 0)
+                result.AddError($"Ambiguous TypedDependencies (multiple items represent the same type): {string.Join("; ", ambiguousTexts)}");
         }
 #endif
     }

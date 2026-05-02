@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Loadables;
-using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -14,15 +13,15 @@ namespace EDIVE.AppLoading.LoadItems
     [Serializable]
     public class SerializedLoadItemSource : ALoadItemSource
     {
-        [SerializeReference]
         [HideLabel]
         [InlineProperty]
-        [EnhancedBoxGroup("Target", SpaceBefore = 6)]
+        [SerializeReference]
         [TypeSelectorSettings(FilterTypesFunction = "FilterTargetTypes")]
         private ILoadable _Target;
 
         public override bool IsValid => _Target != null;
 
+        public SerializedLoadItemSource() { }
         public SerializedLoadItemSource(ILoadable target)
         {
             _Target = target;

@@ -1,12 +1,32 @@
 ﻿using EDIVE.AppLoading.Loadables;
+using EDIVE.EditorUtils;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.AppLoading.LoadItems
+namespace EDIVE.AppLoading.LoadItems.Legacy
 {
-    public class SerializedLoadItemDefinition : LoadItemDefinition
+    public class SerializedLoadItemDefinition : LoadItemDefinition, ISelfValidator
     {
-        [HideInInspector]
-        [SerializeReference]
-        private ILoadable _Target;
+    #region Migration
+        [SerializeReference, HideInInspector]  private ILoadable _Target;
+
+        protected override void TryMigrate()
+        {
+            base.TryMigrate();
+            if (_Target != null)
+            {
+                _Source = new SerializedLoadItemSource(_Target);
+                _Target = null;
+            }
+        }
+        
+        public void Validate(SelfValidationResult result)
+        {
+#if UNITY_EDITOR
+            result.AddError("PrefabLoadItemDefinition is obsolete, migrate to base class")
+                .WithFix(() => this.ChangeScriptType<LoadItemDefinition>());
+#endif
+        }
+    #endregion
     }
 }

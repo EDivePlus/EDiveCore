@@ -1,7 +1,6 @@
 ﻿#if ADDRESSABLES
 using System;
 using Cysharp.Threading.Tasks;
-using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -12,15 +11,20 @@ namespace EDIVE.AppLoading.LoadItems
     {
         [SerializeField]
         private AssetReferenceGameObject _PrefabReference;
-        public AssetReferenceGameObject PrefabReference => _PrefabReference;
-        
+        public AssetReferenceGameObject PrefabReference
+        {
+            get => _PrefabReference;
+            internal set => _PrefabReference = value;
+        }
+
         public override bool IsValid => _PrefabReference != null &&
 #if UNITY_EDITOR
                                         _PrefabReference.editorAsset != null;
 #else
             !string.IsNullOrEmpty(_PrefabReference.AssetGUID);
 #endif
-        
+
+        public PrefabReferenceLoadItemSource() { }
         public PrefabReferenceLoadItemSource(AssetReferenceGameObject prefabReference)
         {
             _PrefabReference = prefabReference;

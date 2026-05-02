@@ -10,10 +10,15 @@ namespace EDIVE.AppLoading.LoadItems
     {
         [SerializeField]
         private GameObject _Prefab;
-        public GameObject Prefab => _Prefab;
-        
+        public GameObject Prefab
+        {
+            get => _Prefab;
+            internal set => _Prefab = value;
+        }
+
         public override bool IsValid => _Prefab != null;
 
+        public PrefabLoadItemSource() { }
         public PrefabLoadItemSource(GameObject prefab)
         {
             _Prefab = prefab;

@@ -1,11 +1,31 @@
-﻿using UnityEngine;
+﻿using EDIVE.EditorUtils;
+using Sirenix.OdinInspector;
+using UnityEngine;
 
-namespace EDIVE.AppLoading.LoadItems
+namespace EDIVE.AppLoading.LoadItems.Legacy
 {
-    public class PrefabLoadItemDefinition : LoadItemDefinition
+    public class PrefabLoadItemDefinition : LoadItemDefinition, ISelfValidator
     {
-        [HideInInspector]
-        [SerializeField]
-        private GameObject _Prefab;
+    #region Migration
+        [SerializeField, HideInInspector] private GameObject _Prefab;
+
+        protected override void TryMigrate()
+        {
+            base.TryMigrate();
+            if (_Prefab != null)
+            {
+                _Source = new PrefabLoadItemSource(_Prefab);
+                _Prefab = null;
+            }
+        }
+        
+        public void Validate(SelfValidationResult result)
+        {
+#if UNITY_EDITOR
+            result.AddError("PrefabLoadItemDefinition is obsolete, migrate to base class")
+                .WithFix(() => this.ChangeScriptType<LoadItemDefinition>());
+#endif
+        }
+    #endregion
     }
 }

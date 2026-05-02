@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Dependencies;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.AssetTranslation;
 using EDIVE.OdinExtensions.Attributes;
@@ -41,12 +42,12 @@ namespace EDIVE.AppLoading
 
         public bool IsAvailable => !_Disabled;
 
-        public void Initialize()
+        public void Initialize(DependencyResolutionContext context)
         {
             foreach (var loadItem in _LoadItems)
             {
                 if (loadItem == null) continue;
-                loadItem.Initialize();
+                loadItem.Initialize(context);
             }
 
             CompletionSource = new UniTaskCompletionSource();
@@ -194,7 +195,7 @@ namespace EDIVE.AppLoading
             foreach (var loadItem in TransitiveDependencies.SelectMany(d => d.LoadItems).Distinct())
             {
                 if (!loadItem) continue;
-                loadItem.ResolveCompleteDependencies();
+                loadItem.ResolveTransitiveDependencies();
             }
 
             var unsatisfiableDependencies = new List<string>();
