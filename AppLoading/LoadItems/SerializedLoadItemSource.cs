@@ -11,9 +11,9 @@ using Object = UnityEngine.Object;
 
 namespace EDIVE.AppLoading.LoadItems
 {
-    public class SerializedLoadItemDefinition : ALoadItemDefinition
+    [Serializable]
+    public class SerializedLoadItemSource : ALoadItemSource
     {
-        [PropertyOrder(20)]
         [SerializeReference]
         [HideLabel]
         [InlineProperty]
@@ -23,7 +23,15 @@ namespace EDIVE.AppLoading.LoadItems
 
         public override bool IsValid => _Target != null;
 
-        public override async UniTask LoadContent(Action<float> progressCallback) { await _Target.Load(progressCallback); }
+        public SerializedLoadItemSource(ILoadable target)
+        {
+            _Target = target;
+        }
+
+        public override async UniTask LoadContent(LoadItemDefinition definition, Action<float> progressCallback)
+        {
+            await _Target.Load(progressCallback);
+        }
 
 #if UNITY_EDITOR
         public override IEnumerable<Type> GetTypeDependencies()

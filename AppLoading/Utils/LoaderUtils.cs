@@ -36,10 +36,10 @@ namespace EDIVE.AppLoading.Utils
             return components;
         }
 
-        public static List<ALoadItemDefinition> SortLoadItems(IEnumerable<LoadGroupDefinition> groups)
+        public static List<LoadItemDefinition> SortLoadItems(IEnumerable<LoadGroupDefinition> groups)
         {
-            var sortedList = new List<ALoadItemDefinition>();
-            var visited = new HashSet<ALoadItemDefinition>();
+            var sortedList = new List<LoadItemDefinition>();
+            var visited = new HashSet<LoadItemDefinition>();
 
             foreach (var group in groups)
             {
@@ -58,7 +58,7 @@ namespace EDIVE.AppLoading.Utils
             return sortedList;
         }
 
-        private static void TopologicalSortUtil(ALoadItemDefinition loadItem, HashSet<ALoadItemDefinition> visited, List<ALoadItemDefinition> sortedList)
+        private static void TopologicalSortUtil(LoadItemDefinition loadItem, HashSet<LoadItemDefinition> visited, List<LoadItemDefinition> sortedList)
         {
             if (loadItem == null)
                 return;
@@ -79,9 +79,9 @@ namespace EDIVE.AppLoading.Utils
         }
 
 #if UNITY_EDITOR
-        public static IEnumerable<ALoadItemDefinition> FindLoadItems(List<Type> requiredTypes)
+        public static IEnumerable<LoadItemDefinition> FindLoadItems(List<Type> requiredTypes)
         {
-            var allLoadItems = EditorAssetUtils.FindAllAssetsOfType<ALoadItemDefinition>();
+            var allLoadItems = EditorAssetUtils.FindAllAssetsOfType<LoadItemDefinition>();
             foreach (var loadItem in allLoadItems)
             {
                 var representedTypes = loadItem.GetRepresentedTypes().ToList();
@@ -96,7 +96,7 @@ namespace EDIVE.AppLoading.Utils
             }
         }
 
-        public static ALoadItemDefinition DecoratedLoadItemDrawer(ALoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
+        public static LoadItemDefinition DecoratedLoadItemDrawer(LoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
             GUILayout.BeginHorizontal();
             if (Application.isPlaying)
@@ -111,30 +111,31 @@ namespace EDIVE.AppLoading.Utils
             return value;
         }
 
-
+/*
 #if ADDRESSABLES
         [MenuItem("CONTEXT/PrefabLoadItemDefinition/Convert to Addressable", false, 10000)]
         public static void ConvertPrefabLoadItemToAddressable(MenuCommand command)
         {
-            if (command.context is not PrefabLoadItemDefinition definition)
+            if (command.context is not PrefabLoadItemSource definition)
                 return;
 
             var prefabReference = AddressablesEditorUtils.ConvertToReference(definition.Prefab);
-            var converted = definition.ChangeScriptType<PrefabReferenceLoadItemDefinition>();
+            var converted = definition.ChangeScriptType<PrefabReferenceLoadItemSource>();
             converted.SetPrefabReference(prefabReference);
         }
         
         [MenuItem("CONTEXT/PrefabReferenceLoadItemDefinition/Convert to Prefab", false, 10000)]
         public static void ConvertAddressableLoadItemToPrefab(MenuCommand command)
         {
-            if (command.context is not PrefabReferenceLoadItemDefinition definition)
+            if (command.context is not PrefabReferenceLoadItemSource definition)
                 return;
 
             var prefab = definition.PrefabReference.editorAsset;
-            var converted = definition.ChangeScriptType<PrefabLoadItemDefinition>();
+            var converted = definition.ChangeScriptType<PrefabLoadItemSource>();
             converted.SetPrefab(prefab);
         }
 #endif
+*/
 #endif
     }
 }

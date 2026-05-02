@@ -15,16 +15,17 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
-
 using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector.Editor.Validation;
 using Sirenix.Utilities.Editor;
 #endif
 
 namespace EDIVE.AppLoading.LoadItems
 {
-    public abstract class ALoadItemDefinition : AUniqueDefinition, IComparable<ALoadItemDefinition>
+    public class LoadItemDefinition : AUniqueDefinition, IComparable<LoadItemDefinition>
     {
+        [SerializeReference]
+        private ALoadItemSource _Source;
+        
         [SerializeField]
         private float _LoadWeight = 1f;
 
@@ -43,13 +44,14 @@ namespace EDIVE.AppLoading.LoadItems
         [CustomValueDrawer("DecoratedLoadItemDrawer")]
         [EnhancedValidate("ValidateDependencies")]
         [ListDrawerSettings(ShowFoldout = false)]
-        private List<ALoadItemDefinition> _Dependencies = new();
+        private List<LoadItemDefinition> _Dependencies = new();
 
         public float LoadWeight => _LoadWeight;
-
+        
+        [ReadOnly]
+        [ShowInInspector]
         [EnhancedValidate("ValidateDefinition")]
-        [ShowInInspector] [ReadOnly]
-        public abstract bool IsValid { get; }
+        public bool IsValid => _Source != null && _Source.IsValid;
 
         public UniTaskCompletionSource CompletionSource { get; private set; }
 
@@ -58,11 +60,11 @@ namespace EDIVE.AppLoading.LoadItems
         public LoadItemState CurrentState { get; private set; } = LoadItemState.Undefined;
 
         public bool IsLoaded => CurrentState == LoadItemState.Completed;
-        public List<ALoadItemDefinition> Dependencies => _Dependencies;
+        public List<LoadItemDefinition> Dependencies => _Dependencies;
 
         public float LoadTime { get; private set; }
-        public Signal<ALoadItemDefinition> LoadStartedSignal { get; } = new();
-        public Signal<ALoadItemDefinition> LoadCompletedSignal { get; } = new();
+        public Signal<LoadItemDefinition> LoadStartedSignal { get; } = new();
+        public Signal<LoadItemDefinition> LoadCompletedSignal { get; } = new();
 
         private Tweener _fakeLoadingTimeTweener;
         private float _currentLoadProgress;
@@ -83,7 +85,7 @@ namespace EDIVE.AppLoading.LoadItems
             CompletionSource = null;
         }
 
-        public int CompareTo(ALoadItemDefinition other)
+        public int CompareTo(LoadItemDefinition other)
         {
             if (ReferenceEquals(this, other)) return 0;
             if (ReferenceEquals(null, other)) return 1;
@@ -149,13 +151,13 @@ namespace EDIVE.AppLoading.LoadItems
             }
         }
 
-        public abstract UniTask LoadContent(Action<float> progressCallback);
+        public UniTask LoadContent(Action<float> progressCallback) => IsValid ? _Source.LoadContent(this, progressCallback) : UniTask.CompletedTask;
 
-        public float GetCurrentLoadingWeight() { return GetLoadingProgress() * LoadWeight; }
+        public float GetCurrentLoadingWeight() => GetLoadingProgress() * LoadWeight;
 
-        public float GetLoadingProgress() { return IsLoaded ? 1 : Mathf.Clamp(GetLoadingProgressRaw(), 0, 0.99f); }
+        public float GetLoadingProgress() => IsLoaded ? 1 : Mathf.Clamp(GetLoadingProgressRaw(), 0, 0.99f);
 
-        protected virtual float GetLoadingProgressRaw() { return _currentLoadProgress; }
+        protected virtual float GetLoadingProgressRaw() => _currentLoadProgress;
 
         public string GetLoadingDetail()
         {
@@ -167,7 +169,7 @@ namespace EDIVE.AppLoading.LoadItems
             return $"{CurrentState.GetStateRichSprite()} {(IsLoaded ? progressText.Color(ColorTools.Lime) : progressText)} - {UniqueID}";
         }
 
-        internal IEnumerable<ALoadItemDefinition> GetSortingDependencies()
+        internal IEnumerable<LoadItemDefinition> GetSortingDependencies()
         {
             if (SortingPreparedGroup is null)
             {
@@ -179,6 +181,9 @@ namespace EDIVE.AppLoading.LoadItems
         }
 
 #if UNITY_EDITOR
+        public IEnumerable<Type> GetTypeDependencies() => _Source?.GetTypeDependencies() ?? Enumerable.Empty<Type>();
+        public IEnumerable<Type> GetRepresentedTypes() => _Source?.GetRepresentedTypes() ?? Enumerable.Empty<Type>();
+        
         [PropertySpace]
         [Searchable]
         [ShowInInspector]
@@ -186,7 +191,7 @@ namespace EDIVE.AppLoading.LoadItems
         [ReadOnlyListElements]
         [CustomValueDrawer("DecoratedLoadItemDrawer")]
         [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "TransitiveDependenciesTitleBarGUI")]
-        public List<ALoadItemDefinition> TransitiveDependencies { get; private set; }
+        public List<LoadItemDefinition> TransitiveDependencies { get; private set; }
 
         [ShowInInspector]
         [Searchable]
@@ -194,18 +199,8 @@ namespace EDIVE.AppLoading.LoadItems
         [ReadOnlyListElements]
         [CustomValueDrawer("DecoratedLoadItemDrawer")]
         [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "DependentByTitleBarGUI")]
-        public List<ALoadItemDefinition> DependentBy { get; private set; }
-
-        public abstract IEnumerable<Type> GetTypeDependencies();
-        public abstract IEnumerable<Type> GetRepresentedTypes();
-
-        /*
-        protected override void PlayModeStarted()
-        {
-            base.PlayModeStarted();
-            CurrentState = LoadItemState.Undefined;
-        }
-        */
+        public List<LoadItemDefinition> DependentBy { get; private set; }
+        
 
         [UsedImplicitly]
         private void TransitiveDependenciesTitleBarGUI()
@@ -228,17 +223,17 @@ namespace EDIVE.AppLoading.LoadItems
         [OnInspectorInit]
         public void ResolveDependentBy()
         {
-            DependentBy ??= new List<ALoadItemDefinition>();
+            DependentBy ??= new List<LoadItemDefinition>();
             DependentBy.Clear();
-            DependentBy.AddRange(EditorAssetUtils.FindAllAssetsOfType<ALoadItemDefinition>().Where(i => i._Dependencies.Contains(this)));
+            DependentBy.AddRange(EditorAssetUtils.FindAllAssetsOfType<LoadItemDefinition>().Where(i => i._Dependencies.Contains(this)));
         }
 
         [OnInspectorInit]
         public void ResolveCompleteDependencies()
         {
-            var transitiveDependencies = new HashSet<ALoadItemDefinition>();
+            var transitiveDependencies = new HashSet<LoadItemDefinition>();
 
-            var queue = new Queue<ALoadItemDefinition>(_Dependencies);
+            var queue = new Queue<LoadItemDefinition>(_Dependencies);
             while (queue.Count > 0)
             {
                 var current = queue.Dequeue();
@@ -257,7 +252,7 @@ namespace EDIVE.AppLoading.LoadItems
                 }
             }
 
-            TransitiveDependencies ??= new List<ALoadItemDefinition>();
+            TransitiveDependencies ??= new List<LoadItemDefinition>();
             TransitiveDependencies.Clear();
             TransitiveDependencies.AddRange(transitiveDependencies);
         }
@@ -265,8 +260,8 @@ namespace EDIVE.AppLoading.LoadItems
         [UsedImplicitly]
         private void ValidateDependencies(SelfValidationResult result, InspectorProperty property)
         {
-            var visited = new HashSet<ALoadItemDefinition>();
-            var path = new List<ALoadItemDefinition>();
+            var visited = new HashSet<LoadItemDefinition>();
+            var path = new List<LoadItemDefinition>();
 
             var cycle = DetectCycle(this, this, visited, path);
             if (cycle != null && cycle.Count > 0)
@@ -309,7 +304,7 @@ namespace EDIVE.AppLoading.LoadItems
             }
         }
 
-        private List<ALoadItemDefinition> DetectCycle(ALoadItemDefinition node, ALoadItemDefinition root, HashSet<ALoadItemDefinition> visited, List<ALoadItemDefinition> path)
+        private List<LoadItemDefinition> DetectCycle(LoadItemDefinition node, LoadItemDefinition root, HashSet<LoadItemDefinition> visited, List<LoadItemDefinition> path)
         {
             if (node == null)
                 return null;
@@ -335,7 +330,7 @@ namespace EDIVE.AppLoading.LoadItems
             return null;
         }
 
-        private ALoadItemDefinition DecoratedLoadItemDrawer(ALoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
+        private LoadItemDefinition DecoratedLoadItemDrawer(LoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
             return LoaderUtils.DecoratedLoadItemDrawer(value, label, callNextDrawer);
         }

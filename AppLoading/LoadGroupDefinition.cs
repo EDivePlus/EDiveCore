@@ -25,7 +25,7 @@ namespace EDIVE.AppLoading
         [SerializeField]
         [EnhancedValidate("ValidateLoadItems")]
         [ListDrawerSettings(ShowFoldout = false)]
-        private List<ALoadItemDefinition> _LoadItems = new();
+        private List<LoadItemDefinition> _LoadItems = new();
 
         [PropertySpace]
         [SerializeField]
@@ -36,7 +36,7 @@ namespace EDIVE.AppLoading
 
         public UniTaskCompletionSource CompletionSource { get; private set; }
 
-        public List<ALoadItemDefinition> LoadItems => _LoadItems;
+        public List<LoadItemDefinition> LoadItems => _LoadItems;
         public List<LoadGroupDefinition> Dependencies => _Dependencies;
 
         public bool IsAvailable => !_Disabled;
@@ -74,7 +74,7 @@ namespace EDIVE.AppLoading
             CompletionSource.TrySetResult();
         }
 
-        private IEnumerable<ALoadItemDefinition> GetLoadItems()
+        private IEnumerable<LoadItemDefinition> GetLoadItems()
         {
             for (var i = 0; i < _LoadItems.Count; i++)
             {

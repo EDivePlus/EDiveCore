@@ -6,30 +6,30 @@ using EDIVE.AppLoading.Loadables;
 using EDIVE.AppLoading.Utils;
 using EDIVE.Core;
 using EDIVE.DataStructures;
-using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace EDIVE.AppLoading.LoadItems
 {
-    public abstract class APrefabLoadItemDefinition : ALoadItemDefinition
+    [Serializable]
+    public abstract class APrefabALoadItemSource : ALoadItemSource
     {
-        [PropertyOrder(21)]
+        [PropertyOrder(10)]
         [SerializeField]
-        private bool _ApplyTransform = true;
+        private bool _ApplyTransform;
 
-        [PropertyOrder(21)]
+        [PropertyOrder(10)]
         [ShowIf(nameof(_ApplyTransform))]
         [SerializeField]
         private TransformSnapshot _Transform;
 
-        public override async UniTask LoadContent(Action<float> progressCallback)
+        public override async UniTask LoadContent(LoadItemDefinition definition, Action<float> progressCallback)
         {
             var instance = await CreateInstance();
             if (instance == null)
             {
-                DebugLite.LogError($"Load item '{name}' instance is null", this);
+                DebugLite.LogError($"Load item '{definition.name}' instance is null", definition);
                 return;
             }
 
@@ -58,33 +58,34 @@ namespace EDIVE.AppLoading.LoadItems
         }
 
 #if UNITY_EDITOR
-        public abstract GameObject EditorPrefab { get; }
-
         public override IEnumerable<Type> GetTypeDependencies()
         {
-            return GetAvailableEditorInstances().EmptyIfNull()
-                .SelectMany(i => i.GetLoadableComponents<IDependencyOwner>().SelectMany(l => l.GetDependencies()))
+            if (!TryGetEditorPrefab(out var prefab) || prefab == null)
+                return Enumerable.Empty<Type>();
+            
+            return prefab.GetLoadableComponents<IDependencyOwner>()
+                .SelectMany(l => l.GetDependencies())
                 .Distinct();
         }
 
         public override IEnumerable<Type> GetRepresentedTypes()
         {
-            var instances = GetAvailableEditorInstances().EmptyIfNull();
-            var result = new List<Type>();
-            foreach (var instance in instances)
-            {
-                if (instance == null) continue;
-                result.AddRange(instance.GetLoadableComponents<MonoBehaviour>()
-                    .Where(c => c != null).Select(c => c.GetType()));
+            if (!TryGetEditorPrefab(out var prefab) || prefab == null)
+                return Enumerable.Empty<Type>();
 
-                result.AddRange(instance.GetLoadableComponents<IDependencyRepresentative>()
-                    .Where(c => c != null).SelectMany(c => c.GetRepresentedTypes()));
-            }
+            var result = new List<Type>();
+            result.AddRange(prefab.GetLoadableComponents<MonoBehaviour>()
+                .Where(c => c != null)
+                .Select(c => c.GetType()));
+
+            result.AddRange(prefab.GetLoadableComponents<IDependencyRepresentative>()
+                .Where(c => c != null)
+                .SelectMany(c => c.GetRepresentedTypes()));
 
             return result;
         }
 
-        protected abstract IEnumerable<GameObject> GetAvailableEditorInstances();
+        protected abstract bool TryGetEditorPrefab(out GameObject prefab);
 #endif
     }
 }

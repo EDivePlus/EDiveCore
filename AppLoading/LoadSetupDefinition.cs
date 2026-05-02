@@ -79,7 +79,7 @@ namespace EDIVE.AppLoading
             return _Groups.Where(group => group.IsAvailable);
         }
 
-        public IEnumerable<ALoadItemDefinition> GetValidLoadItems()
+        public IEnumerable<LoadItemDefinition> GetValidLoadItems()
         {
             var availableGroups = GetAvailableLoadGroups();
             var groupIndex = -1;
@@ -108,7 +108,7 @@ namespace EDIVE.AppLoading
             }
         }
 
-        public IEnumerable<ALoadItemDefinition> GetValidLoadItemsSorted()
+        public IEnumerable<LoadItemDefinition> GetValidLoadItemsSorted()
         {
             return LoaderUtils.SortLoadItems(GetAvailableLoadGroups()).Where(l => l.IsValid);
         }
@@ -121,14 +121,14 @@ namespace EDIVE.AppLoading
         [ReadOnlyListElements]
         [CustomValueDrawer("DecoratedLoadItemDrawer")]
         [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "OnAllLoadItemsTitleGUI")]
-        public List<ALoadItemDefinition> AllLoadItems { get; private set; }
+        public List<LoadItemDefinition> AllLoadItems { get; private set; }
 
         [ShowInInspector]
         [PropertyOrder(50)]
         [Searchable]
         [ReadOnlyListElements]
         [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "OnLoadItemsWithoutGroupTitleGUI")]
-        public List<ALoadItemDefinition> LoadItemsWithoutGroup { get; private set; }
+        public List<LoadItemDefinition> LoadItemsWithoutGroup { get; private set; }
 
         [UsedImplicitly]
         private void OnAllLoadItemsTitleGUI()
@@ -156,7 +156,7 @@ namespace EDIVE.AppLoading
         [OnInspectorInit]
         public void ResolveLoadItemsWithoutGroup()
         {
-            LoadItemsWithoutGroup = EditorAssetUtils.FindAllAssetsOfType<ALoadItemDefinition>()
+            LoadItemsWithoutGroup = EditorAssetUtils.FindAllAssetsOfType<LoadItemDefinition>()
                 .Except(Groups.Where(g => g != null).SelectMany(g => g.LoadItems)).ToList();
         }
 
@@ -166,7 +166,7 @@ namespace EDIVE.AppLoading
             AllLoadItems = Groups.Where(g => g != null).SelectMany(g => g.LoadItems).Distinct().Where(i => i != null).ToList();
         }
 
-        private ALoadItemDefinition DecoratedLoadItemDrawer(ALoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
+        private LoadItemDefinition DecoratedLoadItemDrawer(LoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
             return LoaderUtils.DecoratedLoadItemDrawer(value, label, callNextDrawer);
         }
