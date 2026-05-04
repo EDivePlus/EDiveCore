@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 18.05.2025
 
+using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -98,22 +99,45 @@ namespace EDIVE.Utils
             SRDebug.Instance?.HideDebugPanel();
         }
 
+        private void OnEnable()
+        {
+            SRDebug.Instance.PanelVisibilityChanged += OnPanelVisibilityChanged;
+        }
+
         private void OnDisable()
         {
-            SRDebug.Instance?.HideDebugPanel();
+            if (SRDebug.Instance == null)
+                return;
+            SRDebug.Instance.HideDebugPanel(); 
+            SRDebug.Instance.PanelVisibilityChanged -= OnPanelVisibilityChanged;
         }
 
         private void OnTransformChanged(Transform target) => RepositionPanel();
 
         private void RepositionPanel()
         {
-            if (_panelRect == null)
+            if (_panelRect == null || !SRDebug.Instance.IsDebugPanelVisible)
                 return;
 
-            var prevParent = _panelRect.parent;
-            _panelRect.SetParent(_ParentRect);
-            _panelRect.SetToFillParent();
-            _panelRect.SetParent(prevParent);
+            var parent = _panelRect.parent;
+            var parentLossy = parent != null ? parent.lossyScale : Vector3.one;
+            var targetLossy = _ParentRect.lossyScale;
+
+            _panelRect.pivot = _ParentRect.pivot;
+            _panelRect.anchorMin = _panelRect.anchorMax = _ParentRect.pivot;
+            _panelRect.sizeDelta = _ParentRect.rect.size;
+            _panelRect.rotation = _ParentRect.rotation;
+            _panelRect.localScale = new Vector3(
+                parentLossy.x != 0 ? targetLossy.x / parentLossy.x : 1f,
+                parentLossy.y != 0 ? targetLossy.y / parentLossy.y : 1f,
+                parentLossy.z != 0 ? targetLossy.z / parentLossy.z : 1f);
+            _panelRect.position = _ParentRect.position;
+        }
+        
+        private void OnPanelVisibilityChanged(bool visible)
+        {
+            if (visible)
+                RepositionPanel();
         }
 
         private static void CopyTrackedDeviceGraphicRaycasterData(FilteredTrackedDeviceGraphicRaycaster target, FilteredTrackedDeviceGraphicRaycaster original)
