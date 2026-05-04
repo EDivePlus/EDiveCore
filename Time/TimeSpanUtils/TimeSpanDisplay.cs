@@ -14,13 +14,14 @@ namespace EDIVE.Time.TimeSpanUtils
     {
         [SerializeField]
         private TMP_Text _Text;
-        
+
         [ShowCreateNew]
         [SerializeField]
         private ATimeSpanFormatDefinition _Format;
 
         [PropertySpace]
         [InlineIconButton(FontAwesomeEditorIconType.SquareUpSolid, nameof(UpdateText), "Apply")]
+        [TimeSpanDrawerSettings(TimeUnit.Days, TimeUnit.Milliseconds)]
         [SerializeField]
         private UTimeSpan _TimeSpan;
         
