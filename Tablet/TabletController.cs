@@ -24,6 +24,8 @@ namespace EDIVE.Tablet
         [SerializeField]
         private Transform _PinnedDisplaysRoot;
         
+        public TabletDefinition Definition => _Definition;
+
         private TabletFrame CurrentFrame { get; set; }
         private List<TabletFrame> ActiveFrames { get; set; } = new();
         private List<TabletWidgetDefinitionDisplay> PinnedDisplays { get; set; } = new();
@@ -52,15 +54,15 @@ namespace EDIVE.Tablet
 
         public void OpenWidget(TabletWidgetDefinition definition)
         {
-            OpenView(new ReferenceTabletViewSource(definition.WidgetView));
+            OpenView(new ReferenceTabletViewSource(definition.WidgetView), new TabletWidgetViewContext(this, definition));
         }
-        
-        private void OpenView(ITabletViewSource view)
+
+        private void OpenView(ITabletViewSource view, ITabletViewContext context = null)
         {
             if (TryOpenActiveFrame(view))
                 return;
 
-            CreateNewFrame(view);
+            CreateNewFrame(view, context);
         }
         
         private bool TryGetActiveFrame(ITabletViewSource view, out TabletFrame frame)
@@ -77,11 +79,11 @@ namespace EDIVE.Tablet
             return true;
         }
         
-        private void CreateNewFrame(ITabletViewSource view, bool open = true)
+        private void CreateNewFrame(ITabletViewSource view, ITabletViewContext context = null, bool open = true)
         {
             var newFrame = Instantiate(_FramePrefab, _FrameRoot);
             // todo set frame name to recognize the view
-            newFrame.Initialize(this, view).Forget();
+            newFrame.Initialize(this, view, context).Forget();
             ActiveFrames.Add(newFrame);
             if (open) OpenFrame(newFrame);
         }

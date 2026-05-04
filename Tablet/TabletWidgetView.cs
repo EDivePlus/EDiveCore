@@ -1,4 +1,4 @@
-﻿// Author: Michal Petr
+// Author: Michal Petr
 // Created: 03.03.2026
 
 namespace EDIVE.Tablet
@@ -10,10 +10,12 @@ namespace EDIVE.Tablet
 
     public class TabletWidgetViewContext : ITabletViewContext
     {
+        public TabletController Controller { get; }
         public TabletWidgetDefinition Definition { get; }
 
-        public TabletWidgetViewContext(TabletWidgetDefinition definition)
+        public TabletWidgetViewContext(TabletController controller, TabletWidgetDefinition definition)
         {
+            Controller = controller;
             Definition = definition;
         }
     }
