@@ -44,6 +44,68 @@ namespace EDIVE.Http
             return SendRequestAsync<TResponse>(url, UnityWebRequest.kHttpVerbGET, authToken, headers, timeout, cancellationToken);
         }
 
+        public static async UniTask<NetworkResponse<byte[]>> GetBytesAsync(
+            string url,
+            string authToken = null,
+            Dictionary<string, string> headers = null,
+            int timeout = DEFAULT_TIMEOUT,
+            CancellationToken cancellationToken = default)
+        {
+            var requestId = _nextRequestId++;
+            const string method = UnityWebRequest.kHttpVerbGET;
+
+            if (OnRequestStarted != null)
+            {
+                var requestHeaders = new Dictionary<string, string> { ["Accept"] = "*/*" };
+                if (!string.IsNullOrEmpty(authToken))
+                    requestHeaders["Authorization"] = $"Bearer {authToken}";
+                if (headers != null)
+                {
+                    foreach (var kvp in headers)
+                        requestHeaders[kvp.Key] = kvp.Value;
+                }
+
+                OnRequestStarted.Invoke(new RequestStartedEvent(requestId, method, url, null, requestHeaders));
+            }
+
+            using var webRequest = new UnityWebRequest(url, method);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.timeout = timeout;
+            webRequest.SetRequestHeader("Accept", "*/*");
+
+            if (!string.IsNullOrEmpty(authToken))
+                webRequest.SetRequestHeader("Authorization", $"Bearer {authToken}");
+
+            if (headers != null)
+            {
+                foreach (var kvp in headers)
+                    webRequest.SetRequestHeader(kvp.Key, kvp.Value);
+            }
+
+            try
+            {
+                await webRequest.SendWebRequest().ToUniTask(cancellationToken: cancellationToken);
+                var data = webRequest.downloadHandler?.data ?? Array.Empty<byte>();
+                OnRequestCompleted?.Invoke(new RequestCompletedEvent(requestId, webRequest.responseCode, true, $"<{data.Length} bytes>", null, webRequest.GetResponseHeaders()));
+                return NetworkResponse<byte[]>.Success(webRequest.responseCode, data);
+            }
+            catch (OperationCanceledException)
+            {
+                OnRequestCancelled?.Invoke(new RequestCancelledEvent(requestId));
+                throw;
+            }
+            catch (UnityWebRequestException ex)
+            {
+                OnRequestCompleted?.Invoke(new RequestCompletedEvent(requestId, ex.ResponseCode, false, ex.Text, ex.Message, webRequest.GetResponseHeaders()));
+                return NetworkResponse<byte[]>.Error(ex.ResponseCode, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                OnRequestCompleted?.Invoke(new RequestCompletedEvent(requestId, webRequest.responseCode, false, string.Empty, ex.Message, webRequest.GetResponseHeaders()));
+                return NetworkResponse<byte[]>.Error(webRequest.responseCode, ex.Message);
+            }
+        }
+
         private static async UniTask<NetworkResponse<TResponse>> SendRequestAsync<TResponse>(
             string url,
             string method,

@@ -12,7 +12,9 @@
         "EDIVE.Time",
         "EDIVE.StateHandling",
         "EDIVE.Networking",
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "EDIVE.NativeUtils",
+        "EDIVE.Conditions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
