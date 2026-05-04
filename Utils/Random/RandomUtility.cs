@@ -57,7 +57,7 @@ namespace EDIVE.Extensions.Random
             return true;
         }
         
-        public static void Shuffle<T>(IList<T> list, IRandom random = null)
+        public static void Shuffle<T>(this IList<T> list, IRandom random = null)
         {
             random ??= GlobalRandom;
             if (list.Count <= 1) 
