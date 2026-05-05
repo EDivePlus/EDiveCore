@@ -7,6 +7,7 @@ using EDIVE.AddressableAssets;
 using EDIVE.AppLoading.Dependencies;
 using EDIVE.AppLoading.Utils;
 using EDIVE.AssetTranslation;
+using EDIVE.Conditions;
 using EDIVE.DataStructures.TypeStructures;
 using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
@@ -33,6 +34,12 @@ namespace EDIVE.AppLoading.LoadItems
         [EnhancedValidate("ValidateSource")]
         [OnValueChanged("RefreshResolvedData", true)]
         protected ALoadItemSource _Source;
+        
+        [HideLabel]
+        [InlineProperty]
+        [SerializeReference]
+        [EnhancedBoxGroup("Condition", Color = "@ColorTools.Cyan", SpaceBefore = 4)]
+        protected ICondition _Condition;
 
         [PropertySpace]
         [SerializeField]
@@ -106,6 +113,11 @@ namespace EDIVE.AppLoading.LoadItems
             CompletionSource = null;
             _runtimeContext = null;
         }
+        
+        public bool CheckAvailability()
+        {
+            return IsValid && (_Condition == null || _Condition.Evaluate());
+        }
 
         private IEnumerable<LoadItemDefinition> ResolveDirectDependencies(DependencyResolutionContext context)
         {
@@ -119,14 +131,18 @@ namespace EDIVE.AppLoading.LoadItems
                 foreach (var item in resolvedDependency.Resolve(context))
                 {
                     if (item == null || item == this) continue;
+                    if (!item.CheckAvailability()) continue;
                     if (seen.Add(item)) yield return item;
                 }
             }
 
             foreach (var manualDependency in _ManualDependencies)
             {
-                if (manualDependency != null && manualDependency.Definition != null && manualDependency.Definition != this && seen.Add(manualDependency.Definition))
-                    yield return manualDependency.Definition;
+                if (manualDependency == null) continue;
+                var dep = manualDependency.Definition;
+                if (dep == null || dep == this) continue;
+                if (!dep.CheckAvailability()) continue;
+                if (seen.Add(dep)) yield return dep;
             }
         }
 

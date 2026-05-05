@@ -108,7 +108,7 @@ namespace EDIVE.AppLoading
                         continue;
                     }
 
-                    if (loadItem.IsValid)
+                    if (loadItem.CheckAvailability())
                         yield return loadItem;
                 }
             }
@@ -117,7 +117,7 @@ namespace EDIVE.AppLoading
         public IEnumerable<LoadItemDefinition> GetValidLoadItemsSorted()
         {
             var ctx = _runtimeContext ?? new DependencyResolutionContext(GetValidLoadItems());
-            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups(), ctx).Where(l => l.IsValid);
+            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups(), ctx).Where(l => l.CheckAvailability());
         }
 
 #if UNITY_EDITOR

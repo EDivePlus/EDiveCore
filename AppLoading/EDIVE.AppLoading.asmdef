@@ -17,7 +17,8 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.AddressableAssets",
         "EDIVE.AssetTranslation",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "EDIVE.Conditions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

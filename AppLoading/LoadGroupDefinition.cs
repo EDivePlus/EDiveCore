@@ -66,7 +66,7 @@ namespace EDIVE.AppLoading
 
         public async UniTask Load()
         {
-            var dependencySources = _Dependencies.Where(d => d != null).Select(d => d.CompletionSource.Task);
+            var dependencySources = _Dependencies.Where(d => d != null && d.IsAvailable).Select(d => d.CompletionSource.Task);
             await UniTask.WhenAll(dependencySources);
 
             var itemTasks = GetLoadItems().Select(l => l.Load());
@@ -86,14 +86,14 @@ namespace EDIVE.AppLoading
                     continue;
                 }
 
-                if (loadItem.IsValid)
-                {
-                    yield return loadItem;
-                }
-                else
+                if (!loadItem.IsValid)
                 {
                     Debug.LogError($"[{GetType().Name}] Load item at index {i} '{loadItem.name}' in group '{UniqueID}' is not valid");
+                    continue;
                 }
+
+                if (loadItem.CheckAvailability())
+                    yield return loadItem;
             }
         }
 
