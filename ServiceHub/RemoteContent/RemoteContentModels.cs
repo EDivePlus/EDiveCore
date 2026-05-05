@@ -11,11 +11,11 @@ namespace EDIVE.ServiceHub.RemoteContent
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class ContentItemSummary
+    public class ContentItemInfo
     {
         [JsonProperty("id")]
         [SerializeField]
-        private long _Id;
+        private string _Id;
 
         [JsonProperty("name")]
         [SerializeField]
@@ -53,7 +53,7 @@ namespace EDIVE.ServiceHub.RemoteContent
         [SerializeField]
         private UDateTime _UpdatedAt;
 
-        public long Id => _Id;
+        public string Id => _Id;
         public string Name => _Name;
         public string OriginalFileName => _OriginalFileName;
         public string Extension => _Extension;
@@ -71,13 +71,13 @@ namespace EDIVE.ServiceHub.RemoteContent
     {
         [JsonProperty("items")]
         [SerializeField]
-        private List<ContentItemSummary> _Items;
+        private List<ContentItemInfo> _Items;
 
         [JsonProperty("pagination")]
         [SerializeField]
         private PaginationMeta _Pagination;
 
-        public List<ContentItemSummary> Items => _Items;
+        public List<ContentItemInfo> Items => _Items;
         public PaginationMeta Pagination => _Pagination;
     }
 
@@ -179,10 +179,10 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         [JsonProperty("item")]
         [SerializeField]
-        private ContentItemSummary _Item;
+        private ContentItemInfo _Item;
 
         public string Token => _Token;
         public string Url => _Url;
-        public ContentItemSummary Item => _Item;
+        public ContentItemInfo Item => _Item;
     }
 }

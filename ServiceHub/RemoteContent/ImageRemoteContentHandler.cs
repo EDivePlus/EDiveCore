@@ -16,6 +16,8 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         private Texture2D _texture;
 
+        public override bool IsValidFor(ContentItemInfo contentInfo) => contentInfo.MediaTypeKey == "image";
+
         protected override UniTask ApplyContentAsync(RemoteContentResult content, CancellationToken cancellationToken)
         {
             if (_texture == null)

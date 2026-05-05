@@ -53,8 +53,6 @@ namespace EDIVE.ServiceHub.RemoteContent
         [SerializeField]
         private AToggleState _IsLoadingState;
 
-        public event Action<ContentItemSummary> ContentItemSelected;
-
         private readonly List<RemoteContentLibraryDisplay> _spawned = new();
         private List<ContentMediaTypeResponse> _mediaTypes;
         private string _selectedMediaTypeKey;
@@ -169,7 +167,7 @@ namespace EDIVE.ServiceHub.RemoteContent
             }
         }
 
-        private void Repopulate(List<ContentItemSummary> items)
+        private void Repopulate(List<ContentItemInfo> items)
         {
             ClearSpawned();
             if (items == null || _Prefab == null || _ContentParent == null)
@@ -211,9 +209,9 @@ namespace EDIVE.ServiceHub.RemoteContent
                 _NextPageButton.interactable = _hasMore;
         }
 
-        private void OnDisplayPressed(ContentItemSummary item)
+        private void OnDisplayPressed(ContentItemInfo item)
         {
-            ContentItemSelected?.Invoke(item);
+            AppCore.Services.Get<RemoteContentManager>().SpawnHandler(item);
         }
 
         private void OnPrevClicked()

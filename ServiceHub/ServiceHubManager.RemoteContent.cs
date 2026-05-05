@@ -24,7 +24,7 @@ namespace EDIVE.ServiceHub
         private string ContentMediaTypesUrl => $"{ContentBaseUrl}/media-types";
         private string ContentItemsUrl => $"{ContentBaseUrl}/items";
         private string ContentItemsCountUrl => $"{ContentBaseUrl}/items/count";
-        private string ItemShareUrl(long itemId) => $"{ContentBaseUrl}/items/{itemId}/share";
+        private string ItemShareUrl(string itemId) => $"{ContentBaseUrl}/items/{Uri.EscapeDataString(itemId)}/share";
         private string SharedContentUrl(string token) => $"{ContentBaseUrl}/shared/{Uri.EscapeDataString(token)}";
 
         private static string AppendQuery(string url, string key, string value)
@@ -149,11 +149,14 @@ namespace EDIVE.ServiceHub
         [PropertyOrder(99)]
         [EnhancedBoxGroup("RemoteContent")]
         public async UniTask<NetworkResponse<ContentShareResponse>> CreateContentShareAsync(
-            long itemId,
+            string itemId,
             CancellationToken cancellationToken = default)
         {
             if (!AuthStorage.Client.IsValid())
                 return NetworkResponse<ContentShareResponse>.Error(401, "Not authenticated");
+
+            if (string.IsNullOrEmpty(itemId))
+                return NetworkResponse<ContentShareResponse>.Error(0, "Content item id is empty");
 
             var response = await RestUtils.PostAsync<ApiResponse<ContentShareResponse>, object>(
                 ItemShareUrl(itemId),
@@ -170,11 +173,14 @@ namespace EDIVE.ServiceHub
         [PropertyOrder(99)]
         [EnhancedBoxGroup("RemoteContent")]
         public async UniTask<NetworkResponse<bool>> RevokeContentShareAsync(
-            long itemId,
+            string itemId,
             CancellationToken cancellationToken = default)
         {
             if (!AuthStorage.Client.IsValid())
                 return NetworkResponse<bool>.Error(401, "Not authenticated");
+
+            if (string.IsNullOrEmpty(itemId))
+                return NetworkResponse<bool>.Error(0, "Content item id is empty");
 
             var response = await RestUtils.DeleteAsync<ApiResponse<object>>(
                 ItemShareUrl(itemId),

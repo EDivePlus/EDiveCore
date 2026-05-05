@@ -14,44 +14,45 @@ namespace EDIVE.ServiceHub.RemoteContent
     public abstract class ARemoteContentHandler : MonoBehaviour
     {
         [SerializeField]
-        private string _ContentId;
-
-        [SerializeField]
-        private Transform _ContentRoot;
-
-        [PropertySpace]
-        [SerializeField]
-        private RemoteContentState _State = RemoteContentState.Unknown;
-
-        [SerializeField]
         [ValidateMultiState(typeof(RemoteContentState))]
         private AMultiState _VisualState;
+        
+        [PropertySpace]
+        [ShowInInspector]
+        [ReadOnly]
+        [PropertyOrder(999)]
+        private RemoteContentState _state = RemoteContentState.Unknown;
+
+        public ContentItemInfo ContentInfo { get; private set; }
+
+        public virtual void Initialize(ContentItemInfo contentInfo)
+        {
+            ContentInfo = contentInfo;
+            LoadContentAsync(this.GetCancellationTokenOnDestroy()).Forget();
+        }
+        
+        public abstract bool IsValidFor(ContentItemInfo contentInfo);
 
         public RemoteContentState State
         {
-            get => _State;
+            get => _state;
             private set
             {
-                if (_State == value)
+                if (_state == value)
                     return;
 
-                _State = value;
+                _state = value;
                 if (_VisualState != null)
-                    _VisualState.SetState(_State);
-                OnStateChanged?.Invoke(_State);
+                    _VisualState.SetState(_state);
+                OnStateChanged?.Invoke(_state);
             }
         }
 
         public event Action<RemoteContentState> OnStateChanged;
 
-        protected virtual void Start()
-        {
-            LoadContentAsync(this.GetCancellationTokenOnDestroy()).Forget();
-        }
-
         private async UniTask LoadContentAsync(CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(_ContentId))
+            if (ContentInfo == null || string.IsNullOrEmpty(ContentInfo.Id))
             {
                 State = RemoteContentState.Error;
                 return;
@@ -59,10 +60,19 @@ namespace EDIVE.ServiceHub.RemoteContent
 
             State = RemoteContentState.Loading;
 
-            var response = await AppCore.Services.Get<ServiceHubManager>().GetRemoteContentAsync(_ContentId, cancellationToken);
+            var serviceHub = AppCore.Services.Get<ServiceHubManager>();
+            var shareResponse = await serviceHub.CreateContentShareAsync(ContentInfo.Id, cancellationToken);
+            if (!shareResponse.IsSuccess || shareResponse.Result == null || string.IsNullOrEmpty(shareResponse.Result.Token))
+            {
+                Debug.LogError($"[RemoteContent] Failed to create share for '{ContentInfo.Id}': {shareResponse.ErrorMessage}");
+                State = RemoteContentState.Error;
+                return;
+            }
+
+            var response = await serviceHub.GetRemoteContentAsync(shareResponse.Result.Token, cancellationToken);
             if (!response.IsSuccess)
             {
-                Debug.LogError($"[RemoteContent] Failed to fetch '{_ContentId}': {response.ErrorMessage}");
+                Debug.LogError($"[RemoteContent] Failed to fetch '{ContentInfo.Id}': {response.ErrorMessage}");
                 State = RemoteContentState.Error;
                 return;
             }
@@ -78,7 +88,7 @@ namespace EDIVE.ServiceHub.RemoteContent
             }
             catch (Exception e)
             {
-                Debug.LogError($"[RemoteContent] Failed to apply '{_ContentId}': {e}");
+                Debug.LogError($"[RemoteContent] Failed to apply '{ContentInfo.Id}': {e}");
                 State = RemoteContentState.Error;
             }
         }
@@ -88,6 +98,7 @@ namespace EDIVE.ServiceHub.RemoteContent
 
     public enum RemoteContentState
     {
+        Initial,
         Loading,
         Ready,
         Error,

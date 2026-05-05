@@ -14,7 +14,8 @@
         "EDIVE.Networking",
         "FishNet.Runtime",
         "EDIVE.NativeUtils",
-        "EDIVE.Conditions"
+        "EDIVE.Conditions",
+        "UnityGLTFScripts"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -23,6 +24,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "org.khronos.unitygltf",
+            "expression": "",
+            "define": "UNITY_GLTF"
+        }
+    ],
     "noEngineReferences": false
 }

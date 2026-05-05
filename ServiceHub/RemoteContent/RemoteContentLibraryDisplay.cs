@@ -23,9 +23,9 @@ namespace EDIVE.ServiceHub.RemoteContent
         [SerializeField]
         private Button _InteractButton;
         
-        private ContentItemSummary _contentInfo;
+        private ContentItemInfo _contentInfo;
         
-        public event Action<ContentItemSummary> DisplayPressed;
+        public event Action<ContentItemInfo> DisplayPressed;
 
         private void OnEnable()
         {
@@ -39,7 +39,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 _InteractButton.onClick.RemoveListener(OnInteractButtonClicked);
         }
 
-        public void SetContentInfo(ContentItemSummary content)
+        public void SetContentInfo(ContentItemInfo content)
         {
             if (_NameText != null)
                 _NameText.text = content.Name;
