@@ -304,13 +304,15 @@ namespace EDIVE.AppLoading.LoadItems
         {
             return LoaderUtils.DecoratedLoadItemDrawer(value, label, callNextDrawer);
         }
-
+        
         protected override string FormatFileNameForID(string filename)
         {
-            if (filename.EndsWith("Definition"))
-                filename = filename[..^"Definition".Length];
-            if (filename.EndsWith("LoadItem"))
-                filename = filename[..^"LoadItem".Length];
+            string[] suffixesToRemove = { "Definition", "LoadItem", "Loader" };
+            foreach (var suffixToRemove in suffixesToRemove)
+            {
+                if (filename.EndsWith(suffixToRemove))
+                    filename = filename[..^suffixToRemove.Length];
+            }
             return filename;
         }
 
