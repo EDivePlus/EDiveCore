@@ -17,8 +17,9 @@ namespace EDIVE.AppLoading.Dependencies
 {
     [Serializable]
     public class TypedDependency
-    {
-        [HideInInspector]
+    { 
+        [HorizontalGroup]
+        [HideLabel]
         [SerializeField]
         private UType _Type;
 
@@ -39,16 +40,7 @@ namespace EDIVE.AppLoading.Dependencies
         }
 
 #if UNITY_EDITOR
-        [HorizontalGroup]
-        [OnInspectorGUI]
-        private void DrawLabel()
-        {
-            SirenixEditorFields.TextField(Type != null ? $"{Type.Name}" : "NULL");
-            if (Type != null)
-                GUI.Label(GUILayoutUtility.GetLastRect(), new GUIContent(string.Empty, Type.FullName ?? Type.AssemblyQualifiedName));
-        }
-        
-        [HorizontalGroup]
+        [HorizontalGroup(0.4f)]
         [ShowInInspector]
         [PropertyOrder(10)]
         [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "OnCandidatesTitleBarGUI")]

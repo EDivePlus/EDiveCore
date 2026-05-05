@@ -48,7 +48,7 @@ namespace EDIVE.AppLoading.LoadItems
         
         [EnhancedBoxGroup("Dependencies", Color = "@ColorTools.Orange", Order = 20, SpaceBefore = 8)]
         [SerializeField]
-        [CustomValueDrawer("CustomTypeDrawer")]
+        [InlineProperty]
         [EnhancedValidate("ValidateResolvedData")]
         [ListDrawerSettings(IsReadOnly = true)]
         private List<UType> _RepresentedTypes = new();
@@ -289,15 +289,6 @@ namespace EDIVE.AppLoading.LoadItems
             return LoaderUtils.DecoratedLoadItemDrawer(value, label, callNextDrawer);
         }
 
-        private UType CustomTypeDrawer(UType value)
-        {
-            var type = value?.Value;
-            SirenixEditorFields.TextField(type != null ? $"{type.Name}" : "NULL");
-            if (type != null)
-                GUI.Label(GUILayoutUtility.GetLastRect(), new GUIContent(string.Empty, type.FullName ?? type.AssemblyQualifiedName));
-            return value;
-        }
-        
         protected override string FormatFileNameForID(string filename) => filename.Replace("Definition", "");
         
         [UsedImplicitly]
