@@ -1,6 +1,9 @@
-﻿using EDIVE.EditorUtils;
-using Sirenix.OdinInspector;
+﻿using Sirenix.OdinInspector;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+#endif
 
 namespace EDIVE.AppLoading.LoadItems.Legacy
 {
