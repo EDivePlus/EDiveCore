@@ -15,7 +15,8 @@
         "FishNet.Runtime",
         "EDIVE.NativeUtils",
         "EDIVE.Conditions",
-        "UnityGLTFScripts"
+        "UnityGLTFScripts",
+        "EDIVE.Procedural"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -9,7 +9,7 @@ using EDIVE.ServiceHub.RemoteContent.MeshLoaders;
 using UnityEngine;
 using ZLinq;
 
-namespace EDIVE.ServiceHub.RemoteContent
+namespace EDIVE.ServiceHub.RemoteContent.Handlers
 {
     public class MeshRemoteContentHandler : ARemoteContentHandler
     {

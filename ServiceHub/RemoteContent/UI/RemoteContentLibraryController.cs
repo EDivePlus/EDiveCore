@@ -13,7 +13,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.ServiceHub.RemoteContent
+namespace EDIVE.ServiceHub.RemoteContent.UI
 {
     public class RemoteContentLibraryController : MonoBehaviour
     {
