@@ -101,14 +101,10 @@ namespace EDIVE.View
 
         private static Rect GetSafeArea()
         {
-            var unitySafeArea = Screen.safeArea;
 #if UNITY_IOS && !UNITY_EDITOR
-            var iosSafeArea = GetIOSSafeArea();
-            DebugLite.Log($"[SafeArea] Safe area requested ({unitySafeArea.ToString()}), iOS override: {iosSafeArea.ToString()}");
-            return iosSafeArea;
+            return GetIOSSafeArea();
 #else
-            DebugLite.Log($"[SafeArea] Safe area requested ({unitySafeArea.ToString()})");
-            return unitySafeArea;
+            return Screen.safeArea;
 #endif
         }
 
