@@ -21,6 +21,9 @@ namespace EDIVE.XRTools.Controls
         private AControls _DesktopControls;
 
         [SerializeField]
+        private AControls _MobileControls;
+
+        [SerializeField]
         private AControls _HeadsetControls;
 
         [PropertySpace]
@@ -40,15 +43,26 @@ namespace EDIVE.XRTools.Controls
             get
             {
                 yield return _DesktopControls;
+                yield return _MobileControls;
                 yield return _HeadsetControls;
             }
         }
 
         protected void Awake()
         {
-            _currentControls = XRUtils.XREnabled ? _HeadsetControls : _DesktopControls;
-            AllControls.ForEach(c => c.SetActive(false));
-            _currentControls.SetActive(true);
+            _currentControls = SelectControls();
+            AllControls.Where(c => c != null).ForEach(c => c.SetActive(false));
+            if (_currentControls != null)
+                _currentControls.SetActive(true);
+        }
+
+        private AControls SelectControls()
+        {
+            if (XRUtils.XREnabled)
+                return _HeadsetControls;
+            if (Application.isMobilePlatform)
+                return _MobileControls;
+            return _DesktopControls;
         }
 
         [Button]
