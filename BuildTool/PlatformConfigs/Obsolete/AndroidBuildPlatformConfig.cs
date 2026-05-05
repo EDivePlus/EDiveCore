@@ -1,8 +1,6 @@
-#if UNITY_ANDROID
 using System.Collections.Generic;
 using EDIVE.EditorUtils;
 using Sirenix.OdinInspector;
-using Unity.Android.Types;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -24,7 +22,7 @@ namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
         [SerializeField, HideInInspector] private bool _MinifyDebug;
         [SerializeField, HideInInspector] private bool _MinifyRelease;
         [SerializeField, HideInInspector] private bool _SplitApplicationBinary;
-        [SerializeField, HideInInspector] private DebugSymbolLevel _SymbolLevel;
+        [SerializeField, HideInInspector] private DebugSymbolLevelCustom _SymbolLevel;
         [SerializeField, HideInInspector] private int _SymbolFormat;
         [SerializeField, HideInInspector] private bool _ForceDisableCloudDiagnostics;
         
@@ -44,4 +42,3 @@ namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
     #endregion
     }
 }
-#endif

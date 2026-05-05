@@ -115,7 +115,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             }
         }
 
-        private string GetBuildTargetModuleLabel(ABuildTargetPlatformModule module) => module.PlatformName;
+        private string GetBuildTargetModuleLabel(ABuildTargetPlatformModule module) => module?.PlatformName ?? "None";
         
         private void ValidateAdditionalModules(SelfValidationResult result, InspectorProperty property)
         {
