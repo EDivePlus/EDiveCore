@@ -38,6 +38,9 @@ namespace EDIVE.Forms.Controllers
             InitializeInternal();
             if (_OptionDisplay)
                 _OptionDisplay.Initialize(option);
+            
+            if (_ResultState)
+                _ResultState.SetState(OptionResultType.None);
             SetSelected(false, false);
         }
         
