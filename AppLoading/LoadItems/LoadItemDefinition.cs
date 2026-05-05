@@ -289,8 +289,15 @@ namespace EDIVE.AppLoading.LoadItems
             return LoaderUtils.DecoratedLoadItemDrawer(value, label, callNextDrawer);
         }
 
-        protected override string FormatFileNameForID(string filename) => filename.Replace("Definition", "");
-        
+        protected override string FormatFileNameForID(string filename)
+        {
+            if (filename.EndsWith("Definition"))
+                filename = filename[..^"Definition".Length];
+            if (filename.EndsWith("LoadItem"))
+                filename = filename[..^"LoadItem".Length];
+            return filename;
+        }
+
         [UsedImplicitly]
         private void ValidateSource(SelfValidationResult result, InspectorProperty property)
         {
