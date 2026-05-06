@@ -38,6 +38,12 @@ namespace EDIVE.BuildTool.BuildSetupData
         
         private ABuildAction CustomBuildActionDrawer(ABuildAction value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
+            if (value == null)
+            {
+                callNextDrawer(label);
+                return null;
+            }
+            
             var content = string.IsNullOrEmpty(value.Tooltip) ? GUIHelper.TempContent(value.CallbackName) : GUIHelper.TempContent($"{value.CallbackName} {TOOLTIP_ICON}", value.Tooltip);
             EditorGUILayout.LabelField(content, EditorStyles.boldLabel);
             callNextDrawer(label);
