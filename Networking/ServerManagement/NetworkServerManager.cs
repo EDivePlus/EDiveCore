@@ -31,12 +31,17 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         [InfoBox("Adapters are ordered by their priority. Higher priority adapters will be used first.")]
         private List<AServerListAdapter> _Adapters = new();
-
-        public IEnumerable<ServerRecord> ServerList => _servers.Values;
+        
+        public IEnumerable<ServerRecord> ServerList => _serverList;
         public Signal ServerListUpdated { get; } = new();
         public ServerConfig ServerConfig => _ServerConfig;
-
+        
         private readonly Dictionary<long, ServerRecord> _servers = new();
+
+        [HideReferenceObjectPicker]
+        [ShowInInspector]   
+        [EnableGUI]
+        private readonly List<ServerRecord> _serverList = new();
         
         public ServerRecord HostServer { get; private set; }
         public ServerRecord JoinedServer { get; private set; }
@@ -199,6 +204,7 @@ namespace EDIVE.Networking.ServerManagement
                 return;
 
             _servers.Clear();
+            _serverList.Clear();
             EnumerateAdapters(adapter =>
             {
                 adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
@@ -218,6 +224,7 @@ namespace EDIVE.Networking.ServerManagement
 
         private void OnAdapterServerListUpdated()
         {
+            _serverList.Clear();
             _servers.Clear();
             EnumerateAdapters(adapter =>
             {
@@ -241,6 +248,7 @@ namespace EDIVE.Networking.ServerManagement
                     }
                 }
             });
+            _serverList.AddRange(_servers.Values);
             ServerListUpdated.Dispatch();
         }
 

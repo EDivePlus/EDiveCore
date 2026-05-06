@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.External.Signals;
 using Sirenix.OdinInspector;
@@ -15,10 +16,12 @@ namespace EDIVE.Networking.ServerManagement
         public Dictionary<long, ServerRecord> Servers { get; } = new();
         public Signal ServerListUpdated { get; } = new();
 
+        [HideReferenceObjectPicker]
+        [ShowInInspector]   
+        [EnableGUI]
+        private readonly List<ServerRecord> _serverList = new();
+        
         protected ServerConfig _serverConfig;
-
-        [ShowInInspector]
-        private IEnumerable<ServerRecord> ServersPreview => Servers.Values;
 
         public async UniTask Initialize(ServerConfig serverConfig)
         {
@@ -48,11 +51,12 @@ namespace EDIVE.Networking.ServerManagement
         protected void SetServers(IEnumerable<ServerRecord> records)
         {
             Servers.Clear();
+            _serverList.Clear();
+            _serverList.AddRange(records.Where(r => r != null));
+            
             var now = DateTime.UtcNow;
-            foreach (var record in records)
+            foreach (var record in _serverList)
             {
-                if (record == null)
-                    continue;
                 record.LastUpdated = now;
                 Servers[record.ServerID] = record;
             }
