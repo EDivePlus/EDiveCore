@@ -1,14 +1,13 @@
 ﻿// Author: Michal Petr
 // Created: 06.05.2026
 
+#if UNITY_EDITOR
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
 using UnityEditor;
 using UnityEditor.Toolbars;
 using UnityEditor.XR.Management;
 using UnityEngine.UIElements;
-using UnityEngine.XR;
-#if UNITY_EDITOR
 
 namespace EDIVE.External.Oculus
 {
