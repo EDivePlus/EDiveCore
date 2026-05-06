@@ -42,10 +42,15 @@ namespace EDIVE.BuildTool.Utils
 
         public static NamedBuildTarget GetNamedBuildTarget(string name)
         {
-            var property = typeof(NamedBuildTarget).GetProperty(name, BindingFlags.Public | BindingFlags.Static);
-            if (property != null)
+            var fields = typeof(NamedBuildTarget).GetFields(BindingFlags.Public | BindingFlags.Static);
+            foreach (var field in fields)
             {
-                return (NamedBuildTarget)property.GetValue(null);
+                if (field.FieldType != typeof(NamedBuildTarget))
+                    continue;
+
+                var value = (NamedBuildTarget) field.GetValue(null);
+                if (string.Equals(value.TargetName, name, StringComparison.OrdinalIgnoreCase))
+                    return value;
             }
 
             Debug.LogError($"Could not find NamedBuildTarget with name '{name}'");
