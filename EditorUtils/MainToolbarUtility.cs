@@ -49,6 +49,11 @@ namespace EDIVE.EditorUtils
             {
                 try
                 {
+                    // Disable annoying meta bullshit
+                    SetDisplayAll("MetaXR", false);
+                    EditorPrefs.SetBool("Meta.XR.SDK.StatusIcon.Enabled", false);
+                    
+                    // Enable all EDive elements
                     SetDisplayAll(ROOT_ELEMENT_PATH, true);
                     EditorPrefs.SetBool(flagKey, true);
                 }
