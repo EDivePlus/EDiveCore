@@ -41,7 +41,7 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             var maxDim = Mathf.Max(_texture.width, _texture.height);
             var width = _TargetSize * _texture.width / maxDim;
             var height = _TargetSize * _texture.height / maxDim;
-            _MeshSliceScaler.TargetSize = new Vector3(width, height, _MeshSliceScaler.Size.z);
+            _MeshSliceScaler.TargetSize = new Vector3(width, height, 1f);
 
             return UniTask.CompletedTask;
         }
