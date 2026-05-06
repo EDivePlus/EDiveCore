@@ -15,11 +15,10 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         private MeshRenderer _QuadMesh;
 
         [SerializeField]
-        [Tooltip("Optional MeshScaler to apply scaling to the image based on its pixel dimensions and the PixelsPerMeter setting.")]
         private MeshSliceScaler _MeshSliceScaler;
 
         [SerializeField]
-        private float _PixelsPerMeter = 1024f;
+        private float _TargetSize = 1f;
 
         private Texture2D _texture;
 
@@ -35,12 +34,13 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
 
             if (_QuadMesh != null)
                 _QuadMesh.material.mainTexture = _texture;
-
-            if (_MeshSliceScaler == null || !(_PixelsPerMeter > 0f)) 
-                return UniTask.CompletedTask;
             
-            var width = _texture.width / _PixelsPerMeter;
-            var height = _texture.height / _PixelsPerMeter;
+            if (_MeshSliceScaler == null || _texture.width <= 0 || _texture.height <= 0)
+                return UniTask.CompletedTask;
+
+            var maxDim = Mathf.Max(_texture.width, _texture.height);
+            var width = _TargetSize * _texture.width / maxDim;
+            var height = _TargetSize * _texture.height / maxDim;
             _MeshSliceScaler.TargetSize = new Vector3(width, height, _MeshSliceScaler.Size.z);
 
             return UniTask.CompletedTask;
