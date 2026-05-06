@@ -222,9 +222,18 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         
         private static async UniTask<string> GetPublicIPAsync()
         {
-            using var www = UnityWebRequest.Get("https://api.ipify.org");
-            var request = await www.SendWebRequest();
-            return request.result == UnityWebRequest.Result.Success ? www.downloadHandler.text.Trim() : string.Empty;
+            try
+            {
+                using var www = UnityWebRequest.Get("https://api.ipify.org");
+                www.timeout = 5;
+                await www.SendWebRequest();
+                return www.result == UnityWebRequest.Result.Success ? www.downloadHandler.text.Trim() : string.Empty;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[UnityLobbyServerListAdapter] Failed to resolve public IP: {e.Message}");
+                return string.Empty;
+            }
         }
     }
 }
