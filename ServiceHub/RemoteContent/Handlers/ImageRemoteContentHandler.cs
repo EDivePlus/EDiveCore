@@ -46,8 +46,9 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             return UniTask.CompletedTask;
         }
 
-        protected void OnDestroy()
+        protected override void OnDestroy()
         {
+            base.OnDestroy();
             if (_texture != null)
             {
                 Destroy(_texture);

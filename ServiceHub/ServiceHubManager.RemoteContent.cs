@@ -26,11 +26,29 @@ namespace EDIVE.ServiceHub
         private string ContentItemsCountUrl => $"{ContentBaseUrl}/items/count";
         private string ItemShareUrl(string itemId) => $"{ContentBaseUrl}/items/{Uri.EscapeDataString(itemId)}/share";
         private string SharedContentUrl(string token) => $"{ContentBaseUrl}/shared/{Uri.EscapeDataString(token)}";
+        private string SharedContentInfoUrl(string token) => $"{ContentBaseUrl}/shared/{Uri.EscapeDataString(token)}/info";
 
         private static string AppendQuery(string url, string key, string value)
         {
             var sep = url.Contains('?') ? '&' : '?';
             return $"{url}{sep}{key}={Uri.EscapeDataString(value)}";
+        }
+
+        public async UniTask<NetworkResponse<ContentItemInfo>> GetSharedContentInfoAsync(
+            string shareToken,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(shareToken))
+                return NetworkResponse<ContentItemInfo>.Error(0, "Share token is empty");
+
+            var response = await RestUtils.GetAsync<ApiResponse<ContentItemInfo>>(
+                SharedContentInfoUrl(shareToken),
+                authToken: null,
+                headers: null,
+                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                cancellationToken: GetEffectiveToken(cancellationToken)
+            );
+            return UnwrapApi(response, $"GetSharedContentInfo({shareToken})");
         }
 
         public async UniTask<NetworkResponse<RemoteContentResult>> GetRemoteContentAsync(

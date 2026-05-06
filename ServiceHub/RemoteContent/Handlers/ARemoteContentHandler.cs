@@ -6,77 +6,33 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.StateHandling.MultiStates;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.ServiceHub.RemoteContent.Handlers
 {
-    public abstract class ARemoteContentHandler : NetworkBehaviour
+    public abstract class ARemoteContentHandler : MonoBehaviour
     {
         [SerializeField]
         [ValidateMultiState(typeof(RemoteContentState))]
         private AMultiState _VisualState;
+
+        [SerializeField]
+        private string _ShareToken;
+        public string ShareToken => _ShareToken;
 
         [PropertySpace]
         [ShowInInspector]
         [ReadOnly]
         [PropertyOrder(999)]
         private RemoteContentState _state = RemoteContentState.Unknown;
-
-        private readonly SyncVar<string> _contentId = new();
-        private bool _loadStarted;
+        
+        private CancellationTokenSource _loadCts;
+        
+        private bool _loadInitialized;
 
         public ContentItemInfo ContentInfo { get; private set; }
-
-        public abstract bool IsValidFor(ContentItemInfo contentInfo);
-
-        public void ServerSetContentId(string contentId)
-        {
-            _contentId.Value = contentId;
-        }
-
-        public override void OnStartNetwork()
-        {
-            base.OnStartNetwork();
-            _contentId.OnChange += OnContentIdChanged;
-        }
-
-        public override void OnStopNetwork()
-        {
-            _contentId.OnChange -= OnContentIdChanged;
-            base.OnStopNetwork();
-        }
-
-        public override void OnStartClient()
-        {
-            base.OnStartClient();
-            TryStartLoad();
-        }
-
-        public override void OnStartServer()
-        {
-            base.OnStartServer();
-            TryStartLoad();
-        }
-
-        private void OnContentIdChanged(string prev, string next, bool asServer)
-        {
-            TryStartLoad();
-        }
-
-        private void TryStartLoad()
-        {
-            if (_loadStarted)
-                return;
-            var id = _contentId.Value;
-            if (string.IsNullOrEmpty(id))
-                return;
-            _loadStarted = true;
-            LoadContentAsync(id, this.GetCancellationTokenOnDestroy()).Forget();
-        }
-
+        
         public RemoteContentState State
         {
             get => _state;
@@ -88,15 +44,53 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
                 _state = value;
                 if (_VisualState != null)
                     _VisualState.SetState(_state);
-                OnStateChanged?.Invoke(_state);
+                StateChanged?.Invoke(_state);
             }
         }
 
-        public event Action<RemoteContentState> OnStateChanged;
+        public event Action<RemoteContentState> StateChanged;
+        public event Action<string> ShareTokenChanged;
+        
+        public abstract bool IsValidFor(ContentItemInfo contentInfo);
 
-        private async UniTask LoadContentAsync(string contentId, CancellationToken cancellationToken)
+        public void SetShareToken(string shareToken)
         {
-            if (string.IsNullOrEmpty(contentId))
+            if (_ShareToken == shareToken)
+                return;
+            _ShareToken = shareToken;
+            
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = null;
+            
+            ShareTokenChanged?.Invoke(_ShareToken);
+            TryStartLoad();
+        }
+
+        protected virtual void Start()
+        {
+            TryStartLoad();
+        }
+
+        protected virtual void OnDestroy()
+        {
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = null;
+        }
+
+        private void TryStartLoad()
+        {
+            if (string.IsNullOrEmpty(_ShareToken) || _loadInitialized)
+                return;
+            _loadInitialized = true;
+            _loadCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            LoadContentAsync(_ShareToken, _loadCts.Token).Forget();
+        }
+
+        private async UniTask LoadContentAsync(string shareToken, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(shareToken))
             {
                 State = RemoteContentState.Error;
                 return;
@@ -105,21 +99,20 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             State = RemoteContentState.Loading;
 
             var serviceHub = AppCore.Services.Get<ServiceHubManager>();
-            var shareResponse = await serviceHub.CreateContentShareAsync(contentId, cancellationToken);
-            if (!shareResponse.IsSuccess || shareResponse.Result == null || string.IsNullOrEmpty(shareResponse.Result.Token))
+
+            var infoResponse = await serviceHub.GetSharedContentInfoAsync(shareToken, cancellationToken);
+            if (!infoResponse.IsSuccess || infoResponse.Result == null)
             {
-                Debug.LogError($"[RemoteContent] Failed to create share for '{contentId}': {shareResponse.ErrorMessage}");
+                Debug.LogError($"[RemoteContent] Failed to fetch info for token '{shareToken}': {infoResponse.ErrorMessage}");
                 State = RemoteContentState.Error;
                 return;
             }
+            ContentInfo = infoResponse.Result;
 
-            if (shareResponse.Result.Item != null)
-                ContentInfo = shareResponse.Result.Item;
-
-            var response = await serviceHub.GetRemoteContentAsync(shareResponse.Result.Token, cancellationToken);
+            var response = await serviceHub.GetRemoteContentAsync(shareToken, cancellationToken);
             if (!response.IsSuccess)
             {
-                Debug.LogError($"[RemoteContent] Failed to fetch '{contentId}': {response.ErrorMessage}");
+                Debug.LogError($"[RemoteContent] Failed to fetch token '{shareToken}': {response.ErrorMessage}");
                 State = RemoteContentState.Error;
                 return;
             }
@@ -135,7 +128,7 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             }
             catch (Exception e)
             {
-                Debug.LogError($"[RemoteContent] Failed to apply '{contentId}': {e}");
+                Debug.LogError($"[RemoteContent] Failed to apply token '{shareToken}': {e}");
                 State = RemoteContentState.Error;
             }
         }

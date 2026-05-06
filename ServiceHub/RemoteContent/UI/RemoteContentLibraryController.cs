@@ -211,7 +211,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
 
         private void OnDisplayPressed(ContentItemInfo item)
         {
-            AppCore.Services.Get<RemoteContentManager>().SpawnHandler(item);
+            AppCore.Services.Get<RemoteContentManager>().SpawnHandlerAsync(item).Forget();
         }
 
         private void OnPrevClicked()

@@ -90,8 +90,9 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             return true;
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
+            base.OnDestroy();
             DestroySpawned();
         }
     }

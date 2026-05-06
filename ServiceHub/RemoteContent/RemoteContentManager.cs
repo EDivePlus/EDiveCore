@@ -3,17 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
-using EDIVE.Networking;
+using EDIVE.Core;
 using EDIVE.ServiceHub.RemoteContent.Handlers;
 using FishNet;
-using FishNet.Connection;
-using FishNet.Managing;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Channel = FishNet.Transporting.Channel;
 
 namespace EDIVE.ServiceHub.RemoteContent
 {
@@ -27,10 +23,10 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         [SerializeField]
         private float _SpawnHeight;
+        
+        private readonly Dictionary<string, string> _shareTokenCache = new();
 
-        private NetworkManager _networkManager;
-
-        public void SpawnHandler(ContentItemInfo content)
+        public async UniTask SpawnHandlerAsync(ContentItemInfo content)
         {
             if (content == null || string.IsNullOrEmpty(content.Id))
             {
@@ -38,29 +34,29 @@ namespace EDIVE.ServiceHub.RemoteContent
                 return;
             }
 
-            var prefabIndex = _HandlerPrefabs.FindIndex(r => r != null && r.IsValidFor(content));
-            if (prefabIndex < 0)
+            var handlerPrefab = _HandlerPrefabs.Find(r => r != null && r.IsValidFor(content));
+            if (handlerPrefab == null)
             {
                 Debug.LogError($"[RemoteContentManager] No handler found for media type '{content.MediaTypeKey}'");
                 return;
             }
 
-            if (_networkManager == null || _networkManager.ClientManager == null || !_networkManager.ClientManager.Started)
+            if (!_shareTokenCache.TryGetValue(content.Id, out var shareToken))
             {
-                Debug.LogError("[RemoteContentManager] Cannot spawn — client not connected");
-                return;
+                var serviceHub = AppCore.Services.Get<ServiceHubManager>();
+                var shareResponse = await serviceHub.CreateContentShareAsync(content.Id);
+                if (!shareResponse.IsSuccess || shareResponse.Result == null || string.IsNullOrEmpty(shareResponse.Result.Token))
+                {
+                    Debug.LogError($"[RemoteContentManager] Failed to create share for '{content.Id}': {shareResponse.ErrorMessage}");
+                    return;
+                }
+                shareToken = shareResponse.Result.Token;
+                _shareTokenCache[content.Id] = shareToken;
             }
 
             var (position, rotation) = ComputeSpawnPose();
-            var msg = new RemoteContentSpawnRequestMessage
-            {
-                PrefabIndex = prefabIndex,
-                ContentId = content.Id,
-                SceneName = SceneManager.GetActiveScene().name,
-                Position = position,
-                Rotation = rotation,
-            };
-            _networkManager.ClientManager.Broadcast(msg);
+
+            InstantiateHandler(handlerPrefab.gameObject, shareToken, SceneManager.GetActiveScene(), position, rotation);
         }
 
         private (Vector3 position, Quaternion rotation) ComputeSpawnPose()
@@ -83,62 +79,36 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            _networkManager = InstanceFinder.NetworkManager;
-            if (_networkManager == null)
-                return UniTask.CompletedTask;
-
-            _networkManager.ServerManager.RegisterBroadcast<RemoteContentSpawnRequestMessage>(OnServerSpawnRequest);
             return UniTask.CompletedTask;
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            if (_networkManager != null && _networkManager.ServerManager != null)
-            {
-                _networkManager.ServerManager.UnregisterBroadcast<RemoteContentSpawnRequestMessage>(OnServerSpawnRequest);
-            }
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
             dependencies.Add(typeof(ServiceHubManager));
-            dependencies.Add(typeof(MasterNetworkManager));
         }
 
-        private void OnServerSpawnRequest(NetworkConnection conn, RemoteContentSpawnRequestMessage msg, Channel channel)
+        private void InstantiateHandler(GameObject handlerPrefab, string shareToken, Scene scene, Vector3 position, Quaternion rotation)
         {
-            if (msg.PrefabIndex < 0 || msg.PrefabIndex >= _HandlerPrefabs.Count)
+#if FISHNET
+            var networkManager = InstanceFinder.NetworkManager;
+            var newNob = networkManager.GetPooledInstantiated(handlerPrefab, position, rotation, false);
+            networkManager.ServerManager.Spawn(newNob, networkManager.ClientManager.Connection, scene);
+            
+            var handler = newNob.GetComponent<ARemoteContentHandler>();
+            if (handler == null) 
             {
-                Debug.LogError($"[RemoteContentManager] Invalid prefab index {msg.PrefabIndex} from client {conn.ClientId}");
+                Debug.LogError($"[RemoteContentManager] Spawned prefab missing ARemoteContentHandler");
                 return;
             }
-            if (string.IsNullOrEmpty(msg.ContentId))
+            handler.SetShareToken(shareToken);
+#else
+            var handler = Instantiate(handlerPrefab, position, rotation);
+            if (handler.TryGetComponent<ARemoteContentHandler>(out var remoteContentHandler))
             {
-                Debug.LogError($"[RemoteContentManager] Empty content id from client {conn.ClientId}");
-                return;
+                remoteContentHandler.SetShareToken(shareToken);
             }
-
-            var prefab = _HandlerPrefabs[msg.PrefabIndex];
-            if (prefab == null)
-            {
-                Debug.LogError($"[RemoteContentManager] Prefab at index {msg.PrefabIndex} is null");
-                return;
-            }
-
-            var targetScene = conn.Scenes.FirstOrDefault(s => s.IsValid() && s.name == msg.SceneName);
-            if (!targetScene.IsValid())
-            {
-                Debug.LogError($"[RemoteContentManager] Client {conn.ClientId} not in scene '{msg.SceneName}', cannot spawn");
-                return;
-            }
-
-            var netObj = _networkManager.GetPooledInstantiated(prefab.gameObject, msg.Position, msg.Rotation, true);
-            _networkManager.ServerManager.Spawn(netObj, conn, targetScene);
-
-            var handler = netObj.GetComponent<ARemoteContentHandler>();
-            handler.ServerSetContentId(msg.ContentId);
+#endif
         }
     }
 }
