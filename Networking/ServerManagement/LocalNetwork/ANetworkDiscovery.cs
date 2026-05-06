@@ -59,7 +59,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		
 		private const int LINUX_SO_REUSEPORT = 15;
 		private const int MACOS_SO_REUSEPORT = 0x0200;
-		private const int WSAECONNRESET = 10054;
+		private static readonly TimeSpan TransientErrorRetryDelay = TimeSpan.FromSeconds(2);
 
 		private void Awake()
 		{
@@ -156,11 +156,13 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 				return;
 			}
 
-			StopSearchingOrAdvertising(); 
-			_cancellationTokenSource = new CancellationTokenSource();
-			AdvertiseServerAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+			StopSearchingOrAdvertising();
+			IsAdvertising = true;
+			var cts = new CancellationTokenSource();
+			_cancellationTokenSource = cts;
+			ObserveAndForget(RunAdvertiseAsync(cts));
 		}
-		
+
 		public void SearchForServers()
 		{
 			if (IsSearching)
@@ -169,16 +171,34 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 				return;
 			}
 
-			StopSearchingOrAdvertising(); 
-			_cancellationTokenSource = new CancellationTokenSource();
-			SearchForServersAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+			StopSearchingOrAdvertising();
+			IsSearching = true;
+			var cts = new CancellationTokenSource();
+			_cancellationTokenSource = cts;
+			ObserveAndForget(RunSearchAsync(cts));
 		}
 
 		public void StopSearchingOrAdvertising()
 		{
-			_cancellationTokenSource?.Cancel();
-			_cancellationTokenSource?.Dispose();
+			// Cancel but don't dispose here — the async task disposes its own CTS in its finally block,
+			// avoiding ObjectDisposedException if the task is mid-await on the token.
+			var cts = _cancellationTokenSource;
 			_cancellationTokenSource = null;
+			cts?.Cancel();
+			IsAdvertising = false;
+			IsSearching = false;
+		}
+
+		private async Task RunAdvertiseAsync(CancellationTokenSource cts)
+		{
+			try { await AdvertiseServerAsync(cts.Token); }
+			finally { cts.Dispose(); }
+		}
+
+		private async Task RunSearchAsync(CancellationTokenSource cts)
+		{
+			try { await SearchForServersAsync(cts.Token); }
+			finally { cts.Dispose(); }
 		}
 
 		private static byte[] SerializeResponse(TResponse response)
@@ -198,13 +218,27 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 		private void HandleReceiveException(Exception exception)
 		{
 			var inner = exception is AggregateException agg ? agg.Flatten().InnerException : exception;
-			if (inner is SocketException socketException && socketException.ErrorCode == WSAECONNRESET)
+			if (inner is SocketException socketException && IsTransientSocketError(socketException))
 			{
-				LogInformation("Received ICMP port-unreachable. Recycling socket.");
+				LogInformation($"Transient socket error on receive ({socketException.SocketErrorCode}). Recycling socket.");
 				return;
 			}
 
 			Debug.LogException(exception, this);
+		}
+
+		// Errors the OS surfaces when there is no usable route, the network is down, the peer is gone,
+		// or ICMP rejects a previously sent datagram. None of these mean the discovery loop is broken —
+		// the user just isn't on a reachable network. Log quietly and retry rather than spamming the console.
+		private static bool IsTransientSocketError(SocketException socketException)
+		{
+			return socketException.SocketErrorCode is
+				SocketError.ConnectionReset       // 10054 - ICMP port-unreachable from a previous send
+				or SocketError.HostUnreachable    // 10065 - the error in the user's stack trace
+				or SocketError.NetworkUnreachable // 10051
+				or SocketError.NetworkDown        // 10050
+				or SocketError.NetworkReset       // 10052
+				or SocketError.AddressNotAvailable; // 10049 - interface vanished
 		}
 		
 		private static void ObserveAndForget(Task task)
@@ -251,7 +285,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			try
 			{
 				LogInformation("Started advertising server.");
-				IsAdvertising = true;
 
 				// Separate send socket on an ephemeral port so each server on the same PC
 				// replies from a unique source endpoint — the client's server list is keyed
@@ -310,7 +343,17 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 					}
 					catch (Exception exception)
 					{
-						Debug.LogException(exception, this);
+						var inner = exception is AggregateException agg ? agg.Flatten().InnerException : exception;
+						if (inner is SocketException socketException && IsTransientSocketError(socketException))
+						{
+							LogInformation($"Transient socket error while advertising ({socketException.SocketErrorCode}). Will retry.");
+							try { await Task.Delay(TransientErrorRetryDelay, cancellationToken); }
+							catch (OperationCanceledException) { break; }
+						}
+						else
+						{
+							Debug.LogException(exception, this);
+						}
 						listenClient?.Close();
 						listenClient = null;
 					}
@@ -318,13 +361,13 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
 				LogInformation("Stopped advertising server.");
 			}
-			catch (Exception exception) when (exception is not TaskCanceledException)
+			catch (OperationCanceledException) { /* expected on shutdown */ }
+			catch (Exception exception)
 			{
 				Debug.LogException(exception, this);
 			}
 			finally
 			{
-				IsAdvertising = false;
 				LogInformation("Closing UDP clients...");
 				listenClient?.Close();
 				sendClient?.Close();
@@ -337,7 +380,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 			try
 			{
 				LogInformation("Started searching for servers.");
-				IsSearching = true;
 				IPEndPoint broadcastEndPoint = new(IPAddress.Broadcast, _Port);
 
 				while (!cancellationToken.IsCancellationRequested)
@@ -392,20 +434,31 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 					}
 					catch (Exception exception)
 					{
-						Debug.LogException(exception, this);
+						var inner = exception is AggregateException agg ? agg.Flatten().InnerException : exception;
+						if (inner is SocketException socketException && IsTransientSocketError(socketException))
+						{
+							LogInformation($"Transient socket error while searching ({socketException.SocketErrorCode}). Will retry.");
+							_mainThreadSynchronizationContext?.Post(_ => RemoveExpiredServers(), null);
+							try { await Task.Delay(TransientErrorRetryDelay, cancellationToken); }
+							catch (OperationCanceledException) { break; }
+						}
+						else
+						{
+							Debug.LogException(exception, this);
+						}
 						udpClient?.Close();
 						udpClient = null;
 					}
 				}
 				LogInformation("Stopped searching for servers.");
 			}
-			catch (Exception exception) when (exception is not TaskCanceledException)
+			catch (OperationCanceledException) { /* expected on shutdown */ }
+			catch (Exception exception)
 			{
 				Debug.LogException(exception, this);
 			}
 			finally
 			{
-				IsSearching = false;
 				udpClient?.Close();
 			}
 		}
