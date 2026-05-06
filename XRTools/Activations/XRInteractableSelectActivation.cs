@@ -15,6 +15,7 @@ using Sirenix.OdinInspector.Editor;
 namespace EDIVE.XRTools.Activations
 {
     [Serializable]
+    [Obsolete("Use XRInteractableActivation instead")]
     public class XRInteractableSelectActivation : AWrapperActivation
     {
         [SerializeField] 

@@ -103,6 +103,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 var relayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty;
 
                 var endpoints = new List<AServerEndpoint>();
+                /*
                 if (!string.IsNullOrEmpty(publicAddress) && publicPort > 0)
                 {
                     endpoints.Add(new AddressServerEndpoint
@@ -112,6 +113,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                         Port = publicPort,
                     });
                 }
+                */
+                
                 endpoints.Add(new UnityRelayServerEndpoint
                 {
                     Name = "Unity Relay",
@@ -163,6 +166,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _hostLobby = await LobbyService.Instance.CreateLobbyAsync(_serverConfig.ServerName, _serverConfig.MaxPlayers + 1, options);
 
             var endpoints = new List<AServerEndpoint>();
+            /*
             if (!string.IsNullOrEmpty(publicIP) && publicPort > 0)
             {
                 endpoints.Add(new AddressServerEndpoint
@@ -172,6 +176,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                     Port = publicPort,
                 });
             }
+            */
+            
             endpoints.Add(new UnityRelayServerEndpoint
             {
                 Name = "Unity Relay",

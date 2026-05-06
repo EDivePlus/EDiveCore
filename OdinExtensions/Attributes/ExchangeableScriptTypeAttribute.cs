@@ -11,9 +11,7 @@ namespace EDIVE.OdinExtensions.Attributes
     {
         public Type BaseType;
 
-        public string OnBeforeScriptChanged;
-        
-        public string OnAfterScriptChanged;
+        public string OnScriptChanged;
         
         public bool HideDropdownLabel;
         

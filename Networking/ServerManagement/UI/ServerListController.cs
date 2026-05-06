@@ -60,8 +60,8 @@ namespace EDIVE.Networking.ServerManagement.UI
             
             if (_serverManager)
             {
-                _serverManager.StopSearch();
                 _serverManager.ServerListUpdated.RemoveListener(RefreshScroller);
+                _serverManager.StopSearch();
             }
             
             if (_RefreshButton)

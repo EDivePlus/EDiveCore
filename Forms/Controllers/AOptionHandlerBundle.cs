@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace EDIVE.Forms.Controllers
 {
-    public abstract class AOptionHandlerBundle : MonoBehaviour 
+    public abstract class AOptionHandlerBundle : MonoBehaviour
     {
         public abstract event Action<IQuestionOption, bool> SelectionChanged;
 
@@ -20,6 +20,7 @@ namespace EDIVE.Forms.Controllers
         public abstract IEnumerable<IFormAnswerMetadata> CollectMetadata();
         public abstract void SetSelected(IQuestionOption option, bool selected, bool notify = true);
         public abstract void SetInteractable(IQuestionOption option, bool interactable);
+        public virtual void OnPhaseChanged(QuestionPhase phase){ }
     }
     
     public abstract class AOptionHandlerBundle<TOptionHandler> : AOptionHandlerBundle  where TOptionHandler : AOptionHandler
@@ -27,8 +28,10 @@ namespace EDIVE.Forms.Controllers
         [SerializeField]
         private List<TOptionHandler> _OptionHandlers = new();
         
-        public override event Action<IQuestionOption, bool> SelectionChanged;
+        public IEnumerable<TOptionHandler> FilteredOptionHandlers => _OptionHandlers.Where(b => b != null);
         
+        public override event Action<IQuestionOption, bool> SelectionChanged;
+
         public override void Initialize(AOptionsQuestion question)
         {
             var options = question.BaseOptions.Where(o => o != null).ToList();
@@ -60,12 +63,12 @@ namespace EDIVE.Forms.Controllers
                 optionHandler.SelectionChanged += OnOptionSelected;
             }
         }
-        
+
         public override void Terminate()
         {
             foreach (var optionHandler in _OptionHandlers)
             {
-                optionHandler.SelectionChanged -= OnOptionSelected; 
+                optionHandler.SelectionChanged -= OnOptionSelected;
                 optionHandler.Terminate();
             }
         }

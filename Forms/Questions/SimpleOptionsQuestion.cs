@@ -11,7 +11,7 @@ namespace EDIVE.Forms.Questions
     public class SimpleOptionsQuestion : AOptionsQuestion<SimpleQuestionOption>
     {
         public override string EditorLabel => "Options";
-        
+
         [SerializeField]
         private string _Description;
         public string Description => _Description;

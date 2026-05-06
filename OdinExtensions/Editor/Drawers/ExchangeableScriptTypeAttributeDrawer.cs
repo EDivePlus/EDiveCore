@@ -18,31 +18,25 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
     [DrawerPriority(DrawerPriorityLevel.SuperPriority)]
     public class ExchangeableScriptTypeAttributeDrawer<T> : OdinAttributeDrawer<ExchangeableScriptTypeAttribute, T>
     {
-        private ActionResolver _onBeforeScriptChanged;
-        private ActionResolver _onAfterScriptChanged;
+        private ActionResolver _onScriptChanged;
 
         private ValueResolver<Type> _baseTypeResolver;
         private ValueResolver<IEnumerable<ValueDropdownItem<Type>>> _customTypesResolver;
 
-        private const string TYPE_BEFORE_ID = "typeBefore";
-        private const string TYPE_AFTER_ID = "typeAfter";
+        private const string PREV_VALUE_ID = "prevValue";
+        private const string NEW_VALUE_ID = "newValue";
 
         private bool _showInInlineEditors;
 
         protected override void Initialize()
         {
-            if (Attribute.OnBeforeScriptChanged != null)
+            if (Attribute.OnScriptChanged != null)
             {
-                _onBeforeScriptChanged = ActionResolver.Get(Property, Attribute.OnBeforeScriptChanged,
-                    new ActionNamedValue(TYPE_BEFORE_ID, typeof(Type)), new ActionNamedValue(TYPE_AFTER_ID, typeof(Type)));
+                _onScriptChanged = ActionResolver.Get(Property, Attribute.OnScriptChanged,
+                    new ActionNamedValue(PREV_VALUE_ID, typeof(object)), 
+                    new ActionNamedValue(NEW_VALUE_ID, typeof(object)));
             }
-
-            if (Attribute.OnBeforeScriptChanged != null)
-            {
-                _onAfterScriptChanged = ActionResolver.Get(Property, Attribute.OnAfterScriptChanged,
-                    new ActionNamedValue(TYPE_BEFORE_ID, typeof(Type)), new ActionNamedValue(TYPE_AFTER_ID, typeof(Type)));
-            }
-
+            
             if (Attribute.BaseTypeGetter != null || Attribute.BaseType != null)
             {
                 _baseTypeResolver = ValueResolver.Get(Property, Attribute.BaseTypeGetter, Attribute.BaseType);
@@ -73,7 +67,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
  
             EditorGUILayout.BeginVertical();
-            ActionResolver.DrawErrors(_onBeforeScriptChanged, _onAfterScriptChanged);
+            ActionResolver.DrawErrors(_onScriptChanged);
             ValueResolver.DrawErrors(_baseTypeResolver, _customTypesResolver);
 
             var typeName = typeof(T).GetFriendlyName();
@@ -103,7 +97,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 selector.SelectionConfirmed += selection =>
                 {
                     var newType = selection.FirstOrDefault();
-                    Property.Tree.DelayActionUntilRepaint(() => ChangeScriptType(Property.Info.TypeOfValue, newType));
+                    Property.Tree.DelayActionUntilRepaint(() => ChangeScriptType(newType));
                 };
 
                 selector.ShowInPopup(rect);
@@ -117,40 +111,45 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             EditorGUILayout.EndVertical();
         }
 
-        private void ChangeScriptType(Type prevType, Type newType)
+        private void ChangeScriptType(Type newType)
         {
-            if (_onBeforeScriptChanged != null && !_onBeforeScriptChanged.HasError)
-            {
-                _onBeforeScriptChanged.Context.NamedValues.Set(TYPE_BEFORE_ID, prevType);
-                _onBeforeScriptChanged.Context.NamedValues.Set(TYPE_AFTER_ID, newType);
-                _onBeforeScriptChanged.DoAction();
-            }
-
+            var prevValue = ValueEntry.SmartValue;
+     
             if (ValueEntry.SmartValue is Object unityObject)
             {
                 // Changing script type for UnityEngine.Object is pretty hacky stuff so we have utility for that
                 // We are not assigning it anywhere because this refreshes inspector anyway, assigning it may cause exception
-                unityObject.ChangeScriptType(newType);
+                unityObject.ChangeScriptType(newType, newValue =>
+                {
+                    if (_onScriptChanged != null && !_onScriptChanged.HasError)
+                    {
+                        _onScriptChanged.Context.NamedValues.Set(PREV_VALUE_ID, prevValue);
+                        _onScriptChanged.Context.NamedValues.Set(NEW_VALUE_ID, newValue);
+                        _onScriptChanged.DoAction();
+                    }
+                });
             }
             else
             {
+                object newValue;
                 if (ValueEntry.SmartValue == null)
                 {
                     // Create new instance if original value is null
-                    ValueEntry.WeakSmartValue = Activator.CreateInstance(newType);
+                    newValue = (T) Activator.CreateInstance(newType);
                 }
                 else
                 {
                     // Unity JsonUtility is used because it uses the same serialization layout as assets
-                    ValueEntry.WeakSmartValue = JsonUtility.FromJson(JsonUtility.ToJson(ValueEntry.SmartValue), newType); 
+                    newValue = JsonUtility.FromJson(JsonUtility.ToJson(ValueEntry.SmartValue), newType);
                 }
-            }
-
-            if (_onAfterScriptChanged != null && !_onAfterScriptChanged.HasError)
-            {
-                _onAfterScriptChanged.Context.NamedValues.Set(TYPE_BEFORE_ID, prevType);
-                _onAfterScriptChanged.Context.NamedValues.Set(TYPE_AFTER_ID, newType);
-                _onAfterScriptChanged.DoAction();
+                ValueEntry.WeakSmartValue = newValue;
+                
+                if (_onScriptChanged != null && !_onScriptChanged.HasError)
+                {
+                    _onScriptChanged.Context.NamedValues.Set(PREV_VALUE_ID, prevValue);
+                    _onScriptChanged.Context.NamedValues.Set(NEW_VALUE_ID, newValue);
+                    _onScriptChanged.DoAction();
+                }
             }
         }
     }

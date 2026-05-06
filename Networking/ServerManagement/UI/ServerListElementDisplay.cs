@@ -31,9 +31,12 @@ namespace EDIVE.Networking.ServerManagement.UI
         public void SetServer(ServerRecord serverRecord)
         {
             _serverRecord = serverRecord;
-            _Display.Terminate();
-            _Display.Initialize(serverRecord);
-
+            if (_Display)
+            {
+                _Display.Terminate();
+                _Display.Initialize(serverRecord);
+            }
+            
             if (_ServerNameText)
                 _ServerNameText.text = _serverRecord.ServerName;
 

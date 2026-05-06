@@ -16,10 +16,12 @@ namespace EDIVE.BuildTool.Actions
         
         public IEnumerator OnPostprocess(BuildContext context)
         {
+#if UNITY_ANDROID
             if (context.PlatformConfig.TryGetModule<AndroidBuildPlatformModule>(out var androidModule) && androidModule.BuildAndroidAppBundle)
             {
                 BuildUtils.ExtractAAB(context.ResultPath.FullPath);
             }
+#endif
             yield break;
         }
     }

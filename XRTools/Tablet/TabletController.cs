@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 26.06.2025
 
-using System;
 using DG.Tweening;
 using EDIVE.Core.Services;
 using EDIVE.Utils.Activations;
@@ -15,15 +14,6 @@ namespace EDIVE.XRTools.Tablet
     {
         [SerializeField]
         private KeyboardController _Keyboard;
-
-        [SerializeField]
-        private Canvas _MainLayer;
-
-        [SerializeField]
-        private Canvas _OverlayLayer;
-
-        [SerializeField]
-        private Canvas _DebugLayer;
 
         [SerializeField]
         private SmoothCameraFollower _CameraFollower;
@@ -46,9 +36,6 @@ namespace EDIVE.XRTools.Tablet
         private float _TweenDuration = 0.3f;
 
         public KeyboardController Keyboard => _Keyboard;
-        public Canvas MainLayer => _MainLayer;
-        public Canvas OverlayLayer => _OverlayLayer;
-        public Canvas DebugLayer => _DebugLayer;
 
         [ShowInInspector]
         public bool IsInView => CheckInView();

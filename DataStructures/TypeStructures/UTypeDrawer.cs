@@ -12,7 +12,7 @@ namespace EDIVE.DataStructures.TypeStructures
     {
         protected override void DrawPropertyLayout(GUIContent label)
         {
-            Property.Children["Type"].Draw(label);
+            Property.Children["Value"].Draw(label);
         }
     }
     
@@ -21,7 +21,7 @@ namespace EDIVE.DataStructures.TypeStructures
     {
         public override void ProcessChildMemberAttributes(InspectorProperty parentProperty, MemberInfo member, List<Attribute> attributes)
         {
-            if (member.Name != "Type")
+            if (member.Name != "Value")
                 return;
 
             foreach (var parentAttribute in parentProperty.Attributes)

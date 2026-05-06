@@ -8,19 +8,19 @@ namespace EDIVE.Forms.Controllers
 {
     public class LikertQuestionController : AFormQuestionController<LikertQuestion>
     {
-        protected override void Initialize(LikertQuestion question)
+        protected override void Initialize()
         {
-            throw new System.NotImplementedException();
+            base.Initialize();
         }
         
         public override void Terminate()
         {
-            throw new System.NotImplementedException();
+            base.Terminate();
         }
 
         public override void SetAnswer(AFormAnswer answer)
         {
-            throw new System.NotImplementedException();
+            // TODO
         }
     }
 }

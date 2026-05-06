@@ -84,6 +84,13 @@ namespace EDIVE.AddressableAssets
             return originalReference != null ? ConvertToReference(originalReference.gameObject, label) : null;
         }
         
+        public static AssetReferenceGameObject CreateReference(GameObject originalReference)                                                                                                                                                                                                                                
+        {                                                                                                                                                                                                                                                                                                                   
+            if (originalReference == null || !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(originalReference, out var guid, out long _))
+                return null;
+            return new AssetReferenceGameObject(guid);
+        }
+        
         public static Object GetAssetByAddress(string address)
         {
             if (string.IsNullOrEmpty(address))
