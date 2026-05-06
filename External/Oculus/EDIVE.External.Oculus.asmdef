@@ -7,7 +7,11 @@
         "Meta.XR.Editor.UserInterface",
         "Unity.TextMeshPro",
         "Unity.TextMeshPro.Editor",
-        "EDIVE.OdinExtensions.Editor"
+        "EDIVE.OdinExtensions.Editor",
+        "EDIVE.EditorUtils",
+        "EDIVE.OdinExtensions",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
