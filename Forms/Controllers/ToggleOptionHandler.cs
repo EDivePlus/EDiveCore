@@ -25,6 +25,7 @@ namespace EDIVE.Forms.Controllers
         
         public override void SetSelected(bool selected, bool notify = true)
         {
+            base.SetSelected(selected, notify);
             if (_Toggle)
             {
                 if (notify)

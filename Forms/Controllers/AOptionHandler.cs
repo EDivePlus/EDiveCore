@@ -69,7 +69,13 @@ namespace EDIVE.Forms.Controllers
         
         public virtual IEnumerable<IFormAnswerMetadata> CollectMetadata() => Enumerable.Empty<IFormAnswerMetadata>();
 
-        public abstract void SetSelected(bool selected, bool notify = true);
+        public virtual void SetSelected(bool selected, bool notify = true)
+        {
+            var result = ResolveResultType(selected);
+            if (_ResultState)
+                _ResultState.SetState(result);
+        }
+        
         public abstract void InitializeInternal();
         public abstract void TerminateInternal();
 
