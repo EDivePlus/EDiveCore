@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 18.05.2025
 
-using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -11,6 +10,7 @@ using UnityEngine;
 using EDIVE.NativeUtils;
 using EDIVE.XRTools.Interactions;
 using EDIVE.XRTools.Keyboard;
+using SRDebugger.Internal;
 using UnityEngine.UI;
 #endif
 
@@ -44,6 +44,7 @@ namespace EDIVE.Utils
 
         private async UniTaskVoid Start()
         {
+            Service.Trigger.IsEnabled = false;
             _panelRect = SRDebug.Instance.EnableWorldSpaceMode();
             transform.AddChangeListener(OnTransformChanged);
             RepositionPanel();
