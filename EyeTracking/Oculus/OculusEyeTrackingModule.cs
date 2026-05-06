@@ -1,18 +1,21 @@
 ﻿// Author: František Holubec
 // Created: 18.09.2025
 
-#if OCULUS_VR
 using System;
-using System.Threading;
 using Cysharp.Threading.Tasks;
-using EDIVE.External.Promises;
 using R3;
+
+#if OCULUS_VR
+using System.Threading;
+using EDIVE.External.Promises;
 using UnityEngine;
+#endif
 
 namespace EDIVE.EyeTracking.Oculus
 {
     public class OculusEyeTrackingModule : AEyeTrackingModule
     {
+#if OCULUS_VR
         public override bool IsAvailable => OVRPlugin.eyeTrackingSupported;
         public override bool IsTracking => _trackingCancellation != null;
         public override Observable<EyeGazeFrame> EyeGazeStream => _eyeGazeStream;
@@ -136,6 +139,16 @@ namespace EDIVE.EyeTracking.Oculus
             var gazePose = eyeGaze.Pose.ToOVRPose().ToHeadSpacePose();
             return new EyeSample(new Pose(gazePose.position, gazePose.orientation), eyeGaze.Confidence);
         }
+#else        
+        public override bool IsAvailable => false;
+        public override bool IsTracking => false;
+
+        public override Observable<EyeGazeFrame> EyeGazeStream => null;
+        public override UniTask Initialize() => UniTask.CompletedTask;
+        public override void Terminate(){}
+        public override void StartTracking(Action<bool> callback = null) { }
+        public override void StopTracking() { }
+#endif
     }
 }
-#endif
+
