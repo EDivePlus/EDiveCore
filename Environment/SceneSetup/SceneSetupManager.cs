@@ -9,6 +9,7 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
+using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Scenes;
 using EDIVE.Utils.Loading;
