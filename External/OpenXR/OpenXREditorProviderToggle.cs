@@ -9,9 +9,9 @@ using UnityEditor.Toolbars;
 using UnityEditor.XR.Management;
 using UnityEngine.UIElements;
 
-namespace EDIVE.External.Oculus
+namespace EDIVE.External.OpenXR
 {
-    public static class OVREditorProviderToggle
+    public static class OpenXREditorProviderToggle
     {
 #if UNITY_6000_3_OR_NEWER
         [MainToolbarElement("EDive/XRStandaloneProvider Toggle", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = 15)]
