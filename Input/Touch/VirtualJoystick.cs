@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 2026-05-07
 
+using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -67,6 +68,9 @@ namespace EDIVE.Input.Touch
         [Required]
         [SerializeField]
         private RectTransform _Handle;
+        
+        [SerializeField]
+        private AToggleState _HoldingState;
 
         public float Horizontal => _SnapX ? SnapFloat(_input.x, AxisOptions.Horizontal) : _input.x;
         public float Vertical => _SnapY ? SnapFloat(_input.y, AxisOptions.Vertical) : _input.y;
@@ -170,6 +174,9 @@ namespace EDIVE.Input.Touch
                 _Background.gameObject.SetActive(true);
             }
             UpdateInput(eventData);
+
+            if (_HoldingState != null)
+                _HoldingState.SetState(true);
         }
 
         public void OnDrag(PointerEventData eventData)
@@ -189,6 +196,9 @@ namespace EDIVE.Input.Touch
                 _Background.gameObject.SetActive(false);
 
             SendValueToControl(Vector2.zero);
+
+            if (_HoldingState != null)
+                _HoldingState.SetState(false);
         }
 
         private void UpdateInput(PointerEventData eventData)
