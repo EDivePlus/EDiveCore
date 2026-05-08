@@ -8,7 +8,8 @@
         "EDIVE.Tweening",
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions.Editor",
-        "EDIVE.VisualPresets"
+        "EDIVE.VisualPresets",
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
