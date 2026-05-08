@@ -19,8 +19,8 @@ namespace EDIVE.Forms.Questions
 {
     public interface IQuestionOption
     {
-        string ID { get; }
-        bool IsCorrect { get; }
+        string ID { get; set; }
+        bool IsCorrect { get; set; }
     }
 
     [Serializable]
@@ -35,8 +35,17 @@ namespace EDIVE.Forms.Questions
         [SerializeField]
         private bool _IsCorrect;
 
-        public string ID => _ID;
-        public bool IsCorrect => _IsCorrect;
+        public string ID
+        {
+            get => _ID; 
+            set => _ID = value;
+        }
+        
+        public bool IsCorrect
+        {
+            get => _IsCorrect;
+            set => _IsCorrect = value;
+        }
 
         protected AQuestionOption() { }
         protected AQuestionOption(string id, bool isCorrect) { _ID = id; _IsCorrect = isCorrect; }
