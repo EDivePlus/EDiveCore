@@ -34,7 +34,6 @@ namespace EDIVE.External.Oculus
         private GUIStyle _presetAreaStyle;
 
         protected override Type BaseEditorType => typeof(Editor).Assembly.GetType("UnityEditor.CanvasEditor");
-        protected override bool DrawOdinEditor => false;
 
         protected override void OnEnable()
         {
