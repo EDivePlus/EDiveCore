@@ -21,7 +21,6 @@ namespace EDIVE.Forms.Controllers
         [SerializeField]
         private AToggleState _InteractableState;
         
-        [Required]
         [SerializeField]
         private AMultiState _ResultState;
         
