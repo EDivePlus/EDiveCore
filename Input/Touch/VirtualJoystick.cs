@@ -204,10 +204,12 @@ namespace EDIVE.Input.Touch
         private void UpdateInput(PointerEventData eventData)
         {
             var cam = eventData.pressEventCamera;
-
-            var screenPos = RectTransformUtility.WorldToScreenPoint(cam, _Background.position);
             var radius = _Background.rect.size * 0.5f;
-            _input = (eventData.position - screenPos) / (radius * _canvas.scaleFactor);
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_Background, eventData.position, cam, out var localPoint))
+                return;
+
+            _input = localPoint / radius;
             FormatInput();
             ProcessMagnitude(_input.magnitude, _input.normalized, radius);
             _Handle.anchoredPosition = _input * radius * _HandleRange;
@@ -263,9 +265,7 @@ namespace EDIVE.Input.Touch
         {
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_baseRect, screenPosition, cam, out var localPoint))
                 return Vector2.zero;
-
-            // anchoredPosition = localPoint + (baseRect.pivot - bg.anchor) * baseRect.size
-            // Background anchor is enforced to CENTER in OnEnable, so this collapses cleanly.
+            
             var size = _baseRect.rect.size;
             return localPoint + (_baseRect.pivot - CENTER) * size;
         }
