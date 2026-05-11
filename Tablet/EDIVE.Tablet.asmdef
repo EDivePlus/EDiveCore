@@ -15,7 +15,8 @@
     "EDIVE.StateHandling",
     "EDIVE.External.Signals",
     "EDIVE.OdinExtensions",
-    "EDIVE.UIElements"
+    "EDIVE.UIElements",
+    "EDIVE.EditorUtils"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

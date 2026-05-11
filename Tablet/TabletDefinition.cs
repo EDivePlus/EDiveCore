@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 03.03.2026
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.AssetTranslation;
@@ -13,13 +14,16 @@ namespace EDIVE.Tablet
     public class TabletDefinition : AUniqueDefinition
     {
         [SerializeField]
-        [EnhancedAssetList]
+        [ListDrawerSettings(ShowFoldout = false)]
+        [EnhancedValueDropdown("GetAvailableWidgets", AppendNextDrawer = true, IsUniqueList = true)]
         private List<TabletWidgetDefinition> _Widgets = new();
 
         [SerializeField]
+        [EnhancedValueDropdown("GetAvailableWidgets", AppendNextDrawer = true)]
         private TabletWidgetDefinition _DefaultWidget;
         
         [SerializeField]
+        [ListDrawerSettings(ShowFoldout = false)]
         [EnhancedValueDropdown("GetAvailableWidgets", AppendNextDrawer = true, IsUniqueList = true)]
         private List<TabletWidgetDefinition> _PinnedWidgets = new();
 
@@ -28,9 +32,14 @@ namespace EDIVE.Tablet
         public IReadOnlyList<TabletWidgetDefinition> PinnedWidgets => _PinnedWidgets;
 
 #if UNITY_EDITOR
-        private IEnumerable<ValueDropdownItem<TabletWidgetDefinition>> GetAvailableWidgets()
+        private IEnumerable GetAvailableWidgets()
         {
-            return _Widgets.Select(w => new ValueDropdownItem<TabletWidgetDefinition>(w.UniqueID, w));
+            return _Widgets.Where(w => w).Select(w => new ValueDropdownItem<TabletWidgetDefinition>(w.UniqueID, w));
+        }
+        
+        private IEnumerable GetAllWidgets()
+        {
+            return EditorUtils.EditorAssetUtils.FindAllAssetsOfType<TabletWidgetDefinition>();
         }
 #endif
     }
