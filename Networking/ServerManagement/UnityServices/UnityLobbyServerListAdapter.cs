@@ -140,13 +140,22 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             await Unity.Services.Core.UnityServices.InitializeAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            
-            var allocation = await RelayService.Instance.CreateAllocationAsync(_serverConfig.MaxPlayers);
-            var joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
-            var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
-            var serverData = allocation.ToRelayServerData("dtls");
-            unityTransport.SetRelayServerData(serverData);
+            var joinCode = string.Empty;
+            
+            try
+            {
+                var allocation = await RelayService.Instance.CreateAllocationAsync(_serverConfig.MaxPlayers);
+                joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+                var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
+                var serverData = allocation.ToRelayServerData("dtls");
+                unityTransport.SetRelayServerData(serverData);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
 
             var publicIP = await GetPublicIPAsync();
             var tugboat = networkManager.TransportManager.GetTransport<Tugboat>();
@@ -156,7 +165,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 IsPrivate = false,
                 Data = new Dictionary<string, DataObject>
                 {
-                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.InstanceID.ToString()) },
+                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.InstanceID) },
                     { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
                     { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) },
                     { "publicPort", new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString()) }
