@@ -89,7 +89,7 @@ namespace EDIVE.DataStructures.DateTimeStructures
             // Picker
             GUILayout.Space(2);
             var pickerRect = GUILayoutUtility.GetRect(16, 16, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(16));
-            if (SirenixEditorGUI.IconButton(pickerRect, FontAwesomeEditorIcons.CalendarPenSolid))
+            if (SirenixEditorGUI.IconButton(pickerRect, FontAwesomeEditorIcons.CalendarPenSolid, "Open DateTime Picker"))
             {
                 var dateTimePicker = new DateTimePicker(currentValue, dateTime =>
                 {
