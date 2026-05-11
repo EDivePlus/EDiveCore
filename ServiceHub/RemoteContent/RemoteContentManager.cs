@@ -8,6 +8,7 @@ using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.ServiceHub.RemoteContent.Handlers;
 using FishNet;
+using R3;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -26,6 +27,20 @@ namespace EDIVE.ServiceHub.RemoteContent
         
         private readonly Dictionary<string, string> _shareTokenCache = new();
 
+        public ARemoteContentHandler FocusedHandler { get; private set; }
+        public event Action<ARemoteContentHandler> FocusedHandlerChanged;
+
+        protected override UniTask LoadRoutine(Action<float> progressCallback)
+        {
+            return UniTask.CompletedTask;
+        }
+
+        protected override void PopulateDependencies(HashSet<Type> dependencies)
+        {
+            base.PopulateDependencies(dependencies);
+            dependencies.Add(typeof(ServiceHubManager));
+        }
+        
         public async UniTask SpawnHandlerAsync(ContentItemInfo content)
         {
             if (content == null || string.IsNullOrEmpty(content.Id))
@@ -77,17 +92,6 @@ namespace EDIVE.ServiceHub.RemoteContent
             return (position, rotation);
         }
 
-        protected override UniTask LoadRoutine(Action<float> progressCallback)
-        {
-            return UniTask.CompletedTask;
-        }
-
-        protected override void PopulateDependencies(HashSet<Type> dependencies)
-        {
-            base.PopulateDependencies(dependencies);
-            dependencies.Add(typeof(ServiceHubManager));
-        }
-
         private void InstantiateHandler(GameObject handlerPrefab, string shareToken, Scene scene, Vector3 position, Quaternion rotation)
         {
 #if FISHNET
@@ -108,6 +112,45 @@ namespace EDIVE.ServiceHub.RemoteContent
             {
                 remoteContentHandler.SetShareToken(shareToken);
             }
+#endif
+        }
+
+        public void RequestHandlerSelected(ARemoteContentHandler handler)
+        {
+            if (FocusedHandler == handler)
+                return;
+            
+            FocusedHandler = handler;
+            try
+            {
+                FocusedHandlerChanged?.Invoke(handler);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
+
+        public void DespawnHandler(ARemoteContentHandler handler)
+        {
+            if (FocusedHandler == handler)
+            {
+                FocusedHandler = null;
+                try
+                {
+                    FocusedHandlerChanged?.Invoke(null);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+            
+#if FISHNET
+            var networkManager = InstanceFinder.NetworkManager;
+            networkManager.ServerManager.Despawn(handler.gameObject);
+#else
+            Destroy(handler.gameObject);
 #endif
         }
     }

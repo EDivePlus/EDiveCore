@@ -8,6 +8,8 @@ using EDIVE.Core;
 using EDIVE.StateHandling.MultiStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace EDIVE.ServiceHub.RemoteContent.Handlers
 {
@@ -20,6 +22,9 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         [SerializeField]
         private string _ShareToken;
         public string ShareToken => _ShareToken;
+        
+        [SerializeField]
+        private XRBaseInteractable _Interactable;
 
         [PropertySpace]
         [ShowInInspector]
@@ -79,6 +84,18 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             _loadCts = null;
         }
 
+        private void OnEnable()
+        {
+            if (_Interactable != null)
+                _Interactable.activated.AddListener(OnInteractableActivated);
+        }
+
+        private void OnDisable()
+        {
+            if (_Interactable != null)
+                _Interactable.activated.RemoveListener(OnInteractableActivated);
+        }
+
         private void TryStartLoad()
         {
             if (string.IsNullOrEmpty(_ShareToken) || _loadInitialized)
@@ -134,6 +151,14 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         }
 
         protected abstract UniTask ApplyContentAsync(RemoteContentResult content, CancellationToken cancellationToken);
+        
+        private void OnInteractableActivated(ActivateEventArgs args)
+        {
+            if (AppCore.Services.TryGet<RemoteContentManager>(out var manager))
+            {
+                manager.RequestHandlerSelected(this);
+            }
+        }
     }
 
     public enum RemoteContentState

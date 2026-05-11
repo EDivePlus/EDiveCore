@@ -18,7 +18,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
     public class RemoteContentLibraryController : MonoBehaviour
     {
         [SerializeField]
-        private RemoteContentLibraryDisplay _Prefab;
+        private RemoteContentInfoDisplay _Prefab;
 
         [SerializeField]
         private Transform _ContentParent;
@@ -53,7 +53,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
         [SerializeField]
         private AToggleState _IsLoadingState;
 
-        private readonly List<RemoteContentLibraryDisplay> _spawned = new();
+        private readonly List<RemoteContentInfoDisplay> _spawned = new();
         private List<ContentMediaTypeResponse> _mediaTypes;
         private string _selectedMediaTypeKey;
         private int _currentPage;
@@ -176,8 +176,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
             foreach (var item in items)
             {
                 var display = Instantiate(_Prefab, _ContentParent);
-                display.SetContentInfo(item);
-                display.DisplayPressed += OnDisplayPressed;
+                display.ApplyContentInfo(item);
                 _spawned.Add(display);
             }
         }
@@ -188,7 +187,6 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
             {
                 if (display == null)
                     continue;
-                display.DisplayPressed -= OnDisplayPressed;
                 Destroy(display.gameObject);
             }
             _spawned.Clear();
@@ -207,11 +205,6 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
                 _PreviousPageButton.interactable = _currentPage > 0;
             if (_NextPageButton != null)
                 _NextPageButton.interactable = _hasMore;
-        }
-
-        private void OnDisplayPressed(ContentItemInfo item)
-        {
-            AppCore.Services.Get<RemoteContentManager>().SpawnHandlerAsync(item).Forget();
         }
 
         private void OnPrevClicked()

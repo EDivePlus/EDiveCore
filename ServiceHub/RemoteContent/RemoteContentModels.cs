@@ -52,6 +52,10 @@ namespace EDIVE.ServiceHub.RemoteContent
         [JsonProperty("updated_at")]
         [SerializeField]
         private UDateTime _UpdatedAt;
+        
+        [JsonProperty("owner")]
+        [SerializeField]
+        private ContentItemOwnerInfo _Owner;
 
         public string Id => _Id;
         public string Name => _Name;
@@ -63,6 +67,7 @@ namespace EDIVE.ServiceHub.RemoteContent
         public string MediaTypeDisplayName => _MediaTypeDisplayName;
         public DateTime CreatedAt => _CreatedAt;
         public DateTime UpdatedAt => _UpdatedAt;
+        public ContentItemOwnerInfo Owner => _Owner;
     }
 
     [Serializable]
@@ -184,5 +189,26 @@ namespace EDIVE.ServiceHub.RemoteContent
         public string Token => _Token;
         public string Url => _Url;
         public ContentItemInfo Item => _Item;
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class ContentItemOwnerInfo
+    {
+        [JsonProperty("id")]
+        [SerializeField]
+        private string _Id;
+
+        [JsonProperty("display_name")]
+        [SerializeField]
+        private string _DisplayName;
+
+        [JsonProperty("avatar_url")]
+        [SerializeField]
+        private string _AvatarUrl;
+        
+        public string Id => _Id;
+        public string DisplayName => _DisplayName;
+        public string AvatarUrl => _AvatarUrl;
     }
 }
