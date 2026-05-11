@@ -1,19 +1,21 @@
 ﻿// Author: František Holubec
 // Created: 18.03.2026
 
-#if UNITY_ANDROID
 using System;
 using System.Collections;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using Unity.Android.Types;
 using UnityEditor;
-using UnityEditor.Android;
 using UnityEditor.Build;
 using UnityEditor.CrashReporting;
 using UnityEngine;
 using AndroidArchitecture = UnityEditor.AndroidArchitecture;
 using AndroidBuildSystem = UnityEditor.AndroidBuildSystem;
+
+#if UNITY_ANDROID
+using UnityEditor.Android;
+using Unity.Android.Types;
+#endif
 
 namespace EDIVE.BuildTool.PlatformConfigs
 {
@@ -25,41 +27,34 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
         [SerializeField]
         private AndroidArchitecture _TargetArchitectures = AndroidArchitecture.ARMv7 | AndroidArchitecture.ARM64;
-        public AndroidArchitecture TargetArchitectures => _TargetArchitectures;
 
         [EnhancedBoxGroup("Backend")]
         [SerializeField]
         private AndroidBuildSystem _BuildSystem = AndroidBuildSystem.Gradle;
-        public AndroidBuildSystem BuildSystem => _BuildSystem;
         
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _BuildAndroidAppBundle;
-        public bool BuildAndroidAppBundle => _BuildAndroidAppBundle;
 
         [PropertySpace(5)]
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _MinifyDebug;
-        public bool MinifyDebug => _MinifyDebug;
 
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _MinifyRelease;
-        public bool MinifyRelease => _MinifyRelease;
 
         [PropertySpace(5)]
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _SplitApplicationBinary;
-        public bool SplitApplicationBinary => _SplitApplicationBinary;
-        
+
         [EnhancedBoxGroup("Build")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
         [InfoBox("Unity forces Full symbols when CloudDiagnostics is enabled", InfoMessageType.Warning, nameof(ShowForcedSymbolsMessage))]
         [SerializeField]
-        private DebugSymbolLevel _SymbolLevel = DebugSymbolLevel.None;
-        public DebugSymbolLevel SymbolLevel => _SymbolLevel;
+        private DebugSymbolLevelCustom _SymbolLevel = DebugSymbolLevelCustom.None;
 
         [EnhancedBoxGroup("Build")]
         [ShowIf("ScriptingImplementation", ScriptingImplementation.IL2CPP)]
@@ -71,21 +66,32 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeField]
         private DebugSymbolFileExtension _SymbolFileExtension = DebugSymbolFileExtension.Standard;
 
-        public DebugSymbolFormat SymbolFormat => (DebugSymbolFormat)((int) _SymbolOutputFormat | (int) _SymbolFileExtension);
-
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _ForceDisableCloudDiagnostics;
-        public bool ForceDisableCloudDiagnostics => _ForceDisableCloudDiagnostics;
 
-        private bool ShowForcedSymbolsMessage => CrashReportingSettings.enabled && !_ForceDisableCloudDiagnostics && _SymbolLevel != DebugSymbolLevel.Full;
+        private bool ShowForcedSymbolsMessage => CrashReportingSettings.enabled && !_ForceDisableCloudDiagnostics && _SymbolLevel != DebugSymbolLevelCustom.Full;
         
+#if UNITY_ANDROID
+        public AndroidArchitecture TargetArchitectures => _TargetArchitectures;
+        public AndroidBuildSystem BuildSystem => _BuildSystem;
+        public bool BuildAndroidAppBundle => _BuildAndroidAppBundle;
+        public bool MinifyDebug => _MinifyDebug;
+        public bool MinifyRelease => _MinifyRelease;
+        public bool SplitApplicationBinary => _SplitApplicationBinary;
+        public DebugSymbolLevel SymbolLevel => (DebugSymbolLevel) _SymbolLevel;
+        public bool ForceDisableCloudDiagnostics => _ForceDisableCloudDiagnostics;
+        public DebugSymbolFormat SymbolFormat => (DebugSymbolFormat)((int) _SymbolOutputFormat | (int) _SymbolFileExtension);
+
+#endif
+
         public override NamedBuildTarget NamedBuildTarget => NamedBuildTarget.Android;
         public override BuildTarget BuildTarget => BuildTarget.Android;
         public override string BuildExtension => _BuildAndroidAppBundle ? ".aab" : ".apk";
 
         public override IEnumerator OnStateCapture(BuildContext context)
         {
+#if UNITY_ANDROID
             yield return base.OnStateCapture(context);
             var data = context.GetOrCreateData<Data>();
             
@@ -108,17 +114,20 @@ namespace EDIVE.BuildTool.PlatformConfigs
             PlayerSettings.Android.splitApplicationBinary = _SplitApplicationBinary;
 
             data._PrevSymbolLevel = UserBuildSettings.DebugSymbols.level;
-            UserBuildSettings.DebugSymbols.level = _SymbolLevel;
+            UserBuildSettings.DebugSymbols.level = SymbolLevel;
 
             data._PrevSymbolFormat = UserBuildSettings.DebugSymbols.format;
             UserBuildSettings.DebugSymbols.format = SymbolFormat;
             
             data._PrevEnableCloudDiagnostics = CrashReportingSettings.enabled;
             if (_ForceDisableCloudDiagnostics) CrashReportingSettings.enabled = false;
+#endif
+            yield break;
         }
 
         public override IEnumerator OnStateRestore(BuildContext context)
         {
+#if UNITY_ANDROID
             yield return base.OnStateRestore(context);
             if (!context.TryGetData<Data>(out var data))
                 yield break;
@@ -138,8 +147,11 @@ namespace EDIVE.BuildTool.PlatformConfigs
             UserBuildSettings.DebugSymbols.format = data._PrevSymbolFormat;
             
             CrashReportingSettings.enabled = data._PrevEnableCloudDiagnostics;
+#endif
+            yield break;
         }
         
+#if UNITY_ANDROID
         [Serializable]
         private class Data : ABuildContextData
         {
@@ -179,6 +191,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             [SerializeField]
             public bool _PrevEnableCloudDiagnostics;
         }
+#endif
     }
     
     public enum DebugSymbolsOutputFormat
@@ -193,5 +206,11 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [LabelText(".so")] Standard = 0,
         [LabelText(".so.sym")] Legacy = 4,
     }
+    
+    public enum DebugSymbolLevelCustom
+    {
+        None = 1,
+        SymbolTable = 2,
+        Full = 4,
+    }
 }
-#endif

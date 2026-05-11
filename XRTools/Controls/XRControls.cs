@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 20.08.2025
 
+using EDIVE.Input.Controls;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 

@@ -13,7 +13,8 @@
     "EDIVE.AppLoading",
     "Unity.XR.Interaction.Toolkit",
     "EDIVE.ServiceHub",
-    "UniTask"
+    "UniTask",
+    "EDIVE.Input"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -31,7 +31,7 @@ namespace EDIVE.AppLoading
         [SerializeField]
         private Toggle _LoadReportToggle;
 
-        private List<ALoadItemDefinition> _loadItems;
+        private List<LoadItemDefinition> _loadItems;
 
         private bool EnableLoadReportByDefault =>
 #if UNITY_EDITOR

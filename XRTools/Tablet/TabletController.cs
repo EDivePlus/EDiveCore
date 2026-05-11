@@ -3,8 +3,8 @@
 
 using DG.Tweening;
 using EDIVE.Core.Services;
+using EDIVE.Input.Keyboard;
 using EDIVE.Utils.Activations;
-using EDIVE.XRTools.Keyboard;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -13,7 +13,7 @@ namespace EDIVE.XRTools.Tablet
     public class TabletController : AServiceBehaviour<TabletController>
     {
         [SerializeField]
-        private KeyboardController _Keyboard;
+        private VirtualKeyboardController _Keyboard;
 
         [SerializeField]
         private SmoothCameraFollower _CameraFollower;
@@ -35,7 +35,7 @@ namespace EDIVE.XRTools.Tablet
         [SerializeField]
         private float _TweenDuration = 0.3f;
 
-        public KeyboardController Keyboard => _Keyboard;
+        public VirtualKeyboardController Keyboard => _Keyboard;
 
         [ShowInInspector]
         public bool IsInView => CheckInView();

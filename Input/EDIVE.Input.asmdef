@@ -1,0 +1,37 @@
+{
+    "name": "EDIVE.Input",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "EDIVE.NativeUtils",
+        "EDIVE.StateHandling",
+        "EDIVE.External.Signals",
+        "EDIVE.ScriptableArchitecture",
+        "EDIVE.Core",
+        "EDIVE.OdinExtensions",
+        "EDIVE.Conditions",
+        "EDIVE.Utils"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "",
+            "define": "XR_INTERACTION_TOOLKIT"
+        },
+        {
+            "name": "com.unity.xr.hands",
+            "expression": "",
+            "define": "XR_HANDS"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -32,6 +32,13 @@ namespace EDIVE.View
         
         public UniTask Load(Action<float> progressCallback)
         {
+            var targetParent = _SpawnRoot.Value;
+            if (targetParent == null)
+            {
+                Debug.LogError("Spawn root is null");
+                return UniTask.CompletedTask;
+            }
+            
             var panelInstance = Object.Instantiate(_Panel, _SpawnRoot.Value);
             panelInstance.SetToFillParent();
             if (_SetOrder)

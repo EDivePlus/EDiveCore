@@ -44,10 +44,11 @@ namespace EDIVE.OdinExtensions.Editor
         private static void RefreshEditors()
         {
             _editors = Resources.FindObjectsOfTypeAll<OdinEditor>()
+                .Where(e => e != null && e.target != null && e.targets.All(t => t != null))
                 .Where(e => _currentProperties.Any(p => p.Tree == e.Tree))
                 .ToList();
         }
-        
+
         private static void OnEditorUpdate()
         {
             if (_currentProperties.Count == 0)

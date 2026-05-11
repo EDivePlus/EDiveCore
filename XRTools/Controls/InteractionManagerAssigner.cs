@@ -15,7 +15,7 @@ namespace EDIVE.XRTools.Controls
     {
         private void Awake()
         {
-            if (!AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+            if (!AppCore.Services.TryGet<InteractionManagerProvider>(out var controlsManager))
                 return;
 
             var interactables = GetComponents<XRBaseInteractable>();

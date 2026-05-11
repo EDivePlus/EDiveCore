@@ -9,7 +9,9 @@
         "Oculus.VR",
         "EDIVE.AppLoading",
         "EDIVE.External.Promises",
-        "R3.Unity"
+        "R3.Unity",
+        "Unity.XR.OpenXR",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -25,6 +27,11 @@
             "name": "com.meta.xr.sdk.interaction.ovr",
             "expression": "",
             "define": "OCULUS_VR"
+        },
+        {
+            "name": "com.unity.xr.openxr",
+            "expression": "",
+            "define": "UNITY_OPEN_XR"
         },
         {
             "name": "com.cysharp.r3",

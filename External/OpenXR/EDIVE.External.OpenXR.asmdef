@@ -3,7 +3,11 @@
     "rootNamespace": "",
     "references": [
         "Unity.XR.OpenXR",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "EDIVE.EditorUtils",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor",
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

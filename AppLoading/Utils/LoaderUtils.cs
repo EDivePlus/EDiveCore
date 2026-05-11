@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.AppLoading.Dependencies;
 using EDIVE.AppLoading.LoadItems;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
 using Sirenix.Utilities.Editor;
-using UnityEditor;
-#endif
-
-#if ADDRESSABLES
-using EDIVE.AddressableAssets;
 #endif
 
 namespace EDIVE.AppLoading.Utils
@@ -36,29 +32,30 @@ namespace EDIVE.AppLoading.Utils
             return components;
         }
 
-        public static List<ALoadItemDefinition> SortLoadItems(IEnumerable<LoadGroupDefinition> groups)
+        public static List<LoadItemDefinition> SortLoadItems(IEnumerable<LoadGroupDefinition> groups, DependencyResolutionContext context)
         {
-            var sortedList = new List<ALoadItemDefinition>();
-            var visited = new HashSet<ALoadItemDefinition>();
+            var sortedList = new List<LoadItemDefinition>();
+            var visited = new HashSet<LoadItemDefinition>();
 
-            foreach (var group in groups)
+            var groupList = groups as IList<LoadGroupDefinition> ?? groups.ToList();
+            foreach (var group in groupList)
             {
                 group.PrepareSorting();
             }
 
-            var nodes = groups.SelectMany(g => g.LoadItems);
+            var nodes = groupList.SelectMany(g => g.LoadItems);
             foreach (var loadItem in nodes)
             {
                 if (!visited.Contains(loadItem))
                 {
-                    TopologicalSortUtil(loadItem, visited, sortedList);
+                    TopologicalSortUtil(loadItem, visited, sortedList, context);
                 }
             }
 
             return sortedList;
         }
 
-        private static void TopologicalSortUtil(ALoadItemDefinition loadItem, HashSet<ALoadItemDefinition> visited, List<ALoadItemDefinition> sortedList)
+        private static void TopologicalSortUtil(LoadItemDefinition loadItem, HashSet<LoadItemDefinition> visited, List<LoadItemDefinition> sortedList, DependencyResolutionContext context)
         {
             if (loadItem == null)
                 return;
@@ -66,11 +63,11 @@ namespace EDIVE.AppLoading.Utils
             if (!visited.Add(loadItem))
                 return;
 
-            foreach (var dependency in loadItem.GetSortingDependencies())
+            foreach (var dependency in loadItem.GetSortingDependencies(context))
             {
                 if (!visited.Contains(dependency))
                 {
-                    TopologicalSortUtil(dependency, visited, sortedList);
+                    TopologicalSortUtil(dependency, visited, sortedList, context);
                 }
             }
 
@@ -79,9 +76,9 @@ namespace EDIVE.AppLoading.Utils
         }
 
 #if UNITY_EDITOR
-        public static IEnumerable<ALoadItemDefinition> FindLoadItems(List<Type> requiredTypes)
+        public static IEnumerable<LoadItemDefinition> FindLoadItems(List<Type> requiredTypes)
         {
-            var allLoadItems = EditorAssetUtils.FindAllAssetsOfType<ALoadItemDefinition>();
+            var allLoadItems = EditorAssetUtils.FindAllAssetsOfType<LoadItemDefinition>();
             foreach (var loadItem in allLoadItems)
             {
                 var representedTypes = loadItem.GetRepresentedTypes().ToList();
@@ -96,7 +93,7 @@ namespace EDIVE.AppLoading.Utils
             }
         }
 
-        public static ALoadItemDefinition DecoratedLoadItemDrawer(ALoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
+        public static LoadItemDefinition DecoratedLoadItemDrawer(LoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
             GUILayout.BeginHorizontal();
             if (Application.isPlaying)
@@ -110,31 +107,6 @@ namespace EDIVE.AppLoading.Utils
             GUILayout.EndHorizontal();
             return value;
         }
-
-
-#if ADDRESSABLES
-        [MenuItem("CONTEXT/PrefabLoadItemDefinition/Convert to Addressable", false, 10000)]
-        public static void ConvertPrefabLoadItemToAddressable(MenuCommand command)
-        {
-            if (command.context is not PrefabLoadItemDefinition definition)
-                return;
-
-            var prefabReference = AddressablesEditorUtils.ConvertToReference(definition.Prefab);
-            var converted = definition.ChangeScriptType<PrefabReferenceLoadItemDefinition>();
-            converted.SetPrefabReference(prefabReference);
-        }
-        
-        [MenuItem("CONTEXT/PrefabReferenceLoadItemDefinition/Convert to Prefab", false, 10000)]
-        public static void ConvertAddressableLoadItemToPrefab(MenuCommand command)
-        {
-            if (command.context is not PrefabReferenceLoadItemDefinition definition)
-                return;
-
-            var prefab = definition.PrefabReference.editorAsset;
-            var converted = definition.ChangeScriptType<PrefabLoadItemDefinition>();
-            converted.SetPrefab(prefab);
-        }
-#endif
 #endif
     }
 }

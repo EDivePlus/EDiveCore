@@ -38,6 +38,7 @@
         "EDIVE.EditorUtils",
         "EDIVE.Console",
         "EDIVE.Time",
+        "EDIVE.Input",
         "EDIVE.Configuration"
     ],
     "includePlatforms": [],

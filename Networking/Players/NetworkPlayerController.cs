@@ -3,6 +3,7 @@
 
 using EDIVE.Avatars;
 using EDIVE.Core;
+using EDIVE.Input.Controls;
 using EDIVE.Networking.UI;
 using EDIVE.Networking.Utils;
 using EDIVE.StateHandling.ToggleStates;

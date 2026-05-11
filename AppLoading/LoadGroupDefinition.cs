@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.AppLoading.Dependencies;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.AssetTranslation;
 using EDIVE.OdinExtensions.Attributes;
@@ -25,7 +26,7 @@ namespace EDIVE.AppLoading
         [SerializeField]
         [EnhancedValidate("ValidateLoadItems")]
         [ListDrawerSettings(ShowFoldout = false)]
-        private List<ALoadItemDefinition> _LoadItems = new();
+        private List<LoadItemDefinition> _LoadItems = new();
 
         [PropertySpace]
         [SerializeField]
@@ -36,17 +37,17 @@ namespace EDIVE.AppLoading
 
         public UniTaskCompletionSource CompletionSource { get; private set; }
 
-        public List<ALoadItemDefinition> LoadItems => _LoadItems;
+        public List<LoadItemDefinition> LoadItems => _LoadItems;
         public List<LoadGroupDefinition> Dependencies => _Dependencies;
 
         public bool IsAvailable => !_Disabled;
 
-        public void Initialize()
+        public void Initialize(DependencyResolutionContext context)
         {
             foreach (var loadItem in _LoadItems)
             {
                 if (loadItem == null) continue;
-                loadItem.Initialize();
+                loadItem.Initialize(context);
             }
 
             CompletionSource = new UniTaskCompletionSource();
@@ -65,7 +66,7 @@ namespace EDIVE.AppLoading
 
         public async UniTask Load()
         {
-            var dependencySources = _Dependencies.Where(d => d != null).Select(d => d.CompletionSource.Task);
+            var dependencySources = _Dependencies.Where(d => d != null && d.IsAvailable).Select(d => d.CompletionSource.Task);
             await UniTask.WhenAll(dependencySources);
 
             var itemTasks = GetLoadItems().Select(l => l.Load());
@@ -74,7 +75,7 @@ namespace EDIVE.AppLoading
             CompletionSource.TrySetResult();
         }
 
-        private IEnumerable<ALoadItemDefinition> GetLoadItems()
+        private IEnumerable<LoadItemDefinition> GetLoadItems()
         {
             for (var i = 0; i < _LoadItems.Count; i++)
             {
@@ -85,14 +86,14 @@ namespace EDIVE.AppLoading
                     continue;
                 }
 
-                if (loadItem.IsValid)
-                {
-                    yield return loadItem;
-                }
-                else
+                if (!loadItem.IsValid)
                 {
                     Debug.LogError($"[{GetType().Name}] Load item at index {i} '{loadItem.name}' in group '{UniqueID}' is not valid");
+                    continue;
                 }
+
+                if (loadItem.CheckAvailability())
+                    yield return loadItem;
             }
         }
 
@@ -194,7 +195,7 @@ namespace EDIVE.AppLoading
             foreach (var loadItem in TransitiveDependencies.SelectMany(d => d.LoadItems).Distinct())
             {
                 if (!loadItem) continue;
-                loadItem.ResolveCompleteDependencies();
+                loadItem.ResolveTransitiveDependencies();
             }
 
             var unsatisfiableDependencies = new List<string>();

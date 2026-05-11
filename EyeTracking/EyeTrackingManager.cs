@@ -28,7 +28,7 @@ namespace EDIVE.EyeTracking
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
-            ActiveModule = _EyeTrackingModules.FirstOrDefault(m => m.IsAvailable);
+            ActiveModule = _EyeTrackingModules.FirstOrDefault(m => m != null && m.IsAvailable);
             if (ActiveModule == null)
             {
                 Debug.LogWarning("[EyeTrackingManager] No eye tracking module is available.");

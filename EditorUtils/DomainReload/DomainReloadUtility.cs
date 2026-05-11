@@ -33,6 +33,7 @@ namespace EDIVE.EditorUtils.DomainReload
             yield return null; // Wait one more frame so that there is time to clear unnecessary survivors
 
             var survivors = GetSurvivors();
+            SetSurvivors(null);
             survivors.Sort();
             foreach (var survivor in survivors)
             {
@@ -45,7 +46,6 @@ namespace EDIVE.EditorUtils.DomainReload
                 DebugLite.Log($"[DomainReloadUtility] Invoking survivor with ID '{survivor.ID}'");
                 survivor.Survivor?.OnAfterDomainReload();
             }
-            SetSurvivors(null);
         }
 
         public static void RegisterSurvivor(string survivorID, IDomainReloadSurvivor survivor, int priority = 0)
@@ -54,7 +54,7 @@ namespace EDIVE.EditorUtils.DomainReload
             var survivors = GetSurvivors();
             if (survivors.RemoveAll(s => s.ID == survivorID) > 0)
             {
-                DebugLite.LogError($"[DomainReloadUtility] Survivor with ID '{survivorID}' already exists. Overwriting...");
+                DebugLite.LogWarning($"[DomainReloadUtility] Survivor with ID '{survivorID}' already exists. Overwriting...");
             }
             survivors.Add(new SurvivorWrapper(survivorID, priority, survivor));
             SetSurvivors(survivors);

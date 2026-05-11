@@ -9,6 +9,7 @@
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.VisualPresets",
+        "EDIVE.DataStructures",
         "EDIVE.Utils"
     ],
     "includePlatforms": [],

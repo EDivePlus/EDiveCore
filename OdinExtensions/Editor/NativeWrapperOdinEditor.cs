@@ -10,6 +10,13 @@ using Object = UnityEngine.Object;
 
 namespace EDIVE.OdinExtensions.Editor
 {
+    public enum BaseEditorDrawMode
+    {
+        NativeEditor,
+        OdinEditor,
+        Hidden
+    }
+    
     public abstract class NativeWrapperOdinEditor : OdinEditor
     {
         private UnityEditor.Editor _unityEditor;
@@ -17,13 +24,13 @@ namespace EDIVE.OdinExtensions.Editor
         protected abstract Type BaseType { get; }
         protected abstract Type BaseEditorType { get; }
         
-        protected virtual bool DrawBaseEditor => true;
-        protected virtual bool DrawOdinEditor => true;
+        protected virtual bool HideBaseFields => true;
+        protected virtual BaseEditorDrawMode BaseEditorDrawMode => BaseEditorDrawMode.NativeEditor;
 
         protected override void OnEnable()
         {
             base.OnEnable();
-            if (DrawBaseEditor)
+            if (BaseEditorDrawMode != BaseEditorDrawMode.OdinEditor)
             {
                 foreach (var property in Tree.EnumerateTree())
                 {
@@ -48,7 +55,7 @@ namespace EDIVE.OdinExtensions.Editor
                 return;
             }
 
-            if (DrawBaseEditor)
+            if (BaseEditorDrawMode == BaseEditorDrawMode.NativeEditor)
             {
                 if (_unityEditor == null)
                     _unityEditor = CreateEditor(targets, BaseEditorType);
@@ -59,8 +66,7 @@ namespace EDIVE.OdinExtensions.Editor
                 GUILayout.Space(4);
             }
 
-            if (DrawOdinEditor)
-                base.OnInspectorGUI();
+            base.OnInspectorGUI();
         }
 
         protected override void DrawTree()

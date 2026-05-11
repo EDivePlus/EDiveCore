@@ -25,7 +25,7 @@ namespace EDIVE.AppLoading
         private float _totalLoadWeight;
 
         private float _currentLoadCompletedWeight;
-        private readonly List<ALoadItemDefinition> _currentLoadingItems = new();
+        private readonly List<LoadItemDefinition> _currentLoadingItems = new();
         private AsyncOperationHandle<LoadSetupDefinition> _setupHandle;
 
         protected float? LoadTime { get; private set; }
@@ -146,14 +146,14 @@ namespace EDIVE.AppLoading
             return Setup.GetValidLoadItems().Sum(loadItem => loadItem.LoadWeight);
         }
 
-        private void OnLoadStarted(ALoadItemDefinition loadItem)
+        private void OnLoadStarted(LoadItemDefinition loadItem)
         {
             _currentLoadingItems.Add(loadItem);
             loadItem.LoadStartedSignal.RemoveListener(OnLoadStarted);
             loadItem.LoadCompletedSignal.AddListener(OnLoadCompleted);
         }
 
-        private void OnLoadCompleted(ALoadItemDefinition loadItem)
+        private void OnLoadCompleted(LoadItemDefinition loadItem)
         {
             _currentLoadingItems.Remove(loadItem);
             _currentLoadCompletedWeight += loadItem.LoadWeight;

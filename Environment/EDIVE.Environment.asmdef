@@ -20,6 +20,7 @@
     "Unity.ResourceManager",
     "UniTask.Addressables",
     "EDIVE.AddressableAssets",
+    "EDIVE.Input",
     "EDIVE.AppLoading"
   ],
   "includePlatforms": [],

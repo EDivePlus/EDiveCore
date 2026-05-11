@@ -84,7 +84,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         
         public IEnumerable<string> GetBuildDefines(BuildContext context) => BuildSetupData.Defines;
-        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context) => BuildSetupData.Actions;
+        public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context) => GetModules().Cast<IBuildCallback>().Concat(BuildSetupData.Actions);
         
         private IEnumerable<APlatformModule> GetAvailableModules()
         {
@@ -115,7 +115,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             }
         }
 
-        private string GetBuildTargetModuleLabel(ABuildTargetPlatformModule module) => module.PlatformName;
+        private string GetBuildTargetModuleLabel(ABuildTargetPlatformModule module) => module?.PlatformName ?? "None";
         
         private void ValidateAdditionalModules(SelfValidationResult result, InspectorProperty property)
         {

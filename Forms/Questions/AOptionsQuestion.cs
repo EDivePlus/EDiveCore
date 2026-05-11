@@ -4,13 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.Extensions.Random;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using EDIVE.OdinExtensions;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
 #endif
 
 namespace EDIVE.Forms.Questions
@@ -22,8 +25,7 @@ namespace EDIVE.Forms.Questions
         [MinMaxSlider(0, "@OptionCount", true)]
         [EnhancedValidate("ValidateSelectionLimits")]
         private Vector2Int _SelectionLimits = new(1, 1);
-
-
+        
         [UsedImplicitly]
         private int OptionCount => BaseOptions.Count();
         public abstract IEnumerable<IQuestionOption> BaseOptions { get; }
@@ -59,7 +61,7 @@ namespace EDIVE.Forms.Questions
     [Serializable]
     public abstract class AOptionsQuestion<TOption> : AOptionsQuestion where TOption : IQuestionOption
     {
-        [EnhancedTableList]
+        [EnhancedTableList(OnTitleBarGUI = "OnOptionsTitleBarGUI")]
         [SerializeField]
         private List<TOption> _Options = new();
 
@@ -67,6 +69,33 @@ namespace EDIVE.Forms.Questions
         public override IEnumerable<IQuestionOption> BaseOptions => _Options.Cast<IQuestionOption>();
 
         protected AOptionsQuestion() { }
-        protected AOptionsQuestion(string id, List<TOption> options) : base(id) { _Options = options; }
+
+        protected AOptionsQuestion(string id, List<TOption> options) : base(id)
+        {
+            _Options = options;
+        }
+ 
+        private void ShuffleOptions()
+        {
+            var ids = _Options.Select(o => o.ID).ToList();
+            _Options.Shuffle();
+            for (var i = 0; i < _Options.Count; i++)
+            {
+                var option = _Options[i];
+                option.ID = ids[i];
+                _Options[i] = option;
+            }
+        }
+
+#if UNITY_EDITOR
+        private void OnOptionsTitleBarGUI(InspectorProperty property)
+        {
+            if (SirenixEditorGUI.ToolbarButton(FontAwesomeEditorIcons.ShuffleSolid))
+            {
+                ShuffleOptions();
+                property.MarkSerializationRootDirty();
+            }
+        }   
+#endif
     }
 }

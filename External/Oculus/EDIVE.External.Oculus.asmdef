@@ -9,9 +9,7 @@
         "Unity.TextMeshPro.Editor",
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.EditorUtils",
-        "EDIVE.OdinExtensions",
-        "Unity.XR.Management",
-        "Unity.XR.Management.Editor"
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

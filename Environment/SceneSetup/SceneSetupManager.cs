@@ -10,6 +10,7 @@ using EDIVE.AppLoading.Loadables;
 using EDIVE.Core;
 using EDIVE.Core.Services;
 using EDIVE.External.Signals;
+using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
@@ -148,15 +149,14 @@ namespace EDIVE.Environment.SceneSetup
             await UniTask.Yield();
             
             // Find spawn place and teleport
-            if (_spawnPlaces.TryGetFirst(s => s != null && loadedScenes != null && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
+            if (loadedScenes != null && 
+                AppCore.Services.TryGet<ControlsManager>(out var controlsManager) &&
+                _spawnPlaces.TryGetFirst(s => s != null && s.CheckAvailable(definition) && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
             {
-                if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+                var connection = InstanceFinder.ClientManager.Connection;
+                if (spawnPlace.TryGetLocation(connection, out var position, out var rotation))
                 {
-                    var connection = InstanceFinder.ClientManager.Connection;
-                    if (spawnPlace.TryGetLocation(connection, out var position, out var rotation))
-                    {
-                        controlsManager.RequestTeleport(position, rotation);
-                    }
+                    controlsManager.RequestTeleport(position, rotation);
                 }
             }
             await UniTask.Yield();
