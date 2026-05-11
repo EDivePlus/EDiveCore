@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
@@ -31,6 +32,10 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         [InfoBox("Adapters are ordered by their priority. Higher priority adapters will be used first.")]
         private List<AServerListAdapter> _Adapters = new();
+
+        [SerializeField]
+        [Tooltip("How long to wait for a client connection attempt to reach Started state before declaring the endpoint failed and trying the next one.")]
+        private float _ConnectAttemptTimeoutSeconds = 10f;
         
         public IEnumerable<ServerRecord> ServerList => _serverList;
         public Signal ServerListUpdated { get; } = new();
@@ -48,6 +53,7 @@ namespace EDIVE.Networking.ServerManagement
         public ServerRecord CurrentServer =>  HostServer ?? JoinedServer;
 
         private bool _serverRunning;
+        private bool _connecting;
         private MasterNetworkManager _masterNetworkManager;
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
@@ -86,28 +92,115 @@ namespace EDIVE.Networking.ServerManagement
             ConnectToServerAsync(server, endpoint).Forget();
         }
         
-        public async UniTask ConnectToServerAsync(ServerRecord server, AServerEndpoint endpoint = null)
+        public async UniTask ConnectToServerAsync(ServerRecord server, AServerEndpoint endpoint = null, CancellationToken cancellationToken = default)
         {
-            JoinedServer = server;
-            bool success;
-            if (endpoint != null)
+            if (server == null)
+                return;
+
+            if (_connecting)
             {
-                // Connect using the specified endpoint
-                success = await endpoint.PrepareForConnect();
-            }
-            else
-            {
-                // No specific endpoint provided, try all endpoints until one succeeds
-                success = await server.PrepareForConnect();
-            }
-            
-            if (!success)
-            {
-                JoinedServer = null;
+                Debug.LogWarning("[NetworkServerManager] Connect attempt already in progress, ignoring.");
                 return;
             }
 
-            _masterNetworkManager.StartRuntime(NetworkRuntimeMode.Client);
+            var endpoints = endpoint != null
+                ? new List<AServerEndpoint> { endpoint }
+                : server.Endpoints;
+
+            if (endpoints == null || endpoints.Count == 0)
+            {
+                Debug.LogWarning($"[NetworkServerManager] Server '{server.ServerName}' has no endpoints to try.");
+                return;
+            }
+
+            JoinedServer = server;
+            _connecting = true;
+            try
+            {
+                for (var i = 0; i < endpoints.Count; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var ep = endpoints[i];
+                    if (ep == null)
+                        continue;
+
+                    Debug.Log($"[NetworkServerManager] Trying endpoint {i + 1}/{endpoints.Count}: {ep}");
+                    if (await TryConnectAsync(ep, cancellationToken))
+                        return;
+
+                    Debug.LogWarning($"[NetworkServerManager] Endpoint failed: {ep}");
+                }
+
+                Debug.LogError($"[NetworkServerManager] All {endpoints.Count} endpoint(s) failed for server '{server.ServerName}'.");
+                JoinedServer = null;
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log($"[NetworkServerManager] Connect attempt to '{server.ServerName}' canceled.");
+                InstanceFinder.ClientManager.StopConnection();
+                JoinedServer = null;
+                throw;
+            }
+            finally
+            {
+                _connecting = false;
+            }
+        }
+        
+        private async UniTask<bool> TryConnectAsync(AServerEndpoint endpoint, CancellationToken cancellationToken)
+        {
+            if (!await endpoint.PrepareForConnect())
+                return false;
+
+            var attempt = new UniTaskCompletionSource<bool>();
+            var stopped = new UniTaskCompletionSource();
+            void OnState(ClientConnectionStateArgs args)
+            {
+                switch (args.ConnectionState)
+                {
+                    case LocalConnectionState.Starting: 
+                        break;
+                    case LocalConnectionState.Started:
+                        attempt.TrySetResult(true);
+                        break;
+                    case LocalConnectionState.Stopping:
+                        attempt.TrySetResult(false);
+                        break;
+                    case LocalConnectionState.Stopped:
+                        attempt.TrySetResult(false);
+                        stopped.TrySetResult();
+                        break;
+                    default: 
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            var clientManager = InstanceFinder.ClientManager;
+            clientManager.OnClientConnectionState += OnState;
+
+            using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            attemptCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
+            await using var registration = attemptCts.Token.Register(() => attempt.TrySetResult(false));
+
+            try
+            {
+                _masterNetworkManager.StartClient();
+                var success = await attempt.Task;
+
+                // Successful connect AND the caller still wants it → done.
+                if (success && !cancellationToken.IsCancellationRequested)
+                    return true;
+                
+                clientManager.StopConnection();
+                await stopped.Task.AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
+
+                cancellationToken.ThrowIfCancellationRequested();
+                return false;
+            }
+            finally
+            {
+                clientManager.OnClientConnectionState -= OnState;
+            }
         }
         
 
@@ -189,7 +282,10 @@ namespace EDIVE.Networking.ServerManagement
 
         private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
         {
-            if (args.ConnectionState == LocalConnectionState.Stopped)
+            // During a multi-endpoint connect attempt, transient Stopped events fire between
+            // failed endpoints. Only clear JoinedServer for "real" disconnects — once the
+            // failover loop is no longer in progress.
+            if (args.ConnectionState == LocalConnectionState.Stopped && !_connecting)
             {
                 JoinedServer = null;
             }

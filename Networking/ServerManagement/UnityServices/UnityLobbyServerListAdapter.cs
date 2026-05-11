@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.Networking.Utils;
 using FishNet;
 using FishNet.Transporting.Tugboat;
 using FishNet.Transporting.UTP;
@@ -14,7 +15,6 @@ using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace EDIVE.Networking.ServerManagement.UnityServices
 {
@@ -103,7 +103,6 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 var relayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty;
 
                 var endpoints = new List<AServerEndpoint>();
-                /*
                 if (!string.IsNullOrEmpty(publicAddress) && publicPort > 0)
                 {
                     endpoints.Add(new AddressServerEndpoint
@@ -113,8 +112,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                         Port = publicPort,
                     });
                 }
-                */
-                
+
                 endpoints.Add(new UnityRelayServerEndpoint
                 {
                     Name = "Unity Relay",
@@ -148,36 +146,50 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             var serverData = allocation.ToRelayServerData("dtls");
             unityTransport.SetRelayServerData(serverData);
 
-            var publicIP = await GetPublicIPAsync();
             var tugboat = networkManager.TransportManager.GetTransport<Tugboat>();
             var publicPort = tugboat != null ? tugboat.GetPort() : (ushort)0;
-            var options = new CreateLobbyOptions
+            
+            /*
+            var probe = RemoteReachabilityProbe.Result.Unreachable;
+            if (!string.IsNullOrWhiteSpace(_serverConfig.ReachabilityProbeUrl) && publicPort > 0)
             {
-                IsPrivate = false,
-                Data = new Dictionary<string, DataObject>
-                {
-                    { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) },
-                    { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
-                    { "publicIP", new DataObject(DataObject.VisibilityOptions.Public, publicIP) },
-                    { "publicPort", new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString()) }
-                }
+                probe = await RemoteReachabilityProbe.ProbeAsync(_serverConfig.ReachabilityProbeUrl, publicPort);
+                Debug.Log(probe.Reachable
+                    ? $"[UnityLobbyServerListAdapter] Public endpoint {probe.PublicIP}:{publicPort} confirmed reachable."
+                    : $"[UnityLobbyServerListAdapter] Public endpoint not reachable (port {publicPort}) — direct connect disabled, relay only.");
+            }
+            */
+            
+            var lobbyData = new Dictionary<string, DataObject>
+            {
+                { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID.ToString()) },
+                { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
             };
+            /*
+            if (probe.Reachable)
+            {
+                lobbyData["publicIP"] = new DataObject(DataObject.VisibilityOptions.Public, probe.PublicIP);
+                lobbyData["publicPort"] = new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString());
+            }
+            */
+            var options = new CreateLobbyOptions { IsPrivate = false, Data = lobbyData };
 
             _hostLobby = await LobbyService.Instance.CreateLobbyAsync(_serverConfig.ServerName, _serverConfig.MaxPlayers + 1, options);
 
             var endpoints = new List<AServerEndpoint>();
+            
             /*
-            if (!string.IsNullOrEmpty(publicIP) && publicPort > 0)
+            if (probe.Reachable)
             {
                 endpoints.Add(new AddressServerEndpoint
                 {
                     Name = "Unity Direct",
-                    Address = publicIP,
+                    Address = probe.PublicIP,
                     Port = publicPort,
                 });
             }
             */
-            
+
             endpoints.Add(new UnityRelayServerEndpoint
             {
                 Name = "Unity Relay",
@@ -220,20 +232,5 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             }
         }
         
-        private static async UniTask<string> GetPublicIPAsync()
-        {
-            try
-            {
-                using var www = UnityWebRequest.Get("https://api.ipify.org");
-                www.timeout = 5;
-                await www.SendWebRequest();
-                return www.result == UnityWebRequest.Result.Success ? www.downloadHandler.text.Trim() : string.Empty;
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[UnityLobbyServerListAdapter] Failed to resolve public IP: {e.Message}");
-                return string.Empty;
-            }
-        }
     }
 }

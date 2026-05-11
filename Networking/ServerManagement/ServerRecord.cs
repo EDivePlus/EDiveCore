@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -25,28 +25,23 @@ namespace EDIVE.Networking.ServerManagement
         }
 
         [HideReferenceObjectPicker]
-        [CustomValueDrawer("CustomEndpointDrawer")]
+        [ListDrawerSettings(OnEndListElementGUI = "DrawEndpointConnect")]
         public List<AServerEndpoint> Endpoints = new();
 
-        public async UniTask<bool> PrepareForConnect()
-        {
-            if (Endpoints == null)
-                return false;
-
-            foreach (var endpoint in Endpoints)
-            {
-                if (endpoint == null)
-                    continue;
-                if (await endpoint.PrepareForConnect())
-                    return true;
-            }
-            return false;
-        }
-
 #if UNITY_EDITOR
-        private AServerEndpoint CustomEndpointDrawer(AServerEndpoint value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
+        [Button]
+        private void ConnectAny()
         {
-            callNextDrawer(label);
+            if (AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
+            {
+                serverManager.ConnectToServer(this);
+            }
+        }
+        
+        [UsedImplicitly]
+        private void DrawEndpointConnect(int index)
+        {
+            var value = Endpoints[index];
             if (GUILayout.Button("Connect"))
             {
                 if (AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
@@ -54,9 +49,7 @@ namespace EDIVE.Networking.ServerManagement
                     serverManager.ConnectToServer(this, value);
                 }
             }
-            return value;
         }
 #endif
-        
     }
 }
