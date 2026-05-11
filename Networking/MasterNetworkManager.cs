@@ -30,6 +30,9 @@ namespace EDIVE.Networking
         
         private LocalConnectionState _serverConnectionState = LocalConnectionState.Stopped;
         private LocalConnectionState _clientConnectionState = LocalConnectionState.Stopped;
+
+        private bool _serverStartRequested;
+        private bool _clientStartRequested;
         
         public Signal BeforeHostStarted { get; } = new();
         public Signal BeforeServerStarted { get; } = new();
@@ -141,6 +144,11 @@ namespace EDIVE.Networking
 
         public void StartHost()
         {
+            if (!CanStartServer() || !CanStartClient())
+            {
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartHost: runtime is already {RuntimeMode}.");
+                return;
+            }
             BeforeHostStarted?.Dispatch();
             StartServer();
             StartClient();
@@ -149,31 +157,60 @@ namespace EDIVE.Networking
         // The server can be started directly from the ServerManager or Transport
         public void StartServer()
         {
+            if (!CanStartServer())
+            {
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: server is {_serverConnectionState}.");
+                return;
+            }
+            _serverStartRequested = true;
             StartServerAsync().Forget();
         }
-        
+
         private async UniTaskVoid StartServerAsync()
         {
-            if (ServerPrepareHandlers != null)
+            try
             {
-                var tasks = ServerPrepareHandlers.GetInvocationList()
-                    .Cast<Func<UniTask>>()
-                    .Where(h => h != null)
-                    .Select(h => h());
+                if (ServerPrepareHandlers != null)
+                {
+                    var tasks = ServerPrepareHandlers.GetInvocationList()
+                        .Cast<Func<UniTask>>()
+                        .Where(h => h != null)
+                        .Select(h => h());
 
-                await UniTask.WhenAll(tasks);
+                    await UniTask.WhenAll(tasks);
+                }
+
+                BeforeServerStarted?.Dispatch();
+                InstanceFinder.ServerManager.StartConnection();
             }
-   
-            BeforeServerStarted?.Dispatch();
-            InstanceFinder.ServerManager.StartConnection();
+            finally
+            {
+                _serverStartRequested = false;
+            }
         }
 
         // The client can be started directly from the ClientManager or Transport
         public void StartClient()
         {
-            BeforeClientStarted?.Dispatch();
-            InstanceFinder.ClientManager.StartConnection();
+            if (!CanStartClient())
+            {
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartClient: client is {_clientConnectionState}.");
+                return;
+            }
+            _clientStartRequested = true;
+            try
+            {
+                BeforeClientStarted?.Dispatch();
+                InstanceFinder.ClientManager.StartConnection();
+            }
+            finally
+            {
+                _clientStartRequested = false;
+            }
         }
+
+        private bool CanStartServer() => !_serverStartRequested && _serverConnectionState == LocalConnectionState.Stopped;
+        private bool CanStartClient() => !_clientStartRequested && _clientConnectionState == LocalConnectionState.Stopped;
         
         public void SetAddress(string text)
         {
@@ -194,7 +231,13 @@ namespace EDIVE.Networking
         {
             if (runtimeMode == NetworkRuntimeMode.Offline)
                 return;
-            
+
+            if (RuntimeMode != NetworkRuntimeMode.Offline || _serverStartRequested || _clientStartRequested)
+            {
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartRuntime({runtimeMode}): runtime is already {RuntimeMode}.");
+                return;
+            }
+
             switch (runtimeMode)
             {
                 case NetworkRuntimeMode.Client:
@@ -211,6 +254,8 @@ namespace EDIVE.Networking
 
         public void StopRuntime()
         {
+            _serverStartRequested = false;
+            _clientStartRequested = false;
             InstanceFinder.ServerManager.StopConnection(true);
             InstanceFinder.ClientManager.StopConnection();
         }
