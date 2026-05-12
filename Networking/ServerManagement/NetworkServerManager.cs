@@ -12,10 +12,8 @@ using EDIVE.External.Signals;
 using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
-using FishNet;
-using FishNet.Connection;
-using FishNet.Transporting;
-using FishNet.Transporting.Tugboat;
+using PurrNet;
+using PurrNet.Transports;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -23,10 +21,11 @@ namespace EDIVE.Networking.ServerManagement
 {
     public class NetworkServerManager : ALoadableServiceBehaviour<NetworkServerManager>
     {
+       
         [ShowCreateNew]
         [SerializeField]
         private ServerConfig _ServerConfig;
-
+        
         [ShowCreateNew]
         [SerializeField]
         private AWordGenerator _ServerNameGenerator;
@@ -39,11 +38,16 @@ namespace EDIVE.Networking.ServerManagement
         [Tooltip("How long to wait for a client connection attempt to reach Started state before declaring the endpoint failed and trying the next one.")]
         private float _ConnectAttemptTimeoutSeconds = 10f;
         
-        public IEnumerable<ServerRecord> ServerList => _servers.Values;
+        public IEnumerable<ServerRecord> ServerList => _serverList;
         public Signal ServerListUpdated { get; } = new();
         public ServerConfig ServerConfig => _ServerConfig;
-
+        
         private readonly Dictionary<string, ServerRecord> _servers = new();
+
+        [HideReferenceObjectPicker]
+        [ShowInInspector]   
+        [EnableGUI]
+        private readonly List<ServerRecord> _serverList = new();
         
         public ServerRecord HostServer { get; private set; }
         public ServerRecord JoinedServer { get; private set; }
@@ -73,9 +77,12 @@ namespace EDIVE.Networking.ServerManagement
                     continue;
                 await adapter.Initialize(_ServerConfig);
             }
-            InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
-            InstanceFinder.ServerManager.OnRemoteConnectionState += OnServerRemoteConnectionStateChanged;
-            InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
+
+            var nm = NetworkManager.main;
+            nm.onServerConnectionState += OnServerConnectionStateChanged;
+            nm.onClientConnectionState += OnClientConnectionStateChanged;
+            nm.onPlayerJoined += OnPlayerJoined;
+            nm.onPlayerLeft += OnPlayerLeft;
             _masterNetworkManager.ServerPrepareHandlers += OnServerPrepareHandlers;
         }
 
@@ -83,15 +90,20 @@ namespace EDIVE.Networking.ServerManagement
         {
             base.PopulateDependencies(dependencies);
             dependencies.Add(typeof(MasterNetworkManager));
+            EnumerateAdapters(adapter => adapter.PopulateDependencies(dependencies));
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionStateChanged;
-            InstanceFinder.ServerManager.OnRemoteConnectionState -= OnServerRemoteConnectionStateChanged;
-            InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
-            if (_masterNetworkManager != null)                
+            if (NetworkManager.main != null)
+            {
+                NetworkManager.main.onServerConnectionState -= OnServerConnectionStateChanged;
+                NetworkManager.main.onClientConnectionState -= OnClientConnectionStateChanged;
+                NetworkManager.main.onPlayerJoined -= OnPlayerJoined;
+                NetworkManager.main.onPlayerLeft -= OnPlayerLeft;
+            }
+            if (_masterNetworkManager != null)
                 _masterNetworkManager.ServerPrepareHandlers -= OnServerPrepareHandlers;
         }
         
@@ -145,7 +157,7 @@ namespace EDIVE.Networking.ServerManagement
             catch (OperationCanceledException)
             {
                 Debug.Log($"[NetworkServerManager] Connect attempt to '{server.ServerName}' canceled.");
-                InstanceFinder.ClientManager.StopConnection();
+                NetworkManager.main.StopClient();
                 JoinedServer = null;
                 throw;
             }
@@ -162,29 +174,29 @@ namespace EDIVE.Networking.ServerManagement
 
             var attempt = new UniTaskCompletionSource<bool>();
             var stopped = new UniTaskCompletionSource();
-            void OnState(ClientConnectionStateArgs args)
+            void OnState(ConnectionState state)
             {
-                switch (args.ConnectionState)
+                switch (state)
                 {
-                    case LocalConnectionState.Starting: 
+                    case ConnectionState.Connecting:
                         break;
-                    case LocalConnectionState.Started:
+                    case ConnectionState.Connected:
                         attempt.TrySetResult(true);
                         break;
-                    case LocalConnectionState.Stopping:
+                    case ConnectionState.Disconnecting:
                         attempt.TrySetResult(false);
                         break;
-                    case LocalConnectionState.Stopped:
+                    case ConnectionState.Disconnected:
                         attempt.TrySetResult(false);
                         stopped.TrySetResult();
                         break;
-                    default: 
+                    default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
 
-            var clientManager = InstanceFinder.ClientManager;
-            clientManager.OnClientConnectionState += OnState;
+            var nm = NetworkManager.main;
+            nm.onClientConnectionState += OnState;
 
             using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             attemptCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
@@ -198,8 +210,8 @@ namespace EDIVE.Networking.ServerManagement
                 // Successful connect AND the caller still wants it → done.
                 if (success && !cancellationToken.IsCancellationRequested)
                     return true;
-                
-                clientManager.StopConnection();
+
+                nm.StopClient();
                 await stopped.Task.AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -207,11 +219,10 @@ namespace EDIVE.Networking.ServerManagement
             }
             finally
             {
-                clientManager.OnClientConnectionState -= OnState;
+                nm.onClientConnectionState -= OnState;
             }
         }
         
-
         private void EnumerateAdapters(Action<AServerListAdapter> action)
         {
             foreach (var adapter in _Adapters)
@@ -235,34 +246,34 @@ namespace EDIVE.Networking.ServerManagement
         }
 
         private void ResolveServerPort()
-        {
-            var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
-            if (tugboat == null)
+        {       
+            var nm = NetworkManager.main;
+            if (nm.TryGetCurrentTransport(out UDPTransport udp))
                 return;
 
             if (_ServerConfig.Port > 0)
             {
-                tugboat.SetPort(_ServerConfig.Port);
+                udp.serverPort = _ServerConfig.Port;
                 Debug.Log($"[NetworkServerManager] Using configured port {_ServerConfig.Port}");
             }
             else
             {
                 var port = NetworkUtils.FindFreeUdpPort();
-                tugboat.SetPort(port);
+                udp.serverPort = port;
                 Debug.Log($"[NetworkServerManager] Using dynamic port {port}");
             }
         }
 
-        private void OnServerConnectionStateChanged(ServerConnectionStateArgs args)
+        private void OnServerConnectionStateChanged(ConnectionState state)
         {
-            if (args.ConnectionState == LocalConnectionState.Started && InstanceFinder.ServerManager.IsOnlyOneServerStarted())
+            if (state == ConnectionState.Connected)
             {
                 HostServer = new ServerRecord
                 {
                     InstanceID = _ServerConfig.InstanceID,
                     ServerName = _ServerConfig.ServerName,
                     MaxPlayers = _ServerConfig.MaxPlayers,
-                    CurrentPlayers = InstanceFinder.ServerManager.Clients.Count,
+                    CurrentPlayers = NetworkManager.main.playerCount,
                     LastUpdated = DateTime.UtcNow,
                 };
 
@@ -280,7 +291,7 @@ namespace EDIVE.Networking.ServerManagement
 
                 EnumerateAdapters(adapter => adapter.StartServer());
             }
-            else if (args.ConnectionState == LocalConnectionState.Stopped && !InstanceFinder.ServerManager.IsAnyServerStarted())
+            else if (state == ConnectionState.Disconnected)
             {
                 _serverRunning = false;
                 EnumerateAdapters(adapter => adapter.StopServer());
@@ -288,26 +299,38 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
 
-        private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
+        private void OnClientConnectionStateChanged(ConnectionState state)
         {
-            // During a multi-endpoint connect attempt, transient Stopped events fire between
+            // During a multi-endpoint connect attempt, transient Disconnected events fire between
             // failed endpoints. Only clear JoinedServer for "real" disconnects — once the
             // failover loop is no longer in progress.
-            if (args.ConnectionState == LocalConnectionState.Stopped && !_connecting)
+            if (state == ConnectionState.Disconnected && !_connecting)
             {
                 JoinedServer = null;
             }
 
             if (JoinedServer != null)
-                JoinedServer.CurrentPlayers = InstanceFinder.ServerManager.Clients.Count;
+                JoinedServer.CurrentPlayers = NetworkManager.main.playerCount;
         }
 
-        private void OnServerRemoteConnectionStateChanged(NetworkConnection conn, RemoteConnectionStateArgs args)
+        private void OnPlayerJoined(PlayerID player, bool isReconnect, bool asServer)
+        {
+            if (!asServer) return;
+            RefreshHostPlayerCount();
+        }
+
+        private void OnPlayerLeft(PlayerID player, bool asServer)
+        {
+            if (!asServer) return;
+            RefreshHostPlayerCount();
+        }
+
+        private void RefreshHostPlayerCount()
         {
             if (HostServer == null)
                 return;
 
-            HostServer.CurrentPlayers = InstanceFinder.ServerManager.Clients.Count;
+            HostServer.CurrentPlayers = NetworkManager.main.playerCount;
             HostServer.LastUpdated = DateTime.UtcNow;
         }
 
@@ -317,6 +340,7 @@ namespace EDIVE.Networking.ServerManagement
                 return;
 
             _servers.Clear();
+            _serverList.Clear();
             EnumerateAdapters(adapter =>
             {
                 adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
@@ -336,6 +360,7 @@ namespace EDIVE.Networking.ServerManagement
 
         private void OnAdapterServerListUpdated()
         {
+            _serverList.Clear();
             _servers.Clear();
             EnumerateAdapters(adapter =>
             {
@@ -359,6 +384,7 @@ namespace EDIVE.Networking.ServerManagement
                     }
                 }
             });
+            _serverList.AddRange(_servers.Values);
             ServerListUpdated.Dispatch();
         }
     }

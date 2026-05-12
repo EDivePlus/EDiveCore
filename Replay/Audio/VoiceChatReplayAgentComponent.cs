@@ -12,9 +12,9 @@ using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Replay.Components;
 using EDIVE.Utils.Cysharp;
-using FishNet.Object;
 using MemoryPack;
 using Newtonsoft.Json;
+using PurrNet;
 using R3;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -37,7 +37,7 @@ namespace EDIVE.Replay.Audio
 
         protected long _startTimestamp;
         private int _playbackIndex;
-        private int _ownerUserID;
+        private PlayerID _ownerUserID;
         
         public override void StartRecording(float startTime, ReplayRecordingConfig config, CancellationToken cancellationToken = default)
         {
@@ -49,8 +49,8 @@ namespace EDIVE.Replay.Audio
                 Debug.LogError("VoiceChatReplayAgentComponent requires a NetworkBehaviour attached to the target GameObject!");
                 return;
             }
-
-            _ownerUserID = networkBehaviour.OwnerId;
+            
+            _ownerUserID = networkBehaviour.owner!.Value;
             _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             audioManager.UserAudioFrameReady += WriteAudioFrame;
@@ -61,7 +61,7 @@ namespace EDIVE.Replay.Audio
             });
         }
 
-        private void WriteAudioFrame(int clientID, AudioFrame audioFrame)
+        private void WriteAudioFrame(PlayerID clientID, AudioFrame audioFrame)
         {
             if (_ownerUserID != clientID)
                 return;

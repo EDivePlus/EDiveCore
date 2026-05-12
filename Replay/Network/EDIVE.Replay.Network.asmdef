@@ -4,6 +4,7 @@
   "references": [
     "UniTask",
     "FishNet.Runtime",
+    "PurrNet.Runtime",
     "EDIVE.External.Signals",
     "EDIVE.Replay",
     "EDIVE.OdinExtensions",
@@ -15,9 +16,7 @@
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": [
-    "FISHNET"
-  ],
+  "defineConstraints": [],
   "versionDefines": [],
   "noEngineReferences": false
 }

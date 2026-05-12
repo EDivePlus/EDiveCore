@@ -9,6 +9,7 @@
     "EDIVE.Utils",
     "EDIVE.ServiceHub",
     "FishNet.Runtime",
+    "PurrNet.Runtime",
     "EDIVE.Http",
     "Unity.TextMeshPro",
     "EDIVE.Time",

@@ -5,8 +5,7 @@
 using EDIVE.OdinExtensions;
 using EDIVE.Replay.Components;
 using EDIVE.Replay.Network;
-using FishNet.Component.Transforming;
-using FishNet.Object;
+using PurrNet;
 using Sirenix.OdinInspector.Editor.Validation;
 
 [assembly: RegisterValidator(typeof(TransformPositionRotationComponentNetValidator))]
@@ -21,7 +20,7 @@ namespace EDIVE.Replay.Network
                 return;
 
             // Check if networked
-            if (Value.Target.GetComponentInParent<NetworkObject>() == null)
+            if (Value.Target.GetComponentInParent<NetworkIdentity>() == null)
                 return;
             
             if (!Value.Target.TryGetComponent<NetworkTransform>(out _))
@@ -44,7 +43,7 @@ namespace EDIVE.Replay.Network
                 return;
 
             // Check if networked
-            if (Value.Target.GetComponentInParent<NetworkObject>() == null)
+            if (Value.Target.GetComponentInParent<NetworkIdentity>() == null)
                 return;
             
             if (!Value.Target.TryGetComponent<NetworkTransform>(out _))

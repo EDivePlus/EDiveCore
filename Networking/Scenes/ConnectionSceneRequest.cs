@@ -1,11 +1,11 @@
 ﻿// Author: František Holubec
 // Created: 28.08.2025
 
-using FishNet.Broadcast;
+using PurrNet.Packing;
 
 namespace EDIVE.Networking.Scenes
 {
-    public struct ConnectionSceneRequest : IBroadcast
+    public struct ConnectionSceneRequest : IPackedAuto
     {
         public readonly string SceneName;
         public readonly ConnectionSceneRequestOperation Operation; 

@@ -62,7 +62,7 @@ namespace EDIVE.Avatars.Networking
             }
 
             if (localPlayer.TryGetComponent<NetworkAvatarPlayerController>(out var playerController))
-                playerController.SelectAvatar(Definition);
+                playerController.SetAvatar(Definition);
         }
     }
 }

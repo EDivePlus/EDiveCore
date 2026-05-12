@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
-using FishNet.Connection;
+using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -15,16 +15,15 @@ namespace EDIVE.Environment.SceneSetup
         [ListDrawerSettings(ShowFoldout = false)]
         private List<Transform> _Locations;
 
-        public override bool TryGetLocation(NetworkConnection conn, out Vector3 position, out Quaternion? rotation)
+        public override bool TryGetLocation(PlayerID player, out Vector3 position, out Quaternion? rotation)
         {
             position = Vector3.zero;
             rotation = null;
-            
+
             if (_Locations == null || _Locations.Count == 0)
                 return false;
 
-            
-            var index = conn.ClientId.PositiveModulo(_Locations.Count);
+            var index = ((int)player.id.value).PositiveModulo(_Locations.Count);
             var location = _Locations[index];
             position = location.position;
             rotation = location.rotation;

@@ -1,103 +1,64 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 11.02.2026
 
 using System;
-using System.Threading;
-using Cysharp.Threading.Tasks;
-using FishNet;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Networking.Utils
 {
     /// <summary>
-    /// Resolves NetworkBehaviour references from a SyncVar&lt;int&gt; ObjectId.
-    /// SyncVars cannot be nested - declare SyncVar&lt;int&gt; as direct field, then bind this resolver to it.
+    /// Resolves a typed <see cref="NetworkBehaviour"/> reference from a synced
+    /// <see cref="NetworkIdentity"/>. Originally written to work around FishNet's
+    /// "SyncVars cannot be nested" limitation. PurrNet supports
+    /// <c>SyncVar&lt;NetworkBehaviour&gt;</c> / <c>SyncVar&lt;NetworkIdentity&gt;</c> directly,
+    /// so for new code prefer a plain <see cref="SyncVar{T}"/>; this helper is kept as a
+    /// thin wrapper for components that already depend on its API surface.
     /// </summary>
     public class SyncVarNetworkBehaviourResolver<T> where T : NetworkBehaviour
     {
         public T Value { get; private set; }
         public event Action<T> OnChanged;
-        
-        private const float TIMEOUT = 5f;
-        
-        // Store as object to avoid FishNet detecting this as a SyncType field
-        private object _syncVarRef;
-        
-        public void BindToSyncVar(SyncVar<int> syncVar)
+
+        private SyncVar<NetworkIdentity> _syncVar;
+
+        public void BindToSyncVar(SyncVar<NetworkIdentity> syncVar)
         {
-            if (_syncVarRef is SyncVar<int> oldSyncVar) 
-                oldSyncVar.OnChange -= HandleChange;
-            
-            _syncVarRef = syncVar;
-            syncVar.OnChange += HandleChange;
+            if (_syncVar != null)
+                _syncVar.onChanged -= HandleChange;
+
+            _syncVar = syncVar;
+            if (_syncVar == null)
+                return;
+
+            _syncVar.onChanged += HandleChange;
+            // Resolve the current value so consumers see initial state immediately.
+            HandleChange(_syncVar.value);
         }
-        
+
         public void SetValue(T value)
         {
-            if (_syncVarRef is not SyncVar<int> syncVar)
+            if (_syncVar == null)
             {
                 Debug.LogError("[SyncVarNetworkBehaviourResolver] No SyncVar bound!");
                 return;
             }
-            
+
             Value = value;
-            syncVar.Value = value != null ? value.ObjectId : 0;
+            _syncVar.value = value; // NetworkBehaviour : NetworkIdentity, so the assignment is allowed.
         }
 
-        private void HandleChange(int prev, int next, bool asServer)
+        private void HandleChange(NetworkIdentity identity)
         {
-            if (asServer)
-            {
-                // On server, Value is already set by SetValue(), just fire the event
-                OnChanged?.Invoke(Value);
-                return;
-            }
-            
-            // On clients, resolve the NetworkObject asynchronously
-            var cts = new CancellationTokenSource();
-            cts.CancelAfterSlim(TimeSpan.FromSeconds(TIMEOUT));
-            ResolveAsync(next, cts.Token).Forget();
+            Value = identity != null ? identity.GetComponent<T>() : null;
+            OnChanged?.Invoke(Value);
         }
 
-        private async UniTaskVoid ResolveAsync(int objectId, CancellationToken cancellationToken)
-        {
-            if (objectId == 0)
-            {
-                Value = null;
-                OnChanged?.Invoke(null);
-                return;
-            }
-
-            var result = await WaitForComponent(objectId, cancellationToken);
-            Value = result;
-            OnChanged?.Invoke(result);
-        }
-
-        private async UniTask<T> WaitForComponent(int objectId, CancellationToken cancellationToken)
-        {
-            if (objectId == 0) 
-                return null;
-
-            var networkManager = InstanceFinder.NetworkManager;
-            if (networkManager == null) return null;
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (networkManager.ClientManager.Objects.Spawned.TryGetValue(objectId, out var netObj))
-                    return netObj.GetComponent<T>();
-
-                await UniTask.Yield(cancellationToken);
-            }
-            return null;
-        }
-        
         public void Dispose()
         {
-            if (_syncVarRef is SyncVar<int> oldSyncVar) 
-                oldSyncVar.OnChange -= HandleChange;
-            _syncVarRef = null;
+            if (_syncVar != null)
+                _syncVar.onChanged -= HandleChange;
+            _syncVar = null;
             Value = null;
             OnChanged = null;
         }

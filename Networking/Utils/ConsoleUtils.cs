@@ -5,7 +5,7 @@
 using EDIVE.Console;
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
-using FishNet;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Networking.Utils
@@ -31,7 +31,7 @@ namespace EDIVE.Networking.Utils
                         return;
                     }
 
-                    var serverRunning = InstanceFinder.ServerManager != null && InstanceFinder.ServerManager.IsAnyServerStarted();
+                    var serverRunning = NetworkManager.main != null && NetworkManager.main.isServer;
                     var serverName = serverManager.CurrentServer?.ServerName ?? "<unknown>";
                     var maxPlayers = serverManager.CurrentServer?.MaxPlayers ?? 0;
                     var playerCount = serverManager.CurrentServer?.CurrentPlayers ?? 0;

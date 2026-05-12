@@ -9,6 +9,7 @@
         "EDIVE.OdinExtensions",
         "Unity.TextMeshPro",
         "FishNet.Runtime",
+        "PurrNet.Runtime",
         "UniTask",
         "Unity.Addressables",
         "Unity.ResourceManager",
@@ -22,7 +23,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": ["FISHNET"],
+    "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
 }

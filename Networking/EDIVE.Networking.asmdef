@@ -26,14 +26,15 @@
         "EDIVE.External.Promises",
         "EDIVE.NativeUtils",
         "EDIVE.ScriptableArchitecture",
-        "FishNet.Runtime",
+        "PurrNet.Runtime",
+        "PurrNet.Purrnity.Runtime",
+        "EDIVE.NetworkDiscovery",
+        "EDIVE.NetworkDiscovery.PurrNet",
         "Unity.Services.Core",
         "Unity.Services.Authentication",
         "Unity.Services.Multiplayer",
         "Unity.Services.Relay.RelayService",
         "Unity.Networking.Transport",
-        "FishyUnityTransport",
-        "GameKit.Dependencies",
         "Unity.Collections",
         "EDIVE.EditorUtils",
         "EDIVE.Console",
@@ -41,7 +42,8 @@
         "EDIVE.Input",
         "EDIVE.Configuration",
         "EDIVE.ServiceHub",
-        "EDIVE.Http"
+        "EDIVE.Http",
+        "UnityNetworkDiscovery"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -49,9 +51,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [
-        "FISHNET"
-    ],
+    "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
 }

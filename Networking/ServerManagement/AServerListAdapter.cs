@@ -30,7 +30,9 @@ namespace EDIVE.Networking.ServerManagement
         }
 
         public virtual UniTask Initialize() => UniTask.CompletedTask;
-
+        
+        public virtual void PopulateDependencies(HashSet<Type> dependencies) { }
+        
         public virtual UniTask PrepareServerStart()
         {
             StopSearch();

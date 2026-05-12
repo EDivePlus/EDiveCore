@@ -8,6 +8,7 @@
         "Unity.ResourceManager",
         "Unity.TextMeshPro",
         "FishNet.Runtime",
+        "PurrNet.Runtime",
         "EDIVE.NativeUtils",
         "EDIVE.VisualPresets",
         "EDIVE.StateHandling",

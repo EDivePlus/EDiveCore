@@ -2,87 +2,60 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
-using EDIVE.Avatars;
-using EDIVE.Core;
 using EDIVE.External.Promises;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
-using FishNet;
-using FishNet.Connection;
-using FishNet.Managing;
-using FishNet.Transporting;
+using PurrNet;
 using UnityEngine;
-using Channel = FishNet.Transporting.Channel;
-using EDIVE.Networking.Scenes;
-using EDIVE.Networking.Utils;
 
 namespace EDIVE.Networking.Players
 {
     public class NetworkPlayerManager : ALoadableServiceBehaviour<NetworkPlayerManager>
     {
-        [SerializeField]
-        private NetworkPlayerController _PlayerPrefab;
-
-        [ShowCreateNew]
-        [SerializeField]
-        private NetworkPlayerConfig _PlayerConfig;
-
-        [ShowCreateNew]
-        [SerializeField]
-        private AvatarDefinition _DefaultAvatar;
-
         [ShowCreateNew]
         [SerializeField]
         private AWordGenerator _PlayerNameGenerator;
-        
-        public NetworkPlayerConfig PlayerConfig => _PlayerConfig;
 
         private NetworkManager _networkManager;
 
         public NetworkPlayerController LocalPlayer { get; private set; }
         public List<NetworkPlayerController> CurrentPlayers { get; } = new();
 
-        private readonly List<(int id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
+        private readonly List<(PlayerID id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
         private Promise<NetworkPlayerController> _localPlayerRequest;
         
-        public event Action<int> ServerPlayerJoined;
-
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            _networkManager = InstanceFinder.NetworkManager;
-            if (_networkManager == null)
-                return UniTask.CompletedTask;
-
-            _networkManager.SceneManager.OnClientLoadedStartScenes += OnClientLoadedStartScenes;
-            _networkManager.ServerManager.OnRemoteConnectionState += OnServerRemoteConnectionState;
-            _networkManager.ServerManager.RegisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
             return UniTask.CompletedTask;
         }
-
-        public void RegisterPlayer(NetworkPlayerController player)
+        
+        public void RegisterPlayer(NetworkPlayerController player, bool asServer)
         {
-            if (player.IsOwner)
+            if (!asServer && player.isOwner)
             {
                 LocalPlayer = player;
                 _localPlayerRequest?.Dispatch(player);
                 _localPlayerRequest = null;
             }
-            
+
             if (CurrentPlayers.Contains(player))
                 return;
 
             CurrentPlayers.Add(player);
-            if (_playerRequests.TryGetFirst(p => p.id == player.OwnerId, out var request))
+            if (player.owner.HasValue &&
+                _playerRequests.TryGetFirst(p => p.id == player.owner.Value, out var request))
             {
                 request.promise.Dispatch(player);
                 _playerRequests.Remove(request);
             }
         }
 
-        public void UnregisterPlayer(NetworkPlayerController player)
+        public void UnregisterPlayer(NetworkPlayerController player, bool asServer)
         {
             CurrentPlayers.Remove(player);
+            if (!asServer && LocalPlayer == player)
+                LocalPlayer = null;
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
@@ -91,17 +64,6 @@ namespace EDIVE.Networking.Players
             dependencies.Add(typeof(MasterNetworkManager));
         }
 
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            if (_networkManager != null)
-            {
-                _networkManager.SceneManager.OnClientLoadedStartScenes -= OnClientLoadedStartScenes;
-                _networkManager.ServerManager.OnRemoteConnectionState -= OnServerRemoteConnectionState;
-                _networkManager.ServerManager.UnregisterBroadcast<PlayerCreationRequestMessage>(OnServerPlayerCreationRequest);
-            }
-        }
-        
         public async UniTask<NetworkPlayerController> AwaitLocalPlayerController()
         {
             if (LocalPlayer != null)
@@ -113,9 +75,9 @@ namespace EDIVE.Networking.Players
             return await completionSource.Task;
         }
 
-        public async UniTask<NetworkPlayerController> AwaitPlayerController(int clientID)
+        public async UniTask<NetworkPlayerController> AwaitPlayerController(PlayerID clientID)
         {
-            if (CurrentPlayers.TryGetFirst(c => c.OwnerId == clientID, out var playerController))
+            if (CurrentPlayers.TryGetFirst(c => c.owner.HasValue && c.owner.Value == clientID, out var playerController))
                 return playerController;
 
             var promise = new Promise<NetworkPlayerController>();
@@ -129,50 +91,6 @@ namespace EDIVE.Networking.Players
             var result = await UniTask.WhenAny(completionSource.Task, timeout);
             _playerRequests.Remove(record);
             return result.result;
-        }
-        private bool _sentCreateRequest;
-        
-
-        private void OnServerRemoteConnectionState(NetworkConnection conn, RemoteConnectionStateArgs args)
-        {
-            if (args.ConnectionState == RemoteConnectionState.Stopped)
-            {
-                if (CurrentPlayers.TryGetFirst(p => p.LocalConnection == conn, out var playerController))
-                    CurrentPlayers.Remove(playerController);
-            }
-        }
-
-        private void OnClientLoadedStartScenes(NetworkConnection conn, bool asServer)
-        {
-            if (asServer || _sentCreateRequest)
-                return;
-
-            _sentCreateRequest = true;
-            var playerCreationRequest = new PlayerCreationRequestMessage();
-
-            _networkManager.ClientManager.Broadcast(playerCreationRequest);
-            DebugLite.Log("[NetworkPlayerManager] Sending request for player creation (after ServiceHub profile load).");
-        }
-
-        private void OnServerPlayerCreationRequest(NetworkConnection conn, PlayerCreationRequestMessage request, Channel channel)
-        {
-            conn.WhenLoadedStartScenes(true, () =>
-            {
-                // Position will sync from players controls, so we can just instantiate player at origin
-                var position = Vector3.zero;
-                var rotation = Quaternion.identity;
-
-                var netObj = _networkManager.GetPooledInstantiated(_PlayerPrefab.gameObject, position, rotation, true);
-                var globalScene = AppCore.Services.Get<NetworkSceneManager>().GlobalScene;
-                _networkManager.ServerManager.Spawn(netObj, conn, globalScene);
-                _networkManager.SceneManager.AddOwnerToDefaultScene(netObj);
-
-                var playerController = netObj.GetComponent<NetworkPlayerController>();
-                CurrentPlayers.Add(playerController);
-
-                ServerPlayerJoined?.Invoke(conn.ClientId);
-                DebugLite.Log($"[NetworkPlayerManager] Instantiated a new player for ID:'{conn.ClientId}'");
-            });
         }
     }
 }

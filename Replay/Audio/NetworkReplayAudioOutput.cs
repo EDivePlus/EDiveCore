@@ -1,8 +1,8 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 17.02.2026
 
 using Adrenak.UniVoice;
-using FishNet.Object;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Replay.Audio
@@ -17,14 +17,16 @@ namespace EDIVE.Replay.Audio
             _replayAudioOutput = GetComponent<ReplayAudioOutput>();
         }
 
-        public override void OnStartServer()
+        protected override void OnSpawned(bool asServer)
         {
+            if (!asServer) return;
             _replayAudioOutput.FedAudioFrame += OnFedAudioFrame;
             _replayAudioOutput.PlayBackEnabledChanged += OnPlaybackEnabledChanged;
         }
 
-        public override void OnStopServer()
+        protected override void OnDespawned(bool asServer)
         {
+            if (!asServer) return;
             _replayAudioOutput.FedAudioFrame -= OnFedAudioFrame;
             _replayAudioOutput.PlayBackEnabledChanged -= OnPlaybackEnabledChanged;
         }
@@ -33,19 +35,22 @@ namespace EDIVE.Replay.Audio
         {
             ObserversFeedAudioFrame(frame);
         }
-        
+
         private void OnPlaybackEnabledChanged(bool isEnabled)
         {
             ObserversSetPlaybackEnabled(isEnabled);
         }
-        
-        [ObserversRpc(ExcludeServer = true)]
+
+        // PurrNet doesn't have FishNet's ExcludeServer flag — by default the server doesn't run
+        // ObserversRpc bodies locally (runLocally defaults to false), so the host's server side
+        // is already excluded. The host's client side still receives the call as an observer.
+        [ObserversRpc]
         private void ObserversFeedAudioFrame(AudioFrame frame)
         {
             _replayAudioOutput.Feed(frame);
         }
-        
-        [ObserversRpc(ExcludeServer = true)]
+
+        [ObserversRpc]
         private void ObserversSetPlaybackEnabled(bool isEnabled)
         {
             _replayAudioOutput.SetPlaybackEnabled(isEnabled);

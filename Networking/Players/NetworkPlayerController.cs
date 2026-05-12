@@ -1,18 +1,12 @@
-﻿// Author: František Holubec
+
+// Author: František Holubec
 // Created: 23.04.2025
 
-using EDIVE.Avatars;
 using EDIVE.Core;
-using EDIVE.Input.Controls;
 using EDIVE.Networking.UI;
-using EDIVE.Networking.Utils;
 using EDIVE.StateHandling.ToggleStates;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
+using PurrNet;
 using UnityEngine;
-using FishNet.Connection;
-using EDIVE.XRTools.Controls;
-using FishNet;
 
 namespace EDIVE.Networking.Players
 {
@@ -20,32 +14,27 @@ namespace EDIVE.Networking.Players
     {
         [SerializeField]
         private BillboardNameTag _NameTag;
-        
+
         [SerializeField]
         private AToggleState _LocalPlayerToggle;
 
-
-        public override void OnOwnershipClient(NetworkConnection prevOwner)
+        protected override void OnOwnerChanged(PlayerID? oldOwner, PlayerID? newOwner, bool asServer)
         {
-            if(_LocalPlayerToggle)
-                _LocalPlayerToggle.SetState(IsOwner);
-        }
-        
-        public override void OnStartClient()
-        {
-            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
+            if (asServer) return;
+            if (_LocalPlayerToggle)
+                _LocalPlayerToggle.SetState(isOwner);
         }
 
-        public override void OnStartServer()
+        protected override void OnSpawned(bool asServer)
         {
-            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this);
+            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this, asServer);
         }
 
-        public override void OnStopNetwork()
+        protected override void OnDespawned(bool asServer)
         {
             if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
             {
-                playerManager.UnregisterPlayer(this);
+                playerManager.UnregisterPlayer(this, asServer);
             }
         }
     }

@@ -16,11 +16,10 @@ using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
-using FishNet;
-using FishNet.Connection;
+using PurrNet;
+using PurrNet.Transports;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using Channel = FishNet.Transporting.Channel;
 
 namespace EDIVE.Audio
 {
@@ -36,21 +35,21 @@ namespace EDIVE.Audio
         [SerializeField]
         private float _VoiceChatDistance = 25f;
         
-        private ClientSession<int> _voiceChatSession;
+        private ClientSession<PlayerID> _voiceChatSession;
         private bool _microphonePermissionGranted = false;
         
         private readonly List<object> _voiceChatMuteRequests = new();
         public bool VoiceChatMuted => _voiceChatMuteRequests.Any();
         
-        private FishNetClient _uniVoiceClient;
-        private FishNetServer _uniVoiceServer;
+        private PurrNetClient _uniVoiceClient;
+        private PurrNetServer _uniVoiceServer;
         private IAudioInput _currentAudioInput;
         
         // Unprocessed local audio frames, triggered when a new frame is captured from the microphone
         public event Action<AudioFrame> LocalAudioFrameReady;
         
         // Triggered when any audio frame is received (local and remote), frames are encoded
-        public event Action<int, AudioFrame> UserAudioFrameReady;
+        public event Action<PlayerID, AudioFrame> UserAudioFrameReady;
         
         private List<IAudioFilter> _encodeFilters;
         
@@ -119,8 +118,8 @@ namespace EDIVE.Audio
       
         private void InitializeClient()
         {
-            _uniVoiceClient = new FishNetClient();
-            _voiceChatSession = new ClientSession<int>(_uniVoiceClient, _currentAudioInput, () =>
+            _uniVoiceClient = new PurrNetClient();
+            _voiceChatSession = new ClientSession<PlayerID>(_uniVoiceClient, _currentAudioInput, () =>
             {
                 var audioOutput = StreamedAudioSourceOutput.New();
                 audioOutput.Stream.TargetLatency = 0.5f;
@@ -143,19 +142,19 @@ namespace EDIVE.Audio
             _uniVoiceClient.OnLeft += OnVoiceChatClientLeft;
             _uniVoiceClient.OnPeerJoined += OnVoiceChatPeerJoined;
             _uniVoiceClient.OnPeerLeft += OnVoiceChatPeerLeft;
-            
-            InstanceFinder.ClientManager.RegisterBroadcast<FishNetBroadcast>(OnClientReceivedAudioMessage);
+
+            NetworkManager.main.Subscribe<PurrNetBroadcast>(OnClientReceivedAudioMessage, asServer: false);
         }
 
-        private void OnClientReceivedAudioMessage(FishNetBroadcast message, Channel channel)
+        private void OnClientReceivedAudioMessage(PlayerID sender, PurrNetBroadcast message, bool asServer)
         {
             var reader = new BytesReader(message.data);
             var messageTag = reader.ReadString();
 
-            if (!messageTag.Equals(FishNetBroadcastTags.AUDIO_FRAME)) 
+            if (!messageTag.Equals(PurrNetBroadcastTags.AUDIO_FRAME))
                 return;
-            
-            var sender = reader.ReadInt();
+
+            var senderId = reader.ReadInt();
             var frame = new AudioFrame
             {
                 timestamp = reader.ReadLong(),
@@ -164,10 +163,13 @@ namespace EDIVE.Audio
                 samples = reader.ReadByteArray()
             };
 
-            if (!InstanceFinder.NetworkManager.IsServerStarted)
+            // On host we skip here so the server path doesn't double-invoke UserAudioFrameReady.
+            if (NetworkManager.main == null || !NetworkManager.main.isServer)
             {
                 frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                UserAudioFrameReady?.Invoke(sender, frame);
+                // BRW payload still encodes UniVoice's int peer id; round-trip it back to a PlayerID so
+                // listeners (which now expect PlayerID, matching the rest of the project) see a typed id.
+                UserAudioFrameReady?.Invoke(new PlayerID((ulong)senderId, false), frame);
             }
         }
 
@@ -176,44 +178,44 @@ namespace EDIVE.Audio
             Debug.Log("[AudioManager] You left the chatroom");
         }
         
-        private void OnVoiceChatClientJoined(int id, List<int> peerIds)
+        private void OnVoiceChatClientJoined(PlayerID playerID, List<PlayerID> playerIds)
         {
-            Debug.Log($"[AudioManager] You are Peer ID {id} your peers are {string.Join(", ", peerIds)}");
+            Debug.Log($"[AudioManager] You are Peer ID {playerID} your peers are {string.Join(", ", playerIds)}");
         }
 
-        private void OnVoiceChatPeerLeft(int id)
+        private void OnVoiceChatPeerLeft(PlayerID playerID)
         {
-            Debug.Log($"[AudioManager] Peer '{id}' left the chatroom");
+            Debug.Log($"[AudioManager] Peer '{playerID}' left the chatroom");
         }
 
-        private void OnVoiceChatPeerJoined(int id)
+        private void OnVoiceChatPeerJoined(PlayerID playerID)
         {
-            Debug.Log($"[AudioManager] Peer '{id}' joined the chatroom");
+            Debug.Log($"[AudioManager] Peer '{playerID}' joined the chatroom");
 
-            var output = _voiceChatSession.PeerOutputs[id] as StreamedAudioSourceOutput;
+            var output = _voiceChatSession.PeerOutputs[playerID] as StreamedAudioSourceOutput;
             if (output == null)
             {
-                Debug.LogError($"[AudioManager] Could not get StreamedAudioSourceOutput for peer {id}");
+                Debug.LogError($"[AudioManager] Could not get StreamedAudioSourceOutput for peer {playerID}");
                 return;
             }
-            output.gameObject.name = $"StreamedAudioOutput ({id})";
-            InitializePeerSpatialAudioAsync(id, output).Forget();
+            output.gameObject.name = $"StreamedAudioOutput ({playerID})";
+            InitializePeerSpatialAudioAsync(playerID, output).Forget();
         }
         
-        private async UniTask InitializePeerSpatialAudioAsync(int id, StreamedAudioSourceOutput output)
+        private async UniTask InitializePeerSpatialAudioAsync(PlayerID playerID, StreamedAudioSourceOutput output)
         {
             var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
-            var playerController = await playerManager.AwaitPlayerController(id);
+            var playerController = await playerManager.AwaitPlayerController(playerID);
 
             if (playerController == null)
             {
-                Debug.LogWarning($"[AudioManager] Could not find player controller for peer {id}");
+                Debug.LogWarning($"[AudioManager] Could not find player controller for peer {playerID}");
                 return;
             }
 
             if (!playerController.TryGetComponent<VoiceChatPlayerController>(out var peerAvatar))
             {
-                Debug.LogWarning($"[AudioManager] Player controller for peer {id} does not have a VoiceChatPlayerController component");
+                Debug.LogWarning($"[AudioManager] Player controller for peer {playerID} does not have a VoiceChatPlayerController component");
                 return;
             }
             
@@ -223,27 +225,27 @@ namespace EDIVE.Audio
             
             peerAvatar.InitializePeerAudioOutput(output);
             
-            Debug.Log($"[AudioManager] AudioSource of player '{id}' ");
+            Debug.Log($"[AudioManager] AudioSource of player '{playerID}' ");
         }
 
         private void InitializeServer()
         {
-            _uniVoiceServer = new FishNetServer();
+            _uniVoiceServer = new PurrNetServer();
             _uniVoiceServer.OnServerStart += OnVoiceChatServerStarted;
             _uniVoiceServer.OnServerStop += OnVoiceChatServerStopped;
-            
-            InstanceFinder.ServerManager.RegisterBroadcast<FishNetBroadcast>(OnServerReceivedAudioMessage, false);
+
+            NetworkManager.main.Subscribe<PurrNetBroadcast>(OnServerReceivedAudioMessage, asServer: true);
         }
 
-        private void OnServerReceivedAudioMessage(NetworkConnection connection, FishNetBroadcast message, Channel channel)
+        private void OnServerReceivedAudioMessage(PlayerID sender, PurrNetBroadcast message, bool asServer)
         {
             var reader = new BytesReader(message.data);
             var messageTag = reader.ReadString();
 
-            if (!messageTag.Equals(FishNetBroadcastTags.AUDIO_FRAME)) 
+            if (!messageTag.Equals(PurrNetBroadcastTags.AUDIO_FRAME))
                 return;
-            
-            var sender = reader.ReadInt();
+
+            var senderId = reader.ReadInt();
             var frame = new AudioFrame
             {
                 timestamp = reader.ReadLong(),
@@ -251,9 +253,9 @@ namespace EDIVE.Audio
                 channelCount = reader.ReadInt(),
                 samples = reader.ReadByteArray()
             };
-            
+
             frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            UserAudioFrameReady?.Invoke(sender, frame);
+            UserAudioFrameReady?.Invoke(new PlayerID((ulong)senderId, false), frame);
         }
 
         private void OnVoiceChatServerStarted()
@@ -371,12 +373,15 @@ namespace EDIVE.Audio
         {
             frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             LocalAudioFrameReady?.Invoke(frame);
-            if (!InstanceFinder.NetworkManager.IsServerStarted)
+
+            var manager = NetworkManager.main;
+            if (manager != null && !manager.isServer)
             {
                 if (AudioUtils.TryProcessAudioFrame(ref frame, _encodeFilters))
                 {
                     frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    UserAudioFrameReady?.Invoke(InstanceFinder.ClientManager.Connection.ClientId, frame);
+                    var localId = manager.localPlayer;
+                    UserAudioFrameReady?.Invoke(localId, frame);
                 }
             }
         }

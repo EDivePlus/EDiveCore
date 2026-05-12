@@ -1,17 +1,17 @@
-﻿// Author: Radim Holub
+// Author: Radim Holub
 // Created: 15.01.2026
 
-using FishNet.Broadcast;
+using PurrNet.Packing;
 using UnityEngine;
 
 namespace EDIVE.Avatars.Networking
 {
-    public struct SummonPlayersToMeRequest : IBroadcast
+    public struct SummonPlayersToMeRequest : IPackedAuto
     {
-        public readonly string SceneName;
-        public readonly Vector3 Position;
-        public readonly Quaternion Rotation;
-        public readonly float Radius;
+        public string SceneName;
+        public Vector3 Position;
+        public Quaternion Rotation;
+        public float Radius;
 
         public SummonPlayersToMeRequest(string sceneName, Vector3 position, Quaternion rotation, float radius = 0.75f)
         {
@@ -20,7 +20,5 @@ namespace EDIVE.Avatars.Networking
             Rotation = rotation;
             Radius = radius;
         }
-        
     }
 }
-

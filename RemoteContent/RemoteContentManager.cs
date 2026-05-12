@@ -7,7 +7,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.ServiceHub.RemoteContent.Handlers;
-using FishNet;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -93,25 +92,11 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         private void InstantiateHandler(GameObject handlerPrefab, string shareToken, Scene scene, Vector3 position, Quaternion rotation)
         {
-#if FISHNET
-            var networkManager = InstanceFinder.NetworkManager;
-            var newNob = networkManager.GetPooledInstantiated(handlerPrefab, position, rotation, false);
-            networkManager.ServerManager.Spawn(newNob, networkManager.ClientManager.Connection, scene);
-            
-            var handler = newNob.GetComponent<ARemoteContentHandler>();
-            if (handler == null) 
-            {
-                Debug.LogError($"[RemoteContentManager] Spawned prefab missing ARemoteContentHandler");
-                return;
-            }
-            handler.SetShareToken(shareToken);
-#else
             var handler = Instantiate(handlerPrefab, position, rotation);
             if (handler.TryGetComponent<ARemoteContentHandler>(out var remoteContentHandler))
             {
                 remoteContentHandler.SetShareToken(shareToken);
             }
-#endif
         }
 
         public void RequestHandlerSelected(ARemoteContentHandler handler)
@@ -144,13 +129,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                     Debug.LogException(e);
                 }
             }
-            
-#if FISHNET
-            var networkManager = InstanceFinder.NetworkManager;
-            networkManager.ServerManager.Despawn(handler.gameObject);
-#else
             Destroy(handler.gameObject);
-#endif
         }
     }
 }

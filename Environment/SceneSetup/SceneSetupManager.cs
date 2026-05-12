@@ -16,8 +16,7 @@ using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
 using EDIVE.Utils.Loading;
 using EDIVE.XRTools.Controls;
-using FishNet;
-using FishNet.Managing;
+using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -40,21 +39,21 @@ namespace EDIVE.Environment.SceneSetup
 
         protected void Awake()
         {
-            _networkManager = InstanceFinder.NetworkManager;
+            _networkManager = NetworkManager.main;
             if (_networkManager == null)
             {
                 Debug.LogError("[SceneSetupManager] NetworkManager is not initialized.");
                 return;
             }
 
-            _networkManager.ClientManager.OnAuthenticated += OnClientAuthenticated;
+            _networkManager.onLocalPlayerReceivedID += OnClientAuthenticated;
         }
 
         protected void OnDestroy()
         {
             if (_networkManager != null)
             {
-                _networkManager.ClientManager.OnAuthenticated -= OnClientAuthenticated;
+                _networkManager.onLocalPlayerReceivedID -= OnClientAuthenticated;
             }
         }
 
@@ -85,7 +84,7 @@ namespace EDIVE.Environment.SceneSetup
             _spawnPlaces.Remove(spawnPlace);
         }
         
-        private void OnClientAuthenticated()
+        private void OnClientAuthenticated(PlayerID player)
         {
             try
             {
@@ -153,8 +152,8 @@ namespace EDIVE.Environment.SceneSetup
                 AppCore.Services.TryGet<ControlsManager>(out var controlsManager) &&
                 _spawnPlaces.TryGetFirst(s => s != null && s.CheckAvailable(definition) && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
             {
-                var connection = InstanceFinder.ClientManager.Connection;
-                if (spawnPlace.TryGetLocation(connection, out var position, out var rotation))
+                var localPlayer = _networkManager != null ? _networkManager.localPlayer : default;
+                if (spawnPlace.TryGetLocation(localPlayer, out var position, out var rotation))
                 {
                     controlsManager.RequestTeleport(position, rotation);
                 }

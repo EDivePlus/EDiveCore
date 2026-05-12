@@ -6,7 +6,7 @@
     "Unity.TextMeshPro",
     "EDIVE.Core",
     "EDIVE.OdinExtensions",
-    "FishNet.Runtime",
+    "PurrNet.Runtime",
     "EDIVE.NativeUtils",
     "EDIVE.External.Signals",
     "EDIVE.XRTools",
@@ -29,8 +29,7 @@
   "overrideReferences": false,
   "autoReferenced": true,
   "defineConstraints": [
-    "XR_INTERACTION_TOOLKIT",
-    "FISHNET"
+    "XR_INTERACTION_TOOLKIT"
   ],
   "versionDefines": [
     {

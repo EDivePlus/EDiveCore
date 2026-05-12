@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.NativeUtils;
-using FishNet.Object;
+using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -30,14 +30,15 @@ namespace EDIVE.Networking.Utils
             _rules.ForEach(r => r.Initialize(gameObject.scene));
         }
         
-        public override void OnStartNetwork()
+        // TODO PurrNet migration: FishNet's NetworkObject.OnHostVisibilityUpdated has no direct equivalent.
+        // PurrNet exposes visibility via INetworkVisibilityRule and the onObserverAdded / onObserverRemoved
+        // events on NetworkIdentity. Re-wire host-visibility-driven rule updates here once decided.
+        protected override void OnSpawned()
         {
-            NetworkObject.OnHostVisibilityUpdated += OnHostVisibilityUpdated;
         }
 
-        public override void OnStopNetwork()
+        protected override void OnDespawned()
         {
-            NetworkObject.OnHostVisibilityUpdated -= OnHostVisibilityUpdated;
         }
 
         private void OnHostVisibilityUpdated(bool prevVisible, bool nextVisible)

@@ -12,6 +12,7 @@
         "EDIVE.NativeUtils",
         "EDIVE.Networking",
         "FishNet.Runtime",
+        "PurrNet.Runtime",
         "EDIVE.Utils",
         "EDIVE.Time",
         "EDIVE.StateHandling",
@@ -28,7 +29,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "FISHNET",
         "UNIVOICE"
     ],
     "versionDefines": [

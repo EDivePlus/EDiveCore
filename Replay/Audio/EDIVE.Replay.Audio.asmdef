@@ -11,7 +11,8 @@
         "UniTask",
         "Adrenak.UniVoice.Runtime",
         "Adrenak.UniMic.Runtime",
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "PurrNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -20,7 +21,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "FISHNET",
         "UNIVOICE"
     ],
     "versionDefines": [

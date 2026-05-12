@@ -5,10 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using EDIVE.Networking.Utils;
-using FishNet;
-using FishNet.Transporting.Tugboat;
-using FishNet.Transporting.UTP;
+using EDIVE.Core;
+using PurrNet.Purrnity;
+using PurrNet.Transports;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -102,6 +101,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 var publicAddress = lobby.Data.TryGetValue("publicIP", out var publicIP) ? publicIP.Value : string.Empty;
                 var relayJoinCode = lobby.Data.TryGetValue("joinCode", out var joinCode) ? joinCode.Value : string.Empty;
 
+                
                 var endpoints = new List<AServerEndpoint>();
                 if (!string.IsNullOrEmpty(publicAddress) && publicPort > 0)
                 {
@@ -112,7 +112,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                         Port = publicPort,
                     });
                 }
-
+           
                 endpoints.Add(new UnityRelayServerEndpoint
                 {
                     Name = "Unity Relay",
@@ -133,72 +133,37 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         
         private async UniTask RegisterRelay()
         {
-            var networkManager = InstanceFinder.NetworkManager;
-
             await Unity.Services.Core.UnityServices.InitializeAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
+            var transportController = await AppCore.Services.AwaitRegistered<TransportController>();
             var joinCode = string.Empty;
-            
             try
             {
                 var allocation = await RelayService.Instance.CreateAllocationAsync(_serverConfig.MaxPlayers);
                 joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-
-                var unityTransport = networkManager.TransportManager.GetTransport<UnityTransport>();
-                var serverData = allocation.ToRelayServerData("dtls");
-                unityTransport.SetRelayServerData(serverData);
+                
+                if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
+                {
+                    var serverData = allocation.ToRelayServerData("dtls");
+                    unityTransport.SetRelayServerData(serverData);
+                }
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
             }
-
-            var tugboat = networkManager.TransportManager.GetTransport<Tugboat>();
-            var publicPort = tugboat != null ? tugboat.GetPort() : (ushort)0;
-            
-            /*
-            var probe = RemoteReachabilityProbe.Result.Unreachable;
-            if (!string.IsNullOrWhiteSpace(_serverConfig.ReachabilityProbeUrl) && publicPort > 0)
-            {
-                probe = await RemoteReachabilityProbe.ProbeAsync(_serverConfig.ReachabilityProbeUrl, publicPort);
-                Debug.Log(probe.Reachable
-                    ? $"[UnityLobbyServerListAdapter] Public endpoint {probe.PublicIP}:{publicPort} confirmed reachable."
-                    : $"[UnityLobbyServerListAdapter] Public endpoint not reachable (port {publicPort}) — direct connect disabled, relay only.");
-            }
-            */
             
             var lobbyData = new Dictionary<string, DataObject>
             {
                 { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.InstanceID) },
                 { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
             };
-            /*
-            if (probe.Reachable)
-            {
-                lobbyData["publicIP"] = new DataObject(DataObject.VisibilityOptions.Public, probe.PublicIP);
-                lobbyData["publicPort"] = new DataObject(DataObject.VisibilityOptions.Public, publicPort.ToString());
-            }
-            */
+
             var options = new CreateLobbyOptions { IsPrivate = false, Data = lobbyData };
-
             _hostLobby = await LobbyService.Instance.CreateLobbyAsync(_serverConfig.ServerName, _serverConfig.MaxPlayers + 1, options);
-
             var endpoints = new List<AServerEndpoint>();
-            
-            /*
-            if (probe.Reachable)
-            {
-                endpoints.Add(new AddressServerEndpoint
-                {
-                    Name = "Unity Direct",
-                    Address = probe.PublicIP,
-                    Port = publicPort,
-                });
-            }
-            */
-
             endpoints.Add(new UnityRelayServerEndpoint
             {
                 Name = "Unity Relay",

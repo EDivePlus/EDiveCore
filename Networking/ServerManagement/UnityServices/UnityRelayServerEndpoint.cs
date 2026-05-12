@@ -3,9 +3,8 @@
 
 using System;
 using Cysharp.Threading.Tasks;
-using FishNet;
-using FishNet.Transporting.Multipass;
-using FishNet.Transporting.UTP;
+using EDIVE.Core;
+using PurrNet.Purrnity;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
@@ -23,10 +22,11 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         {
             if (string.IsNullOrEmpty(RelayJoinCode))
                 return false;
-
-            var transportManager = InstanceFinder.TransportManager;
-            var unityTransport = transportManager.GetTransport<UnityTransport>();
-            if (unityTransport == null)
+            
+            if (!AppCore.Services.TryGet<TransportController>(out var transportController))
+                return false;
+            
+            if (!transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
                 return false;
 
             try
@@ -34,8 +34,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 var allocation = await RelayService.Instance.JoinAllocationAsync(RelayJoinCode);
                 unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
 
-                var multiPass = transportManager.GetTransport<Multipass>();
-                multiPass?.SetClientTransport<UnityTransport>();
+                var composite = transportController.SetCompositeTransport();
+                composite.SetClientTransport(unityTransport);
 
                 Debug.Log($"[ServerEndpoint] Connect using relay code {RelayJoinCode}");
                 return true;

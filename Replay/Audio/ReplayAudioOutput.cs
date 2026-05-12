@@ -6,8 +6,7 @@ using System.Collections.Generic;
 using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
 using EDIVE.Audio;
-using FishNet;
-using FishNet.Managing;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Replay.Audio
@@ -21,20 +20,20 @@ namespace EDIVE.Replay.Audio
 
         public int InitialBufferSize => _bufferedAudioOutput.InitialBufferSize;
         public bool IsPlaybackEnabled => _bufferedAudioOutput.PlaybackEnabled;
-        
+
         public event Action<bool> PlayBackEnabledChanged;
         public event Action<AudioFrame> FedAudioFrame;
-        
+
         private void Awake()
         {
-            _networkManager = InstanceFinder.NetworkManager;
+            _networkManager = NetworkManager.main;
             _bufferedAudioOutput = GetComponent<BufferedAudioOutput>();
         }
 
         public void Feed(AudioFrame frame)
         {
             FedAudioFrame?.Invoke(frame);
-            if (_networkManager != null && !_networkManager.IsClientStarted)
+            if (_networkManager != null && !_networkManager.isClient)
                 return;
             
             _decodeFilters ??= new List<IAudioFilter>

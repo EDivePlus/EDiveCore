@@ -2,6 +2,8 @@
 // Created: 14.04.2025
 
 
+using System.Text;
+using PurrNet.Packing;
 using UnityEngine;
 
 #if FISHNET
@@ -31,6 +33,40 @@ namespace EDIVE.AssetTranslation
         public static TDefinition GetDefinition<TDefinition>(string uniqueId) where TDefinition : ScriptableObject, IUniqueDefinition
         {
             return TryGetDefinition<TDefinition>(uniqueId, out var resultDefinition) ? resultDefinition : null;
+        }
+        
+        
+        public static void CustomWriteTranslatedDefinition<TDefinition>(this BitPacker packer, TDefinition value) where TDefinition : ScriptableObject, IUniqueDefinition
+        {
+#if UNITY_EDITOR || ASSET_TRANSLATION_LOGS
+            if (value != null)
+            {
+                if (AssetTranslationConfig.Instance.TryGetTranslator(value.GetType(), out var translator))
+                {
+                    if (value is ScriptableObject so && !translator.Contains(so))
+                    {
+                        Debug.LogError($"Definition with id '{value.UniqueID}' is not registered in translator '{translator.name}'");
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"There is no translator for type '{value.GetType()}' or non is registered");
+                }
+            }
+#endif
+            packer.WriteString(Encoding.ASCII, value != null ? value.UniqueID : string.Empty);
+        }
+
+        public static TDefinition CustomReadTranslatedDefinition<TDefinition>(this BitPacker packer) where TDefinition : ScriptableObject, IUniqueDefinition
+        {
+            var uniqueId = packer.ReadString(Encoding.ASCII);
+            if (string.IsNullOrEmpty(uniqueId))
+                return null;
+
+            if (!AssetTranslationConfig.Instance.TryGetTranslator(typeof(TDefinition), out var translator))
+                return null;
+
+            return translator.TryGet(uniqueId, out var definition) && definition is TDefinition tDefinition ? tDefinition : null;
         }
         
 #if FISHNET

@@ -1,4 +1,4 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 22.03.2025
 
 using System;
@@ -10,96 +10,98 @@ using EDIVE.Core.Restart;
 using EDIVE.External.Signals;
 using EDIVE.Networking.ServerManagement;
 using EDIVE.ServiceHub;
-using FishNet;
-using FishNet.Managing;
-using FishNet.Transporting;
-using FishNet.Transporting.Multipass;
-using FishNet.Transporting.Tugboat;
+using PurrNet;
+using PurrNet.Transports;
 using UnityEngine;
 
 namespace EDIVE.Networking
 {
-    public class MasterNetworkManager : ALoadableServiceBehaviour<MasterNetworkManager> 
+    public class MasterNetworkManager : ALoadableServiceBehaviour<MasterNetworkManager>
     {
         [SerializeField]
         private ServerConfig _ServerConfig;
-        
+
         private NetworkManager _networkManager;
 
         public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
         public Signal<ConnectionState> ConnectionStateChanged { get; } = new();
-        
+
         public NetworkRuntimeMode RuntimeMode { get; private set; } = NetworkRuntimeMode.Offline;
         public Signal<NetworkRuntimeMode> RuntimeModeChanged { get; } = new();
-        
-        private LocalConnectionState _serverConnectionState = LocalConnectionState.Stopped;
-        private LocalConnectionState _clientConnectionState = LocalConnectionState.Stopped;
+
+        private ConnectionState _serverConnectionState = ConnectionState.Disconnected;
+        private ConnectionState _clientConnectionState = ConnectionState.Disconnected;
 
         private bool _serverStartRequested;
         private bool _clientStartRequested;
-        
+
         public Signal BeforeHostStarted { get; } = new();
         public Signal BeforeServerStarted { get; } = new();
         public Signal BeforeClientStarted { get; } = new();
-        
+
         public event Func<UniTask> ServerPrepareHandlers;
-        
+
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
-            // Wait one frame for FishNet to initialize
             await UniTask.Yield();
-            _networkManager = InstanceFinder.NetworkManager;
+            _networkManager = NetworkManager.main;
             if (_networkManager == null)
             {
-                Debug.LogError("NetworkManager is not initialized. Make sure FishNet is set up correctly.");
+                Debug.LogError("NetworkManager is not initialized. Make sure PurrNet is set up correctly.");
                 return;
             }
-            
-            var multiPass = InstanceFinder.TransportManager.GetTransport<Multipass>();
-            if (multiPass != null) multiPass.SetClientTransport<Tugboat>();
 
-            _networkManager.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
-            _networkManager.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
+            _networkManager.onClientConnectionState += OnClientConnectionStateChanged;
+            _networkManager.onServerConnectionState += OnServerConnectionStateChanged;
 
             AppCore.Services.Register(this);
         }
 
-        private void OnServerConnectionStateChanged(ServerConnectionStateArgs args)
+        protected override void OnDestroy()
         {
-            _serverConnectionState = args.ConnectionState;
+            base.OnDestroy();
+            AppCore.Services.Unregister(this);
+        }
+        
+        private void OnServerConnectionStateChanged(ConnectionState state)
+        {
+            _serverConnectionState = state;
             RefreshRuntimeMode();
             RefreshConnectionState();
-            
-            if (args.ConnectionState == LocalConnectionState.Stopped && _networkManager.ServerManager.AreAllServersStopped())
+
+            if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
             {
-                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+                if (state == ConnectionState.Disconnected)
                 {
                     serviceHub.SaveData.FlushAllServerDirtyEntries(destroyCancellationToken).Forget();
                 }
             }
         }
 
-        private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
+        private void OnClientConnectionStateChanged(ConnectionState state)
         {
-            _clientConnectionState = args.ConnectionState;
+            _clientConnectionState = state;
             RefreshRuntimeMode();
             RefreshConnectionState();
-            
-            if (args.ConnectionState == LocalConnectionState.Started)
+
+            if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
             {
-                AppCore.Services.Get<ServiceHubManager>().ClientAuth.OnLoggedOut += StopRuntime;
-            }
-            if (args.ConnectionState == LocalConnectionState.Stopped)
-            {
-                AppCore.Services.Get<ServiceHubManager>().ClientAuth.OnLoggedOut -= StopRuntime;
+                if (state == ConnectionState.Connected)
+                {
+                    serviceHub.ClientAuth.OnLoggedOut += StopRuntime;
+                }
+                if (state == ConnectionState.Disconnected)
+                {
+                    serviceHub.ClientAuth.OnLoggedOut -= StopRuntime;
+                }
             }
         }
 
         private void RefreshRuntimeMode()
         {
             NetworkRuntimeMode newMode;
-            var isServer = _serverConnectionState is LocalConnectionState.Started or LocalConnectionState.Starting;
-            var isClient = _clientConnectionState is LocalConnectionState.Started or LocalConnectionState.Starting;
+            var isServer = _serverConnectionState is ConnectionState.Connected or ConnectionState.Connecting;
+            var isClient = _clientConnectionState is ConnectionState.Connected or ConnectionState.Connecting;
             if (isServer && isClient)
             {
                 newMode = NetworkRuntimeMode.Host;
@@ -116,7 +118,7 @@ namespace EDIVE.Networking
             {
                 newMode = NetworkRuntimeMode.Offline;
             }
-            
+
             if (newMode != RuntimeMode)
             {
                 RuntimeMode = newMode;
@@ -136,32 +138,11 @@ namespace EDIVE.Networking
 
         private ConnectionState ResolveConnectionState()
         {
-            if (_clientConnectionState == LocalConnectionState.Stopped)
-            {
-                return _serverConnectionState switch
-                {
-                    LocalConnectionState.Stopped => ConnectionState.Disconnected,
-                    LocalConnectionState.Stopping => ConnectionState.Disconnecting,
-                    LocalConnectionState.Starting => ConnectionState.Connecting,
-                    LocalConnectionState.Started => ConnectionState.Connected,
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-            } 
-            
-            return _clientConnectionState switch
-            {
-                LocalConnectionState.Stopped => ConnectionState.Disconnected,
-                LocalConnectionState.Stopping => ConnectionState.Disconnecting,
-                LocalConnectionState.Starting => ConnectionState.Connecting,
-                LocalConnectionState.Started => ConnectionState.Connected,
-                _ => throw new ArgumentOutOfRangeException()
-            };
+            return _clientConnectionState == ConnectionState.Disconnected
+                ? _serverConnectionState
+                : _clientConnectionState;
         }
         
-        public void OnDestroy()
-        {
-            AppCore.Services.Unregister(this);
-        }
 
         public void StartHost()
         {
@@ -170,12 +151,15 @@ namespace EDIVE.Networking
                 Debug.LogWarning($"[MasterNetworkManager] Ignoring StartHost: runtime is already {RuntimeMode}.");
                 return;
             }
+
             BeforeHostStarted?.Dispatch();
-            StartServer();
-            StartClient();
+            UniTask.Void(async () =>
+            {
+                await StartServerInternalAsync();
+                StartClientInternal();
+            });
         }
 
-        // The server can be started directly from the ServerManager or Transport
         public void StartServer()
         {
             if (!CanStartServer())
@@ -184,10 +168,10 @@ namespace EDIVE.Networking
                 return;
             }
             _serverStartRequested = true;
-            StartServerAsync().Forget();
+            StartServerInternalAsync().Forget();
         }
 
-        private async UniTaskVoid StartServerAsync()
+        private async UniTask StartServerInternalAsync()
         {
             try
             {
@@ -195,12 +179,12 @@ namespace EDIVE.Networking
                 {
                     await serviceHub.ServerAuth.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, destroyCancellationToken);
                 }
-            } 
+            }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
             }
-            
+
             try
             {
                 if (ServerPrepareHandlers != null)
@@ -214,7 +198,7 @@ namespace EDIVE.Networking
                 }
 
                 BeforeServerStarted?.Dispatch();
-                InstanceFinder.ServerManager.StartConnection();
+                NetworkManager.main.StartServer();
             }
             finally
             {
@@ -222,7 +206,20 @@ namespace EDIVE.Networking
             }
         }
 
-        // The client can be started directly from the ClientManager or Transport
+        private void StartClientInternal()
+        {
+            _clientStartRequested = true;
+            try
+            {
+                BeforeClientStarted?.Dispatch();
+                NetworkManager.main.StartClient();
+            }
+            finally
+            {
+                _clientStartRequested = false;
+            }
+        }
+        
         public void StartClient()
         {
             if (!CanStartClient())
@@ -230,35 +227,12 @@ namespace EDIVE.Networking
                 Debug.LogWarning($"[MasterNetworkManager] Ignoring StartClient: client is {_clientConnectionState}.");
                 return;
             }
-            _clientStartRequested = true;
-            try
-            {
-                BeforeClientStarted?.Dispatch();
-                InstanceFinder.ClientManager.StartConnection();
-            }
-            finally
-            {
-                _clientStartRequested = false;
-            }
+
+            StartClientInternal();
         }
 
-        private bool CanStartServer() => !_serverStartRequested && _serverConnectionState == LocalConnectionState.Stopped;
-        private bool CanStartClient() => !_clientStartRequested && _clientConnectionState == LocalConnectionState.Stopped;
-        
-        public void SetAddress(string text)
-        {
-            InstanceFinder.TransportManager.Transport.SetClientAddress(text);
-        }
-        
-        public void SetPort(ushort port)
-        {
-            InstanceFinder.TransportManager.Transport.SetPort(port);
-        }
-        
-        public ushort GetPort()
-        {
-            return InstanceFinder.TransportManager.Transport.GetPort();
-        }
+        private bool CanStartServer() => !_serverStartRequested && _serverConnectionState == ConnectionState.Disconnected;
+        private bool CanStartClient() => !_clientStartRequested && _clientConnectionState == ConnectionState.Disconnected;
         
         public void StartRuntime(NetworkRuntimeMode runtimeMode)
         {
@@ -289,10 +263,14 @@ namespace EDIVE.Networking
         {
             _serverStartRequested = false;
             _clientStartRequested = false;
-            InstanceFinder.ServerManager.StopConnection(true);
-            InstanceFinder.ClientManager.StopConnection();
+            var nm = NetworkManager.main;
+            if (nm != null)
+            {
+                nm.StopServer();
+                nm.StopClient();
+            }
         }
-        
+
         [ExecuteOnAppRestart(-90)]
         public static UniTask OnAppRestart()
         {
@@ -301,7 +279,7 @@ namespace EDIVE.Networking
                 Debug.LogError("Cannot stop runtime, missing network manager");
                 return UniTask.CompletedTask;
             }
-            
+
             networkManager.StopRuntime();
             return UniTask.CompletedTask;
         }

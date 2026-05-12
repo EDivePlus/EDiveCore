@@ -2,8 +2,7 @@
 // Created: 29.04.2026
 
 using EDIVE.StateHandling.ToggleStates;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.StateHandling.Networking
@@ -15,27 +14,23 @@ namespace EDIVE.StateHandling.Networking
         
         private readonly SyncVar<bool> _state = new();
 
-        public override void OnStartServer()
+        protected override void OnSpawned(bool asServer)
         {
-            base.OnStartServer();
-            if (_ToggleState == null)
-                return;
-            
-            _state.Value = _ToggleState.State;
+            if (!asServer) return;
+            if (_ToggleState == null) return;
+            _state.value = _ToggleState.State;
         }
 
-        public override void OnStartClient()
+        protected override void OnSpawned()
         {
-            base.OnStartClient();
-            if (_ToggleState == null)
-                return;
-            _ToggleState.SetState(_state.Value, true);
+            if (_ToggleState == null) return;
+            _ToggleState.SetState(_state.value, true);
             _ToggleState.StateChanged += OnClientToggleStateChanged;
         }
 
-        public override void OnStopClient()
+        protected override void OnDespawned()
         {
-            base.OnStopClient();
+            if (_ToggleState == null) return;
             _ToggleState.StateChanged -= OnClientToggleStateChanged;
         }
         
@@ -44,10 +39,10 @@ namespace EDIVE.StateHandling.Networking
             SetServerToggleState(state, immediate);
         }
         
-        [ServerRpc(RequireOwnership = false)]
+        [ServerRpc(requireOwnership: false)]
         private void SetServerToggleState(bool state, bool immediate)
         {
-            _state.Value = state;
+            _state.value = state;
             SetObserverToggleState(state, immediate);
         }
         

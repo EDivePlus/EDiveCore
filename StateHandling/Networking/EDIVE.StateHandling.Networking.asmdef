@@ -2,8 +2,8 @@
   "name": "EDIVE.StateHandling.Networking",
   "rootNamespace": "",
   "references": [
-    "FishNet.Runtime",
-    "EDIVE.StateHandling"
+    "EDIVE.StateHandling",
+    "PurrNet.Runtime"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

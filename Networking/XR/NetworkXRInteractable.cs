@@ -1,8 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 07.06.2025
 
-using FishNet.Connection;
-using FishNet.Object;
+using PurrNet;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
@@ -65,13 +64,13 @@ namespace EDIVE.Networking.XR
             }
         }
         
-        [ServerRpc(RequireOwnership = false)]
-        private void CmdPickup(NetworkConnection sender = null)
+        [ServerRpc(requireOwnership: false)]
+        private void CmdPickup(RPCInfo info = default)
         {
             ResetInteractableVelocity();
-            if (sender?.ClientId != Owner.ClientId)
+            if (!owner.HasValue || info.sender != owner.Value)
             {
-                GiveOwnership(sender);
+                GiveOwnership(info.sender);
             }
         }
         

@@ -2,7 +2,7 @@ using System;
 using EDIVE.Avatars;
 using EDIVE.ScriptableArchitecture.Variables;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
-using FishNet.Object;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Networking.Players
@@ -31,9 +31,10 @@ namespace EDIVE.Networking.Players
             public Transform SkeletonTarget => _SkeletonTarget;
         }
 
-        public override void OnStartClient()
+        protected override void OnSpawned(bool asServer)
         {
-            if (IsOwner)
+            if (asServer) return;
+            if (isOwner)
             {
                 var headFollow = _HeadTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
                 headFollow.Source = _HeadTarget.RigTarget;
@@ -48,7 +49,7 @@ namespace EDIVE.Networking.Players
         
         public void Assign(AvatarController avatar)
         {
-            if (!IsOwner || !IsClientStarted || avatar == null)
+            if (!isOwner || !isClient || avatar == null)
                 return;
 
             if (avatar.RigFollow)

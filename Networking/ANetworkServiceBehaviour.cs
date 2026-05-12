@@ -3,7 +3,7 @@
 
 using EDIVE.Core;
 using EDIVE.Core.Services;
-using FishNet.Object;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Networking
@@ -11,15 +11,13 @@ namespace EDIVE.Networking
     public abstract class ANetworkServiceBehaviour<T> : NetworkBehaviour, IService
         where T : class, IService
     {
-        public override void OnStartNetwork()
+        protected override void OnSpawned()
         {
-            base.OnStartNetwork();
             RegisterService();
         }
 
-        public override void OnStopNetwork()
+        protected override void OnDespawned()
         {
-            base.OnStopNetwork();
             UnregisterService();
         }
 

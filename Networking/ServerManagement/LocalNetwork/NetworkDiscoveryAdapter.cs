@@ -6,8 +6,8 @@ using System.Linq;
 using System.Net;
 using Cysharp.Threading.Tasks;
 using EDIVE.Networking.Utils;
-using FishNet;
-using FishNet.Transporting.Tugboat;
+using PurrNet;
+using PurrNet.Transports;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.LocalNetwork
@@ -28,21 +28,14 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             SetServers(_NetworkDiscovery.ServerList.Select(s => GetRecord(s.endPoint, s.response)));
         }
 
-        public override void StartSearch()
-        {
-
-        }
-
-        public override void StopSearch()
-        {
-
-        }
+        public override void StartSearch() { }
+        public override void StopSearch() { }
 
         public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
         {
-            var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
+            var nm = NetworkManager.main;
             var address = NetworkUtils.GetLocalIPv4();
-            var port = tugboat != null ? tugboat.GetPort() : (ushort) 0;
+            var port = nm != null && nm.TryGetCurrentTransport<UDPTransport>(out var udp) ? udp.serverPort : (ushort) 0;
             if (string.IsNullOrEmpty(address) || port == 0)
                 yield break;
 

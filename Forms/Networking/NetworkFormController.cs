@@ -6,10 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
 using Newtonsoft.Json;
 using UnityEngine;
+using PurrNet;
 
 namespace EDIVE.Forms.Networking
 {
@@ -36,34 +35,37 @@ namespace EDIVE.Forms.Networking
             _formController = GetComponent<FormController>();
         }
         
-        public override void OnStartServer()
+        protected override void OnSpawned(bool asServer)
         {
-            _questionIndex.Value = _formController.CurrentQuestionIndex;
-            _formState.Value = _formController.CurrentFormState;
-            if (_formController.CurrentAnswers != null)
+            if (asServer)
             {
-                _parsedAnswers = _formController.CurrentAnswers.Answers.ToDictionary(entry => entry.Key, entry => entry.Value);
-                foreach (var (questionID, answer) in _formController.CurrentAnswers.Answers)
+                _questionIndex.value = _formController.CurrentQuestionIndex;
+                _formState.value = _formController.CurrentFormState;
+                if (_formController.CurrentAnswers != null)
                 {
-                    _answers[questionID] = JsonConvert.SerializeObject(answer, typeof(AFormAnswer), JSON_SETTINGS);
+                    _parsedAnswers = _formController.CurrentAnswers.Answers.ToDictionary(entry => entry.Key, entry => entry.Value);
+                    foreach (var (questionID, answer) in _formController.CurrentAnswers.Answers)
+                    {
+                        _answers[questionID] = JsonConvert.SerializeObject(answer, typeof(AFormAnswer), JSON_SETTINGS);
+                    }
                 }
             }
         }
 
-        public override void OnStartNetwork()
+        protected override void OnSpawned()
         {
             RegisterLocalEvents();
-            _questionIndex.OnChange += OnSyncCurrentQuestionChanged;
-            _formState.OnChange += OnSyncFormStateChanged;
-            _answers.OnChange += OnSyncAnswersChanged;
+            _questionIndex.onChanged += OnSyncCurrentQuestionChanged;
+            _formState.onChanged += OnSyncFormStateChanged;
+            _answers.onChanged += OnSyncAnswersChanged;
         }
 
-        public override void OnStopNetwork()
+        protected override void OnDespawned()
         {
             UnregisterLocalEvents();
-            _questionIndex.OnChange -= OnSyncCurrentQuestionChanged;
-            _formState.OnChange -= OnSyncFormStateChanged;
-            _answers.OnChange -= OnSyncAnswersChanged;
+            _questionIndex.onChanged -= OnSyncCurrentQuestionChanged;
+            _formState.onChanged -= OnSyncFormStateChanged;
+            _answers.onChanged -= OnSyncAnswersChanged;
         }
         
         private void RegisterLocalEvents()
@@ -95,60 +97,58 @@ namespace EDIVE.Forms.Networking
             SetQuestionIndex(questionIndex);
         }
         
-        [ServerRpc(RequireOwnership = false)]
+        [ServerRpc(requireOwnership: false)]
         private void SetQuestionIndex(int questionIndex)
         {
-            _questionIndex.Value = questionIndex;
+            _questionIndex.value = questionIndex;
         }
         
-        [ServerRpc(RequireOwnership = false)]
+        [ServerRpc(requireOwnership: false)]
         private void SetFormState(FormStateType formState)
         {
-            _formState.Value = formState;
+            _formState.value = formState;
         }
         
-        [ServerRpc(RequireOwnership = false)]
+        [ServerRpc(requireOwnership: false)]
         private void SetAnswer(string questionID, string answerJson)
         {
             _answers[questionID] = answerJson;
         }
         
-        private void OnSyncAnswersChanged(SyncDictionaryOperation op, string key, string value, bool asServer)
+        private void OnSyncAnswersChanged(SyncDictionaryChange<string, string> change)
         {
             UnregisterLocalEvents();
-            switch (op)
+            switch (change.operation)
             {
-                case SyncDictionaryOperation.Add:
+                case SyncDictionaryOperation.Added:
                 case SyncDictionaryOperation.Set:
                 {
-                    var answer = JsonConvert.DeserializeObject<AFormAnswer>(value, JSON_SETTINGS);
-                    _parsedAnswers[key] = answer;
-                    _formController.SetAnswerForQuestion(key, answer);
+                    var answer = JsonConvert.DeserializeObject<AFormAnswer>(change.value, JSON_SETTINGS);
+                    _parsedAnswers[change.key] = answer;
+                    _formController.SetAnswerForQuestion(change.key, answer);
                     break;
                 }
-                case SyncDictionaryOperation.Clear:
+                case SyncDictionaryOperation.Cleared:
                     _parsedAnswers.Clear();
                     break;
-                case SyncDictionaryOperation.Remove:
-                    _parsedAnswers.Remove(key);
-                    break;
-                case SyncDictionaryOperation.Complete:
-                    AnswersChanged?.Invoke(_parsedAnswers);
+                case SyncDictionaryOperation.Removed:
+                    _parsedAnswers.Remove(change.key);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(op), op, null);
+                    throw new ArgumentOutOfRangeException();
             }
+            AnswersChanged?.Invoke(_parsedAnswers);
             RegisterLocalEvents();
         }
 
-        private void OnSyncFormStateChanged(FormStateType prev, FormStateType next, bool asServer)
+        private void OnSyncFormStateChanged(FormStateType next)
         {            
             UnregisterLocalEvents();
             _formController.SetFormState(next);
             RegisterLocalEvents();
         }
 
-        private void OnSyncCurrentQuestionChanged(int prev, int next, bool asServer)
+        private void OnSyncCurrentQuestionChanged(int next)
         {
             UnregisterLocalEvents();
             _formController.TrySetQuestion(next);

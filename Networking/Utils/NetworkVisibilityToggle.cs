@@ -2,7 +2,7 @@
 // Created: 11.11.2025
 
 using EDIVE.StateHandling.ToggleStates;
-using FishNet.Object;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Networking.Utils
@@ -11,22 +11,21 @@ namespace EDIVE.Networking.Utils
     {
         [SerializeField]
         private AToggleState _ToggleState;
-        
+
         private bool _initialVisibilitySet;
 
-        public override void OnStartNetwork()
+        // TODO PurrNet migration: FishNet's NetworkObject.OnHostVisibilityUpdated has no direct equivalent.
+        // PurrNet exposes visibility via INetworkVisibilityRule / onObserverAdded / onObserverRemoved on NetworkIdentity.
+        // Wire those up here once the desired semantics are decided.
+        protected override void OnSpawned()
         {
-            base.OnStartNetwork();
             _initialVisibilitySet = false;
-            NetworkObject.OnHostVisibilityUpdated += OnHostVisibilityUpdated;
         }
-        
-        public override void OnStopNetwork()
+
+        protected override void OnDespawned()
         {
-            base.OnStopNetwork();
-            NetworkObject.OnHostVisibilityUpdated -= OnHostVisibilityUpdated;
         }
-        
+
         private void OnHostVisibilityUpdated(bool prevVisible, bool nextVisible)
         {
             _ToggleState.SetState(nextVisible, !_initialVisibilitySet);

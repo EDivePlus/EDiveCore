@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using EDIVE.Core;
-using FishNet.Connection;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Environment.SceneSetup
@@ -32,6 +32,6 @@ namespace EDIVE.Environment.SceneSetup
         
         public bool CheckAvailable(SceneSetupDefinition setup) => _SetupRestrictions.Count == 0 || _SetupRestrictions.Contains(setup);
         
-        public abstract bool TryGetLocation(NetworkConnection conn, out Vector3 position, out Quaternion? rotation);
+        public abstract bool TryGetLocation(PlayerID player, out Vector3 position, out Quaternion? rotation);
     }
 }

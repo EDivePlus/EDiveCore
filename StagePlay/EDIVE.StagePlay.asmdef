@@ -17,7 +17,7 @@
         "EDIVE.Utils",
         "EDIVE.StateHandling",
         "EDIVE.AssetTranslation",
-        ""
+        "PurrNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

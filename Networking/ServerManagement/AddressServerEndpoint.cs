@@ -2,10 +2,9 @@
 // Created: 14.07.2025
 
 using Cysharp.Threading.Tasks;
+using EDIVE.Core;
 using EDIVE.Networking.Utils;
-using FishNet;
-using FishNet.Transporting.Multipass;
-using FishNet.Transporting.Tugboat;
+using PurrNet.Transports;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
@@ -24,20 +23,21 @@ namespace EDIVE.Networking.ServerManagement
 
             if (Port > 0 && !await NetworkUtils.IsServerReachable(Address, Port))
                 return false;
-
-            var transportManager = InstanceFinder.TransportManager;
-            var tugboat = transportManager.GetTransport<Tugboat>();
-            if (tugboat == null)
+            
+            if (!AppCore.Services.TryGet<TransportController>(out var transportController))
+                return false;
+            
+            if (!transportController.TryGetTransport<UDPTransport>(out var udp))
                 return false;
 
-            var multiPass = transportManager.GetTransport<Multipass>();
-            multiPass?.SetClientTransport<Tugboat>();
+            var composite = transportController.SetCompositeTransport();
+            composite.SetClientTransport(udp);
 
-            tugboat.SetClientAddress(Address);
+            udp.address = Address;
             if (Port > 0)
-                tugboat.SetPort(Port);
+                udp.serverPort = Port;
 
-            Debug.Log($"[ServerEndpoint] Connect using direct address {Address}:{tugboat.GetPort()}");
+            Debug.Log($"[ServerEndpoint] Connect using direct address {Address}:{udp.serverPort}");
             return true;
         }
     }

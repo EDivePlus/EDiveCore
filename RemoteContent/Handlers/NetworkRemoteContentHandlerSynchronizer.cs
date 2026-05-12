@@ -1,9 +1,7 @@
 // Author: Michal Petr
 // Created: 06.05.2026
 
-#if FISHNET
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
+using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -14,57 +12,54 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
     {
         private ARemoteContentHandler _handler;
         private readonly SyncVar<string> _shareToken = new();
-        
+
         [ShowInInspector]
-        private string ShareToken => _shareToken.Value;
+        private string ShareToken => _shareToken.value;
 
         private void Awake()
         {
             _handler = GetComponent<ARemoteContentHandler>();
         }
 
-        public override void OnStartNetwork()
+        protected override void OnSpawned()
         {
-            base.OnStartNetwork();
             _handler.ShareTokenChanged += OnHandlerShareTokenChanged;
-            _shareToken.OnChange += OnSyncShareTokenChanged;
-            
+            _shareToken.onChanged += OnSyncShareTokenChanged;
+
             if (!string.IsNullOrEmpty(_handler.ShareToken))
             {
-                if (IsServerInitialized)
-                    _shareToken.Value = _handler.ShareToken;
+                if (isServer)
+                    _shareToken.value = _handler.ShareToken;
                 else
                     ServerSetShareToken(_handler.ShareToken);
             }
         }
 
-        public override void OnStopNetwork()
+        protected override void OnDespawned()
         {
             _handler.ShareTokenChanged -= OnHandlerShareTokenChanged;
-            _shareToken.OnChange -= OnSyncShareTokenChanged;
-            base.OnStopNetwork();
+            _shareToken.onChanged -= OnSyncShareTokenChanged;
         }
 
-        private void OnSyncShareTokenChanged(string prev, string next, bool asServer)
+        private void OnSyncShareTokenChanged(string next)
         {
             if (string.IsNullOrEmpty(next) || _handler == null)
                 return;
             _handler.SetShareToken(next);
         }
-        
+
         private void OnHandlerShareTokenChanged(string newToken)
         {
-            if (IsServerInitialized)
-                _shareToken.Value = newToken;
+            if (isServer)
+                _shareToken.value = newToken;
             else
                 ServerSetShareToken(newToken);
         }
-        
-        [ServerRpc(RequireOwnership = false)]
+
+        [ServerRpc(requireOwnership: false)]
         private void ServerSetShareToken(string newToken)
         {
-            _shareToken.Value = newToken;
+            _shareToken.value = newToken;
         }
     }
 }
-#endif

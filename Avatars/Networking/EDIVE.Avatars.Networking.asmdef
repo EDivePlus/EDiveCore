@@ -4,6 +4,7 @@
   "references": [
     "EDIVE.Networking",
     "FishNet.Runtime",
+    "PurrNet.Runtime",
     "EDIVE.Avatars",
     "EDIVE.XRTools",
     "EDIVE.Core",
@@ -14,7 +15,8 @@
     "Unity.XR.Interaction.Toolkit",
     "EDIVE.ServiceHub",
     "UniTask",
-    "EDIVE.Input"
+    "EDIVE.Input",
+    "EDIVE.OdinExtensions"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -22,7 +24,7 @@
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": ["FISHNET"],
+  "defineConstraints": [],
   "versionDefines": [],
   "noEngineReferences": false
 }

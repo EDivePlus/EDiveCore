@@ -2,8 +2,7 @@
 // Created: 16.06.2025
 
 using EDIVE.StateHandling.ToggleStates;
-using FishNet.Connection;
-using FishNet.Object;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.Avatars

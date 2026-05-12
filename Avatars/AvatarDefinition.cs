@@ -1,18 +1,16 @@
 using EDIVE.AssetTranslation;
 using EDIVE.VisualPresets.Presets;
-using FishNet.CodeGenerating;
-using FishNet.Serializing;
 using JetBrains.Annotations;
+using PurrNet.Packing;
 using UnityEngine;
 
 namespace EDIVE.Avatars
 {
-    [UseGlobalCustomSerializer]
     public class AvatarDefinition : AUniqueDefinition
     {
         [SerializeField]
         private AvatarController _AvatarPrefab;
-        
+
         [SerializeField]
         private VisualPreset _Visual;
 
@@ -22,11 +20,13 @@ namespace EDIVE.Avatars
         public bool IsValid() => _AvatarPrefab != null;
     }
 
-    // Used by Fishet for serialization of AvatarDefinition references.
-    [UsedImplicitly] 
+    // Used by PurrNet for serialization of AvatarDefinition references.
+    // PurrNet auto-discovers static classes that contain `Write(this BitPacker, T)` and
+    // `Read(this BitPacker, ref T)` extension method pairs.
+    [UsedImplicitly]
     public static class AvatarDefinitionExtensions
     {
-        public static void WriteAvatarDefinition(this Writer writer, AvatarDefinition value) => writer.CustomWriteTranslatedDefinition(value);
-        public static AvatarDefinition ReadAvatarDefinition(this Reader reader) => reader.CustomReadTranslatedDefinition<AvatarDefinition>();
+        public static void Write(this BitPacker packer, AvatarDefinition value) => packer.CustomWriteTranslatedDefinition(value);
+        public static void Read(this BitPacker packer, ref AvatarDefinition value) => value = packer.CustomReadTranslatedDefinition<AvatarDefinition>();
     }
 }

@@ -65,6 +65,7 @@ namespace EDIVE.AppLoading
             var disableParallelLoad = LoaderUtils.DisableParallelLoad;
             if (disableParallelLoad)
             {
+                Debug.LogError("Parallel load is disabled. Loading items sequentially. This should only be used for testing purposes, as it can significantly increase load times.");
                 var sortedLoadItems = GetValidLoadItemsSorted();
                 foreach (var loadItem in sortedLoadItems)
                 {

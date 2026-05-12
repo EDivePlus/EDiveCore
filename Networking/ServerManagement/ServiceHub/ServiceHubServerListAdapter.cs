@@ -10,7 +10,7 @@ using EDIVE.Core.Versions;
 using EDIVE.Networking.ServerManagement.UnityServices;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
-using FishNet;
+using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -57,7 +57,13 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _lobby = hub.Lobby;
         }
 
-        public override async UniTask PrepareServerStart()
+        public override void PopulateDependencies(HashSet<Type> dependencies)
+        {
+            base.PopulateDependencies(dependencies);
+            dependencies.Add(typeof(ServiceHubManager));
+        }
+
+        public override void StartServer()
         {
             await base.PrepareServerStart();
             await RegisterAsync(destroyCancellationToken);
@@ -208,7 +214,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
                 try
                 {
-                    var currentPlayers = InstanceFinder.ServerManager.Clients.Count;
+                    var currentPlayers = NetworkManager.main != null ? NetworkManager.main.playerCount : 0;
                     var data = new ServiceHubServerData(_serverConfig.InstanceID, currentPlayers, _serverConfig.MaxPlayers).Serialize();
 
                     var request = new UpdateServerRequest(
