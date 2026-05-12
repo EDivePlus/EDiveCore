@@ -11,14 +11,13 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Time",
         "EDIVE.StateHandling",
-        "EDIVE.Networking",
-        "FishNet.Runtime",
         "EDIVE.NativeUtils",
         "EDIVE.Conditions",
         "UnityGLTFScripts",
         "EDIVE.Procedural",
         "Unity.XR.Interaction.Toolkit",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,6 +1,7 @@
 // Author: Michal Petr
 // Created: 06.05.2026
 
+#if FISHNET
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using Sirenix.OdinInspector;
@@ -66,3 +67,4 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         }
     }
 }
+#endif

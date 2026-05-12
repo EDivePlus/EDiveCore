@@ -4,9 +4,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using EDIVE.Core;
 using EDIVE.Http;
-using EDIVE.Networking;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
 using EDIVE.ServiceHub.SaveData;
@@ -32,6 +30,7 @@ namespace EDIVE.ServiceHub
 
         public event Action<LoginResponse> OnClientLoginSucceeded;
         public event Action<long, string> OnClientLoginFailed;
+        public event Action OnClientLoggedOut;
         
         private string ClientAuthLoginUrl => $"{ServiceBaseUrl}/auth/login";
         private string ClientAnonymousAuthLoginUrl => $"{ServiceBaseUrl}/auth/anonymous-login";
@@ -144,13 +143,8 @@ namespace EDIVE.ServiceHub
                 : cancellationToken;
             
             await FlushAllDirtyEntries(effectiveToken);
-
-            var networkManager = AppCore.Services.Get<MasterNetworkManager>();
-            if (networkManager != null && networkManager.ConnectionState == ConnectionState.Connected)
-            {
-                networkManager.StopRuntime();
-                Debug.Log("[ServiceHub] Disconnected from server as part of logout.");
-            }
+            
+            OnClientLoggedOut?.Invoke();
             
             AuthStorage.Client.Clear();
             _local = new PlayerPrefsSaveDataStore();

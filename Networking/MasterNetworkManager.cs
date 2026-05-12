@@ -4,11 +4,12 @@
 using System;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using EDIVE.AppLoading.Loadables;
+using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.Core.Restart;
-using EDIVE.Core.Services;
 using EDIVE.External.Signals;
+using EDIVE.Networking.ServerManagement;
+using EDIVE.ServiceHub;
 using FishNet;
 using FishNet.Managing;
 using FishNet.Transporting;
@@ -18,8 +19,11 @@ using UnityEngine;
 
 namespace EDIVE.Networking
 {
-    public class MasterNetworkManager : MonoBehaviour, IService, ILoadable
+    public class MasterNetworkManager : ALoadableServiceBehaviour<MasterNetworkManager> 
     {
+        [SerializeField]
+        private ServerConfig _ServerConfig;
+        
         private NetworkManager _networkManager;
 
         public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
@@ -40,7 +44,7 @@ namespace EDIVE.Networking
         
         public event Func<UniTask> ServerPrepareHandlers;
         
-        public async UniTask Load(Action<float> progressCallback)
+        protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             // Wait one frame for FishNet to initialize
             await UniTask.Yield();
@@ -65,6 +69,14 @@ namespace EDIVE.Networking
             _serverConnectionState = args.ConnectionState;
             RefreshRuntimeMode();
             RefreshConnectionState();
+            
+            if (args.ConnectionState == LocalConnectionState.Stopped && _networkManager.ServerManager.AreAllServersStopped())
+            {
+                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+                {
+                    serviceHub.FlushAllServerDirtyEntries(this.GetCancellationTokenOnDestroy()).Forget();
+                }
+            }
         }
 
         private void OnClientConnectionStateChanged(ClientConnectionStateArgs args)
@@ -72,6 +84,15 @@ namespace EDIVE.Networking
             _clientConnectionState = args.ConnectionState;
             RefreshRuntimeMode();
             RefreshConnectionState();
+            
+            if (args.ConnectionState == LocalConnectionState.Started)
+            {
+                AppCore.Services.Get<ServiceHubManager>().OnClientLoggedOut += StopRuntime;
+            }
+            if (args.ConnectionState == LocalConnectionState.Stopped)
+            {
+                AppCore.Services.Get<ServiceHubManager>().OnClientLoggedOut -= StopRuntime;
+            }
         }
 
         private void RefreshRuntimeMode()
@@ -170,6 +191,11 @@ namespace EDIVE.Networking
         {
             try
             {
+                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub)) 
+                {
+                    await serviceHub.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, destroyCancellationToken);
+                }
+                
                 if (ServerPrepareHandlers != null)
                 {
                     var tasks = ServerPrepareHandlers.GetInvocationList()

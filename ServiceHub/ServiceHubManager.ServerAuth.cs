@@ -100,7 +100,6 @@ namespace EDIVE.ServiceHub
             await FlushAllServerDirtyEntries(effectiveToken);
 
             AuthStorage.Server.Clear();
-            _serverLocal = CreateServerLocalStore(_ServerConfig != null ? _ServerConfig.ServerID : null);
         }
 
         private NetworkResponse<ServerLoginResponse> HandleServerLoginResponse(NetworkResponse<ApiResponse<ServerLoginResponse>> response)
@@ -141,6 +140,31 @@ namespace EDIVE.ServiceHub
             OnServerLoginSucceeded?.Invoke(loginResponse);
 
             return NetworkResponse<ServerLoginResponse>.Success(response.StatusCode, loginResponse);
+        }
+        
+        public async UniTask PrepareServerAuthAsync(string serverId, string serverSecret, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(serverId) || string.IsNullOrEmpty(serverSecret))
+            {
+                Debug.LogError("[ServiceHub] ServerConfig is missing ServerID or ServerSecret.");
+                return;
+            }
+            _serverLocal ??= CreateServerLocalStore(serverId);
+            
+            // Try load server token from storage and check if valid
+            if (AuthStorage.Server.IsValid())
+            {
+                TryLoadStoredServerToken();
+                await CheckServerAuthAsync(cancellationToken);
+            }
+            
+            // If not available or invalid, try read from ServerConfig
+            if (!IsServerLoggedIn)
+            {
+                await LoginServerAsync(serverId, serverSecret, cancellationToken);
+                if (!IsServerLoggedIn)
+                    Debug.LogError($"[ServiceHub] Server '{serverId}' login from ServerConfig failed. Starting unauthenticated; server-scoped save data will not sync.");
+            }
         }
     }
 }

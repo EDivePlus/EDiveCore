@@ -39,7 +39,8 @@
         "EDIVE.Console",
         "EDIVE.Time",
         "EDIVE.Input",
-        "EDIVE.Configuration"
+        "EDIVE.Configuration",
+        "EDIVE.ServiceHub"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
