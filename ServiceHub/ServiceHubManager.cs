@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
+using EDIVE.ServiceHub.Lobby;
 using EDIVE.ServiceHub.RemoteContent;
 using EDIVE.ServiceHub.SaveData;
 using Sirenix.OdinInspector;
@@ -39,12 +40,18 @@ namespace EDIVE.ServiceHub
         [Required]
         [EnhancedBoxGroup("Modules")]
         private RemoteContentService _RemoteContent;
+        
+        [SerializeField]
+        [Required]
+        [EnhancedBoxGroup("Modules")]
+        private LobbyService _Lobby;
 
         public ServiceHubSettings Settings => _Settings;
         public ClientAuthService ClientAuth => _ClientAuth;
         public ServerAuthService ServerAuth => _ServerAuth;
         public SaveDataService SaveData => _SaveData;
         public RemoteContentService RemoteContent => _RemoteContent;
+        public LobbyService Lobby => _Lobby;
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -64,6 +71,7 @@ namespace EDIVE.ServiceHub
             yield return _ServerAuth;
             yield return _SaveData;
             yield return _RemoteContent;
+            yield return _Lobby;
         }
     }
 }

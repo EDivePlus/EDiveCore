@@ -195,7 +195,14 @@ namespace EDIVE.Networking
                 {
                     await serviceHub.ServerAuth.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, destroyCancellationToken);
                 }
-                
+            } 
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+            
+            try
+            {
                 if (ServerPrepareHandlers != null)
                 {
                     var tasks = ServerPrepareHandlers.GetInvocationList()

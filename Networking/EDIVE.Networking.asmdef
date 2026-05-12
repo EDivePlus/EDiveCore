@@ -40,7 +40,8 @@
         "EDIVE.Time",
         "EDIVE.Input",
         "EDIVE.Configuration",
-        "EDIVE.ServiceHub"
+        "EDIVE.ServiceHub",
+        "EDIVE.Http"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

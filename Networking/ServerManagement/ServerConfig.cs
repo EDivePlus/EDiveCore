@@ -36,11 +36,9 @@ namespace EDIVE.Networking.ServerManagement
         [Tooltip("Authentication key for this server, generated in ServiceHub. If left empty, the server will not be registered with ServiceHub and no save data will be saved to it.")]
         private string _ServerSecret;
         
-        [JsonProperty("InstanceID")]
-        [SerializeField] 
+        [ShowInInspector]
         [ReadOnly]
-        [Tooltip("Unique identifier for this server instance, generated on runtime. Used for server registration and discovery.")]
-        private string _InstanceID;
+        public string InstanceID { get; set; }
 
         public string ServerName
         {
@@ -70,12 +68,6 @@ namespace EDIVE.Networking.ServerManagement
         {
             get => _ServerSecret;
             set => _ServerSecret = value;
-        }
-        
-        public string InstanceID
-        {
-            get => _InstanceID;
-            set => _InstanceID = value;
         }
     }
 }

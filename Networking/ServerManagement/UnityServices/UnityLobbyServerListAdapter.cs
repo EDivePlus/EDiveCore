@@ -171,7 +171,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             
             var lobbyData = new Dictionary<string, DataObject>
             {
-                { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.ServerID) },
+                { "uniqueID", new DataObject(DataObject.VisibilityOptions.Public, _serverConfig.InstanceID) },
                 { "joinCode", new DataObject(DataObject.VisibilityOptions.Public, joinCode) },
             };
             /*

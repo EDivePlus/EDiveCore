@@ -34,7 +34,7 @@ namespace EDIVE.Networking.ServerManagement.UI
                 _NameText.text = serverEndpoint.Name;
             
             if (_EndpointText)
-                _EndpointText.text = serverEndpoint.ToString();
+                _EndpointText.text = serverEndpoint.EndpointText;
             
             _ConnectActivation?.RegisterActivationListener(OnConnectActivated);
         }
