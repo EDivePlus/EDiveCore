@@ -10,6 +10,7 @@ using EDIVE.Core.Versions;
 using EDIVE.Networking.ServerManagement.UnityServices;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
+using FishNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -190,8 +191,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
                 try
                 {
-                    var hostServer = AppCore.Services.TryGet<NetworkServerManager>(out var nsm) ? nsm.HostServer : null;
-                    var currentPlayers = hostServer?.CurrentPlayers ?? 0;
+                    var currentPlayers = InstanceFinder.ServerManager.Clients.Count;
                     var data = new ServiceHubServerData(_serverConfig.InstanceID, currentPlayers, _serverConfig.MaxPlayers).Serialize();
 
                     var request = new UpdateServerRequest(

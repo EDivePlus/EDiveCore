@@ -13,6 +13,7 @@ using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
 using FishNet;
+using FishNet.Connection;
 using FishNet.Transporting;
 using FishNet.Transporting.Tugboat;
 using Sirenix.OdinInspector;
@@ -70,6 +71,7 @@ namespace EDIVE.Networking.ServerManagement
                 await adapter.Initialize(_ServerConfig);
             }
             InstanceFinder.ServerManager.OnServerConnectionState += OnServerConnectionStateChanged;
+            InstanceFinder.ServerManager.OnRemoteConnectionState += OnServerRemoteConnectionStateChanged;
             InstanceFinder.ClientManager.OnClientConnectionState += OnClientConnectionStateChanged;
             _masterNetworkManager.ServerPrepareHandlers += OnServerPrepareHandlers;
         }
@@ -84,6 +86,7 @@ namespace EDIVE.Networking.ServerManagement
         {
             base.OnDestroy();
             InstanceFinder.ServerManager.OnServerConnectionState -= OnServerConnectionStateChanged;
+            InstanceFinder.ServerManager.OnRemoteConnectionState -= OnServerRemoteConnectionStateChanged;
             InstanceFinder.ClientManager.OnClientConnectionState -= OnClientConnectionStateChanged;
             if (_masterNetworkManager != null)                
                 _masterNetworkManager.ServerPrepareHandlers -= OnServerPrepareHandlers;
@@ -294,6 +297,15 @@ namespace EDIVE.Networking.ServerManagement
 
             if (JoinedServer != null)
                 JoinedServer.CurrentPlayers = InstanceFinder.ServerManager.Clients.Count;
+        }
+
+        private void OnServerRemoteConnectionStateChanged(NetworkConnection conn, RemoteConnectionStateArgs args)
+        {
+            if (HostServer == null)
+                return;
+
+            HostServer.CurrentPlayers = InstanceFinder.ServerManager.Clients.Count;
+            HostServer.LastUpdated = DateTime.UtcNow;
         }
 
         public void StartSearch()
