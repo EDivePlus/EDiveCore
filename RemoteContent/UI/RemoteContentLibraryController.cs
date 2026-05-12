@@ -61,7 +61,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
         private bool _hasMore;
         private CancellationTokenSource _cts;
         
-        private RemoteContentApiService _serviceHub;
+        private RemoteContentService _serviceHub;
 
         private void OnEnable()
         {

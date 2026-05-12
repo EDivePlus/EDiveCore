@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace EDIVE.ServiceHub.RemoteContent
 {
-    public class RemoteContentApiService : MonoBehaviour, IServiceHubModule
+    public class RemoteContentService : MonoBehaviour, IServiceHubModule
     {
         private ServiceHubSettings _settings;
 

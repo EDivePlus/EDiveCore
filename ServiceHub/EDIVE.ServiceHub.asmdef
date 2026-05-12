@@ -7,17 +7,10 @@
         "EDIVE.Core",
         "EDIVE.AppLoading",
         "EDIVE.Http",
-        "EDIVE.Utils.Json",
         "EDIVE.OdinExtensions",
         "EDIVE.Time",
         "EDIVE.StateHandling",
-        "EDIVE.NativeUtils",
-        "EDIVE.Conditions",
-        "UnityGLTFScripts",
-        "EDIVE.Procedural",
-        "Unity.XR.Interaction.Toolkit",
-        "EDIVE.Utils",
-        "FishNet.Runtime"
+        "EDIVE.Conditions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -26,12 +19,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [
-        {
-            "name": "org.khronos.unitygltf",
-            "expression": "",
-            "define": "UNITY_GLTF"
-        }
-    ],
+    "versionDefines": [],
     "noEngineReferences": false
 }

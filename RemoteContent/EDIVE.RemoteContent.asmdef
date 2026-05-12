@@ -1,0 +1,36 @@
+﻿{
+  "name": "EDIVE.RemoteContent",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.AppLoading",
+    "UniTask",
+    "EDIVE.Core",
+    "EDIVE.StateHandling",
+    "EDIVE.Utils",
+    "EDIVE.ServiceHub",
+    "FishNet.Runtime",
+    "EDIVE.Http",
+    "Unity.TextMeshPro",
+    "EDIVE.Time",
+    "EDIVE.OdinExtensions",
+    "EDIVE.NativeUtils",
+    "UnityGLTFScripts",
+    "Unity.XR.Interaction.Toolkit",
+    "EDIVE.Procedural"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "org.khronos.unitygltf",
+      "expression": "",
+      "define": "UNITY_GLTF"
+    }
+  ],
+  "noEngineReferences": false
+}

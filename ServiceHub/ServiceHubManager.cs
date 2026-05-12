@@ -38,13 +38,13 @@ namespace EDIVE.ServiceHub
         [SerializeField]
         [Required]
         [EnhancedBoxGroup("Modules")]
-        private RemoteContentApiService _RemoteContent;
+        private RemoteContentService _RemoteContent;
 
         public ServiceHubSettings Settings => _Settings;
         public ClientAuthService ClientAuth => _ClientAuth;
         public ServerAuthService ServerAuth => _ServerAuth;
         public SaveDataService SaveData => _SaveData;
-        public RemoteContentApiService RemoteContent => _RemoteContent;
+        public RemoteContentService RemoteContent => _RemoteContent;
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
