@@ -51,8 +51,8 @@ namespace EDIVE.ServiceHub
             foreach (var module in GetAllModules())
                 module.Initialize(_Settings);
 
-            _ClientAuth.FlushBeforeLogoutAsync = _SaveData.FlushAllDirtyEntries;
-            _ServerAuth.FlushBeforeLogoutAsync = _SaveData.FlushAllServerDirtyEntries;
+            _ClientAuth.OnLoggingOutAsync += _SaveData.FlushAllDirtyEntries;
+            _ServerAuth.OnLoggingOutAsync += _SaveData.FlushAllServerDirtyEntries;
 
             if (AuthStorage.Client.IsValid())
                 await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);

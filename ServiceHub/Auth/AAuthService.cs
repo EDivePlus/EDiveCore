@@ -2,6 +2,7 @@
 // Created: 12.05.2026
 
 using System;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
@@ -17,9 +18,8 @@ namespace EDIVE.ServiceHub.Auth
 
         public event Action<TLoginResponse> OnLoginSucceeded;
         public event Action<long, string> OnLoginFailed;
+        public event Func<CancellationToken, UniTask> OnLoggingOutAsync;
         public event Action OnLoggedOut;
-
-        public Func<CancellationToken, UniTask> FlushBeforeLogoutAsync { get; set; }
 
         public bool IsLoggedIn => Storage.IsValid();
 
@@ -37,12 +37,19 @@ namespace EDIVE.ServiceHub.Auth
             var effectiveToken = cancellationToken == CancellationToken.None
                 ? this.GetCancellationTokenOnDestroy()
                 : cancellationToken;
+            
+            if (OnLoggingOutAsync != null)
+            {
+                var tasks = OnLoggingOutAsync.GetInvocationList()
+                    .Cast<Func<CancellationToken, UniTask>>()
+                    .Where(h => h != null)
+                    .Select(h => h(effectiveToken));
 
-            if (FlushBeforeLogoutAsync != null)
-                await FlushBeforeLogoutAsync(effectiveToken);
+                await UniTask.WhenAll(tasks);
+            }
 
-            OnLoggedOut?.Invoke();
             Storage.Clear();
+            OnLoggedOut?.Invoke();
         }
 
         protected NetworkResponse<TLoginResponse> HandleLoginResponse(NetworkResponse<ApiResponse<TLoginResponse>> response)
