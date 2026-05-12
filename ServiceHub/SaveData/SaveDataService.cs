@@ -1,5 +1,5 @@
 // Author: Michal Petr
-// Created: 16.03.2026
+// Created: 12.05.2026
 
 using System;
 using System.Collections.Generic;
@@ -7,17 +7,14 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
-using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
-using EDIVE.ServiceHub.SaveData;
-using EDIVE.Time.TimeSpanUtils;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.ServiceHub
+namespace EDIVE.ServiceHub.SaveData
 {
-    public partial class ServiceHubManager
+    public class SaveDataService : MonoBehaviour, IServiceHubModule
     {
         private const int MAX_KEY_LENGTH = 256;
         private const int MAX_VALUE_BYTES = 256 * 1024;
@@ -26,9 +23,17 @@ namespace EDIVE.ServiceHub
         private const int BATCH_TOTAL_SIZE_THRESHOLD = 128 * 1024;
 
         [SerializeField]
-        [PropertyOrder(20)]
-        [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Orange", SpaceBefore = 8)]
-        private UTimeSpan _DirtyDataSyncInterval = TimeSpan.FromSeconds(30);
+        [Required]
+        private ClientAuthService _ClientAuth;
+
+        [SerializeField]
+        [Required]
+        private ServerAuthService _ServerAuth;
+
+        private ServiceHubSettings _settings;
+
+        private ISaveDataLocalStore _local;
+        private ISaveDataLocalStore _serverLocal;
 
         private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _dirtyEntries = new();
         private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _serverDirtyEntries = new();
@@ -39,12 +44,83 @@ namespace EDIVE.ServiceHub
         private SaveDataContext _userCtx;
         private SaveDataContext _serverCtx;
         private bool _contextsReady;
+        private bool _initialized;
+        private bool _authSubscribed;
+
+        public void Initialize(ServiceHubSettings settings)
+        {
+            _settings = settings;
+
+            _local = AuthStorage.Client.IsValid()
+                ? new PlayerPrefsSaveDataStore($"uc.savedata.{ClientAuthService.GetUserId()}.")
+                : new PlayerPrefsSaveDataStore();
+
+            if (AuthStorage.Server.IsValid())
+            {
+                var serverId = ServerAuthService.GetServerId();
+                if (!string.IsNullOrEmpty(serverId))
+                    _serverLocal = new PlayerPrefsSaveDataStore($"uc.savedata.server.{serverId}.");
+            }
+
+            SubscribeAuth();
+            _initialized = true;
+            StartSyncLoops();
+        }
+
+        private void SubscribeAuth()
+        {
+            if (_authSubscribed) return;
+            _ClientAuth.OnLoginSucceeded += OnClientLoginSucceeded;
+            _ClientAuth.OnLoggedOut += OnClientLoggedOut;
+            _ServerAuth.OnLoginSucceeded += OnServerLoginSucceeded;
+            _authSubscribed = true;
+        }
+
+        private void UnsubscribeAuth()
+        {
+            if (!_authSubscribed) return;
+            if (_ClientAuth != null)
+            {
+                _ClientAuth.OnLoginSucceeded -= OnClientLoginSucceeded;
+                _ClientAuth.OnLoggedOut -= OnClientLoggedOut;
+            }
+            if (_ServerAuth != null)
+                _ServerAuth.OnLoginSucceeded -= OnServerLoginSucceeded;
+            _authSubscribed = false;
+        }
+
+        private void OnClientLoginSucceeded(LoginResponse response)
+        {
+            var userId = response?.AuthUser?.Id ?? ClientAuthService.GetUserId();
+            _local = new PlayerPrefsSaveDataStore(string.IsNullOrEmpty(userId)
+                ? "uc.savedata."
+                : $"uc.savedata.{userId}.");
+            _contextsReady = false;
+        }
+
+        private void OnClientLoggedOut()
+        {
+            _local = new PlayerPrefsSaveDataStore();
+            _contextsReady = false;
+        }
+
+        private void OnServerLoginSucceeded(ServerLoginResponse response)
+        {
+            var serverId = response?.ServerId ?? ServerAuthService.GetServerId();
+            if (string.IsNullOrEmpty(serverId))
+            {
+                Debug.LogError("[ServiceHub] Server login response missing ServerId; skipping server local store init.");
+                return;
+            }
+            _serverLocal = new PlayerPrefsSaveDataStore($"uc.savedata.server.{serverId}.");
+            _contextsReady = false;
+        }
 
         private void EnsureContexts()
         {
             if (_contextsReady) return;
-            _userCtx = new SaveDataContext(this, false, $"{ServiceBaseUrl}/savedata/user", _dirtyEntries, _dirtyLock, "user");
-            _serverCtx = new SaveDataContext(this, true, $"{ServiceBaseUrl}/savedata/server", _serverDirtyEntries, _serverDirtyLock, "server");
+            _userCtx = new SaveDataContext(this, isServer: false, $"{_settings.ServiceBaseUrl}/savedata/user", _dirtyEntries, _dirtyLock, "user");
+            _serverCtx = new SaveDataContext(this, isServer: true, $"{_settings.ServiceBaseUrl}/savedata/server", _serverDirtyEntries, _serverDirtyLock, "server");
             _contextsReady = true;
         }
 
@@ -54,25 +130,27 @@ namespace EDIVE.ServiceHub
         private CancellationToken GetEffectiveToken(CancellationToken ct)
             => ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
 
-        private void OnEnable()
+        private int RequestTimeoutSeconds => _settings.ApiTimeoutSeconds;
+
+        private void StartSyncLoops()
         {
-            if (_syncCts != null)
-                return;
+            if (_syncCts != null) return;
             _syncCts = new CancellationTokenSource();
 
             StartSyncLoop(SaveDataDirtyFlag.OnBatch,
-                ct => UniTask.Delay(_DirtyDataSyncInterval, cancellationToken: ct),
+                ct => UniTask.Delay(_settings.DirtyDataSyncInterval, cancellationToken: ct),
                 _syncCts.Token).Forget();
             StartSyncLoop(SaveDataDirtyFlag.OnEndOfFrame,
                 UniTask.WaitForEndOfFrame,
                 _syncCts.Token).Forget();
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             _syncCts?.Cancel();
             _syncCts?.Dispose();
             _syncCts = null;
+            UnsubscribeAuth();
         }
 
         private async UniTaskVoid StartSyncLoop(
@@ -85,6 +163,7 @@ namespace EDIVE.ServiceHub
                 try
                 {
                     await waitFactory(ct);
+                    if (!_initialized) continue;
                     await FlushDirtyEntries(UserCtx(), flag, ct);
                     await FlushDirtyEntries(ServerCtx(), flag, ct);
                 }
@@ -160,7 +239,7 @@ namespace EDIVE.ServiceHub
                     ctx.KeyUrl(key),
                     ctx.AccessToken,
                     null,
-                    GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                    RequestTimeoutSeconds,
                     effectiveToken
                 );
 
@@ -185,7 +264,6 @@ namespace EDIVE.ServiceHub
                 }
             }
 
-            // forceRefresh fallback: surface stale local data instead of dropping the op
             if (forceRefresh && local.TryGet(key, out var fallbackJson))
             {
                 try
@@ -288,7 +366,7 @@ namespace EDIVE.ServiceHub
                 ctx.KeyUrl(key),
                 ctx.AccessToken,
                 null,
-                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                RequestTimeoutSeconds,
                 effectiveToken
             );
 
@@ -450,7 +528,7 @@ namespace EDIVE.ServiceHub
                 request,
                 ctx.AccessToken,
                 null,
-                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                RequestTimeoutSeconds,
                 ct
             );
         }
@@ -466,14 +544,14 @@ namespace EDIVE.ServiceHub
                 request,
                 ctx.AccessToken,
                 null,
-                GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                RequestTimeoutSeconds,
                 ct
             );
         }
-        
+
         private readonly struct SaveDataContext
         {
-            private readonly ServiceHubManager _manager;
+            private readonly SaveDataService _service;
             private readonly bool _isServer;
 
             public readonly string RemoteBaseUrl;
@@ -482,14 +560,14 @@ namespace EDIVE.ServiceHub
             public readonly string LogScope;
 
             public SaveDataContext(
-                ServiceHubManager manager,
+                SaveDataService service,
                 bool isServer,
                 string remoteBaseUrl,
                 Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> dirtyEntries,
                 object dirtyLock,
                 string logScope)
             {
-                _manager = manager;
+                _service = service;
                 _isServer = isServer;
                 RemoteBaseUrl = remoteBaseUrl;
                 DirtyEntries = dirtyEntries;
@@ -497,7 +575,7 @@ namespace EDIVE.ServiceHub
                 LogScope = logScope;
             }
 
-            public ISaveDataLocalStore Local => _isServer ? _manager._serverLocal : _manager._local;
+            public ISaveDataLocalStore Local => _isServer ? _service._serverLocal : _service._local;
             public bool IsAuthValid => _isServer ? AuthStorage.Server.IsValid() : AuthStorage.Client.IsValid();
             public string AccessToken => _isServer ? AuthStorage.Server.GetAccessToken() : AuthStorage.Client.GetAccessToken();
             public string KeyUrl(string key) => $"{RemoteBaseUrl}/{Uri.EscapeDataString(key)}";

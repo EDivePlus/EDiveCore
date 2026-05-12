@@ -1,5 +1,5 @@
 // Author: Michal Petr
-// Created: 30.04.2026
+// Created: 12.05.2026
 
 using System;
 using System.Collections.Generic;
@@ -9,24 +9,35 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
-using EDIVE.ServiceHub.RemoteContent;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.ServiceHub
+namespace EDIVE.ServiceHub.RemoteContent
 {
-    public partial class ServiceHubManager
+    public class RemoteContentApiService : MonoBehaviour, IServiceHubModule
     {
+        private ServiceHubSettings _settings;
+
         private readonly Dictionary<string, RemoteContentResult> _remoteContentCache = new();
         private readonly object _remoteContentCacheLock = new();
 
-        private string ContentBaseUrl => $"{ServiceBaseUrl}/content";
+        private string ContentBaseUrl => $"{_settings.ServiceBaseUrl}/content";
         private string ContentMediaTypesUrl => $"{ContentBaseUrl}/media-types";
         private string ContentItemsUrl => $"{ContentBaseUrl}/items";
         private string ContentItemsCountUrl => $"{ContentBaseUrl}/items/count";
         private string ItemShareUrl(string itemId) => $"{ContentBaseUrl}/items/{Uri.EscapeDataString(itemId)}/share";
         private string SharedContentUrl(string token) => $"{ContentBaseUrl}/shared/{Uri.EscapeDataString(token)}";
         private string SharedContentInfoUrl(string token) => $"{ContentBaseUrl}/shared/{Uri.EscapeDataString(token)}/info";
+
+        private int RequestTimeoutSeconds => _settings.ApiTimeoutSeconds;
+
+        public void Initialize(ServiceHubSettings settings)
+        {
+            _settings = settings;
+        }
+
+        private CancellationToken GetEffectiveToken(CancellationToken ct)
+            => ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
 
         private static string AppendQuery(string url, string key, string value)
         {
@@ -45,10 +56,10 @@ namespace EDIVE.ServiceHub
                 SharedContentInfoUrl(shareToken),
                 authToken: null,
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
-            return UnwrapApi(response, $"GetSharedContentInfo({shareToken})");
+            return ApiResponseHelper.UnwrapApi(response, $"GetSharedContentInfo({shareToken})");
         }
 
         public async UniTask<NetworkResponse<RemoteContentResult>> GetRemoteContentAsync(
@@ -68,7 +79,7 @@ namespace EDIVE.ServiceHub
                 SharedContentUrl(shareToken),
                 authToken: null,
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
 
@@ -99,10 +110,10 @@ namespace EDIVE.ServiceHub
                 ContentMediaTypesUrl,
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
-            return UnwrapApi(response, "ListContentMediaTypes");
+            return ApiResponseHelper.UnwrapApi(response, "ListContentMediaTypes");
         }
 
         [Button]
@@ -130,10 +141,10 @@ namespace EDIVE.ServiceHub
                 url,
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
-            return UnwrapApi(response, "ListOwnContentItems");
+            return ApiResponseHelper.UnwrapApi(response, "ListOwnContentItems");
         }
 
         [Button]
@@ -157,10 +168,10 @@ namespace EDIVE.ServiceHub
                 url,
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
-            return UnwrapApi(response, "CountOwnContentItems");
+            return ApiResponseHelper.UnwrapApi(response, "CountOwnContentItems");
         }
 
         [Button]
@@ -181,10 +192,10 @@ namespace EDIVE.ServiceHub
                 request: null,
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
-            return UnwrapApi(response, $"CreateContentShare({itemId})");
+            return ApiResponseHelper.UnwrapApi(response, $"CreateContentShare({itemId})");
         }
 
         [Button]
@@ -204,7 +215,7 @@ namespace EDIVE.ServiceHub
                 ItemShareUrl(itemId),
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
-                timeout: GetRequestTimeoutSeconds(_ApiTimeoutSeconds),
+                timeout: RequestTimeoutSeconds,
                 cancellationToken: GetEffectiveToken(cancellationToken)
             );
 
@@ -224,26 +235,6 @@ namespace EDIVE.ServiceHub
             }
 
             return NetworkResponse<bool>.Success(response.StatusCode, true);
-        }
-
-        private static NetworkResponse<T> UnwrapApi<T>(NetworkResponse<ApiResponse<T>> response, string scope)
-        {
-            if (!response.IsSuccess && response.Result == null)
-            {
-                Debug.LogError($"[ServiceHub] {scope} request failed: {response.ErrorMessage}");
-                return NetworkResponse<T>.Error(response.StatusCode, response.ErrorMessage);
-            }
-
-            var api = response.Result;
-            if (api == null || api.Status != 0 || api.Data == null)
-            {
-                var message = api?.Message ?? "Unknown error";
-                var status = api?.Status ?? -1;
-                Debug.LogError($"[ServiceHub] {scope} API error ({status}): {message}");
-                return NetworkResponse<T>.Error(response.StatusCode, message);
-            }
-
-            return NetworkResponse<T>.Success(response.StatusCode, api.Data);
         }
     }
 }

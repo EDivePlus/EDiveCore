@@ -58,8 +58,8 @@ namespace EDIVE.ServiceHub.RemoteContent
 
             if (!_shareTokenCache.TryGetValue(content.Id, out var shareToken))
             {
-                var serviceHub = AppCore.Services.Get<ServiceHubManager>();
-                var shareResponse = await serviceHub.CreateContentShareAsync(content.Id);
+                var contentApi = AppCore.Services.Get<ServiceHubManager>().RemoteContent;
+                var shareResponse = await contentApi.CreateContentShareAsync(content.Id);
                 if (!shareResponse.IsSuccess || shareResponse.Result == null || string.IsNullOrEmpty(shareResponse.Result.Token))
                 {
                     Debug.LogError($"[RemoteContentManager] Failed to create share for '{content.Id}': {shareResponse.ErrorMessage}");

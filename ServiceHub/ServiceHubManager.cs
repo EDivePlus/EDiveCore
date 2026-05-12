@@ -1,47 +1,69 @@
-﻿// Author: František Holubec
-// Created: 09.02.2026
+// Author: Michal Petr
+// Created: 12.05.2026
 
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
+using EDIVE.ServiceHub.RemoteContent;
 using EDIVE.ServiceHub.SaveData;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.ServiceHub
 {
-    public partial class ServiceHubManager : ALoadableServiceBehaviour<ServiceHubManager>
+    public class ServiceHubManager : ALoadableServiceBehaviour<ServiceHubManager>
     {
         [SerializeField]
-        private string _ServiceBaseUrl = "https://ediveplus.phil.muni.cz/api";
-        
+        [Required]
+        private ServiceHubSettings _Settings;
+
         [SerializeField]
-        private string _AppSecret = "";
-        
-        private ISaveDataLocalStore _local;
-        private ISaveDataLocalStore _serverLocal;
+        [Required]
+        [EnhancedBoxGroup("Modules", Color = "@ColorTools.Yellow", SpaceBefore = 8)]
+        private ClientAuthService _ClientAuth;
 
-        private string ServiceBaseUrl => (_ServiceBaseUrl ?? "").TrimEnd('/');
+        [SerializeField]
+        [Required]
+        [EnhancedBoxGroup("Modules")]
+        private ServerAuthService _ServerAuth;
 
-        private static int GetRequestTimeoutSeconds(int timeoutSeconds) => Mathf.Max(3, timeoutSeconds);
+        [SerializeField]
+        [Required]
+        [EnhancedBoxGroup("Modules")]
+        private SaveDataService _SaveData;
+
+        [SerializeField]
+        [Required]
+        [EnhancedBoxGroup("Modules")]
+        private RemoteContentApiService _RemoteContent;
+
+        public ServiceHubSettings Settings => _Settings;
+        public ClientAuthService ClientAuth => _ClientAuth;
+        public ServerAuthService ServerAuth => _ServerAuth;
+        public SaveDataService SaveData => _SaveData;
+        public RemoteContentApiService RemoteContent => _RemoteContent;
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
-            _local ??= new PlayerPrefsSaveDataStore();
+            foreach (var module in GetAllModules())
+                module.Initialize(_Settings);
+
+            _ClientAuth.FlushBeforeLogoutAsync = _SaveData.FlushAllDirtyEntries;
+            _ServerAuth.FlushBeforeLogoutAsync = _SaveData.FlushAllServerDirtyEntries;
 
             if (AuthStorage.Client.IsValid())
-            {
-                TryLoadStoredClientToken();
-                await CheckClientAuthAsync(destroyCancellationToken);
-            }
+                await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);
         }
 
-        private static PlayerPrefsSaveDataStore CreateServerLocalStore(string serverId)
+        private IEnumerable<IServiceHubModule> GetAllModules()
         {
-            if (!string.IsNullOrEmpty(serverId)) 
-                return new PlayerPrefsSaveDataStore($"uc.savedata.server.{serverId}.");
-            Debug.LogError("[ServiceHub] ServerConfig does not have a valid ServerID");
-            return null;
+            yield return _ClientAuth;
+            yield return _ServerAuth;
+            yield return _SaveData;
+            yield return _RemoteContent;
         }
     }
 }

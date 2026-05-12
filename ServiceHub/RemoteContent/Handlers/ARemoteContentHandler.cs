@@ -115,9 +115,9 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
 
             State = RemoteContentState.Loading;
 
-            var serviceHub = AppCore.Services.Get<ServiceHubManager>();
+            var contentApi = AppCore.Services.Get<ServiceHubManager>().RemoteContent;
 
-            var infoResponse = await serviceHub.GetSharedContentInfoAsync(shareToken, cancellationToken);
+            var infoResponse = await contentApi.GetSharedContentInfoAsync(shareToken, cancellationToken);
             if (!infoResponse.IsSuccess || infoResponse.Result == null)
             {
                 Debug.LogError($"[RemoteContent] Failed to fetch info for token '{shareToken}': {infoResponse.ErrorMessage}");
@@ -126,7 +126,7 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             }
             ContentInfo = infoResponse.Result;
 
-            var response = await serviceHub.GetRemoteContentAsync(shareToken, cancellationToken);
+            var response = await contentApi.GetRemoteContentAsync(shareToken, cancellationToken);
             if (!response.IsSuccess)
             {
                 Debug.LogError($"[RemoteContent] Failed to fetch token '{shareToken}': {response.ErrorMessage}");

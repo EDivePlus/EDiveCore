@@ -61,7 +61,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
         private bool _hasMore;
         private CancellationTokenSource _cts;
         
-        private ServiceHubManager _serviceHub;
+        private RemoteContentApiService _serviceHub;
 
         private void OnEnable()
         {
@@ -100,7 +100,7 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
             var ct = ResetCancellation();
             try
             {
-                _serviceHub = AppCore.Services.Get<ServiceHubManager>();
+                _serviceHub = AppCore.Services.Get<ServiceHubManager>().RemoteContent;
                 if (_MediaTypeDropdown != null)
                     await PopulateMediaTypesAsync(ct);
                 await LoadPageAsync(0, ct);

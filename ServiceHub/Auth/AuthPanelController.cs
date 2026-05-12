@@ -1,4 +1,4 @@
-﻿// Author: Michal Petr
+// Author: Michal Petr
 // Created: 08.04.2026
 
 using EDIVE.Core;
@@ -12,37 +12,37 @@ namespace EDIVE.ServiceHub.Auth
     {
         [SerializeField]
         private AToggleState _LoggedInToggle;
-        
+
         [SerializeField]
         private Button _LogoutButton;
-        
-        private ServiceHubManager _serviceHub;
+
+        private ClientAuthService _clientAuth;
 
         private void Awake()
         {
-            _serviceHub = AppCore.Services.Get<ServiceHubManager>();
+            _clientAuth = AppCore.Services.Get<ServiceHubManager>().ClientAuth;
         }
 
         private void OnEnable()
         {
-            _serviceHub.OnClientLoginSucceeded += OnClientLoginSucceeded;
-            _serviceHub.OnClientLoginFailed += OnClientLoginFailed;
+            _clientAuth.OnLoginSucceeded += OnClientLoginSucceeded;
+            _clientAuth.OnLoginFailed += OnClientLoginFailed;
             _LogoutButton.onClick.AddListener(LogOut);
             RefreshUI();
         }
 
         private void OnDisable()
         {
-            _serviceHub.OnClientLoginSucceeded -= OnClientLoginSucceeded;
-            _serviceHub.OnClientLoginFailed -= OnClientLoginFailed;
+            _clientAuth.OnLoginSucceeded -= OnClientLoginSucceeded;
+            _clientAuth.OnLoginFailed -= OnClientLoginFailed;
             _LogoutButton.onClick.RemoveListener(LogOut);
         }
-        
+
         private void OnClientLoginSucceeded(LoginResponse response)
         {
             RefreshUI();
         }
-        
+
         private void OnClientLoginFailed(long statusCode, string errorMessage)
         {
             RefreshUI();
@@ -50,7 +50,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private void RefreshUI()
         {
-            if (ServiceHubManager.IsLoggedIn)
+            if (_clientAuth.IsLoggedIn)
             {
                 _LoggedInToggle.SetState(true);
                 _LogoutButton.interactable = true;
@@ -64,7 +64,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private void LogOut()
         {
-            _serviceHub.LogoutClient();
+            _clientAuth.LogoutClient();
             RefreshUI();
         }
     }

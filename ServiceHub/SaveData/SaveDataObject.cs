@@ -9,7 +9,7 @@ namespace EDIVE.ServiceHub.SaveData
     {
         NoChange,       // No changes to be made
         Manual,         // Synced with remote only when manually triggered
-        OnBatch,        // Synced with remote once ServiceHubManager calls BatchSync (can be triggered manually or automatically at certain intervals/events)
+        OnBatch,        // Synced with remote once SaveDataService calls BatchSync (can be triggered manually or automatically at certain intervals/events)
         OnEndOfFrame,   // Synced with remote at the end of the frame (after all changes for the frame are done)
         Immediate,      // Synced with remote immediately whenever a change is made
     }

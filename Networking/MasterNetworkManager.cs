@@ -74,7 +74,7 @@ namespace EDIVE.Networking
             {
                 if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
                 {
-                    serviceHub.FlushAllServerDirtyEntries(this.GetCancellationTokenOnDestroy()).Forget();
+                    serviceHub.SaveData.FlushAllServerDirtyEntries(this.GetCancellationTokenOnDestroy()).Forget();
                 }
             }
         }
@@ -87,11 +87,11 @@ namespace EDIVE.Networking
             
             if (args.ConnectionState == LocalConnectionState.Started)
             {
-                AppCore.Services.Get<ServiceHubManager>().OnClientLoggedOut += StopRuntime;
+                AppCore.Services.Get<ServiceHubManager>().ClientAuth.OnLoggedOut += StopRuntime;
             }
             if (args.ConnectionState == LocalConnectionState.Stopped)
             {
-                AppCore.Services.Get<ServiceHubManager>().OnClientLoggedOut -= StopRuntime;
+                AppCore.Services.Get<ServiceHubManager>().ClientAuth.OnLoggedOut -= StopRuntime;
             }
         }
 
@@ -191,9 +191,9 @@ namespace EDIVE.Networking
         {
             try
             {
-                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub)) 
+                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
                 {
-                    await serviceHub.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, destroyCancellationToken);
+                    await serviceHub.ServerAuth.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, destroyCancellationToken);
                 }
                 
                 if (ServerPrepareHandlers != null)
