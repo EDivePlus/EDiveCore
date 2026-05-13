@@ -28,10 +28,10 @@ namespace EDIVE.ServiceHub.Auth
         }
 
         public void LoginServer(string serverId, string secret) =>
-            LoginServerAsync(serverId, secret, this.GetCancellationTokenOnDestroy()).Forget();
+            LoginServerAsync(serverId, secret, destroyCancellationToken).Forget();
 
         public void LogoutServer() =>
-            LogoutAsync(this.GetCancellationTokenOnDestroy()).Forget();
+            LogoutAsync(destroyCancellationToken).Forget();
 
         public UniTask LogoutServerAsync(CancellationToken cancellationToken = default) =>
             LogoutAsync(cancellationToken);

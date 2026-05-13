@@ -31,7 +31,7 @@ namespace EDIVE.ServiceHub.Lobby
         }
 
         private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
+            => ct == CancellationToken.None ? destroyCancellationToken : ct;
 
         public async UniTask<NetworkResponse<ServerRegistrationResponse>> RegisterServerAsync(
             RegisterServerRequest request,

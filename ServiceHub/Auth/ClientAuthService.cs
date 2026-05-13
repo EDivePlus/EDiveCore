@@ -31,13 +31,13 @@ namespace EDIVE.ServiceHub.Auth
         }
 
         public void LoginClient(string email, string password) =>
-            LoginClientAsync(email, password, this.GetCancellationTokenOnDestroy()).Forget();
+            LoginClientAsync(email, password, destroyCancellationToken).Forget();
 
         public void AnonymousLoginClient() =>
-            AnonymousLoginClientAsync(this.GetCancellationTokenOnDestroy()).Forget();
+            AnonymousLoginClientAsync(destroyCancellationToken).Forget();
 
         public void LogoutClient() =>
-            LogoutAsync(this.GetCancellationTokenOnDestroy()).Forget();
+            LogoutAsync(destroyCancellationToken).Forget();
 
         public UniTask LogoutClientAsync(CancellationToken cancellationToken = default) =>
             LogoutAsync(cancellationToken);

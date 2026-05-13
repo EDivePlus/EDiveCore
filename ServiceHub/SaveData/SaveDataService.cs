@@ -128,7 +128,7 @@ namespace EDIVE.ServiceHub.SaveData
         private SaveDataContext ServerCtx() { EnsureContexts(); return _serverCtx; }
 
         private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
+            => ct == CancellationToken.None ? destroyCancellationToken : ct;
 
         private int RequestTimeoutSeconds => _settings.ApiTimeoutSeconds;
 

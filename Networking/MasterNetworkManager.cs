@@ -74,7 +74,7 @@ namespace EDIVE.Networking
             {
                 if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
                 {
-                    serviceHub.SaveData.FlushAllServerDirtyEntries(this.GetCancellationTokenOnDestroy()).Forget();
+                    serviceHub.SaveData.FlushAllServerDirtyEntries(destroyCancellationToken).Forget();
                 }
             }
         }

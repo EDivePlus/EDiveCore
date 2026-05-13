@@ -68,7 +68,7 @@ namespace EDIVE.Avatars.Networking
             if (_saveDataService == null)
                 return;
 
-            var ct = this.GetCancellationTokenOnDestroy();
+            var ct = destroyCancellationToken;
             var result = await _saveDataService.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
             if (ct.IsCancellationRequested)
                 return;
@@ -88,7 +88,7 @@ namespace EDIVE.Avatars.Networking
                 return;
 
             data.ClearDirty();
-            _saveDataService.SetSaveData(AvatarPlayerSaveData.KEY, data, SaveDataDirtyFlag.OnEndOfFrame, this.GetCancellationTokenOnDestroy()).Forget();
+            _saveDataService.SetSaveData(AvatarPlayerSaveData.KEY, data, SaveDataDirtyFlag.OnEndOfFrame, destroyCancellationToken).Forget();
         }
         
         private void OnAvatarChanged(AvatarController avatar)

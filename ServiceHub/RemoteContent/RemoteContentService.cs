@@ -37,7 +37,7 @@ namespace EDIVE.ServiceHub.RemoteContent
         }
 
         private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? this.GetCancellationTokenOnDestroy() : ct;
+            => ct == CancellationToken.None ? destroyCancellationToken : ct;
 
         private static string AppendQuery(string url, string key, string value)
         {

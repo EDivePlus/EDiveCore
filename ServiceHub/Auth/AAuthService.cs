@@ -35,7 +35,7 @@ namespace EDIVE.ServiceHub.Auth
         public async UniTask LogoutAsync(CancellationToken cancellationToken = default)
         {
             var effectiveToken = cancellationToken == CancellationToken.None
-                ? this.GetCancellationTokenOnDestroy()
+                ? destroyCancellationToken
                 : cancellationToken;
             
             if (OnLoggingOutAsync != null)

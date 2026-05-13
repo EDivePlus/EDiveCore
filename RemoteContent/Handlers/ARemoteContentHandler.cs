@@ -101,7 +101,7 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             if (string.IsNullOrEmpty(_ShareToken) || _loadInitialized)
                 return;
             _loadInitialized = true;
-            _loadCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            _loadCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             LoadContentAsync(_ShareToken, _loadCts.Token).Forget();
         }
 

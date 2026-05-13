@@ -49,6 +49,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private string _serverSecret;
 
         private LobbyService _lobby;
+        private AServerEndpoint[] _localEndpoints;
 
         public override async UniTask Initialize()
         {
@@ -56,10 +57,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _lobby = hub.Lobby;
         }
 
-        public override void StartServer()
+        public override async UniTask PrepareServerStart()
         {
-            base.StartServer();
-            RegisterAsync(destroyCancellationToken).Forget();
+            await base.PrepareServerStart();
+            await RegisterAsync(destroyCancellationToken);
         }
 
         public override void StopServer()
@@ -83,6 +84,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _searchCancellation?.Dispose();
             _searchCancellation = null;
         }
+        
+        public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
+            => _localEndpoints ?? Array.Empty<AServerEndpoint>();
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
@@ -174,6 +178,19 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             RegisteredJoinCode = response.Result.Code;
             Debug.Log($"[ServiceHubServerListAdapter] Registered with join code {RegisteredJoinCode}");
 
+            // Add local endpoints for clients to connect with
+            var endpoints = new List<AServerEndpoint>();
+            if (!string.IsNullOrEmpty(publicAddress) && publicPort is > 0)
+            {
+                endpoints.Add(new AddressServerEndpoint
+                {
+                    Name = "Remote Direct",
+                    Address = publicAddress,
+                    Port = (ushort) publicPort.Value,
+                });
+            }
+            _localEndpoints = endpoints.ToArray();
+            
             _heartbeatCancellation?.Cancel();
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);

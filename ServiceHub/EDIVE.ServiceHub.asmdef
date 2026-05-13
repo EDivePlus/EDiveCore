@@ -10,7 +10,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Time",
         "EDIVE.StateHandling",
-        "EDIVE.Conditions"
+        "EDIVE.Conditions",
+        "EDIVE.Console"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
