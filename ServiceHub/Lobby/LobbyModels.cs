@@ -210,7 +210,7 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("version")]
         [SerializeField]
-        private int _Version;
+        private string _Version;
         
         [JsonProperty("instance_id")]
         [SerializeField]
@@ -245,7 +245,7 @@ namespace EDIVE.ServiceHub.Lobby
         private string _JoinCode;
 
         public string Name => _Name;
-        public int Version => _Version;
+        public string Version => _Version;
         public string InstanceId => _InstanceId;
         public string PublicAddress => _PublicAddress;
         public int? PublicPort => _PublicPort;
