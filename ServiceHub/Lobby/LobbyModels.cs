@@ -68,7 +68,6 @@ namespace EDIVE.ServiceHub.Lobby
             string relayCode = null,
             string data = null,
             bool isPrivate = false,
-            string joinCode = null,
             string instanceId = null,
             bool isDebug = false)
         {
@@ -79,7 +78,6 @@ namespace EDIVE.ServiceHub.Lobby
             _RelayCode = relayCode;
             _Data = data;
             _IsPrivate = isPrivate;
-            _JoinCode = joinCode;
             _InstanceId = instanceId;
             _IsDebug = isDebug;
         }
@@ -94,7 +92,6 @@ namespace EDIVE.ServiceHub.Lobby
         public bool IsDebug => _IsDebug;
         public bool IsPrivate => _IsPrivate;
         public string InstanceId => _InstanceId;
-        public string JoinCode => _JoinCode;
     }
 
     [Serializable]
@@ -109,25 +106,15 @@ namespace EDIVE.ServiceHub.Lobby
         [SerializeField]
         private string _Name;
 
-        [JsonProperty("data")]
-        [SerializeField]
-        private string _Data;
-
         [JsonProperty("current_players")]
         [SerializeField]
         private int? _CurrentPlayers;
 
-        [JsonProperty("max_players")]
-        [SerializeField]
-        private int? _MaxPlayers;
-
-        public UpdateServerRequest(string secret, string name = null, string data = null, int? currentPlayers = null, int? maxPlayers = null)
+        public UpdateServerRequest(string secret, string name = null, int? currentPlayers = null)
         {
             _Secret = secret;
             _Name = name;
-            _Data = data;
             _CurrentPlayers = currentPlayers;
-            _MaxPlayers = maxPlayers;
         }
     }
 
@@ -188,12 +175,54 @@ namespace EDIVE.ServiceHub.Lobby
         [SerializeField]
         private int? _Skip;
 
-        public QueryServersRequest(int? count = null, int? skip = null, string appSecret = null)
-        {
-            _Count = count;
-            _Skip = skip;
-            _AppSecret = appSecret;
-        }
+        [JsonProperty("name")]
+        [SerializeField]
+        private string _Name;
+
+        [JsonProperty("version")]
+        [SerializeField]
+        private string _Version;
+
+        [JsonProperty("debug")]
+        [SerializeField]
+        private bool? _IsDebug;
+
+        [JsonProperty("private")]
+        [SerializeField]
+        private bool? _IsPrivate;
+
+        [JsonProperty("not_full")]
+        [SerializeField]
+        private bool? _NotFull;
+
+        [JsonProperty("has_players")]
+        [SerializeField]
+        private bool? _HasPlayers;
+
+        [JsonProperty("min_players")]
+        [SerializeField]
+        private int? _MinPlayers;
+
+        [JsonProperty("max_players_filter")]
+        [SerializeField]
+        private int? _MaxPlayersFilter;
+
+        [JsonProperty("data")]
+        [SerializeField]
+        private string _Data;
+
+        public string AppSecret { get => _AppSecret; set => _AppSecret = value; }
+        public int? Count { get => _Count; set => _Count = value; }
+        public int? Skip { get => _Skip; set => _Skip = value; }
+        public string Name { get => _Name; set => _Name = value; }
+        public string Version { get => _Version; set => _Version = value; }
+        public bool? IsDebug { get => _IsDebug; set => _IsDebug = value; }
+        public bool? IsPrivate { get => _IsPrivate; set => _IsPrivate = value; }
+        public bool? NotFull { get => _NotFull; set => _NotFull = value; }
+        public bool? HasPlayers { get => _HasPlayers; set => _HasPlayers = value; }
+        public int? MinPlayers { get => _MinPlayers; set => _MinPlayers = value; }
+        public int? MaxPlayersFilter { get => _MaxPlayersFilter; set => _MaxPlayersFilter = value; }
+        public string Data { get => _Data; set => _Data = value; }
     }
 
     // ---------
@@ -244,6 +273,14 @@ namespace EDIVE.ServiceHub.Lobby
         [SerializeField]
         private string _JoinCode;
 
+        [JsonProperty("current_players")]
+        [SerializeField]
+        private int _CurrentPlayers;
+
+        [JsonProperty("max_players")]
+        [SerializeField]
+        private int _MaxPlayers;
+
         public string Name => _Name;
         public string Version => _Version;
         public string InstanceId => _InstanceId;
@@ -254,6 +291,8 @@ namespace EDIVE.ServiceHub.Lobby
         public bool IsDebug => _IsDebug;
         public bool IsPrivate => _IsPrivate;
         public string JoinCode => _JoinCode;
+        public int CurrentPlayers => _CurrentPlayers;
+        public int MaxPlayers => _MaxPlayers;
     }
 
     [Serializable]

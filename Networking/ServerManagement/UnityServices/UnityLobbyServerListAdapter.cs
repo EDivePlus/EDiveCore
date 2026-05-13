@@ -6,8 +6,10 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.Networking.Utils;
 using PurrNet.Purrnity;
 using PurrNet.Transports;
+using Sirenix.OdinInspector;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -19,6 +21,24 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
 {
     public class UnityLobbyServerListAdapter : AServerListAdapter
     {
+        [SerializeField]
+        [MinValue(1f)]
+        [Tooltip("How often the lobby is queried while searching is active.")]
+        private float _QueryInterval = 4f;
+        
+        [SerializeField]
+        [MinValue(1f)]
+        [Tooltip("How many lobbies to fetch per query. Note that Unity's lobby service only returns up to 100 lobbies total, so setting this too high may cause increased latency without improving results.")]
+        private int _QueryCount = 5;
+        
+        [SerializeField]
+        [MinValue(1f)]
+        [Tooltip("Interval between heartbeat updates. Backend default TTL is ~40s.")]
+        private float _HeartbeatInterval = 25f;
+        
+        [SerializeField]
+        private UnityRelayAllocator _RelayAllocator;
+        
         private CancellationTokenSource _searchCancellation;
         private CancellationTokenSource _heartbeatCancellation;
 
@@ -37,6 +57,9 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         {
             await base.PrepareServerStart();
             await RegisterRelay();
+            
+            _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            HeartbeatTask(_heartbeatCancellation.Token).Forget();
         }
         
         public override void StopServer()
@@ -66,6 +89,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
+            // Ensure we don't spam the lobby service with queries if search is stopped and started again quickly.
             if (UnityEngine.Time.realtimeSinceStartup - _lastQueryTime < 2f)
                 await UniTask.Delay(TimeSpan.FromSeconds(2), true, cancellationToken: cancellationToken);
                 
@@ -73,7 +97,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             {
                 var options = new QueryLobbiesOptions
                 {
-                    Count = 5,
+                    Count = _QueryCount,
                     Filters = new List<QueryFilter>
                     {
                         new(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
@@ -83,7 +107,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
                 var response = await LobbyService.Instance.QueryLobbiesAsync(options);
                 SetServers(BuildRecords(response.Results));
-                await UniTask.Delay(TimeSpan.FromSeconds(4), true, cancellationToken: cancellationToken);
+                await UniTask.Delay(TimeSpan.FromSeconds(_QueryInterval), true, cancellationToken: cancellationToken);
             }
         }
 
@@ -133,15 +157,11 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         
         private async UniTask RegisterRelay()
         {
-            await Unity.Services.Core.UnityServices.InitializeAsync();
-            if (!AuthenticationService.Instance.IsSignedIn)
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
-
             var transportController = await AppCore.Services.AwaitRegistered<TransportController>();
             var joinCode = string.Empty;
             try
             {
-                var allocation = await RelayService.Instance.CreateAllocationAsync(_serverConfig.MaxPlayers);
+                var allocation = await _RelayAllocator.GetAllocationAsync();
                 joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
                 
                 if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
@@ -171,25 +191,24 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 RelayJoinCode = joinCode,
             });
             _localEndpoints = endpoints.ToArray();
-
-            _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-            UniTask.Void(async cancellationToken =>
+        }
+        
+        private async UniTaskVoid HeartbeatTask(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (!cancellationToken.IsCancellationRequested)
+                await UniTask.Delay(TimeSpan.FromSeconds(_HeartbeatInterval), true, cancellationToken: cancellationToken);
+                if (_hostLobby == null)
+                    break;
+                try
                 {
-                    await UniTask.Delay(TimeSpan.FromSeconds(25), true, cancellationToken: cancellationToken);
-                    if (_hostLobby == null)
-                        break;
-                    try
-                    {
-                        await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
-                    }
-                    catch (Exception e) when (e is not OperationCanceledException)
-                    {
-                        Debug.LogWarning($"[UnityLobbyServerListAdapter] Lobby heartbeat failed: {e.Message}");
-                    }
+                    await LobbyService.Instance.SendHeartbeatPingAsync(_hostLobby.Id);
                 }
-            }, _heartbeatCancellation.Token);
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Debug.LogWarning($"[UnityLobbyServerListAdapter] Lobby heartbeat failed: {e.Message}");
+                }
+            }
         }
         
         private async UniTask StopRelay()

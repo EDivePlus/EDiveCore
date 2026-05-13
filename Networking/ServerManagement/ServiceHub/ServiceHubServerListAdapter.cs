@@ -12,6 +12,7 @@ using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
 using PurrNet;
 using Sirenix.OdinInspector;
+using Unity.Services.Relay;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.ServiceHub
@@ -22,11 +23,11 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         [MinValue(1f)]
         [Tooltip("How often the lobby is queried while searching is active.")]
         private float _QueryInterval = 4f;
-
+        
         [SerializeField]
-        [MinValue(1)]
-        [Tooltip("Maximum number of servers to fetch per query.")]
-        private int _QueryCount = 20;
+        [MinValue(1f)]
+        [Tooltip("How many lobbies to fetch per query.")]
+        private int _QueryCount = 5;
         
         [SerializeField]
         [MinValue(1f)]
@@ -34,56 +35,53 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private float _HeartbeatInterval = 15f;
         
         [SerializeField]
+        private UnityRelayAllocator _RelayAllocator;
+        
+        [SerializeField]
         private AppVersionDefinition _VersionDefinition;
 
-        [ReadOnly]
-        [ShowInInspector]
-        public string RegisteredJoinCode { get; private set; }
-
-        [ReadOnly]
-        [ShowInInspector]
-        public bool IsRegistered => !string.IsNullOrEmpty(_serverSecret);
-
+        private LobbyService _lobby;
+        
         private CancellationTokenSource _searchCancellation;
         private CancellationTokenSource _heartbeatCancellation;
+        private CancellationTokenSource _probeCancellation;
+        
+        private float _lastQueryTime;
+        private AServerEndpoint[] _localEndpoints;
+        
         private string _serverSecret;
 
-        private LobbyService _lobby;
-        private AServerEndpoint[] _localEndpoints;
-
-        public override async UniTask Initialize()
+        public override UniTask Initialize()
         {
-            var hub = await AppCore.Services.AwaitRegistered<ServiceHubManager>();
-            _lobby = hub.Lobby;
+            base.Initialize();
+            _lobby = AppCore.Services.Get<ServiceHubManager>().Lobby;
+            return UniTask.CompletedTask;
         }
 
-        public override void PopulateDependencies(HashSet<Type> dependencies)
-        {
-            base.PopulateDependencies(dependencies);
-            dependencies.Add(typeof(ServiceHubManager));
-        }
-
-        public override void StartServer()
+        public override async UniTask PrepareServerStart()
         {
             await base.PrepareServerStart();
-            await RegisterAsync(destroyCancellationToken);
+            await RegisterLobby(destroyCancellationToken);
+            
+            _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            HeartbeatTask(_heartbeatCancellation.Token).Forget();
         }
-
+        
         public override void StopServer()
         {
             base.StopServer();
             DisposeAsync().Forget();
         }
-
+        
         public override void StartSearch()
         {
             if (_searchCancellation != null)
                 return;
-
+            
             _searchCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             SearchTask(_searchCancellation.Token).Forget();
         }
-
+        
         public override void StopSearch()
         {
             _searchCancellation?.Cancel();
@@ -93,117 +91,100 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         
         public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
             => _localEndpoints ?? Array.Empty<AServerEndpoint>();
-
+        
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
+            // Ensure we don't spam the lobby service with queries if search is stopped and started again quickly.
+            if (UnityEngine.Time.realtimeSinceStartup - _lastQueryTime < 2f)
+                await UniTask.Delay(TimeSpan.FromSeconds(2), true, cancellationToken: cancellationToken);
+                
             while (!cancellationToken.IsCancellationRequested)
             {
-                try
-                {
-                    if (_lobby != null)
-                    {
-                        var response = await _lobby.QueryServersAsync(_QueryCount, 0, cancellationToken);
-                        if (response.IsSuccess && response.Result != null)
-                            SetServers(BuildRecords(response.Result));
-                    }
-                }
-                catch (Exception e) when (e is not OperationCanceledException)
-                {
-                    Debug.LogWarning($"[ServiceHubServerListAdapter] Query failed: {e.Message}");
-                }
-
+                _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
+                var response = await _lobby.QueryServersAsync(
+                    new QueryServersRequest { Count = _QueryCount, Skip = 0 },
+                    cancellationToken);
+                SetServers(BuildRecords(response.Result));
                 await UniTask.Delay(TimeSpan.FromSeconds(_QueryInterval), true, cancellationToken: cancellationToken);
             }
         }
 
-        private static IEnumerable<ServerRecord> BuildRecords(IEnumerable<LobbyServerResponse> responses)
+        private static IEnumerable<ServerRecord> BuildRecords(IEnumerable<LobbyServerResponse> lobbies)
         {
-            foreach (var item in responses)
+            foreach (var lobby in lobbies)
             {
-                if (item == null)
-                    continue;
-
-                var parsed = ServiceHubServerData.TryParse(item.Data);
-                var instanceID = !string.IsNullOrEmpty(parsed?.InstanceID) ? parsed.InstanceID : item.JoinCode;
-                if (string.IsNullOrEmpty(instanceID))
-                    continue;
-
                 var endpoints = new List<AServerEndpoint>();
-                if (!string.IsNullOrEmpty(item.PublicAddress) && item.PublicPort is > 0)
+                if (!string.IsNullOrWhiteSpace(lobby.PublicAddress) && lobby.PublicPort > 0)
                 {
                     endpoints.Add(new AddressServerEndpoint
                     {
                         Name = "Remote Direct",
-                        Address = item.PublicAddress,
-                        Port = (ushort) item.PublicPort.Value,
+                        Address = lobby.PublicAddress,
+                        Port = (ushort) lobby.PublicPort
                     });
                 }
 
                 yield return new ServerRecord
                 {
-                    InstanceID = instanceID,
-                    ServerName = item.Name,
-                    CurrentPlayers = parsed?.CurrentPlayers ?? 0,
-                    MaxPlayers = parsed?.MaxPlayers ?? 0,
-                    Endpoints = endpoints,
+                    InstanceID = lobby.InstanceId,
+                    ServerName = lobby.Name,
+                    CurrentPlayers = lobby.CurrentPlayers,
+                    MaxPlayers = lobby.MaxPlayers,
+                    Endpoints = endpoints
                 };
             }
         }
 
-        private async UniTask RegisterAsync(CancellationToken cancellationToken)
+        private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
         {
-            if (_serverConfig == null || _lobby == null)
-                return;
-
-            var hostServer = AppCore.Services.TryGet<NetworkServerManager>(out var nsm) ? nsm.HostServer : null;
-            var (publicAddress, publicPort, relayCode) = ResolveEndpoints(hostServer);
-
-            var currentPlayers = hostServer?.CurrentPlayers ?? 0;
-            var data = new ServiceHubServerData(_serverConfig.InstanceID, currentPlayers, _serverConfig.MaxPlayers).Serialize();
-
-            var request = new RegisterServerRequest(
+            var joinCode = string.Empty;
+            try
+            {
+                var allocation = await _RelayAllocator.GetAllocationAsync();
+                joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+            
+            var data = new ServiceHubServerData
+            {
+                InstanceID = _serverConfig.InstanceID,
+                RelayCode = joinCode
+            };
+            var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
+            (
                 name: _serverConfig.ServerName,
                 version: _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
-                publicAddress: publicAddress,
-                publicPort: publicPort,
-                relayCode: relayCode,
-                data: data,
-                isPrivate: false,
-                joinCode: null,
+                publicAddress: _serverConfig.PublicAddress,
+                publicPort: _serverConfig.Port,
+                data: data.Serialize(),
+                isPrivate: _serverConfig.IsPrivate,
                 isDebug: Debug.isDebugBuild
-            );
-
-            var response = await _lobby.RegisterServerAsync(request, cancellationToken);
+            ), cancellationToken);
+            
             if (!response.IsSuccess || response.Result == null)
             {
                 Debug.LogError($"[ServiceHubServerListAdapter] Server registration failed: {response.ErrorMessage}");
                 return;
             }
-
             _serverSecret = response.Result.Secret;
-            RegisteredJoinCode = response.Result.Code;
-            Debug.Log($"[ServiceHubServerListAdapter] Registered with join code {RegisteredJoinCode}");
-
-            // Add local endpoints for clients to connect with
+            
             var endpoints = new List<AServerEndpoint>();
-            if (!string.IsNullOrEmpty(publicAddress) && publicPort is > 0)
+            if (!string.IsNullOrEmpty(_serverConfig.PublicAddress) && _serverConfig.Port > 0)
             {
                 endpoints.Add(new AddressServerEndpoint
                 {
                     Name = "Remote Direct",
-                    Address = publicAddress,
-                    Port = (ushort) publicPort.Value,
+                    Address = _serverConfig.PublicAddress,
+                    Port = _serverConfig.Port,
                 });
             }
             _localEndpoints = endpoints.ToArray();
-            
-            _heartbeatCancellation?.Cancel();
-            _heartbeatCancellation?.Dispose();
-            _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-            HeartbeatLoop(_heartbeatCancellation.Token).Forget();
         }
-
-        private async UniTaskVoid HeartbeatLoop(CancellationToken cancellationToken)
+        
+        private async UniTaskVoid HeartbeatTask(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -214,15 +195,12 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
                 try
                 {
-                    var currentPlayers = NetworkManager.main != null ? NetworkManager.main.playerCount : 0;
-                    var data = new ServiceHubServerData(_serverConfig.InstanceID, currentPlayers, _serverConfig.MaxPlayers).Serialize();
-
+                    var currentPlayers = NetworkManager.main.playerCount;
+                    
                     var request = new UpdateServerRequest(
                         secret: _serverSecret,
                         name: _serverConfig.ServerName,
-                        data: data,
-                        currentPlayers: currentPlayers,
-                        maxPlayers: _serverConfig.MaxPlayers
+                        currentPlayers: currentPlayers
                     );
 
                     var response = await _lobby.UpdateServerAsync(request, cancellationToken);
@@ -235,19 +213,19 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 }
             }
         }
-
+        
         private async UniTask DisposeAsync()
         {
             _heartbeatCancellation?.Cancel();
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
-
+            _localEndpoints = null;
+            
             if (string.IsNullOrEmpty(_serverSecret) || _lobby == null)
                 return;
 
             var secret = _serverSecret;
             _serverSecret = null;
-            RegisteredJoinCode = null;
 
             try
             {
@@ -259,32 +237,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             {
                 Debug.LogWarning($"[ServiceHubServerListAdapter] Dispose exception: {e.Message}");
             }
-        }
-
-        private static (string address, int? port, string relayCode) ResolveEndpoints(ServerRecord hostServer)
-        {
-            if (hostServer?.Endpoints == null)
-                return (null, null, null);
-
-            string address = null;
-            int? port = null;
-            string relayCode = null;
-
-            foreach (var endpoint in hostServer.Endpoints)
-            {
-                switch (endpoint)
-                {
-                    case AddressServerEndpoint addr when !string.IsNullOrEmpty(addr.Address) && addr.Port > 0:
-                        address ??= addr.Address;
-                        port ??= addr.Port;
-                        break;
-                    case UnityRelayServerEndpoint relay when !string.IsNullOrEmpty(relay.RelayJoinCode):
-                        relayCode ??= relay.RelayJoinCode;
-                        break;
-                }
-            }
-
-            return (address, port, relayCode);
         }
     }
 }

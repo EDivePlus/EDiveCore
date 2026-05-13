@@ -7,34 +7,14 @@ using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.ServiceHub
 {
-    [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class ServiceHubServerData
     {
         [JsonProperty("instance_id")]
-        [SerializeField]
-        private string _InstanceID;
-
-        [JsonProperty("current_players")]
-        [SerializeField]
-        private int _CurrentPlayers;
-
-        [JsonProperty("max_players")]
-        [SerializeField]
-        private int _MaxPlayers;
-
-        public ServiceHubServerData() { }
-
-        public ServiceHubServerData(string instanceID, int currentPlayers, int maxPlayers)
-        {
-            _InstanceID = instanceID;
-            _CurrentPlayers = currentPlayers;
-            _MaxPlayers = maxPlayers;
-        }
-
-        public string InstanceID => _InstanceID;
-        public int CurrentPlayers => _CurrentPlayers;
-        public int MaxPlayers => _MaxPlayers;
+        public string InstanceID;
+        
+        [JsonProperty("relay_code")]
+        public string RelayCode;
 
         public string Serialize() => JsonConvert.SerializeObject(this);
 

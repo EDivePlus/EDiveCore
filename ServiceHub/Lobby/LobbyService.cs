@@ -133,13 +133,17 @@ namespace EDIVE.ServiceHub.Lobby
         [PropertyOrder(99)]
         [EnhancedBoxGroup("Lobby")]
         public async UniTask<NetworkResponse<List<LobbyServerResponse>>> QueryServersAsync(
-            int? count = null,
-            int? skip = null,
+            QueryServersRequest request = null,
             CancellationToken cancellationToken = default)
         {
+            request ??= new QueryServersRequest();
+
+            if (string.IsNullOrEmpty(request.AppSecret))
+                request.AppSecret = Settings.AppSecret;
+
             var response = await RestUtils.PostAsync<ApiResponse<List<LobbyServerResponse>>, QueryServersRequest>(
                 QueryUrl,
-                new QueryServersRequest(count, skip, Settings.AppSecret),
+                request,
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
