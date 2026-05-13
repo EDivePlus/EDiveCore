@@ -57,8 +57,11 @@ namespace EDIVE.Networking.ServerManagement
         {
             _masterNetworkManager = await AppCore.Services.AwaitRegistered<MasterNetworkManager>();
             
-            _ServerConfig.ServerID ??= Guid.NewGuid().ToString();
-            _ServerConfig.InstanceID ??= Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(_ServerConfig.ServerID))
+                _ServerConfig.ServerID = Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(_ServerConfig.InstanceID))
+                _ServerConfig.InstanceID = Guid.NewGuid().ToString();
+            
             await AppCore.Services.Get<LocalConfigLoader>().SaveConfig(_ServerConfig);
 
             if (string.IsNullOrWhiteSpace(_ServerConfig.ServerName))
