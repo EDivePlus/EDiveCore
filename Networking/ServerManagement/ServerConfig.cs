@@ -1,8 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 14.07.2025
 
-using System;
-using EDIVE.OdinExtensions.Attributes;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -48,6 +46,10 @@ namespace EDIVE.Networking.ServerManagement
         [ShowInInspector]
         [ReadOnly]
         public string InstanceID { get; set; }
+        
+        [ShowInInspector]
+        [ReadOnly]
+        public ushort ResolvedPort { get; set; }
 
         public string ServerName
         {

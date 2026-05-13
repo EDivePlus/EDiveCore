@@ -83,7 +83,7 @@ namespace EDIVE.Networking.ServerManagement
             nm.onClientConnectionState += OnClientConnectionStateChanged;
             nm.onPlayerJoined += OnPlayerJoined;
             nm.onPlayerLeft += OnPlayerLeft;
-            _masterNetworkManager.ServerPrepareHandlers += OnServerPrepareHandlers;
+            _masterNetworkManager.RegisterServerPrepareHandler(OnServerPrepareHandlers);
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
@@ -104,7 +104,7 @@ namespace EDIVE.Networking.ServerManagement
                 NetworkManager.main.onPlayerLeft -= OnPlayerLeft;
             }
             if (_masterNetworkManager != null)
-                _masterNetworkManager.ServerPrepareHandlers -= OnServerPrepareHandlers;
+                _masterNetworkManager.UnregisterServerPrepareHandler(OnServerPrepareHandlers);
         }
         
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
@@ -251,17 +251,18 @@ namespace EDIVE.Networking.ServerManagement
             if (nm.TryGetCurrentTransport(out UDPTransport udp))
                 return;
 
-            if (_ServerConfig.Port > 0)
+            var port = _ServerConfig.Port;
+            if (port <= 0)
             {
-                udp.serverPort = _ServerConfig.Port;
-                Debug.Log($"[NetworkServerManager] Using configured port {_ServerConfig.Port}");
+                port = NetworkUtils.FindFreeUdpPort();
+                Debug.Log($"[NetworkServerManager] Using dynamic port {port}");
             }
             else
             {
-                var port = NetworkUtils.FindFreeUdpPort();
-                udp.serverPort = port;
-                Debug.Log($"[NetworkServerManager] Using dynamic port {port}");
+                Debug.Log($"[NetworkServerManager] Using configured port {port}");
             }
+            udp.serverPort = port;
+            _ServerConfig.ResolvedPort = port;
         }
 
         private void OnServerConnectionStateChanged(ConnectionState state)

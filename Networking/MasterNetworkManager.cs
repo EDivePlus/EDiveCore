@@ -2,6 +2,7 @@
 // Created: 22.03.2025
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
@@ -39,7 +40,13 @@ namespace EDIVE.Networking
         public Signal BeforeServerStarted { get; } = new();
         public Signal BeforeClientStarted { get; } = new();
 
-        public event Func<UniTask> ServerPrepareHandlers;
+        private struct PriorityPrepareHandler
+        {
+            public Func<UniTask> Handler;
+            public int Priority;
+        }
+        
+        private readonly List<PriorityPrepareHandler> _serverPrepareHandlers = new();
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -61,6 +68,20 @@ namespace EDIVE.Networking
         {
             base.OnDestroy();
             AppCore.Services.Unregister(this);
+        }
+        
+        public void RegisterServerPrepareHandler(Func<UniTask> handler, int priority = 0)
+        {
+            if (_serverPrepareHandlers.Any(h => h.Handler == handler))
+                return;
+            
+            _serverPrepareHandlers.Add(new PriorityPrepareHandler { Handler = handler, Priority = priority });
+            _serverPrepareHandlers.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+        }
+        
+        public void UnregisterServerPrepareHandler(Func<UniTask> handler)
+        {
+            _serverPrepareHandlers.RemoveAll(h => h.Handler == handler);
         }
         
         private void OnServerConnectionStateChanged(ConnectionState state)
@@ -187,13 +208,11 @@ namespace EDIVE.Networking
 
             try
             {
-                if (ServerPrepareHandlers != null)
+                if (_serverPrepareHandlers != null)
                 {
-                    var tasks = ServerPrepareHandlers.GetInvocationList()
-                        .Cast<Func<UniTask>>()
+                    var tasks = _serverPrepareHandlers.Select(h => h.Handler)
                         .Where(h => h != null)
                         .Select(h => h());
-
                     await UniTask.WhenAll(tasks);
                 }
 

@@ -158,7 +158,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 name: _serverConfig.ServerName,
                 version: _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
                 publicAddress: _serverConfig.PublicAddress,
-                publicPort: _serverConfig.Port,
+                publicPort: _serverConfig.ResolvedPort,
                 data: data.Serialize(),
                 isPrivate: _serverConfig.IsPrivate,
                 isDebug: Debug.isDebugBuild
@@ -172,13 +172,13 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _serverSecret = response.Result.Secret;
             
             var endpoints = new List<AServerEndpoint>();
-            if (!string.IsNullOrEmpty(_serverConfig.PublicAddress) && _serverConfig.Port > 0)
+            if (!string.IsNullOrEmpty(_serverConfig.PublicAddress) && _serverConfig.ResolvedPort > 0)
             {
                 endpoints.Add(new AddressServerEndpoint
                 {
                     Name = "Remote Direct",
                     Address = _serverConfig.PublicAddress,
-                    Port = _serverConfig.Port,
+                    Port = _serverConfig.ResolvedPort,
                 });
             }
             _localEndpoints = endpoints.ToArray();
