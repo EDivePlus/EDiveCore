@@ -228,7 +228,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             try
             {
-                var response = await _lobby.DisposeServerAsync(secret, destroyCancellationToken);
+                var response = await _lobby.DisposeServerAsync(secret);
                 if (!response.IsSuccess)
                     Debug.LogWarning($"[ServiceHubServerListAdapter] Dispose failed: {response.ErrorMessage}");
             }
