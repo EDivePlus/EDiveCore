@@ -2,9 +2,12 @@
 using System.Linq;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
+using UnityEngine;
+
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.UIElements.Tabs
 {
