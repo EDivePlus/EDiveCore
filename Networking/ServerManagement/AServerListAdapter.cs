@@ -54,7 +54,7 @@ namespace EDIVE.Networking.ServerManagement
         {
             Servers.Clear();
             _serverList.Clear();
-            _serverList.AddRange(records.Where(r => r != null));
+            _serverList.AddRange(records.Where(r => r != null && !string.IsNullOrEmpty(r.InstanceID)));
             
             var now = DateTime.UtcNow;
             foreach (var record in _serverList)
