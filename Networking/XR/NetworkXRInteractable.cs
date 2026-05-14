@@ -38,8 +38,9 @@ namespace EDIVE.Networking.XR
             }
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
+            base.OnDestroy();
             _interactable.selectEntered.RemoveListener(OnSelectEntered);
             _interactable.selectExited.RemoveListener(OnSelectExited);
         }
