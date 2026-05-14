@@ -7,11 +7,14 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Core.Versions;
+using EDIVE.Networking.ServerManagement.PurrNet;
 using EDIVE.Networking.ServerManagement.UnityServices;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
 using PurrNet;
 using PurrNet.Purrnity;
+using PurrNet.Transports;
+using PurrNet.UTP;
 using Sirenix.OdinInspector;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
@@ -133,12 +136,21 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 if (data == null || string.IsNullOrEmpty(data.InstanceID))
                     continue;
                 
-                if (!string.IsNullOrEmpty(data.RelayCode))
+                if (!string.IsNullOrEmpty(data.UnityRelayCode))
                 {
                     endpoints.Add(new UnityRelayServerEndpoint
                     {
                         Name = "Unity Relay",
-                        RelayJoinCode = data.RelayCode,
+                        RelayJoinCode = data.UnityRelayCode,
+                    });
+                }
+                
+                if (!string.IsNullOrEmpty(data.PurrRelayRoom))
+                {
+                    endpoints.Add(new PurrRelayServerEndpoint
+                    {
+                        Name = "Purr Relay",
+                        RoomName = data.PurrRelayRoom
                     });
                 }
                 
@@ -156,27 +168,40 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
         {
             var transportController = await AppCore.Services.AwaitRegistered<TransportController>();
-            var joinCode = string.Empty;
+            var unityRelayJoinCode = string.Empty;
             try
             {
                 var allocation = await _RelayAllocator.GetAllocationAsync();
-                joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+                unityRelayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
                 
                 if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
                 {
                     var serverData = allocation.ToRelayServerData("dtls");
                     unityTransport.SetRelayServerData(serverData);
                 }
+                
+                if (transportController.TryGetTransport<UTPTransport>(out var utpTransport)) 
+                    utpTransport.InitializeRelayServer(allocation);
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
             }
             
+            var purrRelayRoom = string.Empty;
+#if UNITY_EDITOR
+            if (transportController.TryGetTransport<PurrTransport>(out var purrTransport))
+            {
+                purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
+                purrTransport.roomName = purrRelayRoom;
+            }
+#endif
+            
             var data = new ServiceHubServerData
             {
                 InstanceID = _serverConfig.InstanceID,
-                RelayCode = joinCode
+                UnityRelayCode = unityRelayJoinCode,
+                PurrRelayRoom = purrRelayRoom
             };
             var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
             {
@@ -206,12 +231,22 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     Port = _serverConfig.ResolvedPort,
                 });
             }
-            if (!string.IsNullOrEmpty(joinCode))
+            
+            if (!string.IsNullOrEmpty(purrRelayRoom))
+            {
+                endpoints.Add(new PurrRelayServerEndpoint
+                {
+                    Name = "Purr Relay",
+                    RoomName = purrRelayRoom
+                });
+            }
+            
+            if (!string.IsNullOrEmpty(unityRelayJoinCode))
             {
                 endpoints.Add(new UnityRelayServerEndpoint
                 {
                     Name = "Unity Relay",
-                    RelayJoinCode = joinCode,
+                    RelayJoinCode = unityRelayJoinCode,
                 });
             }
             _localEndpoints = endpoints.ToArray();

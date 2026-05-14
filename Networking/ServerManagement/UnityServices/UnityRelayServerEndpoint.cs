@@ -5,6 +5,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using PurrNet.Purrnity;
+using PurrNet.UTP;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
@@ -14,7 +15,6 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
 {
     public class UnityRelayServerEndpoint : AServerEndpoint
     {
-        public Lobby Lobby;
         public string RelayJoinCode;
         public override string EndpointText => RelayJoinCode;
         
@@ -26,25 +26,37 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             if (!AppCore.Services.TryGet<TransportController>(out var transportController))
                 return false;
             
-            if (!transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
-                return false;
-
-            try
+            if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
             {
-                var allocation = await RelayService.Instance.JoinAllocationAsync(RelayJoinCode);
-                unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
-
+                try
+                {
+                    var allocation = await RelayService.Instance.JoinAllocationAsync(RelayJoinCode);
+                    unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
+                    
+                    var composite = transportController.SetCompositeTransport();
+                    composite.SetClientTransport(unityTransport);
+                    
+                    Debug.Log($"[ServerEndpoint] Connect using Unity relay (Purrnity) '{RelayJoinCode}'");
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+            
+            if (transportController.TryGetTransport<UTPTransport>(out var utpTransport))
+            {
+                await utpTransport.InitializeRelayClient(RelayJoinCode);
+                
                 var composite = transportController.SetCompositeTransport();
                 composite.SetClientTransport(unityTransport);
-
-                Debug.Log($"[ServerEndpoint] Connect using relay code {RelayJoinCode}");
+                
+                Debug.Log($"[ServerEndpoint] Connect using Unity relay (UTP) '{RelayJoinCode}'");
                 return true;
             }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-                return false;
-            }
+            
+            return false;
         }
     }
 }

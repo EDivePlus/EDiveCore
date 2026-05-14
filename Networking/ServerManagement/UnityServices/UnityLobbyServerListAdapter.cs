@@ -6,12 +6,10 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
-using EDIVE.Networking.Utils;
 using EDIVE.UnityServices;
 using PurrNet.Purrnity;
-using PurrNet.Transports;
+using PurrNet.UTP;
 using Sirenix.OdinInspector;
-using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
@@ -140,7 +138,6 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 endpoints.Add(new UnityRelayServerEndpoint
                 {
                     Name = "Unity Relay",
-                    Lobby = lobby,
                     RelayJoinCode = relayJoinCode,
                 });
 
@@ -169,6 +166,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                     var serverData = allocation.ToRelayServerData("dtls");
                     unityTransport.SetRelayServerData(serverData);
                 }
+                if (transportController.TryGetTransport<UTPTransport>(out var utpTransport)) 
+                    utpTransport.InitializeRelayServer(allocation);
             }
             catch (Exception e)
             {
@@ -187,7 +186,6 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             endpoints.Add(new UnityRelayServerEndpoint
             {
                 Name = "Unity Relay",
-                Lobby = _hostLobby,
                 RelayJoinCode = joinCode,
             });
             _localEndpoints = endpoints.ToArray();
