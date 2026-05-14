@@ -17,7 +17,6 @@ using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
 using PurrNet;
-using PurrNet.Transports;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -46,7 +45,7 @@ namespace EDIVE.Audio
         private IAudioInput _currentAudioInput;
         
         // Unprocessed local audio frames, triggered when a new frame is captured from the microphone
-        public event Action<AudioFrame> LocalAudioFrameReady;
+        public event Action<AudioFrame> LocalRawAudioFrameReady;
         
         // Triggered when any audio frame is received (local and remote), frames are encoded
         public event Action<PlayerID, AudioFrame> UserAudioFrameReady;
@@ -128,13 +127,17 @@ namespace EDIVE.Audio
                 audioOutput.Stream.DownwardPitchCorrectionScale = 1f;
                 return audioOutput;
             });
-            
+
+            var capturingFilter = new CapturingAudioFilter();
+            capturingFilter.AudioFrameCaptured += OnVoiceChatFrameCaptured;
             _encodeFilters = new List<IAudioFilter>
             {
                 new RNNoiseFilter(), // Noise suppression
                 new SimpleVadFilter(new SimpleVad()), // Voice activity detection
-                new ConcentusEncodeFilter(ConcentusFrequencies.Frequency_12000) // Opus encoding
+                new ConcentusEncodeFilter(ConcentusFrequencies.Frequency_12000), // Opus encoding
+                capturingFilter
             };
+            
             _voiceChatSession.InputFilters.AddRange(_encodeFilters);
             _voiceChatSession.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter()); // Opus decoding
             
@@ -145,16 +148,16 @@ namespace EDIVE.Audio
 
             NetworkManager.main.Subscribe<PurrNetBroadcast>(OnClientReceivedAudioMessage, asServer: false);
         }
-
+        
         private void OnClientReceivedAudioMessage(PlayerID sender, PurrNetBroadcast message, bool asServer)
         {
             var reader = new BytesReader(message.data);
             var messageTag = reader.ReadString();
 
-            if (!messageTag.Equals(PurrNetBroadcastTags.AUDIO_FRAME))
+            if (!messageTag.Equals(AudioBroadcastTags.AUDIO_FRAME))
                 return;
 
-            var senderId = reader.ReadInt();
+            var senderId = reader.ReadPlayerID();
             var frame = new AudioFrame
             {
                 timestamp = reader.ReadLong(),
@@ -167,9 +170,7 @@ namespace EDIVE.Audio
             if (NetworkManager.main == null || !NetworkManager.main.isServer)
             {
                 frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                // BRW payload still encodes UniVoice's int peer id; round-trip it back to a PlayerID so
-                // listeners (which now expect PlayerID, matching the rest of the project) see a typed id.
-                UserAudioFrameReady?.Invoke(new PlayerID((ulong)senderId, false), frame);
+                UserAudioFrameReady?.Invoke(senderId, frame);
             }
         }
 
@@ -242,7 +243,7 @@ namespace EDIVE.Audio
             var reader = new BytesReader(message.data);
             var messageTag = reader.ReadString();
 
-            if (!messageTag.Equals(PurrNetBroadcastTags.AUDIO_FRAME))
+            if (!messageTag.Equals(AudioBroadcastTags.AUDIO_FRAME))
                 return;
 
             var senderId = reader.ReadInt();
@@ -289,7 +290,7 @@ namespace EDIVE.Audio
         private void RefreshVoiceChatMuted()
         {
             if (_voiceChatSession != null) 
-                _voiceChatSession.InputEnabled = VoiceChatMuted;
+                _voiceChatSession.InputEnabled = !VoiceChatMuted;
         }
         
         public void RefreshSpatialAudio()
@@ -348,11 +349,11 @@ namespace EDIVE.Audio
             if (_currentAudioInput != null)
             {
                 _currentAudioInput.Dispose();
-                _currentAudioInput.OnFrameReady -= OnAudioFrameReady;
+                _currentAudioInput.OnFrameReady -= OnRawAudioFrameReady;
             }
             
             _currentAudioInput = micDevice != null ? new UniMicInput(micDevice) : new EmptyAudioInput();
-            _currentAudioInput.OnFrameReady += OnAudioFrameReady;
+            _currentAudioInput.OnFrameReady += OnRawAudioFrameReady;
             if (_voiceChatSession != null)
                 _voiceChatSession.Input = _currentAudioInput;
         }
@@ -369,23 +370,49 @@ namespace EDIVE.Audio
             return micDevice.MaxFrequency;
         }
         
-        private void OnAudioFrameReady(AudioFrame frame)
+        private void OnVoiceChatFrameCaptured(AudioFrame frame)
         {
-            frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            LocalAudioFrameReady?.Invoke(frame);
+            // Only run if voice chat is enabled, (we reuse the filters, that's why)
+            if (!_voiceChatSession.InputEnabled) 
+                return;
+            
+            if (UserAudioFrameReady == null) 
+                return;
 
             var manager = NetworkManager.main;
-            if (manager != null && !manager.isServer)
-            {
-                if (AudioUtils.TryProcessAudioFrame(ref frame, _encodeFilters))
-                {
-                    frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    var localId = manager.localPlayer;
-                    UserAudioFrameReady?.Invoke(localId, frame);
-                }
-            }
+            if (manager == null || manager.isServer) 
+                return;
+            
+            frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var localId = manager.localPlayer;
+            UserAudioFrameReady.Invoke(localId, frame);
         }
-        
+
+        private void OnRawAudioFrameReady(AudioFrame frame)
+        {
+            frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            LocalRawAudioFrameReady?.Invoke(frame);
+
+            // if voice chat is enabled we will get frames from OnVoiceChatFrameCaptured
+            if (_voiceChatSession.InputEnabled)
+                return;
+            
+            if (UserAudioFrameReady == null)
+                return;
+
+            var manager = NetworkManager.main;
+            if (manager == null || manager.isServer) 
+                return;
+
+            // Process the raw audio frame through the same filters as the voice chat frames
+            if (!AudioUtils.TryProcessAudioFrame(ref frame, _encodeFilters)) 
+                return;
+            
+            frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var localId = manager.localPlayer;
+            UserAudioFrameReady.Invoke(localId, frame);
+        }
+
         private Mic.Device ResolveMicrophone()
         {
             if (!_microphonePermissionGranted || !AllowMic)

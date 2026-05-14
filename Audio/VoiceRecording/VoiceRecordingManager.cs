@@ -70,7 +70,7 @@ namespace EDIVE.Audio.VoiceRecording
             PathUtility.EnsurePathExists(RecordingsFolderPath);
             _wavFileWriter = new WavFileWriter(Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}.wav"));
             _audioManager.AddVoiceChatMuteRequest(this);
-            _audioManager.LocalAudioFrameReady += OnAudioFrameReady;
+            _audioManager.LocalRawAudioFrameReady += OnRawAudioFrameReady;
             
             DebugLite.Log("[VoiceRecordingManager] Starting recording");
             Recording = true;
@@ -82,7 +82,7 @@ namespace EDIVE.Audio.VoiceRecording
             RecordingTask(_recordingCancellation.Token).Forget();
         }
 
-        private void OnAudioFrameReady(AudioFrame frame)
+        private void OnRawAudioFrameReady(AudioFrame frame)
         {
             if (_audioFilters != null) {
                 foreach (var filter in _audioFilters) {
@@ -114,7 +114,7 @@ namespace EDIVE.Audio.VoiceRecording
             _recordingCancellation.Dispose();
             _recordingCancellation = null;
             
-            _audioManager.LocalAudioFrameReady -= OnAudioFrameReady;
+            _audioManager.LocalRawAudioFrameReady -= OnRawAudioFrameReady;
             _audioManager.RemoveVoiceChatMuteRequest(this);
             
             DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
