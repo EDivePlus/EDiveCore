@@ -97,6 +97,7 @@ namespace Adrenak.UniVoice.Networks
         // PurrNet equivalent of FishNet's OnClientAuthenticated: local client has been assigned its PlayerID.
         private void OnLocalPlayerReceivedID(PlayerID player)
         {
+            _id = player;
             PeerIDs = _networkManager.players
                 .Where(p => p != player)
                 .ToList();
