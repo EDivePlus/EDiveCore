@@ -246,7 +246,7 @@ namespace EDIVE.Audio
             if (!messageTag.Equals(AudioBroadcastTags.AUDIO_FRAME))
                 return;
 
-            var senderId = reader.ReadInt();
+            var senderId = reader.ReadPlayerID();
             var frame = new AudioFrame
             {
                 timestamp = reader.ReadLong(),
@@ -256,7 +256,7 @@ namespace EDIVE.Audio
             };
 
             frame.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            UserAudioFrameReady?.Invoke(new PlayerID((ulong)senderId, false), frame);
+            UserAudioFrameReady?.Invoke(senderId, frame);
         }
 
         private void OnVoiceChatServerStarted()
@@ -394,7 +394,7 @@ namespace EDIVE.Audio
             LocalRawAudioFrameReady?.Invoke(frame);
 
             // if voice chat is enabled we will get frames from OnVoiceChatFrameCaptured
-            if (_voiceChatSession.InputEnabled)
+            if (_voiceChatSession == null || _voiceChatSession.InputEnabled)
                 return;
             
             if (UserAudioFrameReady == null)
