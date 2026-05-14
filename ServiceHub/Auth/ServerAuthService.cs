@@ -89,7 +89,7 @@ namespace EDIVE.ServiceHub.Auth
         {
             if (string.IsNullOrEmpty(serverId) || string.IsNullOrEmpty(serverSecret))
             {
-                Debug.LogError("[ServiceHub] ServerConfig is missing ServerID or ServerSecret.");
+                Debug.LogWarning("[ServiceHub] ServerConfig is missing ServerID or ServerSecret. Starting unauthenticated - server-scoped save data will not sync.");
                 return;
             }
 
