@@ -11,8 +11,10 @@ using EDIVE.Networking.ServerManagement.UnityServices;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
 using PurrNet;
+using PurrNet.Purrnity;
 using Sirenix.OdinInspector;
 using Unity.Services.Relay;
+using Unity.Services.Relay.Models;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.ServiceHub
@@ -153,11 +155,18 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
         private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
         {
+            var transportController = await AppCore.Services.AwaitRegistered<TransportController>();
             var joinCode = string.Empty;
             try
             {
                 var allocation = await _RelayAllocator.GetAllocationAsync();
                 joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+                
+                if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
+                {
+                    var serverData = allocation.ToRelayServerData("dtls");
+                    unityTransport.SetRelayServerData(serverData);
+                }
             }
             catch (Exception e)
             {
@@ -195,6 +204,14 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     Name = "Remote Direct",
                     Address = _serverConfig.PublicAddress,
                     Port = _serverConfig.ResolvedPort,
+                });
+            }
+            if (!string.IsNullOrEmpty(joinCode))
+            {
+                endpoints.Add(new UnityRelayServerEndpoint
+                {
+                    Name = "Unity Relay",
+                    RelayJoinCode = joinCode,
                 });
             }
             _localEndpoints = endpoints.ToArray();

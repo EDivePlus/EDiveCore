@@ -7,6 +7,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Networking.Utils;
+using EDIVE.UnityServices;
 using PurrNet.Purrnity;
 using PurrNet.Transports;
 using Sirenix.OdinInspector;
@@ -45,14 +46,13 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         private Lobby _hostLobby;
         private float _lastQueryTime;
         private AServerEndpoint[] _localEndpoints;
-        
-        public override async UniTask Initialize()
+
+        public override void PopulateDependencies(HashSet<Type> dependencies)
         {
-            await Unity.Services.Core.UnityServices.InitializeAsync();
-            if (!AuthenticationService.Instance.IsSignedIn)
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            base.PopulateDependencies(dependencies);
+            dependencies.Add(typeof(UnityServicesManager));
         }
-        
+
         public override async UniTask PrepareServerStart()
         {
             await base.PrepareServerStart();

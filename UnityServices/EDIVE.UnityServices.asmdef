@@ -1,0 +1,20 @@
+﻿{
+  "name": "EDIVE.UnityServices",
+  "rootNamespace": "",
+  "references": [
+    "UniTask",
+    "EDIVE.Core",
+    "Unity.Services.Authentication",
+    "Unity.Services.Core",
+    "EDIVE.AppLoading"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
