@@ -95,8 +95,8 @@ namespace EDIVE.Input.Keyboard
                 _lastCaretPosition = _InputField.CaretPosition;
             }
             
-            if (_activeKeyboard == null || !_ManualKeyboard)
-                _activeKeyboard = AppCore.Services.Get<VirtualKeyboardManager>().Keyboard;
+            if ((_activeKeyboard == null || !_ManualKeyboard) && AppCore.Services.TryGet<VirtualKeyboardManager>(out var keyboardManager))
+                _activeKeyboard = keyboardManager.Keyboard;
 
             var observeOnStart = _AlwaysObserveKeyboard && _activeKeyboard != null && !_isActivelyObservingKeyboard;
             if (observeOnStart)
@@ -211,8 +211,8 @@ namespace EDIVE.Input.Keyboard
         {
             if (_isActivelyObservingKeyboard && !_AlwaysObserveKeyboard)
             {
-                if (!_ManualKeyboard || Keyboard == null)
-                    AppCore.Services.Get<VirtualKeyboardManager>().RepositionKeyboardIfOutOfView();
+                if ((!_ManualKeyboard || Keyboard == null) && AppCore.Services.TryGet<VirtualKeyboardManager>(out var keyboardManager))
+                    keyboardManager.RepositionKeyboardIfOutOfView();
 
                 _InputField.CaretPosition = _activeKeyboard.CaretPosition;
                 return;
@@ -235,9 +235,10 @@ namespace EDIVE.Input.Keyboard
                         provider.Keyboard.Open(_InputField, _MonitorCharacterLimit);
                         _activeKeyboard = provider.Keyboard;
                     }
-                    else
+                    else if (AppCore.Services.TryGet<VirtualKeyboardManager>(out var keyboardManager))
                     {
-                        _activeKeyboard = AppCore.Services.Get<VirtualKeyboardManager>().ShowKeyboard(_InputField, _MonitorCharacterLimit);
+                        
+                        _activeKeyboard = keyboardManager.ShowKeyboard(_InputField, _MonitorCharacterLimit);
                     }
                 }
             }
