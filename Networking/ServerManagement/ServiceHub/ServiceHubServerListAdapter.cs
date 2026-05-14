@@ -131,6 +131,15 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 if (data == null || string.IsNullOrEmpty(data.InstanceID))
                     continue;
                 
+                if (!string.IsNullOrEmpty(data.RelayCode))
+                {
+                    endpoints.Add(new UnityRelayServerEndpoint
+                    {
+                        Name = "Unity Relay",
+                        RelayJoinCode = data.RelayCode,
+                    });
+                }
+                
                 yield return new ServerRecord
                 {
                     InstanceID = data.InstanceID,
