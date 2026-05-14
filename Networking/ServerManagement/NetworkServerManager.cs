@@ -96,6 +96,8 @@ namespace EDIVE.Networking.ServerManagement
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            StopServer();
+            
             if (NetworkManager.main != null)
             {
                 NetworkManager.main.onServerConnectionState -= OnServerConnectionStateChanged;
@@ -294,10 +296,15 @@ namespace EDIVE.Networking.ServerManagement
             }
             else if (state == ConnectionState.Disconnected)
             {
-                _serverRunning = false;
-                EnumerateAdapters(adapter => adapter.StopServer());
-                HostServer = null;
+                StopServer();
             }
+        }
+
+        private void StopServer()
+        {
+            _serverRunning = false;
+            EnumerateAdapters(adapter => adapter.StopServer());
+            HostServer = null;
         }
 
         private void OnClientConnectionStateChanged(ConnectionState state)

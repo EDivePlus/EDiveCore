@@ -55,6 +55,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private AServerEndpoint[] _localEndpoints;
         
         private string _serverSecret;
+        private bool _disposing;
 
         public override UniTask Initialize()
         {
@@ -72,10 +73,17 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             HeartbeatTask(_heartbeatCancellation.Token).Forget();
         }
         
+        private void OnDestroy()
+        {
+            _disposing = true;
+            DisposeAsync().AsTask();
+        }
+
         public override void StopServer()
         {
             base.StopServer();
-            DisposeAsync().Forget();
+            if (!_disposing)
+                DisposeAsync().Forget();
         }
         
         public override void StartSearch()
@@ -297,7 +305,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             try
             {
-                var response = await _lobby.DisposeServerAsync(secret);
+                var response = await _lobby.DisposeServerAsync(secret, CancellationToken.None);
                 if (!response.IsSuccess)
                     Debug.LogWarning($"[ServiceHubServerListAdapter] Dispose failed: {response.ErrorMessage}");
             }

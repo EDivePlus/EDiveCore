@@ -30,9 +30,6 @@ namespace EDIVE.ServiceHub.Lobby
             Settings = settings;
         }
 
-        private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? destroyCancellationToken : ct;
-
         public async UniTask<NetworkResponse<ServerRegistrationResponse>> RegisterServerAsync(
             RegisterServerRequest request,
             CancellationToken cancellationToken = default)
@@ -49,7 +46,7 @@ namespace EDIVE.ServiceHub.Lobby
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "RegisterServer");
         }
@@ -67,7 +64,7 @@ namespace EDIVE.ServiceHub.Lobby
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "HeartbeatServer");
         }
@@ -85,7 +82,7 @@ namespace EDIVE.ServiceHub.Lobby
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "UpdateServer");
         }
@@ -103,7 +100,7 @@ namespace EDIVE.ServiceHub.Lobby
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "DisposeServer");
         }
@@ -124,7 +121,7 @@ namespace EDIVE.ServiceHub.Lobby
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, $"GetServer({joinCode})");
         }
@@ -147,7 +144,7 @@ namespace EDIVE.ServiceHub.Lobby
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "QueryServers");
         }

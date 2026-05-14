@@ -28,9 +28,6 @@ namespace EDIVE.ServiceHub.Probe
             Settings = settings;
         }
 
-        private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? destroyCancellationToken : ct;
-
         [Button]
         [PropertyOrder(99)]
         [EnhancedBoxGroup("Probe", Color = "@ColorTools.Aqua", SpaceBefore = 8)]
@@ -49,9 +46,8 @@ namespace EDIVE.ServiceHub.Probe
                 Debug.LogWarning($"[ServiceHub] Probe could not bind UDP port {port}: {e.Message}");
                 return ProbeResult.Unreachable;
             }
-
-            var effectiveToken = GetEffectiveToken(cancellationToken);
-            using var echoCts = CancellationTokenSource.CreateLinkedTokenSource(effectiveToken);
+            
+            using var echoCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken, cancellationToken);
             try
             {
                 var token = Guid.NewGuid().ToString("N");
@@ -65,7 +61,7 @@ namespace EDIVE.ServiceHub.Probe
                     authToken: null,
                     headers: null,
                     timeout: httpTimeout,
-                    cancellationToken: effectiveToken
+                    cancellationToken: cancellationToken
                 );
 
                 var unwrapped = ApiResponseHelper.UnwrapApi(response, $"ProbePort({port})");

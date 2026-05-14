@@ -127,9 +127,6 @@ namespace EDIVE.ServiceHub.SaveData
         private SaveDataContext UserCtx() { EnsureContexts(); return _userCtx; }
         private SaveDataContext ServerCtx() { EnsureContexts(); return _serverCtx; }
 
-        private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? destroyCancellationToken : ct;
-
         private int RequestTimeoutSeconds => _settings.ApiTimeoutSeconds;
 
         private void StartSyncLoops()
@@ -187,10 +184,10 @@ namespace EDIVE.ServiceHub.SaveData
             => DeleteSaveDataInternal(UserCtx(), key, ct);
 
         public UniTask FlushManualEntries(CancellationToken ct = default)
-            => FlushDirtyEntries(UserCtx(), SaveDataDirtyFlag.Manual, GetEffectiveToken(ct));
+            => FlushDirtyEntries(UserCtx(), SaveDataDirtyFlag.Manual, ct);
 
         public UniTask FlushAllDirtyEntries(CancellationToken ct = default)
-            => FlushAllDirtyEntriesInternal(UserCtx(), GetEffectiveToken(ct));
+            => FlushAllDirtyEntriesInternal(UserCtx(), ct);
 
         // ---- Server-scoped public API ----
 
@@ -204,10 +201,10 @@ namespace EDIVE.ServiceHub.SaveData
             => DeleteSaveDataInternal(ServerCtx(), key, ct);
 
         public UniTask FlushServerManualEntries(CancellationToken ct = default)
-            => FlushDirtyEntries(ServerCtx(), SaveDataDirtyFlag.Manual, GetEffectiveToken(ct));
+            => FlushDirtyEntries(ServerCtx(), SaveDataDirtyFlag.Manual, ct);
 
         public UniTask FlushAllServerDirtyEntries(CancellationToken ct = default)
-            => FlushAllDirtyEntriesInternal(ServerCtx(), GetEffectiveToken(ct));
+            => FlushAllDirtyEntriesInternal(ServerCtx(), ct);
 
         // ---- Internals (context-driven) ----
 
@@ -217,7 +214,6 @@ namespace EDIVE.ServiceHub.SaveData
             CancellationToken ct,
             bool forceRefresh)
         {
-            var effectiveToken = GetEffectiveToken(ct);
             var local = ctx.Local;
 
             if (!forceRefresh && local.TryGet(key, out var cachedJson))
@@ -240,7 +236,7 @@ namespace EDIVE.ServiceHub.SaveData
                     ctx.AccessToken,
                     null,
                     RequestTimeoutSeconds,
-                    effectiveToken
+                    ct
                 );
 
                 if (response.IsSuccess && response.Result is { Status: 0, Data: not null })
@@ -293,7 +289,6 @@ namespace EDIVE.ServiceHub.SaveData
                 return SaveDataStatus.Error;
             }
 
-            var effectiveToken = GetEffectiveToken(ct);
             var json = JsonConvert.SerializeObject(value);
 
             if (Encoding.UTF8.GetByteCount(json) > MAX_VALUE_BYTES)
@@ -313,7 +308,7 @@ namespace EDIVE.ServiceHub.SaveData
 
                 try
                 {
-                    var response = await PutSaveDataAsync(ctx, key, json, effectiveToken);
+                    var response = await PutSaveDataAsync(ctx, key, json, ct);
                     if (response.IsSuccess)
                         return SaveDataStatus.Saved;
 
@@ -347,8 +342,6 @@ namespace EDIVE.ServiceHub.SaveData
             string key,
             CancellationToken ct)
         {
-            var effectiveToken = GetEffectiveToken(ct);
-
             var local = ctx.Local;
             local.Delete(key);
             local.Save();
@@ -367,7 +360,7 @@ namespace EDIVE.ServiceHub.SaveData
                 ctx.AccessToken,
                 null,
                 RequestTimeoutSeconds,
-                effectiveToken
+                ct
             );
 
             if (response.IsSuccess || response.IsNotFound)

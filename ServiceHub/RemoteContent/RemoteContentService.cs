@@ -36,9 +36,6 @@ namespace EDIVE.ServiceHub.RemoteContent
             _settings = settings;
         }
 
-        private CancellationToken GetEffectiveToken(CancellationToken ct)
-            => ct == CancellationToken.None ? destroyCancellationToken : ct;
-
         private static string AppendQuery(string url, string key, string value)
         {
             var sep = url.Contains('?') ? '&' : '?';
@@ -57,7 +54,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, $"GetSharedContentInfo({shareToken})");
         }
@@ -80,7 +77,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
 
             if (!response.IsSuccess || response.Result == null)
@@ -111,7 +108,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "ListContentMediaTypes");
         }
@@ -142,7 +139,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "ListOwnContentItems");
         }
@@ -169,7 +166,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "CountOwnContentItems");
         }
@@ -193,7 +190,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, $"CreateContentShare({itemId})");
         }
@@ -216,7 +213,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 authToken: AuthStorage.Client.GetAccessToken(),
                 headers: null,
                 timeout: RequestTimeoutSeconds,
-                cancellationToken: GetEffectiveToken(cancellationToken)
+                cancellationToken: cancellationToken
             );
 
             if (response.IsNotFound)
