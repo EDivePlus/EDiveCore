@@ -248,7 +248,7 @@ namespace EDIVE.Networking.ServerManagement
         private void ResolveServerPort()
         {       
             var nm = NetworkManager.main;
-            if (nm.TryGetCurrentTransport(out UDPTransport udp))
+            if (!nm.TryGetCurrentTransport(out UDPTransport udp))
                 return;
 
             var port = _ServerConfig.Port;

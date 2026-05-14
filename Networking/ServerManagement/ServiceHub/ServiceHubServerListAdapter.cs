@@ -104,7 +104,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 var response = await _lobby.QueryServersAsync(
                     new QueryServersRequest { Count = _QueryCount, Skip = 0 },
                     cancellationToken);
-                SetServers(BuildRecords(response.Result));
+                var records = response.IsSuccess && response.Result != null
+                    ? BuildRecords(response.Result)
+                    : Array.Empty<ServerRecord>();
+                SetServers(records);
                 await UniTask.Delay(TimeSpan.FromSeconds(_QueryInterval), true, cancellationToken: cancellationToken);
             }
         }
@@ -123,10 +126,14 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                         Port = (ushort) lobby.PublicPort
                     });
                 }
-
+                
+                var data = ServiceHubServerData.TryParse(lobby.Data);
+                if (data == null || string.IsNullOrEmpty(data.InstanceID))
+                    continue;
+                
                 yield return new ServerRecord
                 {
-                    InstanceID = lobby.InstanceId,
+                    InstanceID = data.InstanceID,
                     ServerName = lobby.Name,
                     CurrentPlayers = lobby.CurrentPlayers,
                     MaxPlayers = lobby.MaxPlayers,
@@ -154,15 +161,15 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 RelayCode = joinCode
             };
             var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
-            (
-                name: _serverConfig.ServerName,
-                version: _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
-                publicAddress: _serverConfig.PublicAddress,
-                publicPort: _serverConfig.ResolvedPort,
-                data: data.Serialize(),
-                isPrivate: _serverConfig.IsPrivate,
-                isDebug: Debug.isDebugBuild
-            ), cancellationToken);
+            {
+                Name = _serverConfig.ServerName,
+                Version = _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
+                PublicAddress = _serverConfig.PublicAddress,
+                PublicPort = _serverConfig.ResolvedPort,
+                Data = data.Serialize(),
+                IsPrivate = _serverConfig.IsPrivate,
+                IsDebug = Debug.isDebugBuild
+            }, cancellationToken);
             
             if (!response.IsSuccess || response.Result == null)
             {
@@ -197,11 +204,11 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 {
                     var currentPlayers = NetworkManager.main.playerCount;
                     
-                    var request = new UpdateServerRequest(
-                        secret: _serverSecret,
-                        name: _serverConfig.ServerName,
-                        currentPlayers: currentPlayers
-                    );
+                    var request = new UpdateServerRequest{
+                        Secret = _serverSecret,
+                        Name = _serverConfig.ServerName,
+                        CurrentPlayers = currentPlayers
+                    };
 
                     var response = await _lobby.UpdateServerAsync(request, cancellationToken);
                     if (!response.IsSuccess)

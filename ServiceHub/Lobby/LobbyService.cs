@@ -120,7 +120,7 @@ namespace EDIVE.ServiceHub.Lobby
 
             var response = await RestUtils.PostAsync<ApiResponse<LobbyServerResponse>, GetServerRequest>(
                 GetUrl,
-                new GetServerRequest(joinCode, Settings.AppSecret),
+                new GetServerRequest(Settings.AppSecret, joinCode),
                 authToken: null,
                 headers: null,
                 timeout: RequestTimeoutSeconds,

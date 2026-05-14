@@ -11,304 +11,186 @@ namespace EDIVE.ServiceHub.Lobby
     // --------
     // Requests
     // --------
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class RegisterServerRequest
     {
         [JsonProperty("app_secret")]
-        [SerializeField]
-        private string _AppSecret;
+        public string AppSecret;
 
         [JsonProperty("name")]
-        [SerializeField]
-        private string _Name;
+        public string Name;
 
         [JsonProperty("version")]
-        [SerializeField]
-        private string _Version;
+        public string Version;
 
         [JsonProperty("public_address")]
-        [SerializeField]
-        private string _PublicAddress;
+        public string PublicAddress;
 
         [JsonProperty("public_port")]
-        [SerializeField]
-        private int? _PublicPort;
+        public int? PublicPort;
 
         [JsonProperty("relay_code")]
-        [SerializeField]
-        private string _RelayCode;
+        public string RelayCode;
 
         [JsonProperty("data")]
-        [SerializeField]
-        private string _Data;
+        public string Data;
 
         [JsonProperty("debug")]
-        [SerializeField]
-        private bool _IsDebug;
+        public bool IsDebug;
 
         [JsonProperty("private")]
-        [SerializeField]
-        private bool _IsPrivate;
+        public bool IsPrivate;
 
         [JsonProperty("join_code")]
-        [SerializeField]
-        private string _JoinCode;
+        public string JoinCode;
         
         [JsonProperty("instance_id")]
-        [SerializeField]
-        private string _InstanceId;
-
-        public RegisterServerRequest(
-            string name,
-            string version,
-            string publicAddress = null,
-            int? publicPort = null,
-            string relayCode = null,
-            string data = null,
-            bool isPrivate = false,
-            string instanceId = null,
-            bool isDebug = false)
-        {
-            _Name = name;
-            _Version = version;
-            _PublicAddress = publicAddress;
-            _PublicPort = publicPort;
-            _RelayCode = relayCode;
-            _Data = data;
-            _IsPrivate = isPrivate;
-            _InstanceId = instanceId;
-            _IsDebug = isDebug;
-        }
-
-        public string AppSecret { get => _AppSecret; set => _AppSecret = value; }
-        public string Name => _Name;
-        public string Version => _Version;
-        public string PublicAddress => _PublicAddress;
-        public int? PublicPort => _PublicPort;
-        public string RelayCode => _RelayCode;
-        public string Data => _Data;
-        public bool IsDebug => _IsDebug;
-        public bool IsPrivate => _IsPrivate;
-        public string InstanceId => _InstanceId;
+        public string InstanceId;
     }
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class UpdateServerRequest
     {
         [JsonProperty("secret")]
-        [SerializeField]
-        private string _Secret;
+        public string Secret;
 
         [JsonProperty("name")]
-        [SerializeField]
-        private string _Name;
+        public string Name;
 
         [JsonProperty("current_players")]
-        [SerializeField]
-        private int? _CurrentPlayers;
-
-        public UpdateServerRequest(string secret, string name = null, int? currentPlayers = null)
-        {
-            _Secret = secret;
-            _Name = name;
-            _CurrentPlayers = currentPlayers;
-        }
+        public int? CurrentPlayers;
     }
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class HeartbeatServerRequest
     {
         [JsonProperty("secret")]
-        [SerializeField]
-        private string _Secret;
+        public string Secret;
 
-        public HeartbeatServerRequest(string secret) { _Secret = secret; }
+        public HeartbeatServerRequest(string secret)
+        {
+            Secret = secret;
+        }
     }
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class DisposeServerRequest
     {
         [JsonProperty("secret")]
-        [SerializeField]
-        private string _Secret;
+        public string Secret;
 
-        public DisposeServerRequest(string secret) { _Secret = secret; }
+        public DisposeServerRequest(string secret)
+        {
+            Secret = secret;
+        }
     }
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class GetServerRequest
     {
         [JsonProperty("app_secret")]
-        [SerializeField]
-        private string _AppSecret;
+        public string AppSecret;
 
         [JsonProperty("join_code")]
-        [SerializeField]
-        private string _JoinCode;
+        public string JoinCode;
 
-        public GetServerRequest(string joinCode, string appSecret = null)
+        public GetServerRequest(string appSecret, string joinCode)
         {
-            _JoinCode = joinCode;
-            _AppSecret = appSecret;
+            AppSecret = appSecret;
+            JoinCode = joinCode;
         }
     }
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class QueryServersRequest
     {
         [JsonProperty("app_secret")]
-        [SerializeField]
-        private string _AppSecret;
+        public string AppSecret;
 
         [JsonProperty("count")]
-        [SerializeField]
-        private int? _Count;
+        public int? Count;
 
         [JsonProperty("skip")]
-        [SerializeField]
-        private int? _Skip;
+        public int? Skip;
 
         [JsonProperty("name")]
-        [SerializeField]
-        private string _Name;
+        public string Name;
 
         [JsonProperty("version")]
-        [SerializeField]
-        private string _Version;
+        public string Version;
 
         [JsonProperty("debug")]
-        [SerializeField]
-        private bool? _IsDebug;
+        public bool? IsDebug;
 
         [JsonProperty("private")]
-        [SerializeField]
-        private bool? _IsPrivate;
+        public bool? IsPrivate;
 
         [JsonProperty("not_full")]
-        [SerializeField]
-        private bool? _NotFull;
+        public bool? NotFull;
 
         [JsonProperty("has_players")]
-        [SerializeField]
-        private bool? _HasPlayers;
+        public bool? HasPlayers;
 
         [JsonProperty("min_players")]
-        [SerializeField]
-        private int? _MinPlayers;
+        public int? MinPlayers;
 
         [JsonProperty("max_players_filter")]
-        [SerializeField]
-        private int? _MaxPlayersFilter;
+        public int? MaxPlayersFilter;
 
         [JsonProperty("data")]
-        [SerializeField]
-        private string _Data;
-
-        public string AppSecret { get => _AppSecret; set => _AppSecret = value; }
-        public int? Count { get => _Count; set => _Count = value; }
-        public int? Skip { get => _Skip; set => _Skip = value; }
-        public string Name { get => _Name; set => _Name = value; }
-        public string Version { get => _Version; set => _Version = value; }
-        public bool? IsDebug { get => _IsDebug; set => _IsDebug = value; }
-        public bool? IsPrivate { get => _IsPrivate; set => _IsPrivate = value; }
-        public bool? NotFull { get => _NotFull; set => _NotFull = value; }
-        public bool? HasPlayers { get => _HasPlayers; set => _HasPlayers = value; }
-        public int? MinPlayers { get => _MinPlayers; set => _MinPlayers = value; }
-        public int? MaxPlayersFilter { get => _MaxPlayersFilter; set => _MaxPlayersFilter = value; }
-        public string Data { get => _Data; set => _Data = value; }
+        public string Data;
     }
 
     // ---------
     // Responses
     // ---------
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class LobbyServerResponse
     {
         [JsonProperty("name")]
-        [SerializeField]
-        private string _Name;
+        public string Name;
 
         [JsonProperty("version")]
-        [SerializeField]
-        private string _Version;
-        
-        [JsonProperty("instance_id")]
-        [SerializeField]
-        private string _InstanceId;
+        public string Version;
 
         [JsonProperty("public_address")]
-        [SerializeField]
-        private string _PublicAddress;
+        public string PublicAddress;
 
         [JsonProperty("public_port")]
-        [SerializeField]
-        private int? _PublicPort;
+        public int? PublicPort;
 
         [JsonProperty("relay_code")]
-        [SerializeField]
-        private string _RelayCode;
+        public string RelayCode;
 
         [JsonProperty("data")]
-        [SerializeField]
-        private string _Data;
+        public string Data;
 
         [JsonProperty("debug")]
-        [SerializeField]
-        private bool _IsDebug;
+        public bool IsDebug;
 
         [JsonProperty("private")]
-        [SerializeField]
-        private bool _IsPrivate;
+        public bool IsPrivate;
 
         [JsonProperty("join_code")]
-        [SerializeField]
-        private string _JoinCode;
+        public string JoinCode;
 
         [JsonProperty("current_players")]
-        [SerializeField]
-        private int _CurrentPlayers;
+        public int CurrentPlayers;
 
         [JsonProperty("max_players")]
-        [SerializeField]
-        private int _MaxPlayers;
-
-        public string Name => _Name;
-        public string Version => _Version;
-        public string InstanceId => _InstanceId;
-        public string PublicAddress => _PublicAddress;
-        public int? PublicPort => _PublicPort;
-        public string RelayCode => _RelayCode;
-        public string Data => _Data;
-        public bool IsDebug => _IsDebug;
-        public bool IsPrivate => _IsPrivate;
-        public string JoinCode => _JoinCode;
-        public int CurrentPlayers => _CurrentPlayers;
-        public int MaxPlayers => _MaxPlayers;
+        public int MaxPlayers;
     }
-
-    [Serializable]
+    
     [JsonObject(MemberSerialization.OptIn)]
     public class ServerRegistrationResponse
     {
         [JsonProperty("secret")]
-        [SerializeField]
-        private string _Secret;
+        public string Secret;
 
         [JsonProperty("code")]
-        [SerializeField]
-        private string _Code;
-
-        public string Secret => _Secret;
-        public string Code => _Code;
+        public string Code;
     }
 
     [Serializable]
