@@ -50,7 +50,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 await utpTransport.InitializeRelayClient(RelayJoinCode);
                 
                 var composite = transportController.SetCompositeTransport();
-                composite.SetClientTransport(unityTransport);
+                composite.SetClientTransport(utpTransport);
                 
                 Debug.Log($"[ServerEndpoint] Connect using Unity relay (UTP) '{RelayJoinCode}'");
                 return true;
