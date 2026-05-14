@@ -32,8 +32,10 @@ namespace EDIVE.Networking.Players
         
         public void RegisterPlayer(NetworkPlayerController player, bool asServer)
         {
+            player.gameObject.name = $"Player_{player.owner}";
             if (!asServer && player.isOwner)
             {
+                player.gameObject.name += "_Local";
                 LocalPlayer = player;
                 _localPlayerRequest?.Dispatch(player);
                 _localPlayerRequest = null;
