@@ -150,15 +150,19 @@ namespace EDIVE.Utils.Json
         public static JObject SerializeAsset<TAsset>(JsonSerializer serializer, TAsset asset, Type baseType = null)
             where TAsset : ScriptableObject
         {
-            using var writer = new JTokenWriter();
-            serializer.Serialize(writer, asset, baseType);
-            if (writer.Token is JObject jObject)
-                return jObject;
+            using (var writer = new JTokenWriter())
+            {
+                serializer.Serialize(writer, asset, baseType);
+                if (writer.Token is JObject jObject)
+                    return jObject;
+            }
 
             UnityAssetConverterUtility.DisableOnce();
-            writer.Flush();
-            serializer.Serialize(writer, asset, baseType);
-            return (JObject) writer.Token;
+            using (var fallbackWriter = new JTokenWriter())
+            {
+                serializer.Serialize(fallbackWriter, asset, baseType);
+                return fallbackWriter.Token as JObject;
+            }
         }
     }
 }
