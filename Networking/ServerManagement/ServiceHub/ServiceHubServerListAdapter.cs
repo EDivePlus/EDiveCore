@@ -175,36 +175,38 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
         private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
         {
-            var transportController = await AppCore.Services.AwaitRegistered<TransportController>();
+            var transports = await AppCore.Services.AwaitRegistered<TransportController>();
             var unityRelayJoinCode = string.Empty;
-            try
+
+            if (_RelayAllocator != null && (transports.HasTransport<PurrnityTransport>() || transports.HasTransport<UTPTransport>()))
             {
-                var allocation = await _RelayAllocator.GetAllocationAsync();
-                unityRelayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-                
-                if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
+                try
                 {
-                    var serverData = allocation.ToRelayServerData("dtls");
-                    unityTransport.SetRelayServerData(serverData);
-                }
+                    var allocation = await _RelayAllocator.GetAllocationAsync();
+                    unityRelayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
                 
-                if (transportController.TryGetTransport<UTPTransport>(out var utpTransport)) 
-                    utpTransport.InitializeRelayServer(allocation);
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
+                    if (transports.TryGetTransport<PurrnityTransport>(out var unityTransport))
+                    {
+                        var serverData = allocation.ToRelayServerData("dtls");
+                        unityTransport.SetRelayServerData(serverData);
+                    }
+                
+                    if (transports.TryGetTransport<UTPTransport>(out var utpTransport)) 
+                        utpTransport.InitializeRelayServer(allocation);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
             
             var purrRelayRoom = string.Empty;
-#if UNITY_EDITOR
-            if (transportController.TryGetTransport<PurrTransport>(out var purrTransport))
+            if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
             {
                 purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
                 purrTransport.roomName = purrRelayRoom;
             }
-#endif
-            
+ 
             var data = new ServiceHubServerData
             {
                 InstanceID = _serverConfig.InstanceID,

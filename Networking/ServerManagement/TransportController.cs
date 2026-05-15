@@ -1,7 +1,9 @@
 ﻿// Author: František Holubec
 // Created: 13.05.2026
 
+using System.Collections.Generic;
 using EDIVE.Core.Services;
+using EDIVE.NativeUtils;
 using PurrNet;
 using PurrNet.Transports;
 using UnityEngine;
@@ -11,20 +13,43 @@ namespace EDIVE.Networking.ServerManagement
     public class TransportController : AServiceBehaviour<TransportController>
     {
         [SerializeField]
-        private CompositeTransport _CompositeTransport;
-        
-        [SerializeField]
-        private LocalTransport _LocalTransport;
+        private List<GenericTransport> _MainTransports;
 
+        public bool HasTransport<T>() where T : GenericTransport
+        {
+            return TryGetTransport(out T _);
+        }
+        
         public bool TryGetTransport<T>(out T transport) where T : GenericTransport
         {
-            if (_LocalTransport is T local)
+            if (_MainTransports.TryGetFirstT(out transport))
+                return true;
+            
+            if (TryGetTransport<CompositeTransport>(out var composite))
+                return composite.TryGetTransport(out transport);
+            
+            return false;
+        }
+        
+        public bool TrySetTransport(GenericTransport transport)
+        {
+            if (transport == null || NetworkManager.main == null) 
+                return false;
+            
+            if (TryGetTransport<CompositeTransport>(out var composite))
             {
-                transport = local;
+                NetworkManager.main.transport = composite;
+                composite.SetClientTransport(transport);
                 return true;
             }
-            
-            return _CompositeTransport.TryGetTransport(out transport);
+
+            NetworkManager.main.transport = transport;
+            return true;
+        }
+        
+        public bool TrySetTransport<T>() where T : GenericTransport
+        {
+            return TrySetTransport<T>(out _);
         }
         
         public bool TrySetTransport<T>(out T transport) where T : GenericTransport
@@ -32,22 +57,7 @@ namespace EDIVE.Networking.ServerManagement
             if (!TryGetTransport(out transport) || NetworkManager.main == null) 
                 return false;
             
-            NetworkManager.main.transport = transport;
-            return true;
-        }
-        
-        public CompositeTransport SetCompositeTransport()
-        {
-            if (NetworkManager.main != null) 
-                NetworkManager.main.transport = _CompositeTransport;
-            return _CompositeTransport;
-        }
-        
-        public LocalTransport SetLocalTransport()
-        {
-            if (NetworkManager.main != null) 
-                NetworkManager.main.transport = _LocalTransport;
-            return _LocalTransport;
+            return TrySetTransport(transport);
         }
     }
 }

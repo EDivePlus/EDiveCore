@@ -24,14 +24,12 @@ namespace EDIVE.Networking.ServerManagement.PurrNet
             if (!AppCore.Services.TryGet<TransportController>(out var transportController))
                 return false;
             
-            if (!transportController.TryGetTransport<PurrTransport>(out var purrTransport))
+            if (!transportController.TrySetTransport<PurrTransport>(out var purrTransport))
                 return false;
 
             try
             {
                 purrTransport.roomName = RoomName;
-                var composite = transportController.SetCompositeTransport();
-                composite.SetClientTransport(purrTransport);
 
                 Debug.Log($"[ServerEndpoint] Connect using PurrNet relay '{RoomName}'");
                 return true;

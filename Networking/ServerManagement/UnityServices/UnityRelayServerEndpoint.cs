@@ -32,9 +32,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 {
                     var allocation = await RelayService.Instance.JoinAllocationAsync(RelayJoinCode);
                     unityTransport.SetRelayServerData(allocation.ToRelayServerData("dtls"));
-                    
-                    var composite = transportController.SetCompositeTransport();
-                    composite.SetClientTransport(unityTransport);
+                    transportController.TrySetTransport(unityTransport);
                     
                     Debug.Log($"[ServerEndpoint] Connect using Unity relay (Purrnity) '{RelayJoinCode}'");
                     return true;
@@ -48,9 +46,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             if (transportController.TryGetTransport<UTPTransport>(out var utpTransport))
             {
                 await utpTransport.InitializeRelayClient(RelayJoinCode);
-                
-                var composite = transportController.SetCompositeTransport();
-                composite.SetClientTransport(utpTransport);
+                transportController.TrySetTransport(utpTransport);
                 
                 Debug.Log($"[ServerEndpoint] Connect using Unity relay (UTP) '{RelayJoinCode}'");
                 return true;

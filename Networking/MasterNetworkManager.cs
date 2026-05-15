@@ -176,12 +176,9 @@ namespace EDIVE.Networking
             BeforeHostStarted?.Dispatch();
             UniTask.Void(async () =>
             {
-                // Set Local transport for client when hosting 
-                if (AppCore.Services.TryGet<TransportController>(out var transportController))
-                {
-                    var composite = transportController.SetCompositeTransport();
+                // Set Local transport in Composite for client when hosting 
+                if (AppCore.Services.TryGet<TransportController>(out var transportController) && transportController.TryGetTransport<CompositeTransport>(out var composite)) 
                     composite.SetClientTransport<LocalTransport>();
-                }
                 
                 await StartServerInternalAsync();
                 StartClientInternal();
@@ -195,6 +192,10 @@ namespace EDIVE.Networking
                 Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: server is {_serverConnectionState}.");
                 return;
             }
+            
+            if (AppCore.Services.TryGet<TransportController>(out var transportController)) 
+                transportController.TrySetTransport<CompositeTransport>();
+            
             _serverStartRequested = true;
             StartServerInternalAsync().Forget();
         }
