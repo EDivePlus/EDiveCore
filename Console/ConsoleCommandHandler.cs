@@ -59,10 +59,8 @@ namespace EDIVE.Console
 
 #if UNITY_STANDALONE_WIN
             WindowsConsoleHelper.Configure();
-            WindowsConsoleHelper.SetTitle(ResolveConsoleTitle());
-#elif UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX
-            SetPosixTitle(ResolveConsoleTitle());
 #endif
+            SetTitle(Application.productName);
             _originalOut = System.Console.Out;
             _originalError = System.Console.Error;
             _forwarder = new ForwardingWriter();
@@ -378,30 +376,21 @@ namespace EDIVE.Console
                 }
             }).Forget();
         }
+        
 
-        private static string ResolveConsoleTitle()
+        public static void SetTitle(string title)
         {
-            var args = Environment.GetCommandLineArgs();
-            for (var i = 0; i < args.Length - 1; i++)
-            {
-                if (args[i] == "-consoleTitle")
-                    return args[i + 1];
-            }
-            return Application.productName;
-        }
-
-#if UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX
-        private static void SetPosixTitle(string title)
-        {
-            if (string.IsNullOrWhiteSpace(title)) return;
-            try
-            {
-                System.Console.Write($"\u001b]0;{title}\u0007");
-                System.Console.Out.Flush();
-            }
-            catch { }
-        }
+            if (string.IsNullOrWhiteSpace(title)) 
+                return;
+            
+#if UNITY_STANDALONE_WIN
+            WindowsConsoleHelper.SetTitle(title);
+#elif UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX
+            PosixConsoleHelper.SetTitle(title);
 #endif
+        }
+
+        public static void ResetTitle() => SetTitle(Application.productName);
 
         public static void ClearScreen()
         {

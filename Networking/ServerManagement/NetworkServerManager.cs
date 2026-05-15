@@ -7,6 +7,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Configuration;
+using EDIVE.Console;
 using EDIVE.Core;
 using EDIVE.External.Signals;
 using EDIVE.Networking.Utils;
@@ -108,6 +109,7 @@ namespace EDIVE.Networking.ServerManagement
             if (_masterNetworkManager != null)
                 _masterNetworkManager.UnregisterServerPrepareHandler(OnServerPrepareHandlers);
         }
+        
         
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
         {
@@ -271,6 +273,7 @@ namespace EDIVE.Networking.ServerManagement
         {
             if (state == ConnectionState.Connected)
             {
+                ConsoleCommandHandler.SetTitle($"{Application.productName} [{_ServerConfig.ServerName}]");
                 HostServer = new ServerRecord
                 {
                     InstanceID = _ServerConfig.InstanceID,
@@ -296,6 +299,7 @@ namespace EDIVE.Networking.ServerManagement
             }
             else if (state == ConnectionState.Disconnected)
             {
+                ConsoleCommandHandler.ResetTitle();
                 StopServer();
             }
         }
