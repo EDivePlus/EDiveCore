@@ -351,6 +351,8 @@ namespace EDIVE.Console
             var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 0) return;
 
+            AppendLog($"[bold green]>[/] {Markup.Escape(input)}");
+
             var name = parts[0].ToLowerInvariant();
             var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
 
