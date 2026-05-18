@@ -30,7 +30,14 @@ namespace EDIVE.Configuration
             var serializer = JsonSerializer.Create(serializerSettings);
             foreach (var record in _Records)
             {
-                await record.LoadConfig(serializer);
+                try
+                {
+                    await record.LoadConfig(serializer);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
         }
 
@@ -46,8 +53,15 @@ namespace EDIVE.Configuration
             {
                 if (recordFilter != null && !recordFilter(record))
                     continue;
-                
-                await record.SaveConfig(serializer);
+
+                try
+                {
+                    await record.SaveConfig(serializer);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
             }
         }
 
