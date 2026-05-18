@@ -22,7 +22,6 @@
         "Unity.InputSystem",
         "EDIVE.ScriptableArchitecture",
         "EDIVE.Utils",
-        "StompyRobot.SRDebugger",
         "EDIVE.Conditions",
         "EDIVE.EditorUtils",
         "EDIVE.External.DomainReloadHelper",

@@ -1,0 +1,28 @@
+{
+  "name": "EDIVE.SRDebugger",
+  "rootNamespace": "",
+  "references": [
+    "UniTask",
+    "StompyRobot.SRDebugger",
+    "EDIVE.XRTools",
+    "EDIVE.Input",
+    "EDIVE.NativeUtils",
+    "EDIVE.OdinExtensions",
+    "Unity.XR.Interaction.Toolkit"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.cysharp.unitask",
+      "expression": "",
+      "define": "UNITASK"
+    }
+  ],
+  "noEngineReferences": false
+}
