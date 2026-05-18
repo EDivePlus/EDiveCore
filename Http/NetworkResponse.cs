@@ -9,19 +9,23 @@ namespace EDIVE.Http
         public long StatusCode { get; }
         public string ErrorMessage { get; }
         public T Result { get; }
+        
+        // Application-level status
+        public int ApiStatus { get; }
 
         public bool IsNotFound => StatusCode == 404;
 
-        private NetworkResponse(bool isSuccess, long statusCode, string errorMessage, T result)
+        private NetworkResponse(bool isSuccess, long statusCode, string errorMessage, T result, int apiStatus)
         {
             IsSuccess = isSuccess;
             StatusCode = statusCode;
             ErrorMessage = errorMessage;
             Result = result;
+            ApiStatus = apiStatus;
         }
 
-        public static NetworkResponse<T> Success(long status, T result) => new(true, status, null, result);
-        public static NetworkResponse<T> Error(long status, string error, T result = default) => new(false, status, error, result);
+        public static NetworkResponse<T> Success(long status, T result) => new(true, status, null, result, 0);
+        public static NetworkResponse<T> Error(long status, string error, T result = default, int apiStatus = 0) => new(false, status, error, result, apiStatus);
     }
     
     public readonly struct RawNetworkResponse

@@ -22,7 +22,7 @@ namespace EDIVE.ServiceHub
                 var message = api?.Message ?? "Unknown error";
                 var status = api?.Status ?? -1;
                 Debug.LogError($"[ServiceHub] {scope} API error ({status}): {message}");
-                return NetworkResponse<T>.Error(response.StatusCode, message);
+                return NetworkResponse<T>.Error(response.StatusCode, message, apiStatus: status);
             }
 
             return NetworkResponse<T>.Success(response.StatusCode, api.Data);

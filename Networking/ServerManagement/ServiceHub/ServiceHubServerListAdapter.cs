@@ -56,6 +56,11 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         
         private string _serverSecret;
         private bool _disposing;
+        private DateTime _lastSuccessfulContactUtc;
+        
+        private string _unityRelayJoinCode = string.Empty;
+        private string _purrRelayRoom = string.Empty;
+        private bool _relayInitialized;
 
         public override UniTask Initialize()
         {
@@ -176,42 +181,46 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
         {
             var transports = await AppCore.Services.AwaitRegistered<TransportController>();
-            var unityRelayJoinCode = string.Empty;
 
-            if (_RelayAllocator != null && (transports.HasTransport<PurrnityTransport>() || transports.HasTransport<UTPTransport>()))
+            if (!_relayInitialized)
             {
-                try
+                if (_RelayAllocator != null && (transports.HasTransport<PurrnityTransport>() || transports.HasTransport<UTPTransport>()))
                 {
-                    var allocation = await _RelayAllocator.GetAllocationAsync();
-                    unityRelayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-                
-                    if (transports.TryGetTransport<PurrnityTransport>(out var unityTransport))
+                    try
                     {
-                        var serverData = allocation.ToRelayServerData("dtls");
-                        unityTransport.SetRelayServerData(serverData);
+                        var allocation = await _RelayAllocator.GetAllocationAsync();
+                        _unityRelayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+                        if (transports.TryGetTransport<PurrnityTransport>(out var unityTransport))
+                        {
+                            var serverData = allocation.ToRelayServerData("dtls");
+                            unityTransport.SetRelayServerData(serverData);
+                        }
+
+                        if (transports.TryGetTransport<UTPTransport>(out var utpTransport))
+                            utpTransport.InitializeRelayServer(allocation);
+
                     }
-                
-                    if (transports.TryGetTransport<UTPTransport>(out var utpTransport)) 
-                        utpTransport.InitializeRelayServer(allocation);
+                    catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
                 }
-                catch (Exception e)
+
+                if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
                 {
-                    Debug.LogException(e);
+                    _purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
+                    purrTransport.roomName = _purrRelayRoom;
                 }
+                
+                _relayInitialized = true;
             }
-            
-            var purrRelayRoom = string.Empty;
-            if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
-            {
-                purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
-                purrTransport.roomName = purrRelayRoom;
-            }
- 
+
             var data = new ServiceHubServerData
             {
                 InstanceID = _serverConfig.InstanceID,
-                UnityRelayCode = unityRelayJoinCode,
-                PurrRelayRoom = purrRelayRoom
+                UnityRelayCode = _unityRelayJoinCode,
+                PurrRelayRoom = _purrRelayRoom
             };
             var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
             {
@@ -230,7 +239,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 return;
             }
             _serverSecret = response.Result.Secret;
-            
+            _lastSuccessfulContactUtc = DateTime.UtcNow;
+
             var endpoints = new List<AServerEndpoint>();
             if (!string.IsNullOrEmpty(_serverConfig.PublicAddress) && _serverConfig.ResolvedPort > 0)
             {
@@ -242,21 +252,21 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 });
             }
             
-            if (!string.IsNullOrEmpty(purrRelayRoom))
+            if (!string.IsNullOrEmpty(_purrRelayRoom))
             {
                 endpoints.Add(new PurrRelayServerEndpoint
                 {
                     Name = "Purr Relay",
-                    RoomName = purrRelayRoom
+                    RoomName = _purrRelayRoom
                 });
             }
-            
-            if (!string.IsNullOrEmpty(unityRelayJoinCode))
+
+            if (!string.IsNullOrEmpty(_unityRelayJoinCode))
             {
                 endpoints.Add(new UnityRelayServerEndpoint
                 {
                     Name = "Unity Relay",
-                    RelayJoinCode = unityRelayJoinCode,
+                    RelayJoinCode = _unityRelayJoinCode,
                 });
             }
             _localEndpoints = endpoints.ToArray();
@@ -274,7 +284,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 try
                 {
                     var currentPlayers = NetworkManager.main.playerCount;
-                    
+
                     var request = new UpdateServerRequest{
                         Secret = _serverSecret,
                         Name = _serverConfig.ServerName,
@@ -282,16 +292,35 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     };
 
                     var response = await _lobby.UpdateServerAsync(request, cancellationToken);
-                    if (!response.IsSuccess)
-                        Debug.LogWarning($"[ServiceHubServerListAdapter] Heartbeat/update failed: {response.ErrorMessage}");
+                    if (response.IsSuccess)
+                    {
+                        _lastSuccessfulContactUtc = DateTime.UtcNow;
+                    }
+                    else if (response.ApiStatus is (int) ServiceHubStatus.InvalidSecret or (int) ServiceHubStatus.ServerNotFound)
+                    {
+                        Debug.Log($"[ServiceHubServerListAdapter] Lobby entry no longer valid (api status {response.ApiStatus}: {response.ErrorMessage}) — re-registering server.");
+                        await RegisterLobby(cancellationToken);
+                    }
+                    else
+                    {
+                        Debug.LogError($"[ServiceHubServerListAdapter] Heartbeat/update failed (status {response.StatusCode}): {response.ErrorMessage}");
+                    }
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
-                    Debug.LogWarning($"[ServiceHubServerListAdapter] Heartbeat exception: {e.Message}");
+                    if ((DateTime.UtcNow - _lastSuccessfulContactUtc).TotalSeconds >= Mathf.Max(1f, _HeartbeatInterval))
+                    {
+                        Debug.Log($"[ServiceHubServerListAdapter] Lobby entry lost (exception: {e.Message}) — re-registering server.");
+                        await RegisterLobby(cancellationToken);
+                    }
+                    else
+                    {
+                        Debug.LogException(e);
+                    }
                 }
             }
         }
-        
+
         private async UniTask DisposeAsync()
         {
             _heartbeatCancellation?.Cancel();
