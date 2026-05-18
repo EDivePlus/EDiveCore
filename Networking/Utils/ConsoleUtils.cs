@@ -2,6 +2,7 @@
 // Created: 21.04.2026
 
 #if SPECTRE_CONSOLE
+using Cysharp.Threading.Tasks;
 using EDIVE.Console;
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
@@ -23,30 +24,28 @@ namespace EDIVE.Networking.Utils
         private static ConsoleCommand NetStatus() => new("NetStatus", "Status of network",
             async _ =>
             {
-                await ConsoleCommandHandler.OnMainThread(() =>
+                await UniTask.SwitchToMainThread();
+                if (!AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
                 {
-                    if (!AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
-                    {
-                        ConsoleCommandHandler.AppendLog("[red]NetworkServerManager not registered[/]");
-                        return;
-                    }
+                    ConsoleCommandHandler.AppendLog("[red]NetworkServerManager not registered[/]");
+                    return;
+                }
 
-                    var serverRunning = NetworkManager.main != null && NetworkManager.main.isServer;
-                    var serverName = serverManager.CurrentServer?.ServerName ?? "<unknown>";
-                    var maxPlayers = serverManager.CurrentServer?.MaxPlayers ?? 0;
-                    var playerCount = serverManager.CurrentServer?.CurrentPlayers ?? 0;
+                var serverRunning = NetworkManager.main != null && NetworkManager.main.isServer;
+                var serverName = serverManager.CurrentServer?.ServerName ?? "<unknown>";
+                var maxPlayers = serverManager.CurrentServer?.MaxPlayers ?? 0;
+                var playerCount = serverManager.CurrentServer?.CurrentPlayers ?? 0;
 
-                    ConsoleCommandHandler.AppendLog(serverRunning ? "[green]Server running[/]" : "[red]Server stopped[/]");
-                    ConsoleCommandHandler.AppendLog($"Server name: [yellow]{serverName}[/]");
-                    ConsoleCommandHandler.AppendLog($"Players connected: [cyan]{playerCount}[/]/[cyan]{maxPlayers}[/]");
+                ConsoleCommandHandler.AppendLog(serverRunning ? "[green]Server running[/]" : "[red]Server stopped[/]");
+                ConsoleCommandHandler.AppendLog($"Server name: [yellow]{serverName}[/]");
+                ConsoleCommandHandler.AppendLog($"Players connected: [cyan]{playerCount}[/]/[cyan]{maxPlayers}[/]");
 
-                    var endpoints = serverManager.CurrentServer?.Endpoints;
-                    if (endpoints != null)
-                    {
-                        foreach (var endpoint in endpoints)
-                            ConsoleCommandHandler.AppendLog($"Endpoint: [cyan]{endpoint}[/]");
-                    }
-                });
+                var endpoints = serverManager.CurrentServer?.Endpoints;
+                if (endpoints != null)
+                {
+                    foreach (var endpoint in endpoints)
+                        ConsoleCommandHandler.AppendLog($"Endpoint: [cyan]{endpoint}[/]");
+                }
             });
     }
 }

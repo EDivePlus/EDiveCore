@@ -403,17 +403,6 @@ namespace EDIVE.Console
                 target.Flush();
             }
         }
-
-        public static UniTask OnMainThread(Action action)
-        {
-            var tcs = new UniTaskCompletionSource();
-            UniTask.Post(() =>
-            {
-                try { action(); tcs.TrySetResult(); }
-                catch (Exception ex) { tcs.TrySetException(ex); }
-            });
-            return tcs.Task;
-        }
         
         public static T Select<T>(string title, IEnumerable<T> choices)
         {

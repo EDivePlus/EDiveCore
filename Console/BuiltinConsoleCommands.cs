@@ -38,7 +38,8 @@ namespace EDIVE.Console
                 if (result)
                 {
                     ConsoleCommandHandler.AppendLog("[red]Shutting down...[/]");
-                    await ConsoleCommandHandler.OnMainThread(Application.Quit);
+                    await UniTask.SwitchToMainThread();
+                    Application.Quit();
                 }
                 else
                 {
@@ -54,7 +55,8 @@ namespace EDIVE.Console
                 if (result)
                 {
                     ConsoleCommandHandler.AppendLog("[red]Restarting...[/]");
-                    await ConsoleCommandHandler.OnMainThread(AppRestartUtility.Restart);
+                    await UniTask.SwitchToMainThread();
+                    AppRestartUtility.RestartAsync().Forget();
                 }
                 else
                 {
@@ -65,10 +67,8 @@ namespace EDIVE.Console
         private static ConsoleCommand Status() => new("status", "app status",
             async _ =>
             {
-                await ConsoleCommandHandler.OnMainThread(() =>
-                {
-                    ConsoleCommandHandler.AppendLog($"[green]App running[/] - uptime: {Time.realtimeSinceStartup:F1}s");
-                });
+                await UniTask.SwitchToMainThread();
+                ConsoleCommandHandler.AppendLog($"[green]App running[/] - uptime: {Time.realtimeSinceStartup:F1}s");
             });
 
         private static ConsoleCommand Clear() => new("clear", "clear the terminal",
