@@ -29,6 +29,9 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("public_port")]
         public int? PublicPort;
+        
+        [JsonProperty("max_players")]
+        public int MaxPlayers;
 
         [JsonProperty("relay_code")]
         public string RelayCode;

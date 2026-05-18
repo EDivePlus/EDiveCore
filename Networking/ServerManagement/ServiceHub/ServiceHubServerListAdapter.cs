@@ -228,6 +228,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 Version = _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
                 PublicAddress = _serverConfig.PublicAddress,
                 PublicPort = _serverConfig.ResolvedPort,
+                MaxPlayers = _serverConfig.MaxPlayers,
                 Data = data.Serialize(),
                 IsPrivate = _serverConfig.IsPrivate,
                 IsDebug = Debug.isDebugBuild
