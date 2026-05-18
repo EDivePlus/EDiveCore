@@ -8,7 +8,8 @@
     "EDIVE.External.Signals",
     "EDIVE.Replay",
     "EDIVE.OdinExtensions",
-    "EDIVE.Core"
+    "EDIVE.Core",
+    "Unity.Mathematics"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

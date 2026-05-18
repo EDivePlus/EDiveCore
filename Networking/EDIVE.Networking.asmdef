@@ -42,7 +42,8 @@
         "EDIVE.ServiceHub",
         "EDIVE.Http",
         "UnityNetworkDiscovery",
-        "EDIVE.UnityServices"
+        "EDIVE.UnityServices",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
