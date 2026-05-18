@@ -220,7 +220,20 @@ namespace EDIVE.AppLoading.LoadItems
             }
         }
 
-        public UniTask LoadContent(Action<float> progressCallback) => IsValid ? _Source.LoadContent(this, progressCallback) : UniTask.CompletedTask;
+        public async UniTask LoadContent(Action<float> progressCallback)
+        {
+            if (!IsValid)
+                return;
+
+            try
+            {
+                await _Source.LoadContent(this, progressCallback);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
 
         public float GetCurrentLoadingWeight() => GetLoadingProgress() * LoadWeight;
 
