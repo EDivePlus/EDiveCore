@@ -61,6 +61,8 @@ namespace EDIVE.VisualPresets.Switchers
                 TryApply(tPreset);
         }
 
+        private void OnBeforeApply() => _strategyHandle?.Dispose();
+        
         public void TryApply(AVisualPresetRecord<TVisualID> presetRecord)
         {
             _typedStrategyCatalog ??= StrategyCatalog.OfType<IVisualSwitcherStrategy<TVisualID>>().ToList();
@@ -72,9 +74,10 @@ namespace EDIVE.VisualPresets.Switchers
             
             foreach (var strategy in _typedStrategyCatalog)
             {
-                if (!strategy.TryApply(out _strategyHandle, presetRecord, this, () => _strategyHandle?.Dispose())) 
+                if (!strategy.TryApply(out var handle, presetRecord, this, OnBeforeApply)) 
                     continue;
                 
+                _strategyHandle = handle;
                 _currentPreset = presetRecord;
                 return;
             }
