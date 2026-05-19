@@ -31,6 +31,9 @@ namespace EDIVE.StagePlay
         
         [SerializeField]
         private TMP_FontAsset _Font;
+        
+        [SerializeField]
+        private StagePlaySharedData _SharedData;
 
         [SerializeField]
         [HideReferenceObjectPicker]
@@ -39,6 +42,7 @@ namespace EDIVE.StagePlay
         public TMP_FontAsset Font => _Font;
         public string Name => _Name;
         public List<StagePlaySegment> ScriptSegments => _ScriptSegments;
+        public StagePlaySharedData SharedData => _SharedData;
 
 #if UNITY_EDITOR && CSV_HELPER
         [Button]

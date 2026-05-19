@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 23.06.2025
 
-using EDIVE.NativeUtils;
 using EDIVE.StateHandling.MultiStates;
 using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
@@ -34,9 +33,12 @@ namespace EDIVE.StagePlay.UI
 
             if (_CharactersText != null)
             {
-                _CharactersText.text = string.Join(", ", data.Segment.Characters);
+                _CharactersText.text = data.Segment.Characters;
                 if (data.Definition.Font != null)
                     _CharactersText.font = data.Definition.Font;
+                
+                if (data.Definition.SharedData.TryGetCharacterColor(data.Segment.Characters, out var color))
+                    _CharactersText.color = color;
             }
             
             if (_LineText != null)
