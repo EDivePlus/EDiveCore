@@ -24,7 +24,7 @@ namespace EDIVE.Networking.ServerManagement.PurrNet
             if (!AppCore.Services.TryGet<TransportController>(out var transportController))
                 return false;
             
-            if (!transportController.TrySetTransport<PurrTransport>(out var purrTransport))
+            if (!transportController.TrySetClient<PurrTransport>(out var purrTransport))
                 return false;
 
             try

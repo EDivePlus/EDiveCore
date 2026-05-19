@@ -14,7 +14,13 @@
   "overrideReferences": false,
   "precompiledReferences": [],
   "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
+  "defineConstraints": ["UNITY_AUTH"],
+  "versionDefines": [
+    {
+      "name": "com.unity.services.authentication",
+      "expression": "",
+      "define": "UNITY_AUTH"
+    }
+  ],
   "noEngineReferences": false
 }

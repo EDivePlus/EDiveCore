@@ -27,12 +27,10 @@
         "EDIVE.NativeUtils",
         "EDIVE.ScriptableArchitecture",
         "PurrNet.Runtime",
-        "PurrNet.Purrnity.Runtime",
         "PurrNet.UTP.Runtime",
         "Unity.Services.Core",
         "Unity.Services.Authentication",
         "Unity.Services.Multiplayer",
-        "Unity.Networking.Transport",
         "Unity.Collections",
         "EDIVE.EditorUtils",
         "EDIVE.Console",
@@ -52,6 +50,17 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.transport",
+            "expression": "",
+            "define": "UNITY_TRANSPORT"
+        },
+        {
+            "name": "com.unity.services.multiplayer",
+            "expression": "",
+            "define": "UNITY_MULTIPLAYER"
+        }
+    ],
     "noEngineReferences": false
 }

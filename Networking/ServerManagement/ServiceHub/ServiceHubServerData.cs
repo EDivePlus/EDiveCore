@@ -11,9 +11,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         [JsonProperty("instance_id")]
         public string InstanceID;
         
-        [JsonProperty("unity_relay_code")]
-        public string UnityRelayCode;
-        
         [JsonProperty("purr_relay_room")]
         public string PurrRelayRoom;
 

@@ -1,19 +1,18 @@
 ﻿// Author: František Holubec
 // Created: 08.08.2025
 
+#if UNITY_SERVICES && UNITY_TRANSPORT
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.UnityServices;
-using PurrNet.Purrnity;
 using PurrNet.UTP;
 using Sirenix.OdinInspector;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
-using Unity.Services.Relay.Models;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.UnityServices
@@ -160,12 +159,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             {
                 var allocation = await _RelayAllocator.GetAllocationAsync();
                 joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-                
-                if (transportController.TryGetTransport<PurrnityTransport>(out var unityTransport))
-                {
-                    var serverData = allocation.ToRelayServerData("dtls");
-                    unityTransport.SetRelayServerData(serverData);
-                }
+
                 if (transportController.TryGetTransport<UTPTransport>(out var utpTransport)) 
                     utpTransport.InitializeRelayServer(allocation);
             }
@@ -225,3 +219,4 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         
     }
 }
+#endif

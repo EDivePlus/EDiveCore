@@ -176,9 +176,8 @@ namespace EDIVE.Networking
             BeforeHostStarted?.Dispatch();
             UniTask.Void(async () =>
             {
-                // Set Local transport in Composite for client when hosting 
-                if (AppCore.Services.TryGet<TransportController>(out var transportController) && transportController.TryGetTransport<CompositeTransport>(out var composite)) 
-                    composite.SetClientTransport<LocalTransport>();
+                if (AppCore.Services.TryGet<TransportController>(out var transportController)) 
+                    transportController.SetHost();
                 
                 await StartServerInternalAsync();
                 StartClientInternal();
@@ -194,7 +193,7 @@ namespace EDIVE.Networking
             }
             
             if (AppCore.Services.TryGet<TransportController>(out var transportController)) 
-                transportController.TrySetTransport<CompositeTransport>();
+                transportController.SetServer();
             
             _serverStartRequested = true;
             StartServerInternalAsync().Forget();

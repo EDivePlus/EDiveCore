@@ -8,16 +8,11 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Core.Versions;
 using EDIVE.Networking.ServerManagement.PurrNet;
-using EDIVE.Networking.ServerManagement.UnityServices;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
 using PurrNet;
-using PurrNet.Purrnity;
 using PurrNet.Transports;
-using PurrNet.UTP;
 using Sirenix.OdinInspector;
-using Unity.Services.Relay;
-using Unity.Services.Relay.Models;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement.ServiceHub
@@ -40,9 +35,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private float _HeartbeatInterval = 15f;
         
         [SerializeField]
-        private UnityRelayAllocator _RelayAllocator;
-        
-        [SerializeField]
         private AppVersionDefinition _VersionDefinition;
 
         private LobbyService _lobby;
@@ -58,7 +50,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private bool _disposing;
         private DateTime _lastSuccessfulContactUtc;
         
-        private string _unityRelayJoinCode = string.Empty;
         private string _purrRelayRoom = string.Empty;
         private bool _relayInitialized;
 
@@ -149,15 +140,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 if (data == null || string.IsNullOrEmpty(data.InstanceID))
                     continue;
                 
-                if (!string.IsNullOrEmpty(data.UnityRelayCode))
-                {
-                    endpoints.Add(new UnityRelayServerEndpoint
-                    {
-                        Name = "Unity Relay",
-                        RelayJoinCode = data.UnityRelayCode,
-                    });
-                }
-                
                 if (!string.IsNullOrEmpty(data.PurrRelayRoom))
                 {
                     endpoints.Add(new PurrRelayServerEndpoint
@@ -184,29 +166,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             if (!_relayInitialized)
             {
-                if (_RelayAllocator != null && (transports.HasTransport<PurrnityTransport>() || transports.HasTransport<UTPTransport>()))
-                {
-                    try
-                    {
-                        var allocation = await _RelayAllocator.GetAllocationAsync();
-                        _unityRelayJoinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-
-                        if (transports.TryGetTransport<PurrnityTransport>(out var unityTransport))
-                        {
-                            var serverData = allocation.ToRelayServerData("dtls");
-                            unityTransport.SetRelayServerData(serverData);
-                        }
-
-                        if (transports.TryGetTransport<UTPTransport>(out var utpTransport))
-                            utpTransport.InitializeRelayServer(allocation);
-
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogException(e);
-                    }
-                }
-
                 if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
                 {
                     _purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
@@ -219,7 +178,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             var data = new ServiceHubServerData
             {
                 InstanceID = _serverConfig.InstanceID,
-                UnityRelayCode = _unityRelayJoinCode,
                 PurrRelayRoom = _purrRelayRoom
             };
             var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
@@ -261,15 +219,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     RoomName = _purrRelayRoom
                 });
             }
-
-            if (!string.IsNullOrEmpty(_unityRelayJoinCode))
-            {
-                endpoints.Add(new UnityRelayServerEndpoint
-                {
-                    Name = "Unity Relay",
-                    RelayJoinCode = _unityRelayJoinCode,
-                });
-            }
+            
             _localEndpoints = endpoints.ToArray();
         }
         

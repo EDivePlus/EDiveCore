@@ -27,7 +27,7 @@ namespace EDIVE.Networking.ServerManagement
             if (!AppCore.Services.TryGet<TransportController>(out var transportController))
                 return false;
             
-            if (!transportController.TrySetTransport<UDPTransport>(out var udp))
+            if (!transportController.TrySetClient<UDPTransport>(out var udp))
                 return false;
 
             udp.address = Address;

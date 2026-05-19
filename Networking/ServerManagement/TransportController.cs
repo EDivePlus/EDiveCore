@@ -1,63 +1,74 @@
 ﻿// Author: František Holubec
 // Created: 13.05.2026
 
-using System.Collections.Generic;
 using EDIVE.Core.Services;
-using EDIVE.NativeUtils;
 using PurrNet;
 using PurrNet.Transports;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
 {
     public class TransportController : AServiceBehaviour<TransportController>
     {
+        [Required]
         [SerializeField]
-        private List<GenericTransport> _MainTransports;
+        private CompositeTransport _CompositeTransports;
+        
+        [Required]
+        [SerializeField]
+        private LocalTransport _LocalTransport;
 
         public bool HasTransport<T>() where T : GenericTransport
         {
-            return TryGetTransport(out T _);
+            return TryGetTransport<T>(out _);
         }
         
         public bool TryGetTransport<T>(out T transport) where T : GenericTransport
         {
-            if (_MainTransports.TryGetFirstT(out transport))
-                return true;
-            
-            if (TryGetTransport<CompositeTransport>(out var composite))
-                return composite.TryGetTransport(out transport);
-            
-            return false;
-        }
-        
-        public bool TrySetTransport(GenericTransport transport)
-        {
-            if (transport == null || NetworkManager.main == null) 
-                return false;
-            
-            if (TryGetTransport<CompositeTransport>(out var composite))
+            transport = null;
+            if (_LocalTransport is T local)
             {
-                NetworkManager.main.transport = composite;
-                composite.SetClientTransport(transport);
+                transport = local;
                 return true;
             }
-
+            
+            return _CompositeTransports != null && _CompositeTransports.TryGetTransport(out transport);
+        }
+        
+        public void SetServer()
+        {
+            NetworkManager.main.transport = _CompositeTransports;
+        }
+        
+        public void SetHost()
+        {
+            NetworkManager.main.transport = _CompositeTransports;
+            _CompositeTransports.SetClientTransport<LocalTransport>();
+        }
+        
+        public void SetOffline()
+        {
+            NetworkManager.main.transport = _LocalTransport;
+        }
+        
+        public void SetClient(GenericTransport transport)
+        {
             NetworkManager.main.transport = transport;
-            return true;
         }
-        
-        public bool TrySetTransport<T>() where T : GenericTransport
+
+        public bool TrySetClient<T>() where T : GenericTransport
         {
-            return TrySetTransport<T>(out _);
+            return TrySetClient<T>(out _);
         }
-        
-        public bool TrySetTransport<T>(out T transport) where T : GenericTransport
+
+        public bool TrySetClient<T>(out T transport) where T : GenericTransport
         {
-            if (!TryGetTransport(out transport) || NetworkManager.main == null) 
+            if (!TryGetTransport(out transport)) 
                 return false;
             
-            return TrySetTransport(transport);
+            SetClient(transport);
+            return true;
         }
     }
 }
