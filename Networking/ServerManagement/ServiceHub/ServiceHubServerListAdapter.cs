@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
@@ -100,7 +101,20 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         
         public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
             => _localEndpoints ?? Array.Empty<AServerEndpoint>();
-        
+
+        public override async UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request)
+        {
+            if (request is not CodeJoinRequest codeRequest)
+                return (false, null);
+            
+            var response = await _lobby.GetServerAsync(codeRequest.Code, CancellationToken.None);
+            if (!response.IsSuccess || response.Result == null)                
+                return (false, null);
+            
+            var record = BuildRecords(new[] { response.Result }).FirstOrDefault();
+            return (record != null, record);
+        }
+
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
             // Ensure we don't spam the lobby service with queries if search is stopped and started again quickly.

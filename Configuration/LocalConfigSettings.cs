@@ -104,7 +104,11 @@ namespace EDIVE.Configuration
                 {
                     var json = JsonAssetUtils.SerializeAsset(serializer, Asset);
                     PathUtility.EnsurePathExists(path);
-                    await File.WriteAllTextAsync(path, json.ToString(Formatting.Indented));
+                    
+                    await using var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+                    await using var streamWriter = new StreamWriter(fileStream);
+                    
+                    await streamWriter.WriteAsync(json.ToString(Formatting.Indented));
                 }
                 catch (Exception e)
                 {

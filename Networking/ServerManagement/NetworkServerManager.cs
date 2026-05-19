@@ -115,16 +115,49 @@ namespace EDIVE.Networking.ServerManagement
         {
             ConnectToServerAsync(server, endpoint).Forget();
         }
-        
-        public async UniTask ConnectToServerAsync(ServerRecord server, AServerEndpoint endpoint = null, CancellationToken cancellationToken = default)
+
+        public void ConnectToServer(IJoinRequest joinRequest)
         {
-            if (server == null)
+            ConnectToServerAsync(joinRequest).Forget();
+        }
+
+        public async UniTask ConnectToServerAsync(IJoinRequest joinRequest, CancellationToken cancellationToken = default)
+        {
+            if (joinRequest == null)
                 return;
 
             if (_connecting)
             {
                 Debug.LogWarning("[NetworkServerManager] Connect attempt already in progress, ignoring.");
                 return;
+            }
+
+            foreach (var adapter in _Adapters)
+            {
+                if (adapter == null)
+                    continue;
+
+                cancellationToken.ThrowIfCancellationRequested();
+                var (handled, record) = await adapter.TryHandleJoinRequest(joinRequest);
+                if (!handled || record == null)
+                    continue;
+
+                if (await ConnectToServerAsync(record, null, cancellationToken))
+                    return;
+            }
+
+            Debug.LogWarning($"[NetworkServerManager] No adapter could handle join request of type {joinRequest.GetType().Name}.");
+        }
+
+        public async UniTask<bool> ConnectToServerAsync(ServerRecord server, AServerEndpoint endpoint = null, CancellationToken cancellationToken = default)
+        {
+            if (server == null)
+                return false;
+
+            if (_connecting)
+            {
+                Debug.LogWarning("[NetworkServerManager] Connect attempt already in progress, ignoring.");
+                return false;
             }
 
             var endpoints = endpoint != null
@@ -134,7 +167,7 @@ namespace EDIVE.Networking.ServerManagement
             if (endpoints == null || endpoints.Count == 0)
             {
                 Debug.LogWarning($"[NetworkServerManager] Server '{server.ServerName}' has no endpoints to try.");
-                return;
+                return false;
             }
 
             JoinedServer = server;
@@ -150,13 +183,14 @@ namespace EDIVE.Networking.ServerManagement
 
                     Debug.Log($"[NetworkServerManager] Trying endpoint {i + 1}/{endpoints.Count}: {ep}");
                     if (await TryConnectAsync(ep, cancellationToken))
-                        return;
+                        return true;
 
                     Debug.LogWarning($"[NetworkServerManager] Endpoint failed: {ep}");
                 }
 
                 Debug.LogError($"[NetworkServerManager] All {endpoints.Count} endpoint(s) failed for server '{server.ServerName}'.");
                 JoinedServer = null;
+                return false;
             }
             catch (OperationCanceledException)
             {

@@ -49,6 +49,8 @@ namespace EDIVE.Networking.ServerManagement
         /// Endpoints this adapter contributes for the locally-running server.
         /// </summary>
         public virtual IEnumerable<AServerEndpoint> GetLocalServerEndpoints() => Array.Empty<AServerEndpoint>();
+        
+        public abstract UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request);
 
         protected void SetServers(IEnumerable<ServerRecord> records)
         {

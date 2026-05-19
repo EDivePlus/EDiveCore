@@ -51,5 +51,18 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
 #endif
+        
+        public static ServerRecord CreateUnknown(AServerEndpoint endpoint)
+        {
+            var record = new ServerRecord(Guid.NewGuid().ToString())
+            {
+                ServerName = "Unknown Server",
+                MaxPlayers = 0,
+                CurrentPlayers = 0,
+                LastUpdated = DateTime.Now,
+                Endpoints = new List<AServerEndpoint> { endpoint }
+            };
+            return record;
+        }
     }
 }

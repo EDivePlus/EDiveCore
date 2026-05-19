@@ -47,6 +47,8 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             };
         }
 
+        public override UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request) => UniTask.FromResult((false, default(ServerRecord)));
+
         private static ServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
         {
             var endpoints = new List<AServerEndpoint>();
