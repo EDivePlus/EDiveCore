@@ -10,7 +10,8 @@
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.VisualPresets",
         "EDIVE.DataStructures",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

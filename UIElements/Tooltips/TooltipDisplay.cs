@@ -23,9 +23,9 @@ namespace EDIVE.UIElements.Tooltips
         
         public void ShowTooltip(VisualPreset preset, RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement)
         {
+            gameObject.SetActive(true);
             _Switcher.Apply(preset);
             UpdatePlacement(target, canvas, preferredPlacement);
-            gameObject.SetActive(true);
         }
         
         public void HideTooltip()
