@@ -18,7 +18,8 @@ namespace EDIVE.Console
                 Restart(),
                 Status(),
                 Clear(),
-                Throw()
+                ThrowTest(),
+                Fps()
             );
         }
 
@@ -74,8 +75,41 @@ namespace EDIVE.Console
         private static ConsoleCommand Clear() => new("clear", "clear the terminal",
             _ => ConsoleCommandHandler.ClearScreen());
         
-        private static ConsoleCommand Throw() => new("throw", "throw debug exception",
+        private static ConsoleCommand ThrowTest() => new("throw-test", "throw debug exception",
             _ => UniTask.Void(() => throw new Exception("Debug Exception")));
+
+        private static ConsoleCommand Fps() => new("fps", "measure main thread FPS (avg over N frames, default 20)",
+            async args =>
+            {
+                var frames = 20;
+                if (args.Length > 0 && (!int.TryParse(args[0], out frames) || frames < 1))
+                {
+                    ConsoleCommandHandler.AppendLog("[red]Usage:[/] fps [[frames]]  (frames must be a positive integer)");
+                    return;
+                }
+
+                await UniTask.SwitchToMainThread();
+
+                var totalDelta = 0f;
+                var minDelta = float.MaxValue;
+                var maxDelta = 0f;
+                for (var i = 0; i < frames; i++)
+                {
+                    await UniTask.Yield(PlayerLoopTiming.Update);
+                    var dt = Time.unscaledDeltaTime;
+                    totalDelta += dt;
+                    if (dt < minDelta) minDelta = dt;
+                    if (dt > maxDelta) maxDelta = dt;
+                }
+
+                var avgDelta = totalDelta / frames;
+                var avgFps = 1f / avgDelta;
+                var maxFps = 1f / minDelta;
+                var minFps = 1f / maxDelta;
+                ConsoleCommandHandler.AppendLog(
+                    $"[green]FPS[/] avg [yellow]{avgFps:F1}[/] ({avgDelta * 1000f:F2} ms) " +
+                    $"min [yellow]{minFps:F1}[/] max [yellow]{maxFps:F1}[/] over {frames} frames");
+            });
     }
 }
 #endif
