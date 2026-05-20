@@ -54,7 +54,14 @@ namespace EDIVE.Networking.ServerManagement
         
         public void SetClient(GenericTransport transport)
         {
-            NetworkManager.main.transport = transport;
+            NetworkManager.main.transport = _CompositeTransports;
+            if (transport is CompositeTransport)
+            {                
+                Debug.LogError("[TransportController] CompositeTransport is not valid for Client");
+                return;
+            }
+           
+            _CompositeTransports.SetClientTransport(transport);
         }
 
         public bool TrySetClient<T>() where T : GenericTransport
