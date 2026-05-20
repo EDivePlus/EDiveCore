@@ -28,10 +28,10 @@ namespace EDIVE.StagePlay
     {
         [SerializeField]
         private string _Name;
-        
+
         [SerializeField]
         private TMP_FontAsset _Font;
-        
+
         [SerializeField]
         private StagePlaySharedData _SharedData;
 
@@ -41,9 +41,9 @@ namespace EDIVE.StagePlay
 
         public TMP_FontAsset Font => _Font;
         public string Name => _Name;
-        public List<StagePlaySegment> ScriptSegments => _ScriptSegments;
         public StagePlaySharedData SharedData => _SharedData;
-
+        public List<StagePlaySegment> ScriptSegments => _ScriptSegments;
+        
 #if UNITY_EDITOR && CSV_HELPER
         [Button]
         private async UniTask ImportFromCSV(int columnOffset)

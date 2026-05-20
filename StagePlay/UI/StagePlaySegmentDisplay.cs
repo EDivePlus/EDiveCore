@@ -33,12 +33,12 @@ namespace EDIVE.StagePlay.UI
 
             if (_CharactersText != null)
             {
-                _CharactersText.text = data.Segment.Characters;
+                var sharedData = data.Definition.SharedData;
+                _CharactersText.text = sharedData != null
+                    ? sharedData.ColorizeCharacters(data.Segment.Characters)
+                    : data.Segment.Characters;
                 if (data.Definition.Font != null)
                     _CharactersText.font = data.Definition.Font;
-                
-                if (data.Definition.SharedData != null && data.Definition.SharedData.TryGetCharacterColor(data.Segment.Characters, out var color))
-                    _CharactersText.color = color;
             }
             
             if (_LineText != null)
