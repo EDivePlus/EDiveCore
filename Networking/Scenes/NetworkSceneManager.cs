@@ -4,286 +4,297 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Cysharp.Threading.Tasks;
-using EDIVE.Core.Services;
-using EDIVE.NativeUtils;
+using EDIVE.AppLoading;
 using EDIVE.OdinExtensions.Attributes;
 using PurrNet;
 using PurrNet.Modules;
 using PurrNet.Transports;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace EDIVE.Networking.Scenes
 {
-    /// <summary>
-    /// PurrNet-flavoured scene manager. All server-loaded scenes are public by default and
-    /// replicate to every connected player (including history replay for late joiners), so
-    /// FishNet's "global vs connection" split doesn't survive the migration:
-    /// _GlobalScene/_OnlineScenes/_ClientDefaultScene all just get loaded on the server when
-    /// it comes online, and clients receive them automatically.
-    /// </summary>
-    public class NetworkSceneManager : AServiceBehaviour<NetworkSceneManager>
+    public class NetworkSceneManager : ALoadableServiceBehaviour<NetworkSceneManager>
     {
         [SerializeField]
         [SceneReference]
-        private string _GlobalScene;
+        private List<string> _GlobalScenes = new();
 
         [SerializeField]
-        [SceneReference]
-        private List<string> _OnlineScenes;
-
-        [SerializeField]
-        [SceneReference]
-        [Tooltip("PurrNet replays scene history to new joiners, so this is now equivalent to adding the scene to _OnlineScenes. Kept for backwards compatibility.")]
-        private string _ClientDefaultScene;
-
-        [SerializeField]
-        private bool _SetSceneActive = false;
+        private float _JoinTimeout = 5f;
 
         private NetworkManager _networkManager;
-        private readonly List<Scene> _loadedScenes = new();
-        // Scene names we've already passed to LoadSceneAsync. Tracks in-flight loads so a
-        // second request during the gap before onSceneLoaded fires doesn't trigger a duplicate
-        // load — that's how PurrNet's _idToScene ends up with two SceneIDs for one Unity scene.
-        private readonly HashSet<string> _requestedSceneNames = new();
-        public Scene GlobalScene { get; private set; }
+        
+        private readonly Dictionary<string, SceneID> _serverLoadedScenes = new();
+        private readonly Dictionary<string, UniTaskCompletionSource<SceneID>> _serverPendingLoads = new();
 
-        public IEnumerable<Scene> LoadedScenes => _loadedScenes;
-        public IEnumerable<Scene> LoadedConnectionScenes => _loadedScenes.Where(s => s != GlobalScene);
+        public IEnumerable<Scene> LoadedScenes => EnumerateLoadedScenes(includeGlobals: true);
+        public IEnumerable<Scene> LoadedLocalScenes => EnumerateLoadedScenes(includeGlobals: false);
 
-        protected override void OnEnable()
+        
+        protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            base.OnEnable();
             _networkManager = NetworkManager.main;
-            if (_networkManager == null)
-                return;
-
-            if (_OnlineScenes.All(string.IsNullOrEmpty) && string.IsNullOrEmpty(_GlobalScene) && string.IsNullOrEmpty(_ClientDefaultScene))
-            {
-                Debug.LogWarning("[NetworkSceneManager] No online scenes specified — default scenes will not load.");
-                return;
-            }
-
-            _networkManager.onClientConnectionState += OnClientConnectionState;
             _networkManager.onServerConnectionState += OnServerConnectionState;
-            _networkManager.Subscribe<ConnectionSceneRequest>(OnServerConnectionSceneRequest, asServer: true);
-
-            TrySubscribeSceneEvents();
-            UnloadOnlineScenes();
+            _networkManager.Subscribe<ConnectionSceneRequest>(OnConnectionSceneRequest, asServer: true);
+            return UniTask.CompletedTask;
         }
 
-        protected override void OnDisable()
+        protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
-            base.OnDisable();
-            if (_networkManager == null)
-                return;
+            dependencies.Add(typeof(MasterNetworkManager));
+        }
 
-            _networkManager.onClientConnectionState -= OnClientConnectionState;
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (_networkManager == null) return;
+            
             _networkManager.onServerConnectionState -= OnServerConnectionState;
-            _networkManager.Unsubscribe<ConnectionSceneRequest>(OnServerConnectionSceneRequest, asServer: true);
-
-            if (_networkManager.sceneModule != null)
-            {
-                _networkManager.sceneModule.onSceneLoaded -= OnSceneLoaded;
-                _networkManager.sceneModule.onSceneUnloaded -= OnSceneUnloaded;
-            }
+            _networkManager.Unsubscribe<ConnectionSceneRequest>(OnConnectionSceneRequest, asServer: true);
+            _networkManager.sceneModule.onSceneLoaded -= OnServerSceneLoaded;
         }
-
-        // The sceneModule is created when the NetworkManager actually connects (server or client),
-        // so OnEnable can run before it exists. Hook it up lazily.
-        private void TrySubscribeSceneEvents()
+        
+        public async UniTask<Scene?> AwaitJoinScene(string sceneName)
         {
-            var module = _networkManager.sceneModule;
-            if (module == null) return;
+            if (string.IsNullOrEmpty(sceneName)) 
+                return null;
+            
+            var tcs = new UniTaskCompletionSource<Scene>();
 
-            module.onSceneLoaded -= OnSceneLoaded;
-            module.onSceneUnloaded -= OnSceneUnloaded;
-            module.onSceneLoaded += OnSceneLoaded;
-            module.onSceneUnloaded += OnSceneUnloaded;
-        }
-
-        public async UniTask<Scene?> AwaitLoadConnectionScene(string sceneName)
-        {
-            if (_loadedScenes.TryGetFirst(s => s.name == sceneName, out var scene))
-                return scene;
-
-            TrySubscribeSceneEvents();
-
-            var completionSource = new UniTaskCompletionSource<Scene>();
             void OnLoaded(SceneID id, bool asServer)
             {
-                if (_networkManager.sceneModule != null &&
-                    _networkManager.sceneModule.TryGetSceneState(id, out var state) &&
+                if (_networkManager.sceneModule.TryGetSceneState(id, out var state) &&
+                    state.scene.IsValid() &&
+                    state.scene.isLoaded &&
                     state.scene.name == sceneName)
                 {
-                    completionSource.TrySetResult(state.scene);
+                    tcs.TrySetResult(state.scene);
                 }
             }
 
-            if (_networkManager.sceneModule != null)
-                _networkManager.sceneModule.onSceneLoaded += OnLoaded;
-
+            _networkManager.sceneModule.onSceneLoaded += OnLoaded;
             try
             {
-                _networkManager.SendToServer(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Load));
-                var result = await completionSource.Task.TimeoutWithoutException(TimeSpan.FromSeconds(4));
-                return result.IsTimeout ? null : result.Result;
+                if (TryFindLoadedScene(sceneName, out var existing))
+                    return existing;
+                
+                _networkManager.SendToServer(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Join));
+
+                var result = await tcs.Task.TimeoutWithoutException(TimeSpan.FromSeconds(_JoinTimeout));
+                if (result.IsTimeout)
+                {
+                    Debug.LogWarning($"[NetworkSceneManager] Timed out waiting for scene '{sceneName}' to load.", this);
+                    return null;
+                }
+                return result.Result;
             }
             finally
             {
-                if (_networkManager.sceneModule != null)
-                    _networkManager.sceneModule.onSceneLoaded -= OnLoaded;
+                _networkManager.sceneModule.onSceneLoaded -= OnLoaded;
             }
         }
-
-        public void UnloadConnectionScene(string sceneName)
+        
+        public void LeaveScene(string sceneName)
         {
-            if (_loadedScenes.All(s => s.name != sceneName))
-                return;
+            if (string.IsNullOrEmpty(sceneName)) return;
+            if (_networkManager == null) return;
 
-            _networkManager.SendToServer(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Unload));
+            _networkManager.SendToServer(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Leave));
         }
 
-        private void OnServerConnectionSceneRequest(PlayerID sender, ConnectionSceneRequest request, bool asServer)
+        private void OnConnectionSceneRequest(PlayerID sender, ConnectionSceneRequest request, bool asServer)
         {
             if (!asServer) return;
 
-            if (request.Operation == ConnectionSceneRequestOperation.Load)
-                RequestLoadScene(request.SceneName);
-            else
-                RequestUnloadScene(request.SceneName);
-        }
-
-        private void RequestLoadScene(string sceneName)
-        {
-            if (string.IsNullOrEmpty(sceneName))
-                return;
-
-            var module = _networkManager.sceneModule;
-            if (module == null) return;
-
-            if (_requestedSceneNames.Contains(sceneName))
-                return;
-            if (_loadedScenes.Any(s => s.name == sceneName))
-                return;
-
-            _requestedSceneNames.Add(sceneName);
-            module.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-        }
-
-        private void RequestUnloadScene(string sceneName)
-        {
-            if (string.IsNullOrEmpty(sceneName))
-                return;
-
-            var module = _networkManager.sceneModule;
-            if (module == null) return;
-
-            module.UnloadSceneAsync(sceneName);
-        }
-
-        private void OnSceneLoaded(SceneID id, bool asServer)
-        {
-            var module = _networkManager.sceneModule;
-            if (module == null || !module.TryGetSceneState(id, out var state))
-                return;
-
-            var scene = state.scene;
-            if (!scene.IsValid() || !scene.isLoaded)
-                return;
-
-            // Ignore PurrNet's bootstrap scenes (the NetworkManager's own scene + DontDestroyOnLoad).
-            if (!IsManagedScene(scene.name))
-                return;
-
-            if (!_loadedScenes.Contains(scene))
-                _loadedScenes.Add(scene);
-
-            if (!GlobalScene.IsValid() && !string.IsNullOrEmpty(_GlobalScene) && scene.name == GetSceneName(_GlobalScene))
-                GlobalScene = scene;
-
-            if (_SetSceneActive && _OnlineScenes.Any(online => !string.IsNullOrEmpty(online) && scene.name == GetSceneName(online)))
-                UnitySceneManager.SetActiveScene(scene);
-        }
-
-        private void OnSceneUnloaded(SceneID id, bool asServer)
-        {
-            var module = _networkManager.sceneModule;
-            if (module == null || !module.TryGetSceneState(id, out var state))
-                return;
-
-            _loadedScenes.Remove(state.scene);
-            _requestedSceneNames.Remove(state.scene.name);
-            if (state.scene == GlobalScene)
-                GlobalScene = default;
-        }
-
-        private bool IsManagedScene(string sceneName)
-        {
-            if (!string.IsNullOrEmpty(_GlobalScene) && sceneName == GetSceneName(_GlobalScene))
-                return true;
-            if (!string.IsNullOrEmpty(_ClientDefaultScene) && sceneName == GetSceneName(_ClientDefaultScene))
-                return true;
-            for (var i = 0; i < _OnlineScenes.Count; i++)
+            switch (request.Operation)
             {
-                if (!string.IsNullOrEmpty(_OnlineScenes[i]) && sceneName == GetSceneName(_OnlineScenes[i]))
+                case ConnectionSceneRequestOperation.Join:
+                    ServerJoinScene(sender, request.SceneName).Forget();
+                    break;
+                case ConnectionSceneRequestOperation.Leave:
+                    ServerLeaveScene(sender, request.SceneName);
+                    break;
+            }
+        }
+
+        private async UniTask ServerJoinScene(PlayerID player, string sceneName)
+        {
+            try
+            {
+                var sceneId = await ServerEnsureSceneLoaded(sceneName, isPublic: false);
+                if (sceneId == null) return;
+
+                if (_networkManager.TryGetModule<ScenePlayersModule>(true, out var scenePlayers))
+                    scenePlayers.AddPlayerToScene(player, sceneId.Value);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+        }
+
+        private void ServerLeaveScene(PlayerID player, string sceneName)
+        {
+            if (!_serverLoadedScenes.TryGetValue(sceneName, out var sceneId))
+                return;
+
+            if (!_networkManager.TryGetModule<ScenePlayersModule>(true, out var scenePlayers))
+                return;
+
+            scenePlayers.RemovePlayerFromScene(player, sceneId);
+
+            if (IsGlobalScene(sceneName))
+                return;
+            
+            if (scenePlayers.TryGetPlayersAttachedToScene(sceneId, out var remaining) && remaining.Count == 0)
+            {
+                _networkManager.sceneModule.UnloadSceneAsync(sceneId);
+                _serverLoadedScenes.Remove(sceneName);
+            }
+        }
+
+        private async UniTask<SceneID?> ServerEnsureSceneLoaded(string sceneName, bool isPublic)
+        {
+            if (_serverLoadedScenes.TryGetValue(sceneName, out var existing))
+                return existing;
+
+            if (_serverPendingLoads.TryGetValue(sceneName, out var pending))
+            {
+                try { return await pending.Task; }
+                catch { return null; }
+            }
+
+            var tcs = new UniTaskCompletionSource<SceneID>();
+            _serverPendingLoads[sceneName] = tcs;
+
+            var op = _networkManager.sceneModule.LoadSceneAsync(sceneName, new PurrSceneSettings
+            {
+                mode = LoadSceneMode.Additive,
+                isPublic = isPublic
+            });
+
+            if (op == null)
+            {
+                _serverPendingLoads.Remove(sceneName);
+                tcs.TrySetCanceled();
+                return null;
+            }
+
+            try { return await tcs.Task; }
+            catch { return null; }
+        }
+
+        private void OnServerConnectionState(ConnectionState state)
+        {
+            if (state == ConnectionState.Connected)
+            {
+                HookServerSceneEvents();
+                LoadGlobalScenes();
+            }
+            else if (state == ConnectionState.Disconnected)
+            {
+                foreach (var pending in _serverPendingLoads.Values)
+                    pending.TrySetCanceled();
+                _serverPendingLoads.Clear();
+                _serverLoadedScenes.Clear();
+            }
+        }
+        
+        private void HookServerSceneEvents()
+        {
+            var module = _networkManager.sceneModule;
+            if (module == null) return;
+            module.onSceneLoaded -= OnServerSceneLoaded;
+            module.onSceneLoaded += OnServerSceneLoaded;
+        }
+
+        private void LoadGlobalScenes()
+        {
+            var module = _networkManager.sceneModule;
+            if (module == null) return;
+
+            foreach (var sceneRef in _GlobalScenes)
+            {
+                var sceneName = GetSceneName(sceneRef);
+                if (string.IsNullOrEmpty(sceneName)) continue;
+                ServerEnsureSceneLoaded(sceneName, isPublic: true).Forget();
+            }
+        }
+
+        private void OnServerSceneLoaded(SceneID id, bool asServer)
+        {
+            if (!asServer) return;
+
+            var module = _networkManager.sceneModule;
+            if (module == null || !module.TryGetSceneState(id, out var state))
+                return;
+
+            if (IsBootstrapScene(state.scene))
+                return;
+
+            _serverLoadedScenes[state.scene.name] = id;
+
+            if (_serverPendingLoads.TryGetValue(state.scene.name, out var tcs))
+            {
+                tcs.TrySetResult(id);
+                _serverPendingLoads.Remove(state.scene.name);
+            }
+        }
+        
+        private IEnumerable<Scene> EnumerateLoadedScenes(bool includeGlobals)
+        {
+            foreach (var state in _networkManager.sceneModule.sceneStates.Values)
+            {
+                var scene = state.scene;
+                if (!scene.IsValid() || !scene.isLoaded) continue;
+                if (IsBootstrapScene(scene)) continue;
+                if (!includeGlobals && IsGlobalScene(scene.name)) continue;
+                yield return scene;
+            }
+        }
+
+        private bool TryFindLoadedScene(string sceneName, out Scene scene)
+        {
+            var module = _networkManager?.sceneModule;
+            if (module != null)
+            {
+                foreach (var state in module.sceneStates.Values)
+                {
+                    var stateScene = state.scene;
+                    if (stateScene.name != sceneName || !stateScene.IsValid() || !stateScene.isLoaded)
+                        continue;
+                    
+                    scene = stateScene;
+                    return true;
+                }
+            }
+            scene = default;
+            return false;
+        }
+
+        private bool IsBootstrapScene(Scene scene)
+        {
+            if (scene.name == "DontDestroyOnLoad") return true;
+            if (_networkManager != null && _networkManager.gameObject.scene == scene) return true;
+            return false;
+        }
+
+        private bool IsGlobalScene(string sceneName)
+        {
+            foreach (var g in _GlobalScenes)
+            {
+                if (!string.IsNullOrEmpty(g) && GetSceneName(g) == sceneName)
                     return true;
             }
             return false;
         }
 
-        private void OnServerConnectionState(ConnectionState state)
+        private static string GetSceneName(string fullPath)
         {
-            TrySubscribeSceneEvents();
-
-            if (state == ConnectionState.Connected)
-            {
-                if (!string.IsNullOrWhiteSpace(_GlobalScene))
-                    RequestLoadScene(GetSceneName(_GlobalScene));
-
-                foreach (var sceneRef in _OnlineScenes)
-                {
-                    if (!string.IsNullOrEmpty(sceneRef))
-                        RequestLoadScene(GetSceneName(sceneRef));
-                }
-
-                if (!string.IsNullOrWhiteSpace(_ClientDefaultScene))
-                    RequestLoadScene(GetSceneName(_ClientDefaultScene));
-            }
-            else if (state == ConnectionState.Disconnected)
-            {
-                UnloadOnlineScenes();
-            }
+            return string.IsNullOrEmpty(fullPath) ? fullPath : Path.GetFileNameWithoutExtension(fullPath);
         }
 
-        private void OnClientConnectionState(ConnectionState state)
-        {
-            TrySubscribeSceneEvents();
-
-            if (state == ConnectionState.Disconnected)
-                UnloadOnlineScenes();
-        }
-
-        private void UnloadOnlineScenes()
-        {
-            // PurrNet's cleanup handles networked unloads when the connection drops, but we still
-            // clear our local cache and best-effort unload any leftover Unity scenes.
-            foreach (var scene in _loadedScenes)
-            {
-                if (scene.IsValid() && scene.isLoaded)
-                    UnitySceneManager.UnloadSceneAsync(scene);
-            }
-            _loadedScenes.Clear();
-            _requestedSceneNames.Clear();
-            GlobalScene = default;
-        }
-
-        private string GetSceneName(string fullPath)
-        {
-            return Path.GetFileNameWithoutExtension(fullPath);
-        }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 27.08.2025
 
 using System;
@@ -6,16 +6,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using EDIVE.AppLoading.Loadables;
+using EDIVE.AppLoading;
 using EDIVE.Core;
-using EDIVE.Core.Services;
 using EDIVE.External.Signals;
-using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
+using EDIVE.Input.Controls;
 using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
 using EDIVE.Utils.Loading;
-using EDIVE.XRTools.Controls;
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -24,42 +22,34 @@ using UnitySceneManager = UnityEngine.SceneManagement.SceneManager;
 
 namespace EDIVE.Environment.SceneSetup
 {
-    public class SceneSetupManager : AServiceBehaviour<SceneSetupManager>, IDependencyOwner
+    public class SceneSetupManager : ALoadableServiceBehaviour<SceneSetupManager>
     {
         [SerializeField]
         private SceneSetupDefinition _DefaultSetup;
-        
+
         public SceneSetupDefinition CurrentSetup { get; private set; }
         public Signal<SceneSetupDefinition> CurrentContextChanged { get; } = new();
-
-        private NetworkManager _networkManager;
+        
         private bool _switchInProgress;
         private readonly List<ASceneSpawnPlace> _spawnPlaces = new();
         private readonly List<SceneSetupController> _sceneControllers = new();
 
-        protected void Awake()
+        protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            _networkManager = NetworkManager.main;
-            if (_networkManager == null)
-            {
-                Debug.LogError("[SceneSetupManager] NetworkManager is not initialized.");
-                return;
-            }
-
-            _networkManager.onLocalPlayerReceivedID += OnClientAuthenticated;
+            NetworkManager.main.onLocalPlayerReceivedID += OnClientAuthenticated;
+            return UniTask.CompletedTask;
         }
-
-        protected void OnDestroy()
+        
+        protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
-            if (_networkManager != null)
-            {
-                _networkManager.onLocalPlayerReceivedID -= OnClientAuthenticated;
-            }
+            dependencies.Add(typeof(MasterNetworkManager));
         }
-
-        public IEnumerable<Type> GetDependencies()
+        
+        protected override void OnDestroy()
         {
-            yield return typeof(MasterNetworkManager);
+            base.OnDestroy();
+            if (NetworkManager.main == null) return;
+            NetworkManager.main.onLocalPlayerReceivedID -= OnClientAuthenticated;
         }
 
         public void RegisterSceneController(SceneSetupController sceneController)
@@ -83,19 +73,13 @@ namespace EDIVE.Environment.SceneSetup
         {
             _spawnPlaces.Remove(spawnPlace);
         }
-        
+
         private void OnClientAuthenticated(PlayerID player)
         {
-            try
-            {
-                SetCurrentContext(_DefaultSetup);
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-            }
+            // TODO - too early ?
+            SetCurrentContextAsync(_DefaultSetup).Forget();
         }
-        
+
         [Button]
         public void SetCurrentContext(SceneSetupDefinition definition)
         {
@@ -108,66 +92,82 @@ namespace EDIVE.Environment.SceneSetup
                 return;
 
             _switchInProgress = true;
-
-            if (AppCore.Services.TryGet<LoadingOverlayProvider>(out var overlay)) 
-                await overlay.RequestOverlayAndWait(this);
-
-            // Load the scenes
-            Scene?[] loadedScenes = null;
-            var defScenes = definition.Scenes.ToList();
-            if (defScenes.Any() && AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
+            LoadingOverlayProvider overlay = null;
+            try
             {
-                var scenesToUnload = networkSceneManager.LoadedConnectionScenes
-                    .Where(loadedScene => defScenes.All(defScene => GetSceneName(defScene) != loadedScene.name))
-                    .Select(loadedScene => loadedScene.name);
+                if (AppCore.Services.TryGet(out overlay))
+                    await overlay.RequestOverlayAndWait(this);
 
-                foreach (var sceneToUnload in scenesToUnload)
+                var loadedScenes = await SwitchScenes(definition);
+
+                foreach (var sceneController in _sceneControllers)
                 {
-                    networkSceneManager.UnloadConnectionScene(sceneToUnload);
+                    if (sceneController != null)
+                        sceneController.ApplyDefinition(definition);
                 }
 
-                loadedScenes = await UniTask.WhenAll(defScenes.Select(defScene => networkSceneManager.AwaitLoadConnectionScene(GetSceneName(defScene))));
-                if (loadedScenes.Any())
-                {
-                    if (definition.SetFirstSceneActive)
-                    {
-                        var firstScene = loadedScenes.FirstOrDefault(scene => scene != null && scene.Value.isLoaded);
-                        if (firstScene != null)
-                            UnitySceneManager.SetActiveScene(firstScene.Value);
-                    }
-                }
+                TeleportToSpawn(definition, loadedScenes);
+
+                CurrentSetup = definition;
+                CurrentContextChanged.Dispatch(CurrentSetup);
             }
-            await UniTask.Yield();
-            
-            // Apply visual
-            foreach (var sceneController in _sceneControllers)
+            catch (Exception e)
             {
-                if (sceneController != null)
-                    sceneController.ApplyDefinition(definition);
+                Debug.LogException(e);
             }
-            await UniTask.Yield();
-            
-            // Find spawn place and teleport
-            if (loadedScenes != null && 
-                AppCore.Services.TryGet<ControlsManager>(out var controlsManager) &&
-                _spawnPlaces.TryGetFirst(s => s != null && s.CheckAvailable(definition) && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
+            finally
             {
-                var localPlayer = _networkManager != null ? _networkManager.localPlayer : default;
-                if (spawnPlace.TryGetLocation(localPlayer, out var position, out var rotation))
-                {
-                    controlsManager.RequestTeleport(position, rotation);
-                }
+                if (overlay != null)
+                    overlay.ReleaseOverlay(this);
+                _switchInProgress = false;
             }
-            await UniTask.Yield();
-            if (AppCore.Services.TryGet(out overlay)) 
-                overlay.ReleaseOverlay(this);
-            
-            CurrentSetup = definition;
-            _switchInProgress = false;
-            CurrentContextChanged.Dispatch(CurrentSetup);
         }
-        
-        private string GetSceneName(string fullPath)
+
+        private async UniTask<List<Scene>> SwitchScenes(SceneSetupDefinition definition)
+        {
+            var loaded = new List<Scene>();
+            if (!AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
+                return loaded;
+
+            var targetNames = new HashSet<string>(definition.Scenes.Select(GetSceneName));
+            
+            var scenesToLeave = networkSceneManager.LoadedLocalScenes
+                .Where(s => !targetNames.Contains(s.name))
+                .Select(s => s.name)
+                .ToList();
+
+            foreach (var sceneToLeave in scenesToLeave)
+                networkSceneManager.LeaveScene(sceneToLeave);
+            
+            var joinTasks = targetNames.Select(networkSceneManager.AwaitJoinScene).ToArray();
+            var joined = await UniTask.WhenAll(joinTasks);
+
+            foreach (var scene in joined)
+            {
+                if (scene.HasValue && scene.Value.IsValid() && scene.Value.isLoaded)
+                    loaded.Add(scene.Value);
+            }
+
+            if (definition.SetFirstSceneActive && loaded.Count > 0)
+                UnitySceneManager.SetActiveScene(loaded[0]);
+
+            return loaded;
+        }
+
+        private void TeleportToSpawn(SceneSetupDefinition definition, List<Scene> loadedScenes)
+        {
+            if (loadedScenes.Count == 0) return;
+            if (!AppCore.Services.TryGet<ControlsManager>(out var controlsManager)) return;
+
+            if (!_spawnPlaces.TryGetFirst(s => s != null && s.CheckAvailable(definition) && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
+                return;
+
+            var localPlayer = NetworkManager.main.localPlayer;
+            if (spawnPlace.TryGetLocation(localPlayer, out var position, out var rotation))
+                controlsManager.RequestTeleport(position, rotation);
+        }
+
+        private static string GetSceneName(string fullPath)
         {
             return string.IsNullOrEmpty(fullPath) ? fullPath : Path.GetFileNameWithoutExtension(fullPath);
         }
