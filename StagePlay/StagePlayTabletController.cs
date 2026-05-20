@@ -133,6 +133,7 @@ namespace EDIVE.StagePlay
 
             if (_CameraFollower != null && open)
             {
+                _CameraFollower.ResetCustomPose();
                 _CameraFollower.Reposition(immediate);
             }
             
