@@ -18,6 +18,9 @@ namespace EDIVE.StagePlay.UI
         private TMP_Text _CharactersText;
         
         [SerializeField]
+        private bool _ColorizeCharacterMentions;
+        
+        [SerializeField]
         [ValidateMultiState(typeof(StagePlaySegmentState))]
         private AMultiState _State;
         
@@ -31,9 +34,9 @@ namespace EDIVE.StagePlay.UI
             Data = data;
             Data.SharedData.CurrentSegmentChanged += OnCurrentSegmentChanged;
 
+            var sharedData = data.Definition.SharedData;
             if (_CharactersText != null)
             {
-                var sharedData = data.Definition.SharedData;
                 _CharactersText.text = sharedData != null
                     ? sharedData.ColorizeCharacters(data.Segment.Characters)
                     : data.Segment.Characters;
@@ -43,7 +46,9 @@ namespace EDIVE.StagePlay.UI
             
             if (_LineText != null)
             {
-                _LineText.text = data.Segment.Line;
+                _LineText.text = _ColorizeCharacterMentions && sharedData != null
+                    ? sharedData.ColorizeCharacterMentions(data.Segment.Line)
+                    : data.Segment.Line;
                 if (data.Definition.Font != null)
                     _LineText.font = data.Definition.Font;
             }

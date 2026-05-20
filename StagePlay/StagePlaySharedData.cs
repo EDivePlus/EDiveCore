@@ -38,7 +38,7 @@ namespace EDIVE.StagePlay
 
         [SerializeField]
         private List<CharacterData> _Characters = new();
-
+        
         private Dictionary<string, Color> _colorLookup;
 
         public IReadOnlyList<CharacterData> Characters => _Characters;
@@ -74,6 +74,47 @@ namespace EDIVE.StagePlay
                     sb.Append(text[i]);
 
                 tokenStart = i + 1;
+            }
+            return sb.ToString();
+        }
+
+        public string ColorizeCharacterMentions(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            var lookup = GetColorLookup();
+            if (lookup.Count == 0)
+                return text;
+
+            var sb = new StringBuilder(text.Length + 32);
+            var i = 0;
+            while (i < text.Length)
+            {
+                string bestName = null;
+                Color bestColor = default;
+                foreach (var (charName, value) in lookup)
+                {
+                    if (charName.Length == 0 || i + charName.Length > text.Length)
+                        continue;
+                    if (bestName != null && charName.Length <= bestName.Length)
+                        continue;
+                    if (string.CompareOrdinal(text, i, charName, 0, charName.Length) != 0) 
+                        continue;
+                    
+                    bestName = charName;
+                    bestColor = value;
+                }
+
+                if (bestName != null)
+                {
+                    sb.Append(bestName.Color(bestColor));
+                    i += bestName.Length;
+                }
+                else
+                {
+                    sb.Append(text[i++]);
+                }
             }
             return sb.ToString();
         }
