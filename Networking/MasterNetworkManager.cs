@@ -21,6 +21,9 @@ namespace EDIVE.Networking
     {
         [SerializeField]
         private ServerConfig _ServerConfig;
+        
+        [SerializeField]
+        private StatisticsManager _StatisticsManager;
 
         private NetworkManager _networkManager;
 
@@ -39,6 +42,8 @@ namespace EDIVE.Networking
         public Signal BeforeHostStarted { get; } = new();
         public Signal BeforeServerStarted { get; } = new();
         public Signal BeforeClientStarted { get; } = new();
+        
+        public StatisticsManager StatisticsManager => _StatisticsManager;
 
         private struct PriorityPrepareHandler
         {
