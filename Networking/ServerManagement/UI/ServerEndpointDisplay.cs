@@ -3,7 +3,6 @@
 
 using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
-using EDIVE.Utils.Activations;
 using TMPro;
 using UnityEngine;
 
@@ -17,53 +16,53 @@ namespace EDIVE.Networking.ServerManagement.UI
         [SerializeField]
         private TMP_Text _EndpointText;
         
-        [SerializeReference]
-        private IActivation _ConnectActivation;
-        
         [SerializeField]
         private AToggleState _IsActiveState;
         
-        private ServerRecord _serverRecord;
         private AServerEndpoint _serverEndpoint;
         private NetworkServerManager _serverManager;
 
-        public void Initialize(ServerRecord serverRecord, AServerEndpoint serverEndpoint)
+        private void OnEnable()
         {
-            if (serverRecord == null || serverEndpoint == null)
-                return;
-
-            _serverRecord = serverRecord;
-            _serverEndpoint = serverEndpoint;
-
-            if (_NameText)
-                _NameText.text = serverEndpoint.Name;
-
-            if (_EndpointText)
-                _EndpointText.text = serverEndpoint.EndpointText;
-
-            _ConnectActivation?.RegisterActivationListener(OnConnectActivated);
-
             if (AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
             {
                 _serverManager = serverManager;
                 _serverManager.ConnectedEndpointChanged += OnConnectedEndpointChanged;
             }
-
-            SetActive(false);
         }
 
-        public void Terminate()
+        private void OnDisable()
         {
-            _ConnectActivation?.UnregisterActivationListener(OnConnectActivated);
             if (_serverManager != null)
             {
                 _serverManager.ConnectedEndpointChanged -= OnConnectedEndpointChanged;
                 _serverManager = null;
             }
-            _serverRecord = null;
-            _serverEndpoint = null;
         }
 
+        public void SetEndpoint(AServerEndpoint serverEndpoint)
+        {
+            if (serverEndpoint == null)
+                return;
+            
+            _serverEndpoint = serverEndpoint;
+            
+            SetActive(false);
+            UpdateDisplay();
+        }
+
+        public void UpdateDisplay()
+        {
+            if (_serverEndpoint == null)
+                return;
+
+            if (_NameText)
+                _NameText.text = _serverEndpoint.Name;
+            
+            if (_EndpointText)
+                _EndpointText.text = _serverEndpoint.EndpointText;
+        }
+        
         public void SetActive(bool active)
         {
             if (_IsActiveState) _IsActiveState.SetState(active);
@@ -73,14 +72,6 @@ namespace EDIVE.Networking.ServerManagement.UI
         {
             var isActive = _serverManager != null && _serverEndpoint != null && ReferenceEquals(endpoint, _serverEndpoint);
             SetActive(isActive);
-        }
-
-        private void OnConnectActivated()
-        {
-            if (AppCore.Services.TryGet<NetworkServerManager>(out var serverManager))
-            {
-                serverManager.ConnectToServer(_serverRecord, _serverEndpoint);
-            }
         }
     }
 }

@@ -21,6 +21,7 @@ namespace EDIVE.Networking.ServerManagement
         [EnableGUI]
         private readonly List<ServerRecord> _serverList = new();
         
+        protected ServerRecord _currentServerRecord;
         protected ServerConfig _serverConfig;
 
         public async UniTask Initialize(ServerConfig serverConfig)
@@ -45,10 +46,10 @@ namespace EDIVE.Networking.ServerManagement
         public virtual void StartSearch(){}
         public virtual void StopSearch(){}
 
-        /// <summary>
-        /// Endpoints this adapter contributes for the locally-running server.
-        /// </summary>
-        public virtual IEnumerable<AServerEndpoint> GetLocalServerEndpoints() => Array.Empty<AServerEndpoint>();
+        public virtual void RegisterHostServer(ServerRecord hostServer)
+        {
+            _currentServerRecord = hostServer;
+        }
         
         public abstract UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request);
 

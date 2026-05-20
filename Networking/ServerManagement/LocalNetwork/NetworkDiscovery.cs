@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Text;
+using EDIVE.Core;
 using EDIVE.Networking.Utils;
 using Newtonsoft.Json;
 using PurrNet;
@@ -21,13 +22,16 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         {
             var nm = NetworkManager.main;
             var port = nm != null && nm.TryGetCurrentTransport<UDPTransport>(out var udp) ? udp.serverPort : (ushort) 0;
+            var serverManager = AppCore.Services.Get<NetworkServerManager>();
+            
             return new NetworkDiscoveryResponse
             {
-                InstanceID = _Config.InstanceID,
+                InstanceID = serverManager.InstanceID,
                 ServerName = _Config.ServerName,
                 Port = port,
                 MaxPlayers = _Config.MaxPlayers,
                 CurrentPlayers = nm != null ? nm.playerCount : 0,
+                JoinCode = serverManager.JoinCode
             };
         }
 

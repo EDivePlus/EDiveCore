@@ -13,5 +13,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         public ushort Port;
         public int MaxPlayers;
         public int CurrentPlayers;
+        public string JoinCode;
     }
 }

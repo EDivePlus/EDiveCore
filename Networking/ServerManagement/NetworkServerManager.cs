@@ -22,7 +22,6 @@ namespace EDIVE.Networking.ServerManagement
 {
     public class NetworkServerManager : ALoadableServiceBehaviour<NetworkServerManager>
     {
-       
         [ShowCreateNew]
         [SerializeField]
         private ServerConfig _ServerConfig;
@@ -50,12 +49,24 @@ namespace EDIVE.Networking.ServerManagement
         [EnableGUI]
         private readonly List<ServerRecord> _serverList = new();
         
+        [ShowInInspector]
+        [ReadOnly]
+        [field: NonSerialized]
+        public string InstanceID { get; set; }
+        
+        [ShowInInspector]
+        [ReadOnly]
+        [field: NonSerialized]
+        public ushort ResolvedPort { get; set; }
+
+        [ShowInInspector]
+        public string JoinCode => CurrentServer?.JoinCode;
+        
         public ServerRecord HostServer { get; private set; }
         public ServerRecord JoinedServer { get; private set; }
         public ServerRecord CurrentServer =>  HostServer ?? JoinedServer;
         public AServerEndpoint ConnectedEndpoint { get; private set; }
         
-        // public Signal ConnectedEndpointChanged { get; } = new();
         public event Action<AServerEndpoint> ConnectedEndpointChanged;
 
         private bool _serverRunning;
@@ -68,8 +79,8 @@ namespace EDIVE.Networking.ServerManagement
             
             if (string.IsNullOrEmpty(_ServerConfig.ServerID))
                 _ServerConfig.ServerID = Guid.NewGuid().ToString();
-            if (string.IsNullOrEmpty(_ServerConfig.InstanceID))
-                _ServerConfig.InstanceID = Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(InstanceID))
+                InstanceID = Guid.NewGuid().ToString();
             
             await AppCore.Services.Get<LocalConfigLoader>().SaveConfig(_ServerConfig);
 
@@ -317,7 +328,7 @@ namespace EDIVE.Networking.ServerManagement
                 Debug.Log($"[NetworkServerManager] Using configured port {port}");
             }
             udp.serverPort = port;
-            _ServerConfig.ResolvedPort = port;
+            ResolvedPort = port;
         }
 
         private void OnServerConnectionStateChanged(ConnectionState state)
@@ -327,23 +338,17 @@ namespace EDIVE.Networking.ServerManagement
                 ConsoleCommandHandler.SetTitle($"{Application.productName} [{_ServerConfig.ServerName}]");
                 HostServer = new ServerRecord
                 {
-                    InstanceID = _ServerConfig.InstanceID,
+                    InstanceID = InstanceID,
                     ServerName = _ServerConfig.ServerName,
                     MaxPlayers = _ServerConfig.MaxPlayers,
                     CurrentPlayers = NetworkManager.main.playerCount,
                     LastUpdated = DateTime.UtcNow,
+                    JoinCode = JoinCode,
                 };
 
                 EnumerateAdapters(adapter =>
                 {
-                    var endpoints = adapter.GetLocalServerEndpoints();
-                    if (endpoints == null)
-                        return;
-                    foreach (var endpoint in endpoints)
-                    {
-                        if (endpoint != null)
-                            HostServer.Endpoints.Add(endpoint);
-                    }
+                    adapter.RegisterHostServer(HostServer);
                 });
 
                 EnumerateAdapters(adapter => adapter.StartServer());
@@ -379,23 +384,21 @@ namespace EDIVE.Networking.ServerManagement
 
         private void OnPlayerJoined(PlayerID player, bool isReconnect, bool asServer)
         {
-            if (!asServer) return;
             RefreshHostPlayerCount();
         }
 
         private void OnPlayerLeft(PlayerID player, bool asServer)
         {
-            if (!asServer) return;
             RefreshHostPlayerCount();
         }
 
         private void RefreshHostPlayerCount()
         {
-            if (HostServer == null)
+            if (CurrentServer == null)
                 return;
 
-            HostServer.CurrentPlayers = NetworkManager.main.playerCount;
-            HostServer.LastUpdated = DateTime.UtcNow;
+            CurrentServer.CurrentPlayers = NetworkManager.main.playerCount;
+            CurrentServer.LastUpdated = DateTime.UtcNow;
         }
 
         public void StartSearch()
@@ -445,6 +448,7 @@ namespace EDIVE.Networking.ServerManagement
                         record.MaxPlayers = contribution.MaxPlayers;
                         record.CurrentPlayers = contribution.CurrentPlayers;
                         record.LastUpdated = contribution.LastUpdated;
+                        record.JoinCode = contribution.JoinCode;
                     }
                 }
             });

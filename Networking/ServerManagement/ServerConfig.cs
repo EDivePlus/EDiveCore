@@ -2,7 +2,6 @@
 // Created: 14.07.2025
 
 using Newtonsoft.Json;
-using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
@@ -42,14 +41,6 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         [Tooltip("Authentication key for this server, generated in ServiceHub. If left empty, the server will not be registered with ServiceHub and no save data will be saved to it.")]
         private string _ServerSecret;
-        
-        [ShowInInspector]
-        [ReadOnly]
-        public string InstanceID { get; set; }
-        
-        [ShowInInspector]
-        [ReadOnly]
-        public ushort ResolvedPort { get; set; }
 
         public string ServerName
         {

@@ -48,6 +48,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private AServerEndpoint[] _localEndpoints;
         
         private string _serverSecret;
+        private string _joinCode;
+            
         private bool _disposing;
         private DateTime _lastSuccessfulContactUtc;
         
@@ -98,9 +100,17 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _searchCancellation?.Dispose();
             _searchCancellation = null;
         }
-        
-        public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
-            => _localEndpoints ?? Array.Empty<AServerEndpoint>();
+
+        public override void RegisterHostServer(ServerRecord hostServer)
+        {
+            base.RegisterHostServer(hostServer);
+            
+            if (hostServer == null || _localEndpoints == null)
+                return;
+
+            hostServer.Endpoints.AddRange(_localEndpoints);
+            hostServer.JoinCode = _joinCode;
+        }
 
         public override async UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request)
         {
@@ -169,7 +179,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     ServerName = lobby.Name,
                     CurrentPlayers = lobby.CurrentPlayers,
                     MaxPlayers = lobby.MaxPlayers,
-                    Endpoints = endpoints
+                    Endpoints = endpoints,
+                    JoinCode = lobby.JoinCode,
                 };
             }
         }
@@ -189,9 +200,11 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 _relayInitialized = true;
             }
 
+            var serverManager = AppCore.Services.Get<NetworkServerManager>();
+
             var data = new ServiceHubServerData
             {
-                InstanceID = _serverConfig.InstanceID,
+                InstanceID = serverManager.InstanceID,
                 PurrRelayRoom = _purrRelayRoom
             };
             var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
@@ -199,7 +212,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 Name = _serverConfig.ServerName,
                 Version = _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
                 PublicAddress = _serverConfig.PublicAddress,
-                PublicPort = _serverConfig.ResolvedPort,
+                PublicPort = serverManager.ResolvedPort,
                 MaxPlayers = _serverConfig.MaxPlayers,
                 Data = data.Serialize(),
                 IsPrivate = _serverConfig.IsPrivate,
@@ -212,16 +225,21 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 return;
             }
             _serverSecret = response.Result.Secret;
+            _joinCode = response.Result.Code;
+            
+            if (_currentServerRecord != null)
+                _currentServerRecord.JoinCode = _joinCode;
+            
             _lastSuccessfulContactUtc = DateTime.UtcNow;
 
             var endpoints = new List<AServerEndpoint>();
-            if (!string.IsNullOrEmpty(_serverConfig.PublicAddress) && _serverConfig.ResolvedPort > 0)
+            if (!string.IsNullOrEmpty(_serverConfig.PublicAddress) && serverManager.ResolvedPort > 0)
             {
                 endpoints.Add(new AddressServerEndpoint
                 {
                     Name = "Remote Direct",
                     Address = _serverConfig.PublicAddress,
-                    Port = _serverConfig.ResolvedPort,
+                    Port = serverManager.ResolvedPort,
                 });
             }
             

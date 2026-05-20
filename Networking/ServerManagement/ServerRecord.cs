@@ -12,11 +12,83 @@ namespace EDIVE.Networking.ServerManagement
 {
     public class ServerRecord
     {
-        public string InstanceID;
-        public string ServerName;
-        public int MaxPlayers;
-        public int CurrentPlayers;
-        public DateTime LastUpdated;
+        private string _instanceID;
+        public string InstanceID
+        {
+            get => _instanceID;
+            set
+            {
+                if (_instanceID == value) 
+                    return;
+                _instanceID = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+        
+        private string _serverName;
+        public string ServerName
+        {
+            get => _serverName;
+            set
+            {
+                if (_serverName == value) 
+                    return;
+                _serverName = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+        
+        private int _maxPlayers;
+        public int MaxPlayers
+        {
+            get => _maxPlayers;
+            set
+            {
+                if (_maxPlayers == value) 
+                    return;
+                _maxPlayers = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+        
+        private int _currentPlayers;
+        public int CurrentPlayers
+        {
+            get => _currentPlayers;
+            set
+            {
+                if (_currentPlayers == value) 
+                    return;
+                _currentPlayers = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+        
+        private DateTime _lastUpdated;
+        public DateTime LastUpdated
+        {
+            get => _lastUpdated;
+            set
+            {
+                if (_lastUpdated == value) 
+                    return;
+                _lastUpdated = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+        
+        private string _joinCode;
+        public string JoinCode
+        {
+            get => _joinCode;
+            set
+            {
+                if (_joinCode == value) 
+                    return;
+                _joinCode = value;
+                StateChanged?.Invoke(this);
+            }
+        }
 
         public ServerRecord() { }
         public ServerRecord(string instanceID)
@@ -27,6 +99,8 @@ namespace EDIVE.Networking.ServerManagement
         [HideReferenceObjectPicker]
         [ListDrawerSettings(OnEndListElementGUI = "DrawEndpointConnect")]
         public List<AServerEndpoint> Endpoints = new();
+        
+        public event Action<ServerRecord> StateChanged;
 
 #if UNITY_EDITOR
         [Button]
@@ -60,7 +134,8 @@ namespace EDIVE.Networking.ServerManagement
                 MaxPlayers = 0,
                 CurrentPlayers = 0,
                 LastUpdated = DateTime.Now,
-                Endpoints = new List<AServerEndpoint> { endpoint }
+                Endpoints = new List<AServerEndpoint> { endpoint },
+                JoinCode = string.Empty
             };
             return record;
         }

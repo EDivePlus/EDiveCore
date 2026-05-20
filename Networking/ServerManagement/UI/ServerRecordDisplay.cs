@@ -1,13 +1,11 @@
 ﻿// Author: František Holubec
 // Created: 29.04.2026
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Core;
 using EDIVE.Time.DateTimeUtils;
 using EDIVE.Utils.Activations;
-using PurrNet;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -21,6 +19,9 @@ namespace EDIVE.Networking.ServerManagement.UI
         
         [SerializeField]
         private TMP_Text _NameText;
+        
+        [SerializeField]
+        private TMP_Text _JoinCodeText;
         
         [SerializeField]
         private TMP_Text _CurrentPlayersText;
@@ -50,76 +51,69 @@ namespace EDIVE.Networking.ServerManagement.UI
             if (_serverRecord == null)
                 return;
             
-            if (_IDText)
-                _IDText.text = $"{serverRecord.InstanceID}";
-            
-            if(_NameText)
-                _NameText.text = serverRecord.ServerName;
-            
-            if (_CurrentPlayersText)
-                _CurrentPlayersText.text = $"{serverRecord.CurrentPlayers}";
-            
-            if (_MaxPlayersText)
-                _MaxPlayersText.text = $"{serverRecord.MaxPlayers}";
-            
-            if (_LastUpdatedDisplay)
-                _LastUpdatedDisplay.SetDateTime(serverRecord.LastUpdated);
-
-            var endpoints = _serverRecord.Endpoints;
-            var validDisplays = _EndpointDisplays.Where(d => d != null).ToList();
-            for (var i = 0; i < validDisplays.Count; i++)
-            {
-                var endpointDisplay = validDisplays[i];
-                endpointDisplay.Terminate();
-                if (i < endpoints.Count)
-                {
-                    endpointDisplay.gameObject.SetActive(true);
-                    endpointDisplay.Initialize(_serverRecord, endpoints[i]);
-                }
-                else
-                {
-                    endpointDisplay.gameObject.SetActive(false);
-                }
-            }
             _ConnectActivation?.RegisterActivationListener(OnConnectActivated);
+            
+            _serverRecord.StateChanged += OnServerRecordChanged;
+            
+            UpdateDisplay();
         }
 
         public void Terminate()
         {
             foreach (var endpointDisplay in _EndpointDisplays.Where(d => d != null))
             {
-                endpointDisplay.Terminate();
+                endpointDisplay.SetActive(false);
             }
             _ConnectActivation?.UnregisterActivationListener(OnConnectActivated);
+            
+            if (_serverRecord != null)
+                _serverRecord.StateChanged -= OnServerRecordChanged;
+            
             _serverRecord = null;
         }
 
-        private void OnEnable()
+        private void UpdateDisplay()
         {
-            if (_AutoUpdatePlayerCount)
-            {
-                NetworkManager.main.onPlayerJoined += OnPlayerJoined;
-                NetworkManager.main.onPlayerLeft += OnPlayerLeft;
-            }
-        }
+            if (_IDText)
+                _IDText.text = $"{_serverRecord.InstanceID}";
+            
+            if (_NameText)
+                _NameText.text = _serverRecord.ServerName;
 
-        private void OnDisable()
-        {
-            if (_AutoUpdatePlayerCount)
+            if (_JoinCodeText)
+                _JoinCodeText.text = _serverRecord.JoinCode ?? "-";
+            
+            if (_CurrentPlayersText)
+                _CurrentPlayersText.text = $"{_serverRecord.CurrentPlayers}";
+            
+            if (_MaxPlayersText)
+                _MaxPlayersText.text = $"{_serverRecord.MaxPlayers}";
+            
+            if (_LastUpdatedDisplay)
+                _LastUpdatedDisplay.SetDateTime(_serverRecord.LastUpdated);
+
+            var endpoints = _serverRecord.Endpoints;
+            var validDisplays = _EndpointDisplays.Where(d => d != null).ToList();
+            for (var i = 0; i < validDisplays.Count; i++)
             {
-                NetworkManager.main.onPlayerJoined -= OnPlayerJoined;
-                NetworkManager.main.onPlayerLeft -= OnPlayerLeft;
+                var endpointDisplay = validDisplays[i];
+                if (i < endpoints.Count)
+                {
+                    endpointDisplay.gameObject.SetActive(true);
+                    endpointDisplay.SetEndpoint(endpoints[i]);
+                }
+                else
+                {
+                    endpointDisplay.gameObject.SetActive(false);
+                }
             }
         }
         
-        private void OnPlayerLeft(PlayerID player, bool asServer)
+        private void OnServerRecordChanged(ServerRecord record)
         {
-            _CurrentPlayersText.text = $"{Math.Max(0, NetworkManager.main.playerCount)}";
-        }
-
-        private void OnPlayerJoined(PlayerID player, bool isReconnect, bool asServer)
-        {
-            _CurrentPlayersText.text = $"{Math.Max(0, NetworkManager.main.playerCount)}";
+            if (record != _serverRecord)
+                return;
+            UpdateDisplay();
         }
 
         private void OnConnectActivated()

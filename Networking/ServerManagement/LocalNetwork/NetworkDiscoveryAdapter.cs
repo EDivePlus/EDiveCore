@@ -31,7 +31,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         public override void StartSearch() { }
         public override void StopSearch() { }
 
-        public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
+        private IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
         {
             var nm = NetworkManager.main;
             var address = NetworkUtils.GetLocalIPv4();
@@ -45,6 +45,12 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 Address = address,
                 Port = port,
             };
+        }
+
+        public override void RegisterHostServer(ServerRecord hostServer)
+        {
+            base.RegisterHostServer(hostServer);
+            hostServer.Endpoints.AddRange(GetLocalServerEndpoints());
         }
 
         public override UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request) => UniTask.FromResult((false, default(ServerRecord)));
@@ -70,6 +76,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 MaxPlayers = response.MaxPlayers,
                 CurrentPlayers = response.CurrentPlayers,
                 Endpoints = endpoints,
+                JoinCode = response.JoinCode,
             };
         }
     }
