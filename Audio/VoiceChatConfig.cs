@@ -1,0 +1,196 @@
+// Author: František Holubec
+// Created: 2026-05-20
+
+using System;
+using System.Collections.Generic;
+using Adrenak.UniVoice.Filters;
+using Sirenix.OdinInspector;
+using UnityEngine;
+
+namespace EDIVE.Audio
+{
+    public enum VoiceChatPreset
+    {
+        Custom,
+        NarrowBand8KHz,
+        MediumBand12KHzLegacy,
+        WideBand16KHz,
+        SuperWideBand24KHz,
+        FullBand48KHzStandard,
+        FullBand48KHzHighFidelity,
+    }
+
+    [Serializable]
+    public class VoiceChatConfig
+    {
+        [SerializeField]
+        [BoxGroup("Microphone")]
+        [LabelText("Sampling Frequency")]
+        [ValueDropdown(nameof(GetMicFrequencyOptions))]
+        [SuffixLabel("Hz", true)]
+        private int _MicSamplingFrequency = 48000;
+
+        [SerializeField]
+        [BoxGroup("Microphone")]
+        [LabelText("Frame Duration")]
+        [ValueDropdown(nameof(GetFrameDurationOptions))]
+        [SuffixLabel("ms", true)]
+        [Tooltip("Opus supports 2.5/5/10/20/40/60 ms. Lower = less latency, slightly more network overhead. 20 ms is the common choice for real-time voice.")]
+        private int _MicFrameDurationMs = 20;
+
+        [SerializeField]
+        [BoxGroup("Opus Encoder")]
+        [LabelText("Sampling Frequency")]
+        [Tooltip("Set to match the mic frequency for best quality (no resampling).")]
+        [ValidateInput(nameof(ValidateOpusFrequency),
+            "Mic frequency is lower than Opus frequency. Audio will be upsampled before encoding, which adds no real quality. Raise mic or lower Opus to match.",
+            InfoMessageType.Warning)]
+        private ConcentusFrequencies _OpusFrequency = ConcentusFrequencies.Frequency_48000;
+
+        [SerializeField]
+        [BoxGroup("Opus Encoder")]
+        [LabelText("Bitrate")]
+        [ValueDropdown(nameof(GetBitrateOptions))]
+        [Tooltip("64 kbps is the standard for real-time voice. 96 kbps for higher fidelity, 32 kbps for low-bandwidth.")]
+        private int _EncoderBitrate = 64000;
+        
+        [SerializeField]
+        [BoxGroup("Opus Encoder")]
+        [LabelText("Complexity")]
+        [PropertyRange(1, 10)]
+        [Tooltip("Higher = better quality at the same bitrate, more CPU. Opus reference recommends 5-10 for voice.")]
+        private int _EncoderComplexity = 8;
+        
+        [SerializeField]
+        [BoxGroup("Opus Encoder")]
+        [LabelText("Resampler Quality")]
+        [PropertyRange(1, 10)]
+        [Tooltip("Only used when mic frequency differs from Opus frequency.")]
+        private int _ResamplerQuality = 5;
+
+        [SerializeField]
+        [BoxGroup("Filters")]
+        [LabelText("RNNoise (Noise Suppression)")]
+        [Tooltip("ML-based background noise removal. Can dull sibilants on some mics — try toggling off for A/B comparison.")]
+        private bool _UseRnNoise = true;
+
+        [SerializeField]
+        [BoxGroup("Filters")]
+        [LabelText("Voice Activity Detection")]
+        [Tooltip("Drops frames when no speech is detected. Saves bandwidth but can clip word onsets.")]
+        private bool _UseSimpleVad = true;
+
+        public int MicSamplingFrequency => _MicSamplingFrequency;
+        public int MicFrameDurationMs => _MicFrameDurationMs;
+        public ConcentusFrequencies OpusFrequency => _OpusFrequency;
+        public int EncoderComplexity => _EncoderComplexity;
+        public int EncoderBitrate => _EncoderBitrate;
+        public int ResamplerQuality => _ResamplerQuality;
+        public bool UseRnNoise => _UseRnNoise;
+        public bool UseSimpleVad => _UseSimpleVad;
+
+        public void ApplyPreset(VoiceChatPreset preset)
+        {
+            switch (preset)
+            {
+                case VoiceChatPreset.NarrowBand8KHz:
+                    _MicSamplingFrequency = 8000;
+                    _OpusFrequency = ConcentusFrequencies.Frequency_8000;
+                    _MicFrameDurationMs = 20;
+                    _EncoderComplexity = 5;
+                    _EncoderBitrate = 24000;
+                    _ResamplerQuality = 3;
+                    _UseRnNoise = true;
+                    _UseSimpleVad = true;
+                    break;
+                case VoiceChatPreset.MediumBand12KHzLegacy:
+                    _MicSamplingFrequency = 12000;
+                    _OpusFrequency = ConcentusFrequencies.Frequency_12000;
+                    _MicFrameDurationMs = 60;
+                    _EncoderComplexity = 3;
+                    _EncoderBitrate = 32000;
+                    _ResamplerQuality = 2;
+                    _UseRnNoise = true;
+                    _UseSimpleVad = true;
+                    break;
+                case VoiceChatPreset.WideBand16KHz:
+                    _MicSamplingFrequency = 16000;
+                    _OpusFrequency = ConcentusFrequencies.Frequency_16000;
+                    _MicFrameDurationMs = 20;
+                    _EncoderComplexity = 6;
+                    _EncoderBitrate = 32000;
+                    _ResamplerQuality = 3;
+                    _UseRnNoise = true;
+                    _UseSimpleVad = true;
+                    break;
+                case VoiceChatPreset.SuperWideBand24KHz:
+                    _MicSamplingFrequency = 24000;
+                    _OpusFrequency = ConcentusFrequencies.Frequency_24000;
+                    _MicFrameDurationMs = 20;
+                    _EncoderComplexity = 7;
+                    _EncoderBitrate = 48000;
+                    _ResamplerQuality = 4;
+                    _UseRnNoise = true;
+                    _UseSimpleVad = true;
+                    break;
+                case VoiceChatPreset.FullBand48KHzStandard:
+                    _MicSamplingFrequency = 48000;
+                    _OpusFrequency = ConcentusFrequencies.Frequency_48000;
+                    _MicFrameDurationMs = 20;
+                    _EncoderComplexity = 8;
+                    _EncoderBitrate = 64000;
+                    _ResamplerQuality = 5;
+                    _UseRnNoise = true;
+                    _UseSimpleVad = true;
+                    break;
+                case VoiceChatPreset.FullBand48KHzHighFidelity:
+                    _MicSamplingFrequency = 48000;
+                    _OpusFrequency = ConcentusFrequencies.Frequency_48000;
+                    _MicFrameDurationMs = 20;
+                    _EncoderComplexity = 10;
+                    _EncoderBitrate = 96000;
+                    _ResamplerQuality = 7;
+                    _UseRnNoise = true;
+                    _UseSimpleVad = true;
+                    break;
+                case VoiceChatPreset.Custom:
+                default:
+                    break;
+            }
+        }
+
+        private bool ValidateOpusFrequency(ConcentusFrequencies value) =>
+            _MicSamplingFrequency >= (int) value;
+
+        private static IEnumerable<ValueDropdownItem<int>> GetMicFrequencyOptions()
+        {
+            yield return new ValueDropdownItem<int>("8 kHz (Narrow band)", 8000);
+            yield return new ValueDropdownItem<int>("12 kHz (Medium band)", 12000);
+            yield return new ValueDropdownItem<int>("16 kHz (Wide band)", 16000);
+            yield return new ValueDropdownItem<int>("24 kHz (Superwide band)", 24000);
+            yield return new ValueDropdownItem<int>("32 kHz", 32000);
+            yield return new ValueDropdownItem<int>("44.1 kHz (CD)", 44100);
+            yield return new ValueDropdownItem<int>("48 kHz (Full band)", 48000);
+        }
+
+        private static IEnumerable<ValueDropdownItem<int>> GetBitrateOptions()
+        {
+            yield return new ValueDropdownItem<int>("16 kbps (Lowest)", 16000);
+            yield return new ValueDropdownItem<int>("24 kbps (Phone)", 24000);
+            yield return new ValueDropdownItem<int>("32 kbps (Low)", 32000);
+            yield return new ValueDropdownItem<int>("48 kbps", 48000);
+            yield return new ValueDropdownItem<int>("64 kbps (Standard)", 64000);
+            yield return new ValueDropdownItem<int>("96 kbps (High fidelity)", 96000);
+            yield return new ValueDropdownItem<int>("128 kbps (Music)", 128000);
+        }
+
+        private static IEnumerable<ValueDropdownItem<int>> GetFrameDurationOptions()
+        {
+            yield return new ValueDropdownItem<int>("5 ms (lowest latency)", 5);
+            yield return new ValueDropdownItem<int>("10 ms", 10);
+            yield return new ValueDropdownItem<int>("20 ms (standard)", 20);
+            yield return new ValueDropdownItem<int>("40 ms", 40);
+            yield return new ValueDropdownItem<int>("60 ms (most efficient)", 60);
+        }
+    }
+}

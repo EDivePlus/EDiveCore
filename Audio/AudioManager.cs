@@ -25,32 +25,37 @@ namespace EDIVE.Audio
     public class AudioManager : ALoadableServiceBehaviour<AudioManager>
     {
         [SerializeField]
-        [SuffixLabel("ms", true)]
-        private int _MicFrameDuration = 60;
-        
+        [OnValueChanged(nameof(OnPresetChanged))]
+        [Tooltip("Picking a preset overwrites the fields below. Switch to Custom to keep your manual tweaks.")]
+        private VoiceChatPreset _Preset = VoiceChatPreset.FullBand48KHzStandard;
+
         [SerializeField]
-        private int _MicSamplingFrequency = 12000;
-        
+        [InlineProperty]
+        [HideLabel]
+        private VoiceChatConfig _Config = new();
+
         [SerializeField]
-        private float _VoiceChatDistance = 25f;
-        
+        [SuffixLabel("m", true)]
+        private float _SpatialAudioDistance = 25f;
+
         private ClientSession<PlayerID> _voiceChatSession;
         private bool _microphonePermissionGranted = false;
-        
+
         private readonly List<object> _voiceChatMuteRequests = new();
         public bool VoiceChatMuted => _voiceChatMuteRequests.Any();
-        
+
         private PurrNetClient _uniVoiceClient;
         private PurrNetServer _uniVoiceServer;
         private IAudioInput _currentAudioInput;
-        
+
         // Unprocessed local audio frames, triggered when a new frame is captured from the microphone
         public event Action<AudioFrame> LocalRawAudioFrameReady;
-        
+
         // Triggered when any audio frame is received (local and remote), frames are encoded
         public event Action<PlayerID, AudioFrame> UserAudioFrameReady;
-        
+
         private List<IAudioFilter> _encodeFilters;
+        private CapturingAudioFilter _capturingFilter;
         
         [DisableInEditorMode]
         [ShowInInspector]
@@ -73,6 +78,18 @@ namespace EDIVE.Audio
             {
                 PlayerPrefs.SetInt("Audio_AllowMic", value ? 1 : 0);
                 RefreshAudioInput();
+            }
+        }
+
+        [DisableInEditorMode]
+        [ShowInInspector]
+        public bool EnableVoiceChat
+        {
+            get => PlayerPrefs.GetInt("Audio_EnableVoiceChat", 1) > 0;
+            set
+            {
+                PlayerPrefs.SetInt("Audio_EnableVoiceChat", value ? 1 : 0);
+                RefreshVoiceChatState();
             }
         }
         
@@ -128,16 +145,10 @@ namespace EDIVE.Audio
                 return audioOutput;
             });
 
-            var capturingFilter = new CapturingAudioFilter();
-            capturingFilter.AudioFrameCaptured += OnVoiceChatFrameCaptured;
-            _encodeFilters = new List<IAudioFilter>
-            {
-                new RNNoiseFilter(), // Noise suppression
-                new SimpleVadFilter(new SimpleVad()), // Voice activity detection
-                new ConcentusEncodeFilter(ConcentusFrequencies.Frequency_12000), // Opus encoding
-                capturingFilter
-            };
-            
+            _capturingFilter = new CapturingAudioFilter();
+            _capturingFilter.AudioFrameCaptured += OnVoiceChatFrameCaptured;
+
+            _encodeFilters = BuildEncodeFilters();
             _voiceChatSession.InputFilters.AddRange(_encodeFilters);
             _voiceChatSession.AddOutputFilter<ConcentusDecodeFilter>(() => new ConcentusDecodeFilter()); // Opus decoding
             
@@ -147,6 +158,8 @@ namespace EDIVE.Audio
             _uniVoiceClient.OnPeerLeft += OnVoiceChatPeerLeft;
 
             NetworkManager.main.Subscribe<PurrNetBroadcast>(OnClientReceivedAudioMessage, asServer: false);
+
+            RefreshVoiceChatState();
         }
         
         private void OnClientReceivedAudioMessage(PlayerID sender, PurrNetBroadcast message, bool asServer)
@@ -222,7 +235,7 @@ namespace EDIVE.Audio
             
             var audioSource = output.Stream.UnityAudioSource;
             audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; 
-            audioSource.maxDistance = _VoiceChatDistance;
+            audioSource.maxDistance = _SpatialAudioDistance;
             
             peerAvatar.InitializePeerAudioOutput(output);
             
@@ -278,19 +291,21 @@ namespace EDIVE.Audio
         {
             if (!HasVoiceChatMuteRequest(requester)) 
                 _voiceChatMuteRequests.Add(requester);
-            RefreshVoiceChatMuted();
+            RefreshVoiceChatState();
         }
 
         public void RemoveVoiceChatMuteRequest(object requester)
         {
             _voiceChatMuteRequests.Remove(requester);
-            RefreshVoiceChatMuted();
+            RefreshVoiceChatState();
         }
 
-        private void RefreshVoiceChatMuted()
+        private void RefreshVoiceChatState()
         {
-            if (_voiceChatSession != null) 
-                _voiceChatSession.InputEnabled = !VoiceChatMuted;
+            if (_voiceChatSession == null)
+                return;
+            _voiceChatSession.InputEnabled = EnableVoiceChat && !VoiceChatMuted;
+            _voiceChatSession.OutputsEnabled = EnableVoiceChat;
         }
         
         public void RefreshSpatialAudio()
@@ -307,6 +322,48 @@ namespace EDIVE.Audio
             }
         }
         
+        private List<IAudioFilter> BuildEncodeFilters()
+        {
+            var filters = new List<IAudioFilter>();
+            if (_Config.UseRnNoise)
+                filters.Add(new RNNoiseFilter()); // Noise suppression
+            if (_Config.UseSimpleVad)
+                filters.Add(new SimpleVadFilter(new SimpleVad())); // Voice activity detection
+            filters.Add(new ConcentusEncodeFilter(
+                _Config.OpusFrequency,
+                resamplerQuality: _Config.ResamplerQuality,
+                encoderComplexity: _Config.EncoderComplexity,
+                encoderBitrate: _Config.EncoderBitrate)); // Opus encoding
+            filters.Add(_capturingFilter);
+            return filters;
+        }
+
+        private void OnPresetChanged()
+        {
+            if (_Preset != VoiceChatPreset.Custom) 
+                _Config.ApplyPreset(_Preset);
+        }
+        
+        [Button, GUIColor(0.6f, 1f, 0.6f)]
+        [DisableInEditorMode]
+        [PropertyTooltip("Rebuilds the Opus encoder + filter chain and restarts the microphone with the current settings.")]
+        private void ApplyVoiceChatConfig()
+        {
+            if (!Application.isPlaying)
+                return;
+
+            RefreshAudioInput();
+
+            if (_voiceChatSession == null || _encodeFilters == null)
+                return;
+
+            _voiceChatSession.InputFilters.Clear();
+            _encodeFilters = BuildEncodeFilters();
+            _voiceChatSession.InputFilters.AddRange(_encodeFilters);
+
+            Debug.Log($"[AudioManager] Voice chat config applied: mic {_Config.MicSamplingFrequency} Hz @ {_Config.MicFrameDurationMs} ms, Opus {(int)_Config.OpusFrequency} Hz, complexity {_Config.EncoderComplexity}, bitrate {_Config.EncoderBitrate} bps.");
+        }
+
         public IEnumerable<string> GetAvailableMicrophones()
         {
             if (!Application.isPlaying) return Enumerable.Empty<string>();
@@ -339,7 +396,7 @@ namespace EDIVE.Audio
             if (micDevice != null)
             {
                 Debug.Log($"[AudioManager] Using microphone: {micDevice.Name}");
-                micDevice.StartRecording(ResolveMicrophoneFrequency(micDevice), _MicFrameDuration);
+                micDevice.StartRecording(ResolveMicrophoneFrequency(micDevice), _Config.MicFrameDurationMs);
             }
             else
             {
@@ -360,12 +417,13 @@ namespace EDIVE.Audio
         
         private int ResolveMicrophoneFrequency(Mic.Device micDevice)
         {
+            var desired = _Config.MicSamplingFrequency;
             if (micDevice.SupportsAnyFrequency)
-                return _MicSamplingFrequency;
-            
-            if (micDevice.MaxFrequency == _MicSamplingFrequency || micDevice.MinFrequency == _MicSamplingFrequency)
-                return _MicSamplingFrequency;
-            
+                return desired;
+
+            if (micDevice.MaxFrequency == desired || micDevice.MinFrequency == desired)
+                return desired;
+
             // If the desired frequency is not supported, use the maximum supported frequency
             return micDevice.MaxFrequency;
         }
