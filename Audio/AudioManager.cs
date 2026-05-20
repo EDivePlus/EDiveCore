@@ -138,10 +138,7 @@ namespace EDIVE.Audio
             _voiceChatSession = new ClientSession<PlayerID>(_uniVoiceClient, _currentAudioInput, () =>
             {
                 var audioOutput = StreamedAudioSourceOutput.New();
-                audioOutput.Stream.TargetLatency = 0.5f;
-                audioOutput.Stream.PitchMaxCorrection = 0.05f;
-                audioOutput.Stream.PitchProportionalGain = 0.2f;
-                audioOutput.Stream.DownwardPitchCorrectionScale = 1f;
+                ApplyPlaybackSettings(audioOutput);
                 return audioOutput;
             });
 
@@ -322,6 +319,16 @@ namespace EDIVE.Audio
             }
         }
         
+        private void ApplyPlaybackSettings(StreamedAudioSourceOutput output)
+        {
+            if (output == null || output.Stream == null)
+                return;
+            output.Stream.TargetLatency = _Config.TargetLatencySeconds;
+            output.Stream.PitchMaxCorrection = _Config.PitchMaxCorrection;
+            output.Stream.PitchProportionalGain = _Config.PitchProportionalGain;
+            output.Stream.DownwardPitchCorrectionScale = _Config.DownwardPitchCorrectionScale;
+        }
+
         private List<IAudioFilter> BuildEncodeFilters()
         {
             var filters = new List<IAudioFilter>();
@@ -361,7 +368,13 @@ namespace EDIVE.Audio
             _encodeFilters = BuildEncodeFilters();
             _voiceChatSession.InputFilters.AddRange(_encodeFilters);
 
-            Debug.Log($"[AudioManager] Voice chat config applied: mic {_Config.MicSamplingFrequency} Hz @ {_Config.MicFrameDurationMs} ms, Opus {(int)_Config.OpusFrequency} Hz, complexity {_Config.EncoderComplexity}, bitrate {_Config.EncoderBitrate} bps.");
+            foreach (var peerOutput in _voiceChatSession.PeerOutputs.Values)
+            {
+                if (peerOutput is StreamedAudioSourceOutput streamedOutput)
+                    ApplyPlaybackSettings(streamedOutput);
+            }
+
+            Debug.Log($"[AudioManager] Voice chat config applied: mic {_Config.MicSamplingFrequency} Hz @ {_Config.MicFrameDurationMs} ms, Opus {(int)_Config.OpusFrequency} Hz, complexity {_Config.EncoderComplexity}, bitrate {_Config.EncoderBitrate} bps, target latency {_Config.TargetLatencySeconds * 1000f:F0} ms.");
         }
 
         public IEnumerable<string> GetAvailableMicrophones()

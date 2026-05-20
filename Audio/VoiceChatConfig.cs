@@ -69,6 +69,35 @@ namespace EDIVE.Audio
         private int _ResamplerQuality = 5;
 
         [SerializeField]
+        [BoxGroup("Playback")]
+        [LabelText("Target Latency")]
+        [ValueDropdown(nameof(GetTargetLatencyOptions))]
+        [SuffixLabel("ms", true)]
+        [Tooltip("Receiver-side jitter buffer target. Lower = more responsive, more glitches under jitter. Higher = smoother under jitter, more delay.")]
+        private int _TargetLatencyMs = 150;
+
+        [SerializeField]
+        [BoxGroup("Playback")]
+        [LabelText("Pitch Max Correction")]
+        [PropertyRange(0f, 0.5f)]
+        [Tooltip("Maximum absolute pitch deviation the jitter buffer can apply to catch up or slow down. Package default: 0.2.")]
+        private float _PitchMaxCorrection = 0.05f;
+
+        [SerializeField]
+        [BoxGroup("Playback")]
+        [LabelText("Pitch Proportional Gain")]
+        [PropertyRange(0f, 5f)]
+        [Tooltip("How aggressively pitch is adjusted per second of latency error. Higher = catches up faster. Package default: 1.0.")]
+        private float _PitchProportionalGain = 0.2f;
+
+        [SerializeField]
+        [BoxGroup("Playback")]
+        [LabelText("Downward Pitch Correction")]
+        [PropertyRange(0f, 1f)]
+        [Tooltip("Scale for slowing playback (pitch < 1) to let the buffer fill. Package default: 0.25.")]
+        private float _DownwardPitchCorrectionScale = 1f;
+
+        [SerializeField]
         [BoxGroup("Filters")]
         [LabelText("RNNoise (Noise Suppression)")]
         [Tooltip("ML-based background noise removal. Can dull sibilants on some mics — try toggling off for A/B comparison.")]
@@ -88,6 +117,10 @@ namespace EDIVE.Audio
         public int ResamplerQuality => _ResamplerQuality;
         public bool UseRnNoise => _UseRnNoise;
         public bool UseSimpleVad => _UseSimpleVad;
+        public float TargetLatencySeconds => _TargetLatencyMs / 1000f;
+        public float PitchMaxCorrection => _PitchMaxCorrection;
+        public float PitchProportionalGain => _PitchProportionalGain;
+        public float DownwardPitchCorrectionScale => _DownwardPitchCorrectionScale;
 
         public void ApplyPreset(VoiceChatPreset preset)
         {
@@ -182,6 +215,15 @@ namespace EDIVE.Audio
             yield return new ValueDropdownItem<int>("64 kbps (Standard)", 64000);
             yield return new ValueDropdownItem<int>("96 kbps (High fidelity)", 96000);
             yield return new ValueDropdownItem<int>("128 kbps (Music)", 128000);
+        }
+
+        private static IEnumerable<ValueDropdownItem<int>> GetTargetLatencyOptions()
+        {
+            yield return new ValueDropdownItem<int>("50 ms (Aggressive)", 50);
+            yield return new ValueDropdownItem<int>("100 ms (Low)", 100);
+            yield return new ValueDropdownItem<int>("150 ms (Standard)", 150);
+            yield return new ValueDropdownItem<int>("250 ms (Safe)", 250);
+            yield return new ValueDropdownItem<int>("500 ms (Conservative)", 500);
         }
 
         private static IEnumerable<ValueDropdownItem<int>> GetFrameDurationOptions()
