@@ -76,7 +76,6 @@ namespace EDIVE.Environment.SceneSetup
 
         private void OnClientAuthenticated(PlayerID player)
         {
-            // TODO - too early ?
             SetCurrentContextAsync(_DefaultSetup).Forget();
         }
 
