@@ -37,7 +37,7 @@ namespace EDIVE.StagePlay.UI
                 if (data.Definition.Font != null)
                     _CharactersText.font = data.Definition.Font;
                 
-                if (data.Definition.SharedData.TryGetCharacterColor(data.Segment.Characters, out var color))
+                if (data.Definition.SharedData != null && data.Definition.SharedData.TryGetCharacterColor(data.Segment.Characters, out var color))
                     _CharactersText.color = color;
             }
             
