@@ -53,6 +53,10 @@ namespace EDIVE.Networking.ServerManagement
         public ServerRecord HostServer { get; private set; }
         public ServerRecord JoinedServer { get; private set; }
         public ServerRecord CurrentServer =>  HostServer ?? JoinedServer;
+        public AServerEndpoint ConnectedEndpoint { get; private set; }
+        
+        // public Signal ConnectedEndpointChanged { get; } = new();
+        public event Action<AServerEndpoint> ConnectedEndpointChanged;
 
         private bool _serverRunning;
         private bool _connecting;
@@ -183,13 +187,17 @@ namespace EDIVE.Networking.ServerManagement
 
                     Debug.Log($"[NetworkServerManager] Trying endpoint {i + 1}/{endpoints.Count}: {ep}");
                     if (await TryConnectAsync(ep, cancellationToken))
+                    {
+                        SetConnectedEndpoint(ep);
                         return true;
+                    }
 
                     Debug.LogWarning($"[NetworkServerManager] Endpoint failed: {ep}");
                 }
 
                 Debug.LogError($"[NetworkServerManager] All {endpoints.Count} endpoint(s) failed for server '{server.ServerName}'.");
                 JoinedServer = null;
+                SetConnectedEndpoint(null);
                 return false;
             }
             catch (OperationCanceledException)
@@ -197,6 +205,7 @@ namespace EDIVE.Networking.ServerManagement
                 Debug.Log($"[NetworkServerManager] Connect attempt to '{server.ServerName}' canceled.");
                 NetworkManager.main.StopClient();
                 JoinedServer = null;
+                SetConnectedEndpoint(null);
                 throw;
             }
             finally
@@ -261,6 +270,14 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
+        private void SetConnectedEndpoint(AServerEndpoint endpoint)
+        {
+            if (ConnectedEndpoint == endpoint)
+                return;
+            ConnectedEndpoint = endpoint;
+            ConnectedEndpointChanged?.Invoke(endpoint);
+        }
+
         private void EnumerateAdapters(Action<AServerListAdapter> action)
         {
             foreach (var adapter in _Adapters)
@@ -353,6 +370,7 @@ namespace EDIVE.Networking.ServerManagement
             if (state == ConnectionState.Disconnected && !_connecting)
             {
                 JoinedServer = null;
+                SetConnectedEndpoint(null);
             }
 
             if (JoinedServer != null)

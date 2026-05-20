@@ -22,6 +22,10 @@ namespace EDIVE.Networking.UI
         private AMultiState _RuntimeModeState;
         
         [SerializeField]
+        [ValidateMultiState(typeof(SessionLinkMode))]
+        private AMultiState _SessionLinkState;
+        
+        [SerializeField]
         private ServerRecordDisplay _ServerDisplay;
 
         [SerializeField]
@@ -71,6 +75,9 @@ namespace EDIVE.Networking.UI
 
             if (_RuntimeModeState)
                 _RuntimeModeState.SetState(_networkManager.RuntimeMode);
+            
+            if (_SessionLinkState) 
+                UpdateSessionLinkState();
 
             if (_ServerDisplay)
             {
@@ -80,6 +87,12 @@ namespace EDIVE.Networking.UI
             
             if(_CurrentServerNameText)
                 _CurrentServerNameText.text = _serverManager.CurrentServer?.ServerName ?? "None";
+        }
+
+        private void UpdateSessionLinkState()
+        {
+            var transports = AppCore.Services.Get<TransportController>();
+            _SessionLinkState.SetState(transports.GetSessionLinkMode());
         }
     }
 }

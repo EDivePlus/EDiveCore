@@ -44,7 +44,8 @@ namespace EDIVE.Networking.ServerManagement
         public void SetHost()
         {
             NetworkManager.main.transport = _CompositeTransports;
-            _CompositeTransports.SetClientTransport<LocalTransport>();
+            // Host mode defaults to UDPTransport, LocalTransport seems to not work.
+            // _CompositeTransports.SetClientTransport<LocalTransport>();
         }
         
         public void SetOffline()
@@ -76,6 +77,24 @@ namespace EDIVE.Networking.ServerManagement
             
             SetClient(transport);
             return true;
+        }
+
+        public SessionLinkMode GetSessionLinkMode()
+        {
+            if (TryGetTransport<PurrTransport>(out var purrTransport) && purrTransport.clientState == ConnectionState.Connected)
+            {
+                return purrTransport.clientSessionLink switch
+                {
+                    PurrTransport.SessionLink.P2P => SessionLinkMode.Direct,
+                    PurrTransport.SessionLink.Relay => SessionLinkMode.Relay,
+                    _ => SessionLinkMode.None
+                };
+            }
+
+            if (TryGetTransport<UDPTransport>(out var udpTransport) && udpTransport.clientState == ConnectionState.Connected)
+                return SessionLinkMode.Direct;
+
+            return SessionLinkMode.None;
         }
     }
 }
