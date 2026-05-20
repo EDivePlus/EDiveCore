@@ -23,27 +23,65 @@ namespace EDIVE.Networking.Utils
         [ReadOnly]
         [ShowInInspector]
         private List<IObserverUpdaterRule> _rules;
-        
+
+        private PlayerID _trackedLocalPlayer;
+        private bool _isLocallyVisible = true;
+        private bool _eventsSubscribed;
+
         private void Awake()
         {
             _rules = GetRuleTemplates().Select(r => r.GetCopy()).ToList();
             _rules.ForEach(r => r.Initialize(gameObject.scene));
         }
         
-        // TODO PurrNet migration: FishNet's NetworkObject.OnHostVisibilityUpdated has no direct equivalent.
-        // PurrNet exposes visibility via INetworkVisibilityRule and the onObserverAdded / onObserverRemoved
-        // events on NetworkIdentity. Re-wire host-visibility-driven rule updates here once decided.
         protected override void OnSpawned()
         {
+            if (!isHost) return;
+            if (!localPlayer.HasValue) return;
+
+            _trackedLocalPlayer = localPlayer.Value;
+
+            var nowVisible = IsObserver(_trackedLocalPlayer);
+            if (nowVisible != _isLocallyVisible)
+            {
+                ApplyVisibility(_isLocallyVisible, nowVisible);
+                _isLocallyVisible = nowVisible;
+            }
+
+            onObserverAdded += HandleObserverAdded;
+            onObserverRemoved += HandleObserverRemoved;
+            _eventsSubscribed = true;
         }
 
         protected override void OnDespawned()
         {
+            if (!_eventsSubscribed) return;
+            onObserverAdded -= HandleObserverAdded;
+            onObserverRemoved -= HandleObserverRemoved;
+            _eventsSubscribed = false;
         }
 
-        private void OnHostVisibilityUpdated(bool prevVisible, bool nextVisible)
+        private void HandleObserverAdded(PlayerID player)
         {
-            _rules.ForEach(r => r?.UpdateVisibility(prevVisible, nextVisible));
+            if (player != _trackedLocalPlayer) return;
+            if (_isLocallyVisible) return;
+            ApplyVisibility(false, true);
+            _isLocallyVisible = true;
+        }
+
+        private void HandleObserverRemoved(PlayerID player)
+        {
+            if (player != _trackedLocalPlayer) return;
+            if (!_isLocallyVisible) return;
+            ApplyVisibility(true, false);
+            _isLocallyVisible = false;
+        }
+
+        private void ApplyVisibility(bool prevVisible, bool nextVisible)
+        {
+            if (_rules == null) return;
+            foreach (var rule in _rules)
+                rule?.UpdateVisibility(prevVisible, nextVisible);
         }
         
         private static List<IObserverUpdaterRule> _ruleTemplates;
