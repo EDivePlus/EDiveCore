@@ -348,10 +348,21 @@ namespace EDIVE.Console
 
         private static void DispatchCommand(string input)
         {
-            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 0) return;
-
             AppendLog($"[bold green]>[/] {Markup.Escape(input)}");
+            InvokeCommand(input);
+        }
+
+        public static void InvokeCommand(string input)
+        {
+            InvokeCommandAsync(input).Forget();
+        }
+
+        public static UniTask InvokeCommandAsync(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return UniTask.CompletedTask;
+
+            var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return UniTask.CompletedTask;
 
             var name = parts[0].ToLowerInvariant();
             var args = parts.Length > 1 ? parts[1..] : Array.Empty<string>();
@@ -363,10 +374,23 @@ namespace EDIVE.Console
             if (command == null)
             {
                 AppendLog($"[red]Unknown command:[/] {Markup.Escape(name)}");
-                return;
+                return UniTask.CompletedTask;
             }
 
-            UniTask.RunOnThreadPool(async () =>
+            return InvokeCommandAsync(command, args);
+        }
+
+        public static void InvokeCommand(ConsoleCommand command, params string[] args)
+        {
+            InvokeCommandAsync(command, args).Forget();
+        }
+
+        public static UniTask InvokeCommandAsync(ConsoleCommand command, params string[] args)
+        {
+            if (command == null) throw new ArgumentNullException(nameof(command));
+            args ??= Array.Empty<string>();
+
+            return UniTask.RunOnThreadPool(async () =>
             {
                 try
                 {
@@ -376,7 +400,7 @@ namespace EDIVE.Console
                 {
                     AppendLog($"[red]'{Markup.Escape(command.Name)}' failed:[/] {Markup.Escape(ex.Message)}");
                 }
-            }).Forget();
+            });
         }
         
 
