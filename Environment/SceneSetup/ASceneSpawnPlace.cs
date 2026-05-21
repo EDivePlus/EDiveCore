@@ -2,6 +2,7 @@
 // Created: 27.08.2025
 
 using System.Collections.Generic;
+using System.Linq;
 using EDIVE.Core;
 using PurrNet;
 using UnityEngine;
@@ -28,10 +29,12 @@ namespace EDIVE.Environment.SceneSetup
                 sceneSetupManager.UnregisterSpawnPlace(this);
             }
         }
+        
+        public bool CheckAvailable(SceneSetupDefinition setup)
+        {
+            return _SetupRestrictions.Count == 0 || _SetupRestrictions.Any(s => s.UniqueID == setup.UniqueID);
+        }
 
-        
-        public bool CheckAvailable(SceneSetupDefinition setup) => _SetupRestrictions.Count == 0 || _SetupRestrictions.Contains(setup);
-        
         public abstract bool TryGetLocation(PlayerID player, out Vector3 position, out Quaternion? rotation);
     }
 }
