@@ -41,7 +41,8 @@
         "EDIVE.Http",
         "UnityNetworkDiscovery",
         "EDIVE.UnityServices",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
