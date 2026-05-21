@@ -7,6 +7,7 @@ using EDIVE.Console;
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
 using PurrNet;
+using PurrNet.Transports;
 using UnityEngine;
 
 namespace EDIVE.Networking.Utils
@@ -19,10 +20,19 @@ namespace EDIVE.Networking.Utils
             ConsoleCommandHandler.RegisterCommands(
                 NetStatus()
             );
-            AppCore.WhenLoaded(() =>
+            
+            AppCore.Services.WhenRegistered<MasterNetworkManager>(_ =>
+            {
+                NetworkManager.main.onServerConnectionState += OnServerConnectionState;
+            });
+        }
+
+        private static void OnServerConnectionState(ConnectionState state)
+        {
+            if (state == ConnectionState.Connected)
             {
                 ConsoleCommandHandler.InvokeCommand(NetStatus());
-            });
+            }
         }
 
         private static ConsoleCommand NetStatus() => new("NetStatus", "Status of network",
