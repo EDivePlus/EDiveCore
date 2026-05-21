@@ -87,8 +87,17 @@ namespace EDIVE.Environment.SceneSetup
 
         public async UniTask SetCurrentContextAsync(SceneSetupDefinition definition)
         {
-            if (_switchInProgress || definition == null)
+            Debug.Log($"[SceneSetupManager] Requesting scene setup change to {definition?.name ?? "<null>"}");
+            if (definition == null)
+            {
+                Debug.LogWarning("[SceneSetupManager] SetCurrentContextAsync aborted: definition is null", this);
                 return;
+            }
+            if (_switchInProgress)
+            {
+                Debug.LogWarning($"[SceneSetupManager] SetCurrentContextAsync aborted: switch already in progress (requested={definition.name})", this);
+                return;
+            }
 
             _switchInProgress = true;
             LoadingOverlayProvider overlay = null;
@@ -119,6 +128,8 @@ namespace EDIVE.Environment.SceneSetup
                 if (overlay != null)
                     overlay.ReleaseOverlay(this);
                 _switchInProgress = false;
+                
+                Debug.Log($"[SceneSetupManager] Scene setup change to {definition.name} completed");
             }
         }
 
@@ -126,10 +137,14 @@ namespace EDIVE.Environment.SceneSetup
         {
             var loaded = new List<Scene>();
             if (!AppCore.Services.TryGet<NetworkSceneManager>(out var networkSceneManager))
+            {
+                Debug.LogError("[SceneSetupManager] SwitchScenes aborted: NetworkSceneManager service is not registered", this);
                 return loaded;
+            }
 
             var targetNames = new HashSet<string>(definition.Scenes.Select(GetSceneName));
-            
+            Debug.Log($"[SceneSetupManager] SwitchScenes targets=[{string.Join(", ", targetNames)}]", this);
+
             var scenesToLeave = networkSceneManager.LoadedLocalScenes
                 .Where(s => !targetNames.Contains(s.name))
                 .Select(s => s.name)
@@ -137,33 +152,51 @@ namespace EDIVE.Environment.SceneSetup
 
             foreach (var sceneToLeave in scenesToLeave)
                 networkSceneManager.LeaveScene(sceneToLeave);
-            
+
             var joinTasks = targetNames.Select(networkSceneManager.AwaitJoinScene).ToArray();
             var joined = await UniTask.WhenAll(joinTasks);
 
-            foreach (var scene in joined)
+            var orderedTargets = targetNames.ToArray();
+            for (var i = 0; i < joined.Length; i++)
             {
+                var scene = joined[i];
                 if (scene.HasValue && scene.Value.IsValid() && scene.Value.isLoaded)
                     loaded.Add(scene.Value);
+                else
+                    Debug.LogWarning($"[SceneSetupManager] Scene '{orderedTargets[i]}' failed to join (null/invalid/not loaded)", this);
             }
 
             if (definition.SetFirstSceneActive && loaded.Count > 0)
                 UnitySceneManager.SetActiveScene(loaded[0]);
 
+            Debug.Log($"[SceneSetupManager] SwitchScenes finished: {loaded.Count}/{targetNames.Count} scenes loaded", this);
             return loaded;
         }
 
         private void TeleportToSpawn(SceneSetupDefinition definition, List<Scene> loadedScenes)
         {
-            if (loadedScenes.Count == 0) return;
-            if (!AppCore.Services.TryGet<ControlsManager>(out var controlsManager)) return;
+            if (loadedScenes.Count == 0)
+            {
+                Debug.LogWarning($"[SceneSetupManager] TeleportToSpawn skipped: no scenes loaded for setup '{definition.name}'", this);
+                return;
+            }
+            if (!AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+            {
+                Debug.LogWarning("[SceneSetupManager] TeleportToSpawn skipped: ControlsManager service is not registered", this);
+                return;
+            }
 
             if (!_spawnPlaces.TryGetFirst(s => s != null && s.CheckAvailable(definition) && loadedScenes.Contains(s.gameObject.scene), out var spawnPlace))
+            {
+                Debug.LogWarning($"[SceneSetupManager] TeleportToSpawn skipped: no spawn place matched setup '{definition.name}' across {_spawnPlaces.Count} registered places", this);
                 return;
+            }
 
             var localPlayer = NetworkManager.main.localPlayer;
             if (spawnPlace.TryGetLocation(localPlayer, out var position, out var rotation))
                 controlsManager.RequestTeleport(position, rotation);
+            else
+                Debug.LogWarning($"[SceneSetupManager] TeleportToSpawn: spawn place '{spawnPlace.name}' did not provide a location for player {localPlayer}", this);
         }
 
         private static string GetSceneName(string fullPath)
