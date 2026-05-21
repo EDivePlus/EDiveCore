@@ -5,7 +5,7 @@ using PurrNet.Packing;
 
 namespace EDIVE.Replay.Network
 {
-    public static class ReplayRecordInfoExtensions
+    public static class NetworkReplaySerializers
     {
         public static void Write(this BitPacker packer, ReplayRecordInfo value)
         {
@@ -20,6 +20,18 @@ namespace EDIVE.Replay.Network
             packer.Read(ref id);
             packer.Read(ref duration);
             value = new ReplayRecordInfo(id, duration);
+        }
+        
+        public static void Write(this BitPacker packer, PlaybackLoadState value)
+        {
+            packer.Write((byte)value);
+        }
+
+        public static void Read(this BitPacker packer, ref PlaybackLoadState value)
+        {
+            byte raw = 0;
+            packer.Read(ref raw);
+            value = (PlaybackLoadState)raw;
         }
     }
 }
