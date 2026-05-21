@@ -91,8 +91,8 @@ namespace EDIVE.Networking.UI
 
         private void UpdateSessionLinkState()
         {
-            var transports = AppCore.Services.Get<TransportController>();
-            _SessionLinkState.SetState(transports.GetSessionLinkMode());
+            if (AppCore.Services.TryGet<TransportController>(out var transports))
+                _SessionLinkState.SetState(transports.GetSessionLinkMode());
         }
     }
 }
