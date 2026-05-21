@@ -29,6 +29,17 @@ namespace EDIVE.ServiceHub.Auth
                    ?? JwtUtils.GetClaim(AuthStorage.Client.GetAccessToken(), "sub")
                    ?? "";
         }
+        
+        public bool TryGetAuthUserInfo(out AuthUserInfo userInfo)
+        {
+            if (!AuthStorage.Client.IsValid())
+            {
+                userInfo = null;
+                return false;
+            }
+            userInfo = AuthStorage.Client.GetInfo<AuthUserInfo>();
+            return userInfo != null;
+        }
 
         public void LoginClient(string email, string password) =>
             LoginClientAsync(email, password, destroyCancellationToken).Forget();

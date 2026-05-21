@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using EDIVE.Core;
 using EDIVE.Networking.UI;
+using EDIVE.ServiceHub;
 using EDIVE.StateHandling.ToggleStates;
 using PurrNet;
 using R3;
@@ -20,18 +21,27 @@ namespace EDIVE.Networking.Players
 
         [SerializeField]
         private AToggleState _LocalPlayerToggle;
-        
-        private const float PING_TIMEOUT = 5f;
-        private const float PING_TIMEOUT_CHECK_INTERVAL = 1f;
-        private const int PING_TIMEOUT_VALUE = 5000;
 
+        private readonly SyncVar<NetworkUserInfo> _authUserInfo = new(ownerAuth: true);
         private readonly SyncVar<int> _ping = new();
 
         private CancellationTokenSource _cts;
-        private float _lastPingUpdateServerTime;
 
         [ShowInInspector, ReadOnly]
         public int Ping => _ping.value;
+        
+        public NetworkUserInfo AuthUserInfo => _authUserInfo.value;
+
+        public event Action<NetworkUserInfo> AuthUserInfoChanged
+        {
+            add => _authUserInfo.onChanged += value;
+            remove => _authUserInfo.onChanged -= value;
+        }
+        public event Action<int> PingChanged
+        {
+            add => _ping.onChanged += value;
+            remove => _ping.onChanged -= value;
+        }
 
         protected override void OnOwnerChanged(PlayerID? oldOwner, PlayerID? newOwner, bool asServer)
         {
@@ -43,22 +53,23 @@ namespace EDIVE.Networking.Players
         protected override void OnSpawned(bool asServer)
         {
             AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this, asServer);
+            
+            if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHubManager) 
+                && serviceHubManager.ClientAuth != null 
+                && serviceHubManager.ClientAuth.TryGetAuthUserInfo(out var authUserInfo))
+            {
+                _authUserInfo.value = NetworkUserInfo.FromAuthUserInfo(authUserInfo);
+            }
+            else
+            {
+                _authUserInfo.value = NetworkUserInfo.CreateAnonymous();
+            }
 
             if (asServer)
             {
                 if (_cts == null || _cts.IsCancellationRequested)
                     _cts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-                
-                _ping.onChanged += OnServerPingChanged;
-                Observable.Interval(TimeSpan.FromSeconds(PING_TIMEOUT_CHECK_INTERVAL))
-                    .Subscribe(_ => CheckPingTimeout())
-                    .RegisterTo(_cts.Token);
             }
-        }
-
-        private void OnServerPingChanged(int value)
-        {
-            _lastPingUpdateServerTime = UnityEngine.Time.time;
         }
 
         protected override void OnDespawned(bool asServer)
@@ -80,15 +91,6 @@ namespace EDIVE.Networking.Players
             if (masterNetworkManager.StatisticsManager == null) return;
             
             ServerSetPlayerPing(masterNetworkManager.StatisticsManager.ping);
-        }
-
-        [Server]
-        private void CheckPingTimeout()
-        {
-            if (_ping.value == PING_TIMEOUT_VALUE) return;
-            if (UnityEngine.Time.time - _lastPingUpdateServerTime <= PING_TIMEOUT) return;
-
-            _ping.value = PING_TIMEOUT_VALUE;
         }
         
         [ServerRpc]

@@ -11,7 +11,8 @@
         "EDIVE.Time",
         "EDIVE.StateHandling",
         "EDIVE.Conditions",
-        "EDIVE.Console"
+        "EDIVE.Console",
+        "EDIVE.UIElements"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

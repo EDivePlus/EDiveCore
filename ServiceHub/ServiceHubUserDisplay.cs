@@ -4,10 +4,10 @@
 using EDIVE.ServiceHub.Auth;
 using EDIVE.ServiceHub.RemoteContent;
 using EDIVE.StateHandling.ToggleStates;
+using EDIVE.UIElements;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace EDIVE.ServiceHub
 {
@@ -24,13 +24,10 @@ namespace EDIVE.ServiceHub
         
         [SerializeField]
         private TMP_Text _RolesText;
-
-        [SerializeField]
-        [PropertySpace]
-        private TMP_Text _AvatarInitialsText;
         
         [SerializeField]
-        private Image _AvatarBackground;
+        [PropertySpace]
+        private ProfilePictureDisplay _ProfilePictureDisplay;
         
         [SerializeField]
         [PropertySpace]
@@ -58,8 +55,7 @@ namespace EDIVE.ServiceHub
             if (_RolesText) _RolesText.text = string.Join(", ", userInfo.Roles);
             if (_UserIdText) _UserIdText.text = userInfo.Id;
             
-            if (_AvatarInitialsText) _AvatarInitialsText.text = !string.IsNullOrEmpty(userInfo.Name) ? GetInitials(userInfo.Name) : "?";
-            if (_AvatarBackground) _AvatarBackground.color = ColorFromString(userInfo.Id);
+            if (_ProfilePictureDisplay) _ProfilePictureDisplay.SetProfilePictureFromName(!string.IsNullOrEmpty(userInfo.Name) ? userInfo.Name : "?");
             
             if (_IsAnonymousToggle) _IsAnonymousToggle.SetState(userInfo.IsAnonymous);
         }
@@ -69,21 +65,7 @@ namespace EDIVE.ServiceHub
             if (_DisplayNameText) _DisplayNameText.text = owner.DisplayName;
             if (_UserIdText) _UserIdText.text = owner.Id;
             
-            if (_AvatarInitialsText) _AvatarInitialsText.text = !string.IsNullOrEmpty(owner.DisplayName) ? GetInitials(owner.DisplayName) : "?";
-            if (_AvatarBackground) _AvatarBackground.color = ColorFromString(owner.Id);
-        }
-        
-        private static string GetInitials(string name)
-        {
-            var parts = name.Split(' ');
-            return parts.Length == 1 ? parts[0][..1].ToUpper() : (parts[0][..1] + parts[1][..1]).ToUpper();
-        }
-        
-        private static Color ColorFromString(string input)
-        {
-            var hash = Mathf.Abs(input.GetHashCode());
-            var hue = (hash % 360) / 360f;
-            return Color.HSVToRGB(hue, 0.6f, 0.45f);
+            if (_ProfilePictureDisplay) _ProfilePictureDisplay.SetProfilePictureFromName(!string.IsNullOrEmpty(owner.DisplayName) ? owner.DisplayName : "?");
         }
     }
 }

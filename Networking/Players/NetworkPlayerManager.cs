@@ -25,6 +25,9 @@ namespace EDIVE.Networking.Players
         private readonly List<(PlayerID id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
         private Promise<NetworkPlayerController> _localPlayerRequest;
         
+        public event Action<NetworkPlayerController> PlayerRegistered;
+        public event Action<NetworkPlayerController> PlayerUnregistered;
+        
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
             return UniTask.CompletedTask;
@@ -51,6 +54,8 @@ namespace EDIVE.Networking.Players
                 request.promise.Dispatch(player);
                 _playerRequests.Remove(request);
             }
+            
+            PlayerRegistered?.Invoke(player);
         }
 
         public void UnregisterPlayer(NetworkPlayerController player, bool asServer)
@@ -58,6 +63,8 @@ namespace EDIVE.Networking.Players
             CurrentPlayers.Remove(player);
             if (!asServer && LocalPlayer == player)
                 LocalPlayer = null;
+            
+            PlayerUnregistered?.Invoke(player);
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)

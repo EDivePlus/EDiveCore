@@ -42,6 +42,7 @@
         "UnityNetworkDiscovery",
         "EDIVE.UnityServices",
         "Unity.Mathematics",
+        "EDIVE.UIElements",
         "FishNet.Runtime"
     ],
     "includePlatforms": [],
