@@ -8,7 +8,6 @@ using EDIVE.Networking.UI;
 using EDIVE.ServiceHub;
 using EDIVE.StateHandling.ToggleStates;
 using PurrNet;
-using R3;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -53,16 +52,19 @@ namespace EDIVE.Networking.Players
         protected override void OnSpawned(bool asServer)
         {
             AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this, asServer);
-            
-            if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHubManager) 
-                && serviceHubManager.ClientAuth != null 
-                && serviceHubManager.ClientAuth.TryGetAuthUserInfo(out var authUserInfo))
+
+            if (!asServer && isOwner)
             {
-                _authUserInfo.value = NetworkUserInfo.FromAuthUserInfo(authUserInfo);
-            }
-            else
-            {
-                _authUserInfo.value = NetworkUserInfo.CreateAnonymous();
+                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHubManager)
+                    && serviceHubManager.ClientAuth != null
+                    && serviceHubManager.ClientAuth.TryGetAuthUserInfo(out var authUserInfo))
+                {
+                    _authUserInfo.value = NetworkUserInfo.FromAuthUserInfo(authUserInfo);
+                }
+                else
+                {
+                    _authUserInfo.value = NetworkUserInfo.CreateAnonymous();
+                }
             }
 
             if (asServer)

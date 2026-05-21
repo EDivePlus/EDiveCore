@@ -29,7 +29,12 @@ namespace EDIVE.UIElements.Tooltips
             _tooltipManager = GetComponentInParent<TooltipManagerProvider>().TooltipManager;
             _graphic = GetComponent<Graphic>();
         }
-        
+
+        private void OnDestroy()
+        {
+            _tooltipSubscription?.Dispose();
+        }
+
         public void SetPreset(VisualPreset visualPreset)
         {
             _currentVisualPreset = VisualPreset.Combine(visualPreset, _DefaultPreset);

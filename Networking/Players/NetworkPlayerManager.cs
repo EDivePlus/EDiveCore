@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
+using EDIVE.Core;
 using EDIVE.External.Promises;
+using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
@@ -100,6 +102,27 @@ namespace EDIVE.Networking.Players
             var result = await UniTask.WhenAny(completionSource.Task, timeout);
             _playerRequests.Remove(record);
             return result.result;
+        }
+        
+        public bool CanKickPlayer(NetworkPlayerController player)
+        {
+            if (player == null || !player.owner.HasValue)
+                return false;
+
+            if (player == LocalPlayer)
+                return false;
+
+            var networkManager = NetworkManager.main;
+            return networkManager != null && networkManager.isServer && networkManager.playerModule != null;
+        }
+        
+        public bool TryKickPlayer(NetworkPlayerController player)
+        {
+            if (!CanKickPlayer(player))
+                return false;
+
+            NetworkManager.main.playerModule.KickPlayer(player.owner!.Value);
+            return true;
         }
     }
 }

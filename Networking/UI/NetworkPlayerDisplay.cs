@@ -1,10 +1,14 @@
 ﻿// Author: Michal Petr
 // Created: 21.05.2026
 
+using System.Collections.Generic;
+using EDIVE.Core;
 using EDIVE.Networking.Players;
 using EDIVE.UIElements;
+using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace EDIVE.Networking.UI
 {
@@ -24,6 +28,14 @@ namespace EDIVE.Networking.UI
         
         [SerializeField]
         private TMP_Text _PingText;
+        
+        [PropertySpace]
+        [SerializeField]
+        private Button _KickButton;
+        
+        [SerializeReference]
+        [ListDrawerSettings(ShowFoldout = false)]
+        private List<ANetworkPlayerDisplayComponent> _AdditionalComponents = new();
 
         public NetworkPlayerController PlayerController { get; private set; }
 
@@ -32,18 +44,31 @@ namespace EDIVE.Networking.UI
             TryUnregisterListeners();
             PlayerController = playerController;
 
+            var canKick = playerController != null && AppCore.Services.Get<NetworkPlayerManager>().CanKickPlayer(PlayerController);
+            if (_KickButton) _KickButton.interactable = canKick;
+            
+            _AdditionalComponents.ForEach(c => c.InitializeForPlayer(playerController));
+            
             TryRegisterListeners();
             UpdateDisplay();
         }
 
         private void OnEnable()
         {
+            if (_KickButton) _KickButton.onClick.AddListener(KickPlayer);
+            
+            _AdditionalComponents.ForEach(c => c.RegisterListeners());
+            
             TryRegisterListeners();
             UpdateDisplay();
         }
 
         private void OnDisable()
         {
+            if (_KickButton) _KickButton.onClick.RemoveListener(KickPlayer);
+            
+            _AdditionalComponents.ForEach(c => c.UnregisterListeners());
+            
             TryUnregisterListeners();
         }
         
@@ -75,6 +100,14 @@ namespace EDIVE.Networking.UI
             if (_PingText != null)
                 _PingText.text = $"{ping}ms";
         }
+        
+        private void KickPlayer()
+        {
+            if (PlayerController != null)
+            {
+                AppCore.Services.Get<NetworkPlayerManager>().TryKickPlayer(PlayerController);
+            }
+        }
 
         private void UpdateDisplay()
         {
@@ -96,6 +129,8 @@ namespace EDIVE.Networking.UI
             
             if (_PingText != null)
                 _PingText.text = $"{PlayerController.Ping}ms";
+
+            _AdditionalComponents.ForEach(c => c.UpdateDisplay());
         }
     }
 }

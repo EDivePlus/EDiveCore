@@ -129,7 +129,7 @@ namespace EDIVE.Avatars.Networking
             _avatar.value = avatar;
         }
 
-        private Transform GetWorldPoseTransform()
+        public Transform GetWorldPoseTransform()
         {
             if (_avatar.value != null)
                 return _avatar.value.transform;
@@ -143,7 +143,7 @@ namespace EDIVE.Avatars.Networking
             if (!owner.HasValue) return;
             TargetRequestTeleport(owner.Value, position, rotation);
         }
-
+        
         [TargetRpc]
         private void TargetRequestTeleport(PlayerID target, Vector3 position, Quaternion rotation)
         {
