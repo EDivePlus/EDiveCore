@@ -11,17 +11,17 @@ namespace EDIVE.Input.Controls
     {
         [SerializeField]
         private List<AControls> _Controls;
-        
-        private AControls _currentControls;
+
+        public AControls CurrentControls { get; private set; }
 
         private IEnumerable<AControls> AllControls => _Controls;
 
         protected void Awake()
         {
-            _currentControls = SelectControls();
+            CurrentControls = SelectControls();
             AllControls.Where(c => c != null).ForEach(c => c.SetActive(false));
-            if (_currentControls != null)
-                _currentControls.SetActive(true);
+            if (CurrentControls != null)
+                CurrentControls.SetActive(true);
         }
 
         private AControls SelectControls()
@@ -31,18 +31,18 @@ namespace EDIVE.Input.Controls
         
         public void RequestTeleport(Vector3 position, Quaternion? rotation = null)
         {
-            if (_currentControls)
+            if (CurrentControls)
             {
-                _currentControls.RequestTeleport(position, rotation);
+                CurrentControls.RequestTeleport(position, rotation);
             }
         }
         
         [Button]
         public void TestRequestTeleport(Vector3 position, Quaternion rotation)
         {
-            if (_currentControls)
+            if (CurrentControls)
             {
-                _currentControls.RequestTeleport(position, rotation);
+                CurrentControls.RequestTeleport(position, rotation);
             }
         }
     }

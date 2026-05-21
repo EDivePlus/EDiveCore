@@ -124,5 +124,21 @@ namespace EDIVE.Networking.Players
             NetworkManager.main.playerModule.KickPlayer(player.owner!.Value);
             return true;
         }
+        
+        public bool CanTeleportToPlayer(NetworkPlayerController player)
+        {
+            return player != null && player != LocalPlayer;
+        }
+        
+        public void TeleportToPlayer(NetworkPlayerController player)
+        {
+            if (!CanTeleportToPlayer(player))
+                return;
+
+            if (!AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+                return;
+
+            controlsManager.RequestTeleport(player.ControlsPosition, player.ControlsRotation);
+        }
     }
 }

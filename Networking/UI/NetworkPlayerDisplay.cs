@@ -33,6 +33,9 @@ namespace EDIVE.Networking.UI
         [SerializeField]
         private Button _KickButton;
         
+        [SerializeField]
+        private Button _TeleportToButton;
+        
         [SerializeReference]
         [ListDrawerSettings(ShowFoldout = false)]
         private List<ANetworkPlayerDisplayComponent> _AdditionalComponents = new();
@@ -47,6 +50,9 @@ namespace EDIVE.Networking.UI
             var canKick = playerController != null && AppCore.Services.Get<NetworkPlayerManager>().CanKickPlayer(PlayerController);
             if (_KickButton) _KickButton.interactable = canKick;
             
+            var canTeleport = playerController != null && AppCore.Services.Get<NetworkPlayerManager>().CanTeleportToPlayer(PlayerController);
+            if (_TeleportToButton) _TeleportToButton.interactable = canTeleport;
+            
             _AdditionalComponents.ForEach(c => c.InitializeForPlayer(playerController));
             
             TryRegisterListeners();
@@ -56,6 +62,7 @@ namespace EDIVE.Networking.UI
         private void OnEnable()
         {
             if (_KickButton) _KickButton.onClick.AddListener(KickPlayer);
+            if (_TeleportToButton) _TeleportToButton.onClick.AddListener(TeleportToPlayer);
             
             _AdditionalComponents.ForEach(c => c.RegisterListeners());
             
@@ -66,6 +73,7 @@ namespace EDIVE.Networking.UI
         private void OnDisable()
         {
             if (_KickButton) _KickButton.onClick.RemoveListener(KickPlayer);
+            if (_TeleportToButton) _TeleportToButton.onClick.RemoveListener(TeleportToPlayer);
             
             _AdditionalComponents.ForEach(c => c.UnregisterListeners());
             
@@ -106,6 +114,14 @@ namespace EDIVE.Networking.UI
             if (PlayerController != null)
             {
                 AppCore.Services.Get<NetworkPlayerManager>().TryKickPlayer(PlayerController);
+            }
+        }
+        
+        private void TeleportToPlayer()
+        {
+            if (PlayerController != null)
+            {
+                AppCore.Services.Get<NetworkPlayerManager>().TeleportToPlayer(PlayerController);
             }
         }
 

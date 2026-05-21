@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using EDIVE.Core;
+using EDIVE.Input.Controls;
 using EDIVE.Networking.UI;
 using EDIVE.ServiceHub;
 using EDIVE.StateHandling.ToggleStates;
@@ -24,12 +25,23 @@ namespace EDIVE.Networking.Players
         private readonly SyncVar<NetworkUserInfo> _authUserInfo = new(ownerAuth: true);
         private readonly SyncVar<int> _ping = new();
 
-        private CancellationTokenSource _cts;
-
-        [ShowInInspector, ReadOnly]
+        private readonly SyncVar<Vector3> _controlsPosition = new(ownerAuth: true);
+        private readonly SyncVar<Quaternion> _controlsRotation = new(ownerAuth: true);
+        
+        [ShowInInspector, ReadOnly] 
         public int Ping => _ping.value;
         
+        [ShowInInspector, ReadOnly] 
+        public Vector3 ControlsPosition => _controlsPosition.value;
+        
+        [ShowInInspector, ReadOnly] 
+        public Quaternion ControlsRotation => _controlsRotation.value;
+        
         public NetworkUserInfo AuthUserInfo => _authUserInfo.value;
+        
+        private CancellationTokenSource _cts;
+        
+        private ControlsManager _controlsManager;
 
         public event Action<NetworkUserInfo> AuthUserInfoChanged
         {
@@ -40,6 +52,11 @@ namespace EDIVE.Networking.Players
         {
             add => _ping.onChanged += value;
             remove => _ping.onChanged -= value;
+        }
+
+        private void Awake()
+        {
+            _controlsManager = AppCore.Services.Get<ControlsManager>();
         }
 
         protected override void OnOwnerChanged(PlayerID? oldOwner, PlayerID? newOwner, bool asServer)
@@ -84,6 +101,14 @@ namespace EDIVE.Networking.Players
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = null;
+        }
+
+        private void Update()
+        {
+            if (!isOwner || !isSpawned) return;
+
+            _controlsPosition.value = _controlsManager.CurrentControls.Position;
+            _controlsRotation.value = _controlsManager.CurrentControls.Rotation;
         }
 
         private void LateUpdate()
