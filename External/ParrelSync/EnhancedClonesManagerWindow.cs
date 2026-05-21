@@ -47,7 +47,7 @@ namespace EDIVE.External.ParrelSync
         private bool IsOriginalProjectInvalid => MasterProjectPath.IsNullOrWhitespace();
         private bool IsClone => ClonesManager.IsClone();
 
-        [MenuItem("ParrelSync/Enhanced Clones Manager", priority = -100)]
+        [MenuItem("Tools/ParrelSync/Enhanced Clones Manager", priority = -100)]
         public static void OpenWindow()
         {
             var window = GetWindow<EnhancedClonesManagerWindow>();
