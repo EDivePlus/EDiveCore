@@ -7,6 +7,7 @@ using System.Linq;
 using EDIVE.Forms.Answers;
 using EDIVE.Forms.Questions;
 using Newtonsoft.Json;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using PurrNet;
 
@@ -29,7 +30,6 @@ namespace EDIVE.Forms.Networking
             TypeNameHandling = TypeNameHandling.Auto
         };
 
-
         private void Awake()
         {
             _formController = GetComponent<FormController>();
@@ -37,27 +37,30 @@ namespace EDIVE.Forms.Networking
         
         protected override void OnSpawned(bool asServer)
         {
-            if (asServer)
+            if (!asServer) 
+                return;
+            
+            _questionIndex.value = _formController.CurrentQuestionIndex;
+            _formState.value = _formController.CurrentFormState;
+            if (_formController.CurrentAnswers != null)
             {
-                _questionIndex.value = _formController.CurrentQuestionIndex;
-                _formState.value = _formController.CurrentFormState;
-                if (_formController.CurrentAnswers != null)
+                _parsedAnswers = _formController.CurrentAnswers.Answers.ToDictionary(entry => entry.Key, entry => entry.Value);
+                foreach (var (questionID, answer) in _formController.CurrentAnswers.Answers)
                 {
-                    _parsedAnswers = _formController.CurrentAnswers.Answers.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    foreach (var (questionID, answer) in _formController.CurrentAnswers.Answers)
-                    {
-                        _answers[questionID] = JsonConvert.SerializeObject(answer, typeof(AFormAnswer), JSON_SETTINGS);
-                    }
+                    _answers[questionID] = JsonConvert.SerializeObject(answer, typeof(AFormAnswer), JSON_SETTINGS);
                 }
             }
         }
-
+        
         protected override void OnSpawned()
         {
             RegisterLocalEvents();
             _questionIndex.onChanged += OnSyncCurrentQuestionChanged;
             _formState.onChanged += OnSyncFormStateChanged;
             _answers.onChanged += OnSyncAnswersChanged;
+            
+            OnSyncFormStateChanged(_formState.value);
+            OnSyncCurrentQuestionChanged(_questionIndex.value);
         }
 
         protected override void OnDespawned()
