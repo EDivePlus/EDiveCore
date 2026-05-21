@@ -38,7 +38,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         [SerializeField]
         private AppVersionDefinition _VersionDefinition;
 
-        private LobbyService _lobby;
+        private ServiceHubManager _serviceHub;
+        private LobbyService Lobby => _serviceHub.Lobby;
         
         private CancellationTokenSource _searchCancellation;
         private CancellationTokenSource _heartbeatCancellation;
@@ -59,7 +60,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         public override UniTask Initialize()
         {
             base.Initialize();
-            _lobby = AppCore.Services.Get<ServiceHubManager>().Lobby;
+            _serviceHub = AppCore.Services.Get<ServiceHubManager>();
             return UniTask.CompletedTask;
         }
 
@@ -117,7 +118,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             if (request is not CodeJoinRequest codeRequest)
                 return (false, null);
             
-            var response = await _lobby.GetServerAsync(codeRequest.Code, CancellationToken.None);
+            var response = await Lobby.GetServerAsync(codeRequest.Code, CancellationToken.None);
             if (!response.IsSuccess || response.Result == null)                
                 return (false, null);
             
@@ -127,6 +128,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
+            if (!_serviceHub.HasValidSetup)
+                return;
+            
             // Ensure we don't spam the lobby service with queries if search is stopped and started again quickly.
             if (UnityEngine.Time.realtimeSinceStartup - _lastQueryTime < 2f)
                 await UniTask.Delay(TimeSpan.FromSeconds(2), true, cancellationToken: cancellationToken);
@@ -134,7 +138,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             while (!cancellationToken.IsCancellationRequested)
             {
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
-                var response = await _lobby.QueryServersAsync(
+                var response = await Lobby.QueryServersAsync(
                     new QueryServersRequest { Count = _QueryCount, Skip = 0 },
                     cancellationToken);
                 var records = response.IsSuccess && response.Result != null
@@ -187,6 +191,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
         private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
         {
+            if (!_serviceHub.HasValidSetup)
+                return;
+            
             var transports = await AppCore.Services.AwaitRegistered<TransportController>();
 
             if (!_relayInitialized)
@@ -207,7 +214,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 InstanceID = serverManager.InstanceID,
                 PurrRelayRoom = _purrRelayRoom
             };
-            var response = await _lobby.RegisterServerAsync(new RegisterServerRequest
+            var response = await Lobby.RegisterServerAsync(new RegisterServerRequest
             {
                 Name = _serverConfig.ServerName,
                 Version = _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
@@ -274,7 +281,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                         CurrentPlayers = currentPlayers
                     };
 
-                    var response = await _lobby.UpdateServerAsync(request, cancellationToken);
+                    var response = await Lobby.UpdateServerAsync(request, cancellationToken);
                     if (response.IsSuccess)
                     {
                         _lastSuccessfulContactUtc = DateTime.UtcNow;
@@ -311,7 +318,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _heartbeatCancellation = null;
             _localEndpoints = null;
             
-            if (string.IsNullOrEmpty(_serverSecret) || _lobby == null)
+            if (string.IsNullOrEmpty(_serverSecret) || Lobby == null)
                 return;
 
             var secret = _serverSecret;
@@ -319,7 +326,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             try
             {
-                var response = await _lobby.DisposeServerAsync(secret, CancellationToken.None);
+                var response = await Lobby.DisposeServerAsync(secret, CancellationToken.None);
                 if (!response.IsSuccess)
                     Debug.LogWarning($"[ServiceHubServerListAdapter] Dispose failed: {response.ErrorMessage}");
             }

@@ -59,11 +59,19 @@ namespace EDIVE.ServiceHub
         public RemoteContentService RemoteContent => _RemoteContent;
         public LobbyService Lobby => _Lobby;
         public ProbeService Probe => _Probe;
+
+        public bool HasValidSetup => !string.IsNullOrEmpty(Settings.AppSecret);
         
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             foreach (var module in GetAllModules())
                 module.Initialize(_Settings);
+            
+            if (!HasValidSetup)
+            {
+                Debug.LogError($"[ServiceHubManager] Invalid setup: AppSecret is not set. Please configure the ServiceHubSettings.");
+                return;
+            }
 
             _ClientAuth.OnLoggingOutAsync += _SaveData.FlushAllDirtyEntries;
             _ServerAuth.OnLoggingOutAsync += _SaveData.FlushAllServerDirtyEntries;
