@@ -344,6 +344,7 @@ namespace EDIVE.Networking.ServerManagement
                     CurrentPlayers = NetworkManager.main.playerCount,
                     LastUpdated = DateTime.UtcNow,
                     JoinCode = JoinCode,
+                    Version = AppCore.CurrentVersion
                 };
 
                 EnumerateAdapters(adapter =>
@@ -449,6 +450,7 @@ namespace EDIVE.Networking.ServerManagement
                         record.CurrentPlayers = contribution.CurrentPlayers;
                         record.LastUpdated = contribution.LastUpdated;
                         record.JoinCode = contribution.JoinCode;
+                        record.Version = contribution.Version;
                     }
                 }
             });

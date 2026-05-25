@@ -34,9 +34,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         [MinValue(1f)]
         [Tooltip("Interval between heartbeat updates. Backend default TTL is ~40s.")]
         private float _HeartbeatInterval = 15f;
-        
-        [SerializeField]
-        private AppVersionDefinition _VersionDefinition;
 
         private ServiceHubManager _serviceHub;
         private LobbyService Lobby => _serviceHub.Lobby;
@@ -139,7 +136,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             {
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
                 var response = await Lobby.QueryServersAsync(
-                    new QueryServersRequest { Count = _QueryCount, Skip = 0 },
+                    new QueryServersRequest { Count = _QueryCount, Skip = 0, Version = AppCore.CurrentVersion.ToBaseString() },
                     cancellationToken);
                 var records = response.IsSuccess && response.Result != null
                     ? BuildRecords(response.Result)
@@ -185,6 +182,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     MaxPlayers = lobby.MaxPlayers,
                     Endpoints = endpoints,
                     JoinCode = lobby.JoinCode,
+                    Version = AppVersion.FromBaseString(lobby.Version)
                 };
             }
         }
@@ -223,7 +221,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             var response = await Lobby.RegisterServerAsync(new RegisterServerRequest
             {
                 Name = _serverConfig.ServerName,
-                Version = _VersionDefinition != null ? _VersionDefinition.VersionString : "0",
+                Version = AppCore.CurrentVersion.ToBaseString(),
                 PublicAddress = _serverConfig.PublicAddress,
                 PublicPort = serverManager.ResolvedPort,
                 MaxPlayers = _serverConfig.MaxPlayers,

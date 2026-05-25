@@ -6,6 +6,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
+using EDIVE.Core.Versions;
 using EDIVE.External.DomainReloadHelper;
 using EDIVE.External.Promises;
 using Sirenix.OdinInspector;
@@ -26,6 +27,9 @@ namespace EDIVE.Core
         
         [ClearOnReload]
         private static AppCore _instance;
+
+        [SerializeField]
+        private AppVersionDefinition _VersionDefinition;
         
         private static int _mainThreadId;
 
@@ -34,6 +38,8 @@ namespace EDIVE.Core
         public static bool IsLoaded => HasInstance && Instance._isLoaded;
         public static bool HasInstance => Application.isPlaying && _instance != null;
         public static bool IsMainThread => Equals(_mainThreadId, Thread.CurrentThread.ManagedThreadId);
+        
+        public static AppVersion CurrentVersion => HasInstance ? Instance._VersionDefinition : AppVersion.ZERO;
 
         public Scene RootScene { get; private set; }
         

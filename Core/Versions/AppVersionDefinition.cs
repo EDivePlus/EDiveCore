@@ -86,7 +86,9 @@ namespace EDIVE.Core.Versions
 #if UNITY_EDITOR
         public void IncrementCurrentVersion()
         {
-            CurrentVersion.Build += 1;
+            var version = CurrentVersion;
+            version.Build += 1;
+            CurrentVersion = version;
             EditorUtility.SetDirty(this);
         }
 

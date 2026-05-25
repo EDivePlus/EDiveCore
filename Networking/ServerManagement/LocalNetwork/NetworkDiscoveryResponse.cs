@@ -14,5 +14,6 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         public int MaxPlayers;
         public int CurrentPlayers;
         public string JoinCode;
+        public string Version;
     }
 }

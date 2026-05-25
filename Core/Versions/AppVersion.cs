@@ -12,9 +12,9 @@ namespace EDIVE.Core.Versions
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class AppVersion : IComparable<AppVersion>, IEquatable<AppVersion>
+    public struct AppVersion : IComparable<AppVersion>, IEquatable<AppVersion>
     {
-        public static readonly AppVersion ZERO = new();
+        public static readonly AppVersion ZERO = new(0);
         
         [Wrap(0, 999)]
         [HorizontalGroup("Version")]
@@ -156,7 +156,6 @@ namespace EDIVE.Core.Versions
             return stringBuilder.ToString();
         }
         
-        
         public static AppVersion FromBaseString(string versionString)
         {
             var parts = versionString.Split('.');
@@ -167,7 +166,11 @@ namespace EDIVE.Core.Versions
             if (parts.Length > 3) version.Build = int.Parse(parts[3]);
             return version;
         }
-
+        
+        public string ToBaseString()
+        {
+            return string.Join(".", _Major.ToString(), _Minor.ToString(), _Patch.ToString(), _Build.ToString());
+        }
         
         public int GetBundleCode(BundleCodeFormat bundleFormat)
         {
@@ -191,6 +194,9 @@ namespace EDIVE.Core.Versions
 
         public static bool operator <=(AppVersion a, AppVersion b) { return a.CompareTo(b) <= 0; }
         public static bool operator >=(AppVersion a, AppVersion b) { return a.CompareTo(b) >= 0; }
+        
+        public static bool operator ==(AppVersion a, AppVersion b) { return a.Equals(b); }
+        public static bool operator !=(AppVersion a, AppVersion b) { return !a.Equals(b); }
 
         public int CompareTo(AppVersion other, AppVersionSignificance mostSpecificVersionSignificance)
         {
@@ -205,34 +211,17 @@ namespace EDIVE.Core.Versions
 
         public bool Equals(AppVersion other)
         {
-            if (other is null) return false;
-            if (ReferenceEquals(this, other)) return true;
             return _Major == other._Major && _Minor == other._Minor && _Patch == other._Patch && _Build == other._Build;
         }
 
         public override bool Equals(object obj)
         {
-            if (obj is null) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != GetType()) return false;
-            return Equals((AppVersion) obj);
+            return obj is AppVersion other && Equals(other);
         }
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                var hashCode = Major;
-                hashCode = (hashCode * 397) ^ Minor;
-                hashCode = (hashCode * 397) ^ Patch;
-                hashCode = (hashCode * 397) ^ Build;
-                return hashCode;
-            }
-        }
-
-        public string ToBaseString()
-        {
-            return string.Join(".", _Major.ToString(), _Minor.ToString(), _Patch.ToString(), _Build.ToString());
+            return HashCode.Combine(_Major, _Minor, _Patch, _Build);
         }
         
 #if UNITY_EDITOR

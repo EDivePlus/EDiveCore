@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using EDIVE.Core;
+using EDIVE.Core.Versions;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -90,6 +91,19 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
 
+        private AppVersion _version;
+        public AppVersion Version
+        {
+            get => _version;
+            set
+            {
+                if (_version == value) 
+                    return;
+                _version = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+
         public ServerRecord() { }
         public ServerRecord(string instanceID)
         {
@@ -135,7 +149,8 @@ namespace EDIVE.Networking.ServerManagement
                 CurrentPlayers = 0,
                 LastUpdated = DateTime.Now,
                 Endpoints = new List<AServerEndpoint> { endpoint },
-                JoinCode = string.Empty
+                JoinCode = string.Empty,
+                Version = AppVersion.ZERO
             };
             return record;
         }
