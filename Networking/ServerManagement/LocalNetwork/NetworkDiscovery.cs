@@ -18,6 +18,8 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         [SerializeField]
         private ServerConfig _Config;
 
+        protected override bool IsAdvertisingEnabled() => !_Config.IsPrivate;
+
         protected override NetworkDiscoveryResponse CreateResponse(IPEndPoint endpoint)
         {
             var nm = NetworkManager.main;
