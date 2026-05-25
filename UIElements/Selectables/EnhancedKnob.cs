@@ -1,12 +1,13 @@
-// Based on UI_Knob from UIExtensions https://github.com/Unity-UI-Extensions/com.unity.uiextensions
-
-using EDIVE.OdinExtensions.Editor;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
+
+#if UNITY_EDITOR
+using EDIVE.OdinExtensions.Editor;
+#endif
 
 namespace EDIVE.UIElements.Selectables
 {
@@ -18,56 +19,57 @@ namespace EDIVE.UIElements.Selectables
             Counterclockwise
         }
         
-        [HideLabel]
-        [InlineProperty]
-        [SerializeField]
-        private SelectableAdditionalData _AdditionalData = new();
-
         [FormerlySerializedAs("direction")]
         [SerializeField]
         private Direction _Direction = Direction.Clockwise;
         
         [Tooltip("Max value of the knob, maximum RAW output value knob can reach, overrides snap step, IF set to 0 or higher than loops, max value will be set by loops")]
         [SerializeField]
-        private float _MaxValue = 0;
+        private float _MaxValue;
 
         [Tooltip("How many rotations knob can do, if higher than max value, the latter will limit max value")]
         [SerializeField]
-        private int _Loops = 0;
+        private int _Loops;
  
         [Tooltip("Clamp output value between 0 and 1, useful with loops > 1")]
         [SerializeField]
-        private bool _ClampOutput01 = false;
+        private bool _ClampOutput01;
 
         [Tooltip("snap to position?")]
         [SerializeField]
-        private bool _SnapToPosition = false;
+        private bool _SnapToPosition;
 
         [Tooltip("Number of positions to snap")]
         [SerializeField]
         private int _SnapStepsPerLoop = 10;
+
+        [Tooltip("Object that visually rotates with the knob. If not set, this transform is used.")]
+        [SerializeField]
+        private Transform _RotationTarget;
+
+        [PropertyRange(0, 1)]
+        [OnValueChanged(nameof(ApplyValue))]
+        [SerializeField]
+        private float _Value;
         
         [PropertySpace]
         [SerializeField]
         private KnobFloatValueEvent _ValueChanged;
         
-        [HideInInspector]
+        [HideLabel]
+        [InlineProperty]
         [SerializeField]
-        private float _KnobValue;
+        private SelectableAdditionalData _AdditionalData = new();
         
-        private float _currentLoops = 0;
-        private float _previousValue = 0;
-        private float _initAngle;
-        private float _currentAngle;
-        private Vector2 _currentVector;
-        private Quaternion _initRotation; 
-        private bool _screenSpaceOverlay;
 
-        protected override void Awake()
-        {
-            _screenSpaceOverlay = GetComponentInParent<Canvas>().rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay;
-        }
         
+        private float _currentLoops;
+        private float _previousValue;
+        private float _initAngle;
+        private Quaternion _initRotation;
+
+        private Transform RotationTarget => _RotationTarget != null ? _RotationTarget : transform;
+
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             base.DoStateTransition(state, instant);
@@ -78,124 +80,122 @@ namespace EDIVE.UIElements.Selectables
         {
             base.OnPointerDown(eventData);
 
-            _initRotation = transform.rotation;
-			if (_screenSpaceOverlay)
-            {
-				_currentVector = eventData.position - (Vector2)transform.position;
-            }
-            else
-            {
-				_currentVector = eventData.position - (Vector2)Camera.main.WorldToScreenPoint(transform.position);
-            }
-            _initAngle = Mathf.Atan2(_currentVector.y, _currentVector.x) * Mathf.Rad2Deg;
+            _initRotation = RotationTarget.rotation;
+            var currentVector = GetPointerVector(eventData);
+            _initAngle = Mathf.Atan2(currentVector.y, currentVector.x) * Mathf.Rad2Deg;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-			if (_screenSpaceOverlay)
-			{
-				_currentVector = eventData.position - (Vector2)transform.position;
-			}
-			else
-			{
-				_currentVector = eventData.position - (Vector2)Camera.main.WorldToScreenPoint(transform.position);
-			}
-            _currentAngle = Mathf.Atan2(_currentVector.y, _currentVector.x) * Mathf.Rad2Deg;
+            var currentVector = GetPointerVector(eventData);
+            var currentAngle = Mathf.Atan2(currentVector.y, currentVector.x) * Mathf.Rad2Deg;
 
-            var addRotation = Quaternion.AngleAxis(_currentAngle - _initAngle, this.transform.forward);
+            var addRotation = Quaternion.AngleAxis(currentAngle - _initAngle, RotationTarget.forward);
             addRotation.eulerAngles = new Vector3(0, 0, addRotation.eulerAngles.z);
 
             var finalRotation = _initRotation * addRotation;
 
             if (_Direction == Direction.Clockwise)
             {
-                _KnobValue = 1 - (finalRotation.eulerAngles.z / 360f);
+                _Value = 1 - (finalRotation.eulerAngles.z / 360f);
 
                 if (_SnapToPosition)
                 {
-                    SnapToPositionValue(ref _KnobValue);
-                    finalRotation.eulerAngles = new Vector3(0, 0, 360 - 360 * _KnobValue);
+                    SnapToPositionValue(ref _Value);
+                    finalRotation.eulerAngles = new Vector3(0, 0, 360 - 360 * _Value);
                 }
             }
             else
             {
-                _KnobValue = (finalRotation.eulerAngles.z / 360f);
+                _Value = (finalRotation.eulerAngles.z / 360f);
 
                 if (_SnapToPosition)
                 {
-                    SnapToPositionValue(ref _KnobValue);
-                    finalRotation.eulerAngles = new Vector3(0, 0, 360 * _KnobValue);
+                    SnapToPositionValue(ref _Value);
+                    finalRotation.eulerAngles = new Vector3(0, 0, 360 * _Value);
                 }
             }
 
             UpdateKnobValue();
 
-            transform.rotation = finalRotation;
-            InvokeEvents(_KnobValue + _currentLoops);
+            RotationTarget.rotation = finalRotation;
+            InvokeEvents(_Value + _currentLoops);
 
-            _previousValue = _KnobValue;
+            _previousValue = _Value;
+        }
+
+        private Vector2 GetPointerVector(PointerEventData eventData)
+        {
+            var screenPoint = RectTransformUtility.WorldToScreenPoint(eventData.pressEventCamera, RotationTarget.position);
+            return eventData.position - screenPoint;
         }
 
         private void UpdateKnobValue()
         {
-            //PREVENT OVERROTATION
-            if (Mathf.Abs(_KnobValue - _previousValue) > 0.5f)
+            if (Mathf.Abs(_Value - _previousValue) > 0.5f)
             {
-                if (_KnobValue < 0.5f && _Loops > 1 && _currentLoops < _Loops - 1)
+                if (_Value < 0.5f && _Loops > 1 && _currentLoops < _Loops - 1)
                 {
                     _currentLoops++;
                 }
-                else if (_KnobValue > 0.5f && _currentLoops >= 1)
+                else if (_Value > 0.5f && _currentLoops >= 1)
                 {
                     _currentLoops--;
                 }
                 else
                 {
-                    if (_KnobValue > 0.5f && _currentLoops == 0)
+                    if (_Value > 0.5f && _currentLoops == 0)
                     {
-                        _KnobValue = 0;
-                        transform.localEulerAngles = Vector3.zero;
-                        InvokeEvents(_KnobValue + _currentLoops);
+                        _Value = 0;
+                        RotationTarget.localEulerAngles = Vector3.zero;
+                        InvokeEvents(_Value + _currentLoops);
                         return;
                     }
 
-                    if (_KnobValue < 0.5f && Mathf.Approximately(_currentLoops, _Loops - 1))
+                    if (_Value < 0.5f && Mathf.Approximately(_currentLoops, _Loops - 1))
                     {
-                        _KnobValue = 1;
-                        transform.localEulerAngles = Vector3.zero;
-                        InvokeEvents(_KnobValue + _currentLoops);
+                        _Value = 1;
+                        RotationTarget.localEulerAngles = Vector3.zero;
+                        InvokeEvents(_Value + _currentLoops);
                         return;
                     }
                 }
             }
-
-            //CHECK MAX VALUE
-            if (_MaxValue > 0 && _KnobValue + _currentLoops > _MaxValue)
+            
+            if (_MaxValue > 0 && _Value + _currentLoops > _MaxValue)
             {
-                _KnobValue = _MaxValue;
+                _Value = _MaxValue;
                 var maxAngle = _Direction == Direction.Clockwise ? 360f - 360f * _MaxValue : 360f * _MaxValue;
-                transform.localEulerAngles = new Vector3(0, 0, maxAngle);
-                InvokeEvents(_KnobValue);
+                RotationTarget.localEulerAngles = new Vector3(0, 0, maxAngle);
+                InvokeEvents(_Value);
             }
         }
 
-        public void SetKnobValue(float value, int loops = 0)
+        public float KnobValue
+        {
+            get => _Value;
+            set => SetValue(value);
+        }
+
+        private void ApplyValue() => SetValue(_Value, Mathf.RoundToInt(_currentLoops));
+
+        public void SetValue(float value, int loops = 0)
         {
             var newRotation = Quaternion.identity;
-            _KnobValue = value;
+            _Value = value;
             _currentLoops = loops;
 
             if (_SnapToPosition) 
-                SnapToPositionValue(ref _KnobValue);
+                SnapToPositionValue(ref _Value);
             
-            newRotation.eulerAngles = _Direction == Direction.Clockwise ? new Vector3(0, 0, 360 - 360 * _KnobValue) : new Vector3(0, 0, 360 * _KnobValue);
+            newRotation.eulerAngles = _Direction == Direction.Clockwise ? new Vector3(0, 0, 360 - 360 * _Value) : new Vector3(0, 0, 360 * _Value);
 
             UpdateKnobValue();
 
-            transform.rotation = newRotation;
-            InvokeEvents(_KnobValue + _currentLoops);
+            RotationTarget.rotation = newRotation;
+            InvokeEvents(_Value + _currentLoops);
 
-            _previousValue = _KnobValue;
+            _previousValue = _Value;
         }
 
         private void SnapToPositionValue(ref float knobValue)
@@ -206,9 +206,9 @@ namespace EDIVE.UIElements.Selectables
         }
         private void InvokeEvents(float value)
         {
-            if (_ClampOutput01)
+            if (_ClampOutput01 && _Loops > 0)
                 value /= _Loops;
-            _ValueChanged.Invoke(value);
+            _ValueChanged?.Invoke(value);
         }
 
         public virtual void OnInitializePotentialDrag(PointerEventData eventData)
