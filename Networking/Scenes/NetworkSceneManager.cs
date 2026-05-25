@@ -53,6 +53,8 @@ namespace EDIVE.Networking.Scenes
             
             _networkManager.onServerConnectionState -= OnServerConnectionState;
             _networkManager.Unsubscribe<ConnectionSceneRequest>(OnConnectionSceneRequest, asServer: true);
+            
+            if (_networkManager.sceneModule == null) return;
             _networkManager.sceneModule.onSceneLoaded -= OnServerSceneLoaded;
         }
         
