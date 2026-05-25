@@ -42,7 +42,7 @@ namespace EDIVE.Networking.UI
                     _ConnectionState.SetState(ConnectionState.Disconnected);
 
                 if (_RuntimeModeState)
-                    _RuntimeModeState.SetState(NetworkRuntimeMode.Offline);
+                    _RuntimeModeState.SetState(NetworkRuntimeMode.None);
             }
             AppCore.Services.WhenRegistered<MasterNetworkManager, NetworkServerManager>(Initialize);
         }

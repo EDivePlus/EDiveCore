@@ -196,6 +196,12 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             
             var transports = await AppCore.Services.AwaitRegistered<TransportController>();
 
+            if (transports.IsLocal())
+            {
+                Debug.LogWarning("[ServiceHubServerListAdapter] Server hosted as local, skipping lobby registration.");
+                return;
+            }
+            
             if (!_relayInitialized)
             {
                 if (transports.TryGetTransport<PurrTransport>(out var purrTransport))

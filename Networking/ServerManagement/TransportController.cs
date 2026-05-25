@@ -48,7 +48,7 @@ namespace EDIVE.Networking.ServerManagement
             // _CompositeTransports.SetClientTransport<LocalTransport>();
         }
         
-        public void SetOffline()
+        public void SetLocal()
         {
             NetworkManager.main.transport = _LocalTransport;
         }
@@ -64,6 +64,8 @@ namespace EDIVE.Networking.ServerManagement
            
             _CompositeTransports.SetClientTransport(transport);
         }
+        
+        public bool IsLocal() => NetworkManager.main.transport == _LocalTransport;
 
         public bool TrySetClient<T>() where T : GenericTransport
         {

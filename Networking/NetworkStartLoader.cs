@@ -20,10 +20,11 @@ namespace EDIVE.Networking
                 case NetworkRuntimeMode.Server:
                 case NetworkRuntimeMode.Host:
                 case NetworkRuntimeMode.Client:
+                case NetworkRuntimeMode.Offline:
                     networkManager.StartRuntime(NetworkUtils.RuntimeMode);
                     break;
                 
-                case NetworkRuntimeMode.Offline:
+                case NetworkRuntimeMode.None:
                     break;
                 
                 default: 

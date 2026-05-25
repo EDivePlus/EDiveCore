@@ -1,19 +1,15 @@
 ﻿// Author: Michal Petr
 // Created: 19.05.2026
 
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using Cysharp.Threading.Tasks;
 using EDIVE.Configuration;
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
-using EDIVE.Networking.ServerManagement.PurrNet;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Android;
 using UnityEngine.UI;
 using ZLinq;
 
@@ -30,10 +26,6 @@ namespace EDIVE.Networking.UI
 
         [SerializeField]
         private Button _DirectJoinButton;
-        
-        [SerializeField]
-        [PropertySpace]
-        private Button _HostButton;
         
         [SerializeField]
         [EnhancedBoxGroup("Host Config", SpaceBefore = 8)]
@@ -66,7 +58,6 @@ namespace EDIVE.Networking.UI
         private void OnEnable()
         {
             if (_DirectJoinButton) _DirectJoinButton.onClick.AddListener(OnDirectJoinClicked);
-            if (_HostButton) _HostButton.onClick.AddListener(OnHostClicked);
             
             if (_ServerNameInput) _ServerNameInput.text = _Config.ServerName;
             if (_MaxPlayersInput) _MaxPlayersInput.text = _Config.MaxPlayers.ToString();
@@ -96,7 +87,6 @@ namespace EDIVE.Networking.UI
             if (_ServiceHubSecretInput) _ServiceHubSecretInput.onValueChanged.RemoveListener(OnInputChanged);
             
             if (_DirectJoinButton) _DirectJoinButton.onClick.RemoveListener(OnDirectJoinClicked);
-            if (_HostButton) _HostButton.onClick.RemoveListener(OnHostClicked);
         }
 
         private void OnInputChanged(string value) => SaveConfig();
@@ -137,11 +127,6 @@ namespace EDIVE.Networking.UI
             }
                 
             AppCore.Services.Get<NetworkServerManager>().ConnectToServer(joinRequest);
-        }
-        
-        private void OnHostClicked()
-        {
-            AppCore.Services.Get<MasterNetworkManager>().StartRuntime(NetworkRuntimeMode.Host);
         }
 
         private IJoinRequest ParseJoinRequest(string input)

@@ -30,7 +30,7 @@ namespace EDIVE.Networking
         public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
         public Signal<ConnectionState> ConnectionStateChanged { get; } = new();
 
-        public NetworkRuntimeMode RuntimeMode { get; private set; } = NetworkRuntimeMode.Offline;
+        public NetworkRuntimeMode RuntimeMode { get; private set; } = NetworkRuntimeMode.None;
         public Signal<NetworkRuntimeMode> RuntimeModeChanged { get; } = new();
 
         private ConnectionState _serverConnectionState = ConnectionState.Disconnected;
@@ -130,7 +130,7 @@ namespace EDIVE.Networking
             var isClient = _clientConnectionState is ConnectionState.Connected or ConnectionState.Connecting;
             if (isServer && isClient)
             {
-                newMode = NetworkRuntimeMode.Host;
+                newMode = NetworkManager.main.transport is LocalTransport ? NetworkRuntimeMode.Offline : NetworkRuntimeMode.Host;
             }
             else if (isServer)
             {
@@ -142,7 +142,7 @@ namespace EDIVE.Networking
             }
             else
             {
-                newMode = NetworkRuntimeMode.Offline;
+                newMode = NetworkRuntimeMode.None;
             }
 
             if (newMode != RuntimeMode)
@@ -168,9 +168,8 @@ namespace EDIVE.Networking
                 ? _serverConnectionState
                 : _clientConnectionState;
         }
-        
 
-        public void StartHost()
+        private void StartHostInternal(bool isOffline)
         {
             if (!CanStartServer() || !CanStartClient())
             {
@@ -181,12 +180,27 @@ namespace EDIVE.Networking
             BeforeHostStarted?.Dispatch();
             UniTask.Void(async () =>
             {
-                if (AppCore.Services.TryGet<TransportController>(out var transportController)) 
-                    transportController.SetHost();
+                if (AppCore.Services.TryGet<TransportController>(out var transportController))
+                {
+                    if (isOffline)  
+                        transportController.SetLocal();
+                    else
+                        transportController.SetHost();
+                }
                 
                 await StartServerInternalAsync();
                 StartClientInternal();
             });
+        }
+
+        public void StartHost()
+        {
+            StartHostInternal(false);
+        }
+
+        public void StartOffline()
+        {
+            StartHostInternal(true);
         }
 
         public void StartServer()
@@ -267,10 +281,10 @@ namespace EDIVE.Networking
         
         public void StartRuntime(NetworkRuntimeMode runtimeMode)
         {
-            if (runtimeMode == NetworkRuntimeMode.Offline)
+            if (runtimeMode == NetworkRuntimeMode.None)
                 return;
 
-            if (RuntimeMode != NetworkRuntimeMode.Offline || _serverStartRequested || _clientStartRequested)
+            if (RuntimeMode != NetworkRuntimeMode.None || _serverStartRequested || _clientStartRequested)
             {
                 Debug.LogWarning($"[MasterNetworkManager] Ignoring StartRuntime({runtimeMode}): runtime is already {RuntimeMode}.");
                 return;
@@ -286,6 +300,9 @@ namespace EDIVE.Networking
                     break;
                 case NetworkRuntimeMode.Host:
                     StartHost();
+                    break;
+                case NetworkRuntimeMode.Offline:
+                    StartOffline();
                     break;
             }
         }

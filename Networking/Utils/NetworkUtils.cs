@@ -19,7 +19,7 @@ namespace EDIVE.Networking.Utils
     public static class NetworkUtils
     {
 #if UNITY_EDITOR
-        private static readonly EditorPrefInt EDITOR_RUNTIME_MODE_PREF = new($"NetworkRuntimeMode-{Directory.GetParent(Application.dataPath)?.Name}", (int) NetworkRuntimeMode.Offline);
+        private static readonly EditorPrefInt EDITOR_RUNTIME_MODE_PREF = new($"NetworkRuntimeMode-{Directory.GetParent(Application.dataPath)?.Name}", (int) NetworkRuntimeMode.None);
 
         public static NetworkRuntimeMode EditorRuntimeMode
         {
