@@ -15,7 +15,7 @@ namespace EDIVE.Tablet
     {
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false)]
-        [EnhancedValueDropdown("GetAvailableWidgets", AppendNextDrawer = true, IsUniqueList = true)]
+        [EnhancedValueDropdown("GetAllWidgets", AppendNextDrawer = true, IsUniqueList = true)]
         private List<TabletWidgetDefinition> _Widgets = new();
 
         [SerializeField]
