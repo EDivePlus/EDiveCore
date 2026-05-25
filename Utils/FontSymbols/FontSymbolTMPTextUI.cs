@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 11.06.2025
 
+using System.Collections.Generic;
 using EDIVE.DataStructures;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
@@ -9,6 +10,7 @@ using TMPro;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using EDIVE.EditorUtils;
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
 #endif
@@ -67,12 +69,20 @@ namespace EDIVE.Utils.FontSymbols
         }
 
         [ShowInInspector]
-        public Material Material
+        [EnhancedValueDropdown(nameof(GetMaterialPresets), true)]
+        public Material MaterialPreset
         {
-            get => material;
-            set => material = value;
+            get => fontSharedMaterial;
+            set => fontSharedMaterial = value;
         }
-
+        
+        [ShowInInspector]
+        public bool Bold
+        {
+            get => fontStyle.HasFlag(FontStyles.Bold);
+            set => fontStyle = value ? fontStyle | FontStyles.Bold : fontStyle & ~FontStyles.Bold;
+        }
+        
         [ShowInInspector]
         public bool RaycastTarget
         {
@@ -105,7 +115,6 @@ namespace EDIVE.Utils.FontSymbols
         {
             var changed = false;
             enableAutoSizing = false;
-            material = null;
             richText = false;
             textWrappingMode = TextWrappingModes.NoWrap;
             overflowMode = TextOverflowModes.Overflow;
@@ -150,6 +159,30 @@ namespace EDIVE.Utils.FontSymbols
         }
 
 #if UNITY_EDITOR
+        [UsedImplicitly]
+        private IEnumerable<ValueDropdownItem<Material>> GetMaterialPresets()
+        {
+            if (font == null) yield break;
+
+            var fontPath = AssetDatabase.GetAssetPath(font);
+            if (string.IsNullOrEmpty(fontPath)) yield break;
+
+            var atlas = font.atlasTexture;
+            var folder = System.IO.Path.GetDirectoryName(fontPath)?.Replace('\\', '/');
+            var searchFolders = string.IsNullOrEmpty(folder) ? null : new[] { folder };
+
+            var materials = EditorAssetUtils.FindAllAssetsOfType<Material>(searchFolders);
+            if (materials == null) yield break;
+
+            foreach (var mat in materials)
+            {
+                if (mat == null) continue;
+                if (!mat.HasProperty(ShaderUtilities.ID_MainTex)) continue;
+                if (atlas != null && mat.GetTexture(ShaderUtilities.ID_MainTex) != atlas) continue;
+                yield return new ValueDropdownItem<Material>(mat.name, mat);
+            }
+        }
+        
         [UsedImplicitly]
         private void ValidateFontSymbol(FontSymbol symbol, SelfValidationResult result, InspectorProperty property)
         {
