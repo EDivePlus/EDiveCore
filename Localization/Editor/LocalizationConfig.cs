@@ -5,6 +5,7 @@ using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Modules.Localization.Editor;
 using Sirenix.Utilities;
 using UnityEditor;
@@ -18,6 +19,12 @@ namespace EDIVE.Localization.Editor
     [GlobalConfig("Assets/_Project/Settings/Editor/")]
     public class LocalizationConfig : GlobalConfig<LocalizationConfig>
     {
+        [MenuItem("Tools/Localization Config %l")]
+        private static void OpenLocalizationConfig()
+        {
+            OdinEditorWindow.InspectObject(Instance);
+        }
+
         [EnhancedBoxGroup("Google Sheets Defaults", Color = "@ColorTools.Green")]
         [ShowCreateNew]
         [LabelText("Sheets Service Provider")]
