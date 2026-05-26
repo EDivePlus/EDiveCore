@@ -42,8 +42,8 @@ namespace EDIVE.UIElements.Tooltips
             _PlacementState.SetState(preferredPlacement);
             
             rectTr.localPosition = GetEdgePosition(target, canvasRect, preferredPlacement);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(rectTr);
-            
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_Container);
+
             ResolvePlacement(target, canvasRect, preferredPlacement);
         }
 
@@ -92,8 +92,8 @@ namespace EDIVE.UIElements.Tooltips
             
             _PlacementState.SetState(newPlacement);
             rectTr.localPosition = GetEdgePosition(target, canvasRect, newPlacement);
-                
-            LayoutRebuilder.ForceRebuildLayoutImmediate(rectTr);
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_Container);
         }
         
         private Vector3 GetEdgePosition(RectTransform target, RectTransform canvasRect, TooltipPlacement placement)
