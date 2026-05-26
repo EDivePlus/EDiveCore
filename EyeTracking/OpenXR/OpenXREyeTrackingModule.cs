@@ -4,11 +4,11 @@
 using System;
 using Cysharp.Threading.Tasks;
 using R3;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 #if UNITY_OPEN_XR
 using System.Threading;
-using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Interactions;
@@ -18,8 +18,17 @@ namespace EDIVE.EyeTracking.OpenXR
 {
     public class OpenXREyeTrackingModule : AEyeTrackingModule
     {
+        [SerializeField]
+        private InputActionReference _GazePosition;
+
+        [SerializeField]
+        private InputActionReference _GazeRotation;
+
+        [SerializeField]
+        private InputActionReference _GazeIsTracked;
+
 #if UNITY_OPEN_XR
-        public override bool IsAvailable => IsEyeGazeFeatureEnabled();
+        public override bool IsAvailable => IsEyeGazeFeatureEnabled() && _GazePosition != null && _GazeRotation != null && _GazeIsTracked != null;
         public override bool IsTracking => _trackingCancellation != null;
         public override Observable<EyeGazeFrame> EyeGazeStream => _eyeGazeStream;
 
@@ -27,14 +36,8 @@ namespace EDIVE.EyeTracking.OpenXR
 
         private CancellationTokenSource _trackingCancellation;
 
-        private InputAction _gazePoseAction;
-
         public override UniTask Initialize()
         {
-            Debug.Log("[EyeTrackingManager] OpenXR EyeTracking Module Initializing...");
-
-            _gazePoseAction = new InputAction("EyeGazePose", InputActionType.Value, "<EyeGaze>/pose", expectedControlType: "Pose");
-
             Debug.Log("[EyeTrackingManager] OpenXR EyeTracking Module Initialized");
             return UniTask.CompletedTask;
         }
@@ -42,8 +45,6 @@ namespace EDIVE.EyeTracking.OpenXR
         public override void Terminate()
         {
             StopTracking();
-            _gazePoseAction?.Dispose();
-            _gazePoseAction = null;
         }
 
         public override void StartTracking(Action<bool> callback = null)
@@ -61,7 +62,9 @@ namespace EDIVE.EyeTracking.OpenXR
                 return;
             }
 
-            _gazePoseAction.Enable();
+            _GazePosition.action.Enable();
+            _GazeRotation.action.Enable();
+            _GazeIsTracked.action.Enable();
 
             _trackingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             TrackingRoutine(_trackingCancellation.Token).Forget();
@@ -73,7 +76,9 @@ namespace EDIVE.EyeTracking.OpenXR
             if (!IsTracking)
                 return;
 
-            _gazePoseAction?.Disable();
+            _GazePosition.action.Disable();
+            _GazeRotation.action.Disable();
+            _GazeIsTracked.action.Disable();
 
             _trackingCancellation?.Cancel();
             _trackingCancellation?.Dispose();
@@ -96,9 +101,6 @@ namespace EDIVE.EyeTracking.OpenXR
         {
             eyeGazeFrame = new EyeGazeFrame();
 
-            if (_gazePoseAction == null)
-                return false;
-
             var sample = SampleEyeFromAction();
 
             var mainCam = Camera.main;
@@ -113,21 +115,23 @@ namespace EDIVE.EyeTracking.OpenXR
 
         private EyeSample SampleEyeFromAction()
         {
-            var poseState = _gazePoseAction.ReadValue<PoseState>();
-            if (!poseState.isTracked)
+            if (_GazeIsTracked.action.ReadValue<float>() < 0.5f)
                 return EyeSample.INVALID;
 
-            var hmd = InputSystem.GetDevice<XRHMD>();  
+            var hmd = InputSystem.GetDevice<XRHMD>();
             if (hmd == null)
                 return EyeSample.INVALID;
+
+            var gazePos = _GazePosition.action.ReadValue<Vector3>();
+            var gazeRot = _GazeRotation.action.ReadValue<Quaternion>();
 
             // Both gaze and HMD poses are in OpenXR tracking space — transform gaze into head-local
             // space so the existing EyeSample.ToWorldSpace(cameraPose) path keeps working.
             var hmdPos = hmd.centerEyePosition.ReadValue();
             var hmdRot = hmd.centerEyeRotation.ReadValue();
             var invHmdRot = Quaternion.Inverse(hmdRot);
-            var headRelPos = invHmdRot * (poseState.position - hmdPos);
-            var headRelRot = invHmdRot * poseState.rotation;
+            var headRelPos = invHmdRot * (gazePos - hmdPos);
+            var headRelRot = invHmdRot * gazeRot;
 
             return new EyeSample(new Pose(headRelPos, headRelRot), 1f);
         }
