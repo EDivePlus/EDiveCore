@@ -69,7 +69,7 @@ namespace EDIVE.Utils.FontSymbols
         }
 
         [ShowInInspector]
-        [EnhancedValueDropdown(nameof(GetMaterialPresets), true)]
+        [EnhancedValueDropdown("GetMaterialPresets", true)]
         public Material MaterialPreset
         {
             get => fontSharedMaterial;
