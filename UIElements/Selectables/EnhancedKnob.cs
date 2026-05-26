@@ -19,29 +19,30 @@ namespace EDIVE.UIElements.Selectables
             Counterclockwise
         }
         
-        [FormerlySerializedAs("direction")]
         [SerializeField]
         private Direction _Direction = Direction.Clockwise;
         
-        [Tooltip("Max value of the knob, maximum RAW output value knob can reach, overrides snap step, IF set to 0 or higher than loops, max value will be set by loops")]
+        [Tooltip("If enabled, the knob output is clamped to [0, Max Value]. With loops, Max Value can exceed 1 (e.g. 2.5 = 2.5 full rotations).")]
         [SerializeField]
-        private float _MaxValue;
+        private bool _ClampValue;
 
-        [Tooltip("How many rotations knob can do, if higher than max value, the latter will limit max value")]
+        [ShowIf(nameof(_ClampValue))]
+        [Tooltip("Maximum RAW output value the knob can reach (cumulative when loops are enabled)")]
         [SerializeField]
-        private int _Loops;
- 
-        [Tooltip("Clamp output value between 0 and 1, useful with loops > 1")]
+        private float _MaxValue = 1f;
+
+        [Tooltip("If enabled, the knob tracks full rotations and the output value accumulates across them")]
         [SerializeField]
-        private bool _ClampOutput01;
+        private bool _UseLoops;
 
         [Tooltip("snap to position?")]
         [SerializeField]
         private bool _SnapToPosition;
 
         [Tooltip("Number of positions to snap")]
+        [ShowIf(nameof(_SnapToPosition))]
         [SerializeField]
-        private int _SnapStepsPerLoop = 10;
+        private int _SnapSteps = 8;
 
         [Tooltip("Object that visually rotates with the knob. If not set, this transform is used.")]
         [SerializeField]
@@ -60,15 +61,24 @@ namespace EDIVE.UIElements.Selectables
         [InlineProperty]
         [SerializeField]
         private SelectableAdditionalData _AdditionalData = new();
-        
 
-        
-        private float _currentLoops;
         private float _previousValue;
         private float _initAngle;
         private Quaternion _initRotation;
 
         private Transform RotationTarget => _RotationTarget != null ? _RotationTarget : transform;
+
+        public KnobFloatValueEvent ValueChanged => _ValueChanged;
+
+        [PropertySpace]
+        [ShowInInspector, ReadOnly]
+        public int LoopCount { get; private set; }
+        
+        [ShowInInspector, ReadOnly]
+        public float RawValue => _UseLoops ? _Value + LoopCount : _Value;
+        
+        [ShowInInspector, ReadOnly]
+        public float NormalizedValue => _ClampValue && _MaxValue > 0 ? RawValue / _MaxValue : RawValue;
 
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
@@ -116,10 +126,13 @@ namespace EDIVE.UIElements.Selectables
                 }
             }
 
-            UpdateKnobValue();
+            var clamped = UpdateKnobValue();
 
-            RotationTarget.rotation = finalRotation;
-            InvokeEvents(_Value + _currentLoops);
+            if (clamped)
+                ApplyVisualRotation();
+            else
+                RotationTarget.rotation = finalRotation;
+            InvokeEvents(RawValue);
 
             _previousValue = _Value;
         }
@@ -130,45 +143,46 @@ namespace EDIVE.UIElements.Selectables
             return eventData.position - screenPoint;
         }
 
-        private void UpdateKnobValue()
+        private bool UpdateKnobValue()
         {
-            if (Mathf.Abs(_Value - _previousValue) > 0.5f)
+            if (_UseLoops && Mathf.Abs(_Value - _previousValue) > 0.5f)
             {
-                if (_Value < 0.5f && _Loops > 1 && _currentLoops < _Loops - 1)
+                if (_Value < 0.5f)
+                    LoopCount++;
+                else
+                    LoopCount--;
+            }
+
+            if (!_ClampValue)
+                return false;
+
+            var raw = _UseLoops ? _Value + LoopCount : _Value;
+            if (raw < 0)
+            {
+                _Value = 0;
+                LoopCount = 0;
+                return true;
+            }
+            if (raw > _MaxValue)
+            {
+                if (_UseLoops)
                 {
-                    _currentLoops++;
-                }
-                else if (_Value > 0.5f && _currentLoops >= 1)
-                {
-                    _currentLoops--;
+                    LoopCount = Mathf.FloorToInt(_MaxValue);
+                    _Value = Mathf.Max(0f, _MaxValue - LoopCount);
                 }
                 else
                 {
-                    if (_Value > 0.5f && _currentLoops == 0)
-                    {
-                        _Value = 0;
-                        RotationTarget.localEulerAngles = Vector3.zero;
-                        InvokeEvents(_Value + _currentLoops);
-                        return;
-                    }
-
-                    if (_Value < 0.5f && Mathf.Approximately(_currentLoops, _Loops - 1))
-                    {
-                        _Value = 1;
-                        RotationTarget.localEulerAngles = Vector3.zero;
-                        InvokeEvents(_Value + _currentLoops);
-                        return;
-                    }
+                    _Value = _MaxValue;
                 }
+                return true;
             }
-            
-            if (_MaxValue > 0 && _Value + _currentLoops > _MaxValue)
-            {
-                _Value = _MaxValue;
-                var maxAngle = _Direction == Direction.Clockwise ? 360f - 360f * _MaxValue : 360f * _MaxValue;
-                RotationTarget.localEulerAngles = new Vector3(0, 0, maxAngle);
-                InvokeEvents(_Value);
-            }
+            return false;
+        }
+
+        private void ApplyVisualRotation()
+        {
+            var z = _Direction == Direction.Clockwise ? 360f - 360f * _Value : 360f * _Value;
+            RotationTarget.localEulerAngles = new Vector3(0, 0, z);
         }
 
         public float KnobValue
@@ -177,37 +191,41 @@ namespace EDIVE.UIElements.Selectables
             set => SetValue(value);
         }
 
-        private void ApplyValue() => SetValue(_Value, Mathf.RoundToInt(_currentLoops));
+        private void ApplyValue() => SetValue(_Value, LoopCount);
 
         public void SetValue(float value, int loops = 0)
         {
             var newRotation = Quaternion.identity;
             _Value = value;
-            _currentLoops = loops;
+            LoopCount = _UseLoops ? loops : 0;
 
-            if (_SnapToPosition) 
+            if (_SnapToPosition)
                 SnapToPositionValue(ref _Value);
-            
-            newRotation.eulerAngles = _Direction == Direction.Clockwise ? new Vector3(0, 0, 360 - 360 * _Value) : new Vector3(0, 0, 360 * _Value);
 
-            UpdateKnobValue();
+            var clamped = UpdateKnobValue();
 
-            RotationTarget.rotation = newRotation;
-            InvokeEvents(_Value + _currentLoops);
+            if (clamped)
+            {
+                ApplyVisualRotation();
+            }
+            else
+            {
+                newRotation.eulerAngles = _Direction == Direction.Clockwise ? new Vector3(0, 0, 360 - 360 * _Value) : new Vector3(0, 0, 360 * _Value);
+                RotationTarget.rotation = newRotation;
+            }
+            InvokeEvents(RawValue);
 
             _previousValue = _Value;
         }
 
         private void SnapToPositionValue(ref float knobValue)
         {
-            var snapStep = 1 / (float)_SnapStepsPerLoop;
+            var snapStep = 1 / (float)_SnapSteps;
             var newValue = Mathf.Round(knobValue / snapStep) * snapStep;
             knobValue = newValue;
         }
         private void InvokeEvents(float value)
         {
-            if (_ClampOutput01 && _Loops > 0)
-                value /= _Loops;
             _ValueChanged?.Invoke(value);
         }
 
