@@ -29,12 +29,9 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("public_port")]
         public int? PublicPort;
-        
-        [JsonProperty("max_players")]
-        public int MaxPlayers;
 
-        [JsonProperty("relay_code")]
-        public string RelayCode;
+        [JsonProperty("max_players")]
+        public int? MaxPlayers;
 
         [JsonProperty("data")]
         public string Data;
@@ -44,14 +41,8 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("private")]
         public bool IsPrivate;
-
-        [JsonProperty("join_code")]
-        public string JoinCode;
-        
-        [JsonProperty("instance_id")]
-        public string InstanceId;
     }
-    
+
     [JsonObject(MemberSerialization.OptIn)]
     public class UpdateServerRequest
     {
@@ -60,6 +51,9 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("name")]
         public string Name;
+
+        [JsonProperty("data")]
+        public string Data;
 
         [JsonProperty("current_players")]
         public int? CurrentPlayers;
@@ -123,6 +117,15 @@ namespace EDIVE.ServiceHub.Lobby
         [JsonProperty("version")]
         public string Version;
 
+        [JsonProperty("min_version")]
+        public string MinVersion;
+
+        [JsonProperty("max_version")]
+        public string MaxVersion;
+
+        [JsonProperty("version_segments")]
+        public int? VersionSegments;
+
         [JsonProperty("debug")]
         public bool? IsDebug;
 
@@ -163,9 +166,6 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("public_port")]
         public int? PublicPort;
-
-        [JsonProperty("relay_code")]
-        public string RelayCode;
 
         [JsonProperty("data")]
         public string Data;

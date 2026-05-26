@@ -136,7 +136,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             {
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
                 var response = await Lobby.QueryServersAsync(
-                    new QueryServersRequest { Count = _QueryCount, Skip = 0, Version = AppCore.CurrentVersion.ToBaseString() },
+                    new QueryServersRequest { Count = _QueryCount, Skip = 0, Version = AppCore.CurrentVersion.ToBaseString(), VersionSegments = 3},
                     cancellationToken);
                 var records = response.IsSuccess && response.Result != null
                     ? BuildRecords(response.Result)
