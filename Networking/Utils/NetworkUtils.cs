@@ -39,7 +39,7 @@ namespace EDIVE.Networking.Utils
 #if UNITY_EDITOR
             EditorRuntimeMode;
 #else
-            IsHeadless() ? NetworkRuntimeMode.Server : NetworkRuntimeMode.Offline;
+            IsHeadless() ? NetworkRuntimeMode.Server : NetworkRuntimeMode.None;
 #endif
 
         public static ClientPlatformType ClientPlatformType => XRSettings.enabled ? ClientPlatformType.Headset : ClientPlatformType.Desktop;
