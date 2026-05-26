@@ -10,9 +10,12 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
 {
     public abstract class AScriptableVariable : AScriptableBase
     {
-        public Signal ValueChanged { get; } = new();
+        public event Action ValueChanged;
         public abstract bool TrySetObjectValue(object value);
         public abstract object GetObjectValue();
+        
+        protected void InvokeValueChanged() => ValueChanged?.Invoke();
+        protected void ClearValueChangedEvent() => ValueChanged = null;
     }
 
     public abstract class AScriptableVariable<T> : AScriptableVariable
@@ -71,7 +74,7 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
 
         protected virtual void OnValueChanged(T prev, T current)
         {
-            ValueChanged.Dispatch();
+            InvokeValueChanged();
         }
 
         public static implicit operator T(AScriptableVariable<T> variable) => variable.Value;
@@ -80,7 +83,7 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
         {
             _value = default;
             _initialized = false;
-            ValueChanged.RemoveAllListeners();
+            ClearValueChangedEvent();
         }
 
         public override string ToString()
