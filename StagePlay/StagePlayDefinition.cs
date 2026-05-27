@@ -18,10 +18,6 @@ using CsvHelper;
 using CsvHelper.Configuration;
 #endif
 
-#if FISHNET
-using FishNet.Serializing;
-#endif
-
 namespace EDIVE.StagePlay
 {
     public class StagePlayDefinition : AUniqueDefinition
@@ -118,10 +114,6 @@ namespace EDIVE.StagePlay
 #endif
     }
     
-    // Used by PurrNet for serialization of StagePlayDefinition references.
-    // PurrNet auto-discovers static classes that contain `Write(this BitPacker, T)` and
-    // `Read(this BitPacker, ref T)` extension method pairs — the method names must be
-    // exactly "Write"/"Read" and the Read variant must use `ref T`.
     [UsedImplicitly]
     public static class StagePlayDefinitionNetworkExtensions
     {
@@ -129,15 +121,4 @@ namespace EDIVE.StagePlay
         public static void Read(this BitPacker packer, ref StagePlayDefinition value) => value = packer.CustomReadTranslatedDefinition<StagePlayDefinition>();
     }
     
-#if FISHNET
-    // Used by FishNet for serialization of StagePlayDefinition references.
-    // Renamed from StagePlayDefinitionNetworkExtensions to avoid CS0101 collision
-    // with the PurrNet (BitPacker) extension class above while FISHNET is still defined.
-    [UsedImplicitly]
-    public static class StagePlayDefinitionFishNetExtensions
-    {
-        public static void WriteStagePlayDefinition(this Writer writer, StagePlayDefinition value) => writer.CustomWriteTranslatedDefinition(value);
-        public static StagePlayDefinition ReadStagePlayDefinition(this Reader reader) => reader.CustomReadTranslatedDefinition<StagePlayDefinition>();
-    }
-#endif
 }
