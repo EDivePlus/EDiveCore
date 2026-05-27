@@ -1,9 +1,7 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 19.02.2026
 
-#if FISHNET
-using FishNet.Object;
-using FishNet.Object.Synchronizing;
+using PurrNet;
 using UnityEngine;
 
 namespace EDIVE.StagePlay
@@ -23,33 +21,42 @@ namespace EDIVE.StagePlay
             _controller = GetComponent<StagePlayController>();
         }
 
-        public override void OnStartClient()
+        protected override void OnSpawned(bool asServer)
         {
-            base.OnStartClient();
-            _controller = GetComponent<StagePlayController>();
+            if (!asServer)
+                return;
+
+            _definition.value = _controller.Definition;
+            if (_controller.CurrentState != null)
+                _currentSegment.value = _controller.CurrentState.CurrentSegmentIndex;
+        }
+
+        protected override void OnSpawned()
+        {
             OnLocalDefinitionChanged(_controller.Definition, _controller.CurrentState);
             _controller.DefinitionChanged += OnLocalDefinitionChanged;
 
-            _definition.OnChange += OnSyncDefinitionChanged;
-            _currentSegment.OnChange += OnSyncCurrentSegmentChanged;
+            _definition.onChanged += OnSyncDefinitionChanged;
+            _currentSegment.onChanged += OnSyncCurrentSegmentChanged;
         }
 
-        public override void OnStopClient()
+        protected override void OnDespawned()
         {
-            base.OnStopClient();
             _controller.DefinitionChanged -= OnLocalDefinitionChanged;
+            if (_currentState != null)
+                _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
 
-            _definition.OnChange -= OnSyncDefinitionChanged;
-            _currentSegment.OnChange -= OnSyncCurrentSegmentChanged;
+            _definition.onChanged -= OnSyncDefinitionChanged;
+            _currentSegment.onChanged -= OnSyncCurrentSegmentChanged;
         }
 
         private void OnLocalDefinitionChanged(StagePlayDefinition definition, StagePlayState state)
         {
             SetDefinition(definition);
-            
+
             if (_currentState != null)
                 _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
-            
+
             if (state == null)
                 return;
             SetCurrentSegment(state.CurrentSegmentIndex);
@@ -62,37 +69,30 @@ namespace EDIVE.StagePlay
             SetCurrentSegment(segment);
         }
 
-        [ServerRpc(RequireOwnership = false)]
+        [ServerRpc(requireOwnership: false)]
         private void SetDefinition(StagePlayDefinition definition)
         {
-            _definition.Value = definition;
+            _definition.value = definition;
         }
-        
-        [ServerRpc(RequireOwnership = false)]
+
+        [ServerRpc(requireOwnership: false)]
         private void SetCurrentSegment(int segment)
         {
-            _currentSegment.Value = segment;
+            _currentSegment.value = segment;
         }
-        
-        private void OnSyncCurrentSegmentChanged(int prev, int next, bool asServer)
+
+        private void OnSyncCurrentSegmentChanged(int next)
         {
-            if (asServer)
-                return;
-            
             if (_currentState != null) _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
             _controller.SetCurrentSegment(next);
             if (_currentState != null) _currentState.CurrentSegmentChanged += OnLocalCurrentSegmentChanged;
         }
 
-        private void OnSyncDefinitionChanged(StagePlayDefinition prev, StagePlayDefinition next, bool asServer)
+        private void OnSyncDefinitionChanged(StagePlayDefinition next)
         {
-            if (asServer)
-                return;
-            
             _controller.DefinitionChanged -= OnLocalDefinitionChanged;
             _controller.SetDefinition(next);
             _controller.DefinitionChanged += OnLocalDefinitionChanged;
         }
     }
 }
-#endif
