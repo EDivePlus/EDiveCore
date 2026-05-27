@@ -7,9 +7,11 @@ using System.Linq;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities.Editor;
 using UnityEngine;
-using ZLinq;
+
+#if UNITY_EDITOR
+using Sirenix.Utilities.Editor;
+#endif
 
 namespace EDIVE.Conditions
 {
