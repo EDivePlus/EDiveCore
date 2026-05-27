@@ -2,7 +2,8 @@
   "name": "EDIVE.Conditions",
   "rootNamespace": "",
   "references": [
-    "EDIVE.OdinExtensions"
+    "EDIVE.OdinExtensions",
+    "EDIVE.Utils.Cysharp"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
