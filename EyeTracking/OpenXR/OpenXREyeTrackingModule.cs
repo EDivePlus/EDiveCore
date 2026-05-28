@@ -39,6 +39,10 @@ namespace EDIVE.EyeTracking.OpenXR
         public override UniTask Initialize()
         {
             Debug.Log("[EyeTrackingManager] OpenXR EyeTracking Module Initialized");
+            _GazePosition.action.actionMap.Enable();
+            _GazePosition.action.Enable();
+            _GazeRotation.action.Enable();
+            _GazeIsTracked.action.Enable();
             return UniTask.CompletedTask;
         }
 
@@ -61,11 +65,7 @@ namespace EDIVE.EyeTracking.OpenXR
                 callback?.Invoke(true);
                 return;
             }
-
-            _GazePosition.action.Enable();
-            _GazeRotation.action.Enable();
-            _GazeIsTracked.action.Enable();
-
+            
             _trackingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             TrackingRoutine(_trackingCancellation.Token).Forget();
             callback?.Invoke(true);
@@ -75,10 +75,6 @@ namespace EDIVE.EyeTracking.OpenXR
         {
             if (!IsTracking)
                 return;
-
-            _GazePosition.action.Disable();
-            _GazeRotation.action.Disable();
-            _GazeIsTracked.action.Disable();
 
             _trackingCancellation?.Cancel();
             _trackingCancellation?.Dispose();
