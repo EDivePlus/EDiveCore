@@ -2,8 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ProtoGIS.Scripts.Utils;
-using UnityEngine;
+using Unity.Mathematics;
 using GeoJSON.Net;
 using GeoJSON.Net.Feature;
 using GeoJSON.Net.Geometry;
@@ -13,7 +12,7 @@ namespace EDIVE.GeoToolkit.Utils
     public static class GeoJsonExtensions
     {
 
-        public static readonly Dictionary<Type, GeoJSONObjectType> CONTAINER_TO_TYPE = new Dictionary<Type, GeoJSONObjectType>
+        public static readonly Dictionary<Type, GeoJSONObjectType> CONTAINER_TO_TYPE = new()
         {
             {typeof(Point), GeoJSONObjectType.Point},
             {typeof(MultiPoint), GeoJSONObjectType.MultiPoint},
@@ -26,7 +25,7 @@ namespace EDIVE.GeoToolkit.Utils
             {typeof(FeatureCollection), GeoJSONObjectType.FeatureCollection},
         };
         
-        public static readonly Dictionary<GeoJSONObjectType, Type> TYPE_TO_CONTAINER = new Dictionary<GeoJSONObjectType, Type>
+        public static readonly Dictionary<GeoJSONObjectType, Type> TYPE_TO_CONTAINER = new()
         {
             {GeoJSONObjectType.Point, typeof(Point)},
             {GeoJSONObjectType.MultiPoint, typeof(MultiPoint)},
@@ -40,24 +39,24 @@ namespace EDIVE.GeoToolkit.Utils
         };
 
         
-        public static DVector2 ToDVector2(this Point point)
+        public static double2 ToDouble2(this Point point)
         {
-            return new DVector2(point.Coordinates.Longitude, point.Coordinates.Latitude);
+            return new double2(point.Coordinates.Longitude, point.Coordinates.Latitude);
         }
-        
-        public static DVector2 ToDVector2(this IPosition position)
+
+        public static double2 ToDouble2(this IPosition position)
         {
-            return new DVector2(position.Longitude, position.Latitude);
+            return new double2(position.Longitude, position.Latitude);
         }
-        
-        public static Vector2 ToVector2(this Point point)
+
+        public static float2 ToFloat2(this Point point)
         {
-            return point.ToDVector2().ToVector2();
+            return new float2((float) point.Coordinates.Longitude, (float) point.Coordinates.Latitude);
         }
-        
-        public static Vector2 ToVector2(this IPosition position)
+
+        public static float2 ToFloat2(this IPosition position)
         {
-            return position.ToDVector2().ToVector2();
+            return new float2((float) position.Longitude, (float) position.Latitude);
         }
         
         public static bool TryGetProperty<T>(this Feature feature, string propertyID, out T result)

@@ -2,11 +2,19 @@
     "name": "EDIVE.GeoToolkit",
     "rootNamespace": "",
     "references": [
+        "UniTask",
+        "Unity.Mathematics",
+        "GeoJSON.NET",
+        "Unity.TextMeshPro",
         "EDIVE.DataStructures",
         "EDIVE.External.CoordinateSharp",
         "EDIVE.External.ProjNet",
-        "GeoJSON.NET",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils",
+        "EDIVE.Utils",
+        "EDIVE.External.TriangleNet",
+        "Unity.Formats.Fbx.Editor",
+        "EDIVE.ScriptableArchitecture"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

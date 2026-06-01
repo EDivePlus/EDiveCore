@@ -100,7 +100,7 @@ namespace EDIVE.GeoToolkit.Utils
         public static string GetImageFormat(this byte[] imageBytes)
         {
             if (imageBytes == null) return string.Empty;
-            foreach(var imageType in ImageFormatDecoders)
+            foreach(var imageType in IMAGE_FORMAT_DECODERS)
             {
                 if (imageType.Key.SequenceEqual(imageBytes.Take(imageType.Key.Length)))
                     return imageType.Value;
@@ -108,7 +108,7 @@ namespace EDIVE.GeoToolkit.Utils
             return null;
         }
 
-        private static readonly Dictionary<byte[], string> ImageFormatDecoders = new Dictionary<byte[], string>
+        private static readonly Dictionary<byte[], string> IMAGE_FORMAT_DECODERS = new()
         {
             { new byte[]{ 66, 77 }, "bmp"},
             { new byte[]{ 71, 73, 70 }, "gif" },
