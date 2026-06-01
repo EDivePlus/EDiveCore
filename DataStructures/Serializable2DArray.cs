@@ -7,7 +7,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-namespace ProtoGIS.Scripts.Utils
+namespace EDIVE.DataStructures
 {
     [Serializable]
     public class Serializable2DArray<T> : IEnumerable<T>
