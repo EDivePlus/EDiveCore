@@ -21,24 +21,33 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
     public abstract class AScriptableVariable<T> : AScriptableVariable
     {
         [SerializeField]
+        private bool _IsReadOnly;
+        
+        [SerializeField]
         private T _DefaultValue;
-
+        
         [NonSerialized]
         private T _value;
-
+        
         [NonSerialized]
         private bool _initialized;
 
+        [HideIf(nameof(_IsReadOnly))]
         [ShowInInspector]
         public virtual T Value
         {
             get => GetValue();
             set => SetValue(value);
         }
+
+        public bool IsReadOnly => _IsReadOnly;
         public override Type GenericType => typeof(T);
 
         public T GetValue()
         {
+            if (_IsReadOnly) 
+                return _DefaultValue;
+            
             if (_initialized)
                 return _value;
 
@@ -49,6 +58,12 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
 
         public void SetValue(T value)
         {
+            if (_IsReadOnly)
+            {
+                Debug.LogError($"Trying to set value of read-only variable {name}.");
+                return;
+            }
+            
             if (Equals(value, _value))
                 return;
             
@@ -60,6 +75,12 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
 
         public override bool TrySetObjectValue(object value)
         {
+            if (_IsReadOnly)
+            {
+                Debug.LogError($"Trying to set value of read-only variable {name}.");
+                return false;
+            }
+            
             if (value is not T tValue)
                 return false;
 
