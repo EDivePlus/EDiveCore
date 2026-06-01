@@ -4,6 +4,8 @@
 using EDIVE.XRTools.DeviceSimulator;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals;
 
 namespace EDIVE.XRTools
 {
@@ -31,6 +33,43 @@ namespace EDIVE.XRTools
             // Check if target is facing the source
             var facingDot = Vector3.Dot(target.forward, source.forward);
             return facingDot > 1f - facingThreshold;
+        }
+        
+        public static bool TryGetCurrentRaycastTarget(this IXRHoverInteractor interactor, Collider collider, out RaycastHit hit)
+        {
+            hit = default;
+
+            if (collider == null)
+                return false;
+
+            if (interactor is XRRayInteractor rayInteractor)
+            {
+                if (rayInteractor.TryGetCurrent3DRaycastHit(out hit))
+                    return hit.collider == collider;
+
+                return false;
+            }
+
+            if (interactor is NearFarInteractor nearFarInteractor)
+            {
+                if (nearFarInteractor.TryGetCurveEndPoint(out var endPoint) == EndPointType.ValidCastHit)
+                {
+                    var source = nearFarInteractor.attachTransform != null
+                        ? nearFarInteractor.attachTransform
+                        : nearFarInteractor.transform;
+
+                    var rayDirection = source.forward;
+                    if (rayDirection.sqrMagnitude < 0.0001f)
+                        return false;
+
+                    rayDirection.Normalize();
+
+                    var rayOrigin = endPoint - rayDirection * 0.1f;
+                    return collider.Raycast(new Ray(rayOrigin, rayDirection), out hit, 0.2f);
+                }
+            }
+
+            return false;
         }
     }
 }
