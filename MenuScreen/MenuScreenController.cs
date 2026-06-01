@@ -1,39 +1,39 @@
 ﻿// Author: Michal Petr
 // Created: 03.03.2026
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core.Services;
 using EDIVE.NativeUtils;
 using UnityEngine;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletController : MonoBehaviour
+    public class MenuScreenController : AServiceBehaviour<MenuScreenController>
     {
         [SerializeField]
-        private TabletDefinition _Definition;
+        private MenuScreenDefinition _Definition;
         
         [SerializeField]
         private Transform _FrameRoot;
         
         [SerializeField]
-        private TabletFrame _FramePrefab;
+        private MenuScreenFrame _FramePrefab;
         
         [SerializeField]
         private Transform _PinnedDisplaysRoot;
         
-        public TabletDefinition Definition => _Definition;
+        public MenuScreenDefinition Definition => _Definition;
 
-        private TabletFrame CurrentFrame { get; set; }
-        private List<TabletFrame> ActiveFrames { get; set; } = new();
-        private List<TabletWidgetDefinitionDisplay> PinnedDisplays { get; set; } = new();
+        private MenuScreenFrame CurrentFrame { get; set; }
+        private List<MenuScreenFrame> ActiveFrames { get; set; } = new();
+        private List<WidgetDefinitionDisplay> PinnedDisplays { get; set; } = new();
 
         private void Awake()
         {
             SetupPinnedDisplays();
-            _FrameRoot.GetComponentsInChildren<TabletFrame>().ForEach(persistentFrame =>
+            _FrameRoot.GetComponentsInChildren<MenuScreenFrame>().ForEach(persistentFrame =>
             {
                 if (persistentFrame.IsPersistent)
                 {
@@ -52,12 +52,12 @@ namespace EDIVE.Tablet
                 OpenWidget(_Definition.DefaultWidget);
         }
 
-        public void OpenWidget(TabletWidgetDefinition definition)
+        public void OpenWidget(WidgetDefinition definition, IViewContext context = null)
         {
-            OpenView(new ReferenceTabletViewSource(definition.WidgetView), new TabletWidgetViewContext(this, definition));
+            OpenView(new ReferenceViewSource(definition.WidgetView), context);
         }
 
-        private void OpenView(ITabletViewSource view, ITabletViewContext context = null)
+        private void OpenView(IViewSource view, IViewContext context = null)
         {
             if (TryOpenActiveFrame(view))
                 return;
@@ -65,13 +65,13 @@ namespace EDIVE.Tablet
             CreateNewFrame(view, context);
         }
         
-        private bool TryGetActiveFrame(ITabletViewSource view, out TabletFrame frame)
+        private bool TryGetActiveFrame(IViewSource view, out MenuScreenFrame frame)
         {
             frame = ActiveFrames.Find(f => Equals(f.ViewSource, view));
             return frame != null;
         }
         
-        private bool TryOpenActiveFrame(ITabletViewSource view)
+        private bool TryOpenActiveFrame(IViewSource view)
         {
             if (!TryGetActiveFrame(view, out var frame)) 
                 return false;
@@ -79,7 +79,7 @@ namespace EDIVE.Tablet
             return true;
         }
         
-        private void CreateNewFrame(ITabletViewSource view, ITabletViewContext context = null, bool open = true)
+        private void CreateNewFrame(IViewSource view, IViewContext context = null, bool open = true)
         {
             var newFrame = Instantiate(_FramePrefab, _FrameRoot);
             // todo set frame name to recognize the view
@@ -88,7 +88,7 @@ namespace EDIVE.Tablet
             if (open) OpenFrame(newFrame);
         }
         
-        public void OpenFrame(TabletFrame frame)
+        public void OpenFrame(MenuScreenFrame frame)
         {
             CollapseCurrentFrame();
             CurrentFrame = frame;
@@ -106,7 +106,7 @@ namespace EDIVE.Tablet
             CurrentFrame = null;
         }
         
-        public void TerminateFrame(TabletFrame frame)
+        public void TerminateFrame(MenuScreenFrame frame)
         {
             if (CurrentFrame == frame)
                 CollapseCurrentFrame();
@@ -117,7 +117,7 @@ namespace EDIVE.Tablet
         
         private void SetupPinnedDisplays()
         {
-            PinnedDisplays = _PinnedDisplaysRoot.GetComponentsInChildren<TabletWidgetDefinitionDisplay>(true).ToList();
+            PinnedDisplays = _PinnedDisplaysRoot.GetComponentsInChildren<WidgetDefinitionDisplay>(true).ToList();
             for (var i = 0; i < PinnedDisplays.Count; i++)
             {
                 var display = PinnedDisplays[i];
@@ -132,10 +132,10 @@ namespace EDIVE.Tablet
             }
         }
         
-        private void OnWidgetDisplayClicked(TabletWidgetDefinition definition)
+        private void OnWidgetDisplayClicked(WidgetDefinition definition)
         {
             // todo get rid of pattern matching ?
-            if (CurrentFrame != null && CurrentFrame.ViewSource is ReferenceTabletViewSource currentRef && currentRef.Reference == definition.WidgetView)
+            if (CurrentFrame != null && CurrentFrame.ViewSource is ReferenceViewSource currentRef && currentRef.Reference == definition.WidgetView)
             {
                 CollapseCurrentFrame();
                 return;

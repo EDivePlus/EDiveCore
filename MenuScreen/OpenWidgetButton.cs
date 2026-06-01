@@ -6,9 +6,9 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletOpenWidgetButton : MonoBehaviour
+    public class OpenWidgetButton : MonoBehaviour
     {
         [SerializeField]
         [Required]
@@ -16,7 +16,7 @@ namespace EDIVE.Tablet
 
         [SerializeField]
         [Required]
-        private TabletWidgetDefinition _WidgetToOpen;
+        private WidgetDefinition _WidgetToOpen;
 
         private void Awake()
         {
@@ -34,23 +34,23 @@ namespace EDIVE.Tablet
             if (_WidgetToOpen == null)
                 return;
 
-            var parentView = GetComponentInParent<TabletWidgetView>();
+            var parentView = GetComponentInParent<WidgetView>();
             if (parentView == null)
             {
-                Debug.LogWarning($"{nameof(TabletOpenWidgetButton)} requires a parent {nameof(TabletWidgetView)}.", this);
+                Debug.LogWarning($"{nameof(OpenWidgetButton)} requires a parent {nameof(WidgetView)}.", this);
                 return;
             }
 
-            var controller = parentView.Context?.Controller;
+            var controller = parentView.Controller;
             if (controller == null)
             {
-                Debug.LogWarning($"Parent {nameof(TabletWidgetView)} has no controller in context.", this);
+                Debug.LogWarning($"Parent {nameof(WidgetView)} has no controller in context.", this);
                 return;
             }
 
             if (!controller.Definition.Widgets.Contains(_WidgetToOpen))
             {
-                Debug.LogWarning($"Widget '{_WidgetToOpen.name}' is not in the tablet's widget definitions.", this);
+                Debug.LogWarning($"Widget '{_WidgetToOpen.name}' is not in the MenuScreen's widget definitions.", this);
                 return;
             }
 

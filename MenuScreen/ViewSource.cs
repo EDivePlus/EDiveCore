@@ -1,21 +1,21 @@
 ﻿using UnityEngine.AddressableAssets;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public interface ITabletViewSource { }
+    public interface IViewSource { }
     
-    public class InstanceTabletViewSource : ITabletViewSource
+    public class InstanceViewSource : IViewSource
     {
-        public ATabletView Instance { get; }
+        public WidgetView Instance { get; }
 
-        public InstanceTabletViewSource(ATabletView instance)
+        public InstanceViewSource(WidgetView instance)
         {
             Instance = instance;
         }
         
-        public static implicit operator InstanceTabletViewSource(ATabletView instance) => new(instance);
+        public static implicit operator InstanceViewSource(WidgetView instance) => new(instance);
 
-        protected bool Equals(InstanceTabletViewSource other)
+        protected bool Equals(InstanceViewSource other)
         {
             return Equals(Instance, other.Instance);
         }
@@ -25,7 +25,7 @@ namespace EDIVE.Tablet
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((InstanceTabletViewSource) obj);
+            return Equals((InstanceViewSource) obj);
         }
 
         public override int GetHashCode()
@@ -34,18 +34,18 @@ namespace EDIVE.Tablet
         }
     }
 
-    public class ReferenceTabletViewSource : ITabletViewSource
+    public class ReferenceViewSource : IViewSource
     {
         public AssetReferenceGameObject Reference { get; }
 
-        public ReferenceTabletViewSource(AssetReferenceGameObject reference)
+        public ReferenceViewSource(AssetReferenceGameObject reference)
         {
             Reference = reference;
         }
         
-        public static implicit operator ReferenceTabletViewSource(AssetReferenceGameObject reference) => new(reference);
+        public static implicit operator ReferenceViewSource(AssetReferenceGameObject reference) => new(reference);
 
-        protected bool Equals(ReferenceTabletViewSource other)
+        protected bool Equals(ReferenceViewSource other)
         {
             return Equals(Reference, other.Reference);
         }
@@ -55,7 +55,7 @@ namespace EDIVE.Tablet
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((ReferenceTabletViewSource) obj);
+            return Equals((ReferenceViewSource) obj);
         }
 
         public override int GetHashCode()

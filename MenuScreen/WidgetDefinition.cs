@@ -7,15 +7,15 @@ using EDIVE.VisualPresets.Presets;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletWidgetDefinition : AUniqueDefinition
+    public class WidgetDefinition : AUniqueDefinition
     {
         [SerializeField]
         private VisualPreset _Visual;
         
         [SerializeField]
-        [AssetReferenceTypeRestriction(typeof(ATabletView))]
+        [AssetReferenceTypeRestriction(typeof(WidgetView))]
         private AssetReferenceGameObject _WidgetView;
         
         public VisualPreset Visual => _Visual;

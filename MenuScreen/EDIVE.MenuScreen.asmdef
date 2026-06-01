@@ -1,5 +1,5 @@
 ﻿{
-  "name": "EDIVE.Tablet",
+  "name": "EDIVE.MenuScreen",
   "rootNamespace": "",
   "references": [
     "Unity.Addressables",

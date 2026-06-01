@@ -6,26 +6,26 @@ using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using UnityEngine;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletLibraryView : ATabletView 
+    public class WidgetLibraryView : WidgetView 
     {
         [SerializeField]
-        private TabletDefinition _TabletDefinition;
+        private MenuScreenDefinition _MenuScreenDefinition;
         
         [SerializeField]
         private Transform _WidgetListRoot;
         
         [SerializeField]
-        private TabletWidgetDefinitionDisplay _WidgetDisplayPrefab;
+        private WidgetDefinitionDisplay _WidgetDisplayPrefab;
         
-        private List<TabletWidgetDefinitionDisplay> WidgetDisplays { get; set; } = new();
+        private List<WidgetDefinitionDisplay> WidgetDisplays { get; set; } = new();
 
         protected override async UniTask InitializeInternal()
         {
             _WidgetListRoot.DestroyChildren();
             
-            foreach (var widgetDefinition in _TabletDefinition.Widgets)
+            foreach (var widgetDefinition in _MenuScreenDefinition.Widgets)
             {
                 var display = Instantiate(_WidgetDisplayPrefab, _WidgetListRoot);
                 display.OnClick += OnWidgetDisplayClicked;
@@ -34,7 +34,7 @@ namespace EDIVE.Tablet
             }
         }
         
-        private void OnWidgetDisplayClicked(TabletWidgetDefinition definition)
+        private void OnWidgetDisplayClicked(WidgetDefinition definition)
         {
             Controller.OpenWidget(definition);
         }

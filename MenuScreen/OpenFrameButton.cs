@@ -5,9 +5,9 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletOpenFrameButton : MonoBehaviour
+    public class OpenFrameButton : MonoBehaviour
     {
         [SerializeField]
         [Required]
@@ -15,7 +15,7 @@ namespace EDIVE.Tablet
         
         [SerializeField]
         [Required]
-        private TabletFrame _FrameToOpen;
+        private MenuScreenFrame _FrameToOpen;
         
         private void Awake()
         {

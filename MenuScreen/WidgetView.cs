@@ -4,27 +4,27 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public interface ITabletViewContext { }
+    public interface IViewContext { }
     
-    public abstract class ATabletView : MonoBehaviour
+    public class WidgetView : MonoBehaviour
     {
-        public ITabletViewContext Context { get; private set; }
+        public IViewContext CurrentContext { get; private set; }
         public bool IsInitialized { get; private set; } = false;
-        protected TabletController Controller { get; private set; }
+        public MenuScreenController Controller { get; private set; }
 
         protected virtual UniTask InitializeInternal()
         {
             return UniTask.CompletedTask;
         }
         
-        public async UniTask Initialize(TabletController controller, ITabletViewContext context = null)
+        public async UniTask Initialize(MenuScreenController controller, IViewContext context = null)
         {
             if (IsInitialized)
                 return;
             
-            Context = context;
+            CurrentContext = context;
             Controller = controller;
             await InitializeInternal();
             IsInitialized = true;
@@ -36,12 +36,5 @@ namespace EDIVE.Tablet
         public virtual void OnOpen() { }
         public virtual void OnCollapse() { }
         public virtual void OnTerminate() { }
-    }
-
-    public abstract class ATabletView<TContext> : ATabletView where TContext : ITabletViewContext
-    {
-        public new TContext Context => (TContext) base.Context;
-
-        public async UniTask Initialize(TabletController controller, TContext context) => await base.Initialize(controller, context);
     }
 }

@@ -8,9 +8,9 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletFrame : MonoBehaviour
+    public class MenuScreenFrame : MonoBehaviour
     {
         [SerializeField]
         private Transform _ViewRoot;
@@ -26,21 +26,21 @@ namespace EDIVE.Tablet
         private Button _CollapseButton;
         
         [SerializeField]
-        [ValidateMultiState(typeof(TabletFrameState))]
+        [ValidateMultiState(typeof(FrameState))]
         private AMultiState _FrameState;
         
         [SerializeField]
         private AToggleState _LoadingState;
         
-        public TabletController Controller { get; private set; }
-        public ITabletViewSource ViewSource { get; private set; }
-        public ATabletView View { get; private set; }
-        public TabletFrameState State { get; set; } = TabletFrameState.Initial;
+        public MenuScreenController Controller { get; private set; }
+        public IViewSource ViewSource { get; private set; }
+        public WidgetView View { get; private set; }
+        public FrameState State { get; set; } = FrameState.Initial;
         public bool IsPersistent => _IsPersistent;
         
         public bool IsLoading { get; private set; }
 
-        public async UniTask Initialize(TabletController controller, ITabletViewSource source = null, ITabletViewContext context = null)
+        public async UniTask Initialize(MenuScreenController controller, IViewSource source = null, IViewContext context = null)
         {
             Controller = controller;
             ViewSource = source;
@@ -48,21 +48,21 @@ namespace EDIVE.Tablet
             
             if (source == null)
             {
-                View = _ViewRoot.GetComponentInChildren<ATabletView>();
-                ViewSource = new InstanceTabletViewSource(View);
+                View = _ViewRoot.GetComponentInChildren<WidgetView>();
+                ViewSource = new InstanceViewSource(View);
             }
             // todo get rid of pattern matching, mae universal method in source ?
-            else if (source is InstanceTabletViewSource instanceSource)
+            else if (source is InstanceViewSource instanceSource)
             {
                 View = instanceSource.Instance;
             }
-            else if (source is ReferenceTabletViewSource referenceSource)
+            else if (source is ReferenceViewSource referenceSource)
             {
                 var reference = referenceSource.Reference;
                 // todo handle needs to be released when frame is terminated!
                 var handle = reference.InstantiateAsync(_ViewRoot);
                 var viewObj = await handle;
-                View = viewObj.GetComponent<ATabletView>();
+                View = viewObj.GetComponent<WidgetView>();
             }
             
             if (View == null)
@@ -76,7 +76,7 @@ namespace EDIVE.Tablet
             
             SetLoading(false);
 
-            if (State == TabletFrameState.Open)
+            if (State == FrameState.Open)
             {
                 if (View) View.OnOpen();
             }
@@ -90,7 +90,7 @@ namespace EDIVE.Tablet
                 return;
             }
             
-            SetState(TabletFrameState.Terminated);
+            SetState(FrameState.Terminated);
             if (View) View.OnTerminate();
         }
 
@@ -108,17 +108,17 @@ namespace EDIVE.Tablet
 
         public void Open()
         {
-            SetState(TabletFrameState.Open);
+            SetState(FrameState.Open);
             if (View) View.OnOpen();
         }
         
         public void Collapse()
         {
-            SetState(TabletFrameState.Collapsed);
+            SetState(FrameState.Collapsed);
             if (View) View.OnCollapse();
         }
         
-        private void SetState(TabletFrameState newState)
+        private void SetState(FrameState newState)
         {
             State = newState;
             if (_FrameState) _FrameState.SetState(newState);
@@ -134,7 +134,7 @@ namespace EDIVE.Tablet
         private void OnCollapseButtonClicked() => Controller.CollapseCurrentFrame();
     }
 
-    public enum TabletFrameState
+    public enum FrameState
     {
         Initial,
         Open,

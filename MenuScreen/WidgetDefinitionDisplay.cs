@@ -5,12 +5,11 @@ using System;
 using EDIVE.UIElements.Tooltips;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace EDIVE.Tablet
+namespace EDIVE.MenuScreen
 {
-    public class TabletWidgetDefinitionDisplay : MonoBehaviour
+    public class WidgetDefinitionDisplay : MonoBehaviour
     {
         [SerializeField]
         private VisualSwitcher _Switcher;
@@ -21,8 +20,8 @@ namespace EDIVE.Tablet
         [SerializeField]
         private TooltipTrigger _TooltipTrigger;
         
-        public TabletWidgetDefinition Definition { get; private set; }
-        public event Action<TabletWidgetDefinition> OnClick = delegate { };
+        public WidgetDefinition Definition { get; private set; }
+        public event Action<WidgetDefinition> OnClick = delegate { };
 
         private void Awake()
         {
@@ -34,7 +33,7 @@ namespace EDIVE.Tablet
             _OpenButton?.onClick.RemoveListener(OnOpenButtonClicked);
         }
 
-        public void SetDefinition(TabletWidgetDefinition definition)
+        public void SetDefinition(WidgetDefinition definition)
         {
             if (definition == null)
                 return;
