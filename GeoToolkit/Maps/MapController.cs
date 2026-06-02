@@ -54,10 +54,7 @@ namespace EDIVE.GeoToolkit.Maps
         {
             RecalculateTransformData();
         }
-
-        /// <summary>
-        /// Configures the map at runtime with a source and geo area, then refreshes the cached transform data.
-        /// </summary>
+        
         public void Initialize(IMapSource source, GeoAreaRect area)
         {
             _Source = source;

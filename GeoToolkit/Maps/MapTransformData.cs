@@ -39,5 +39,24 @@ namespace EDIVE.GeoToolkit.Maps
             Size = new float3(math.length(axisX), math.length(axisY), math.length(axisZ));
             Rotation = quaternion.LookRotation(math.normalize(axisZ), math.normalize(axisY));
         }
+
+        /// <summary>
+        /// Builds transform data from an axis-aligned box defined in <paramref name="mapTransform"/>'s local space,
+        /// mapping each local extent onto the corresponding world-space axis of the transform.
+        /// </summary>
+        public static MapTransformData FromLocalBounds(Transform mapTransform, float3 localMin, float3 localMax)
+        {
+            var localSize = localMax - localMin;
+            var localAxisX = new float3(localSize.x, 0f, 0f);
+            var localAxisY = new float3(0f, localSize.y, 0f);
+            var localAxisZ = new float3(0f, 0f, localSize.z);
+
+            var worldOrigin = (float3) mapTransform.TransformPoint(localMin);
+            var worldAxisX = (float3) mapTransform.TransformVector(localAxisX);
+            var worldAxisY = (float3) mapTransform.TransformVector(localAxisY);
+            var worldAxisZ = (float3) mapTransform.TransformVector(localAxisZ);
+
+            return new MapTransformData(worldOrigin, worldAxisX, worldAxisY, worldAxisZ);
+        }
     }
 }
