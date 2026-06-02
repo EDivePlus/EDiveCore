@@ -5,11 +5,13 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.MenuScreen
 {
     public class WidgetLibraryView : WidgetView 
     {
+        [FormerlySerializedAs("_TabletDefinition")]
         [SerializeField]
         private MenuScreenDefinition _MenuScreenDefinition;
         
@@ -21,7 +23,7 @@ namespace EDIVE.MenuScreen
         
         private List<WidgetDefinitionDisplay> WidgetDisplays { get; set; } = new();
 
-        protected override async UniTask InitializeInternal()
+        protected override UniTask InitializeInternal()
         {
             _WidgetListRoot.DestroyChildren();
             
@@ -32,6 +34,7 @@ namespace EDIVE.MenuScreen
                 display.SetDefinition(widgetDefinition);
                 WidgetDisplays.Add(display);
             }
+            return UniTask.CompletedTask;
         }
         
         private void OnWidgetDisplayClicked(WidgetDefinition definition)
