@@ -37,6 +37,15 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         [Tooltip("How long to wait for a client connection attempt to reach Started state before declaring the endpoint failed and trying the next one.")]
         private float _ConnectAttemptTimeoutSeconds = 10f;
+
+        [SerializeField]
+        [Tooltip("When the app is resumed (e.g. after the Quest sleeps/pauses), automatically reconnect the client to the server it was joined to. The live connection is dropped by the transport's keepalive timeout while paused, so a reconnect is required.")]
+        private bool _ReconnectClientOnResume = true;
+
+        [SerializeField]
+        [MinValue(1)]
+        [Tooltip("How many times to retry the reconnect after resume before giving up (network/DNS can take a few seconds to recover on standalone XR devices).")]
+        private int _ResumeReconnectAttempts = 3;
         
         public IEnumerable<ServerRecord> ServerList => _serverList;
         public Signal ServerListUpdated { get; } = new();
@@ -72,6 +81,10 @@ namespace EDIVE.Networking.ServerManagement
         private bool _serverRunning;
         private bool _connecting;
         private MasterNetworkManager _masterNetworkManager;
+
+        // The server we were joined to when the app was paused, captured before the transport's
+        // keepalive timeout clears JoinedServer, so we can reconnect to it on resume.
+        private ServerRecord _resumeReconnectTarget;
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -124,8 +137,70 @@ namespace EDIVE.Networking.ServerManagement
             if (_masterNetworkManager != null)
                 _masterNetworkManager.UnregisterServerPrepareHandler(OnServerPrepareHandlers);
         }
-        
-        
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (!_ReconnectClientOnResume || _masterNetworkManager == null)
+                return;
+
+            if (paused)
+            {
+                // Capture the joined server BEFORE the transport's keepalive timeout fires and
+                // OnClientConnectionStateChanged clears JoinedServer. On standalone XR the OS
+                // suspends the app while paused, so the connection will be dropped server-side.
+                _resumeReconnectTarget = _masterNetworkManager.RuntimeMode == NetworkRuntimeMode.Client
+                    ? JoinedServer
+                    : null;
+                return;
+            }
+
+            // Resumed.
+            var target = _resumeReconnectTarget;
+            _resumeReconnectTarget = null;
+            if (target != null)
+                ReconnectAfterResumeAsync(target).Forget();
+        }
+
+        private async UniTaskVoid ReconnectAfterResumeAsync(ServerRecord server)
+        {
+            // The pause may have been short enough that the connection survived the keepalive
+            // timeout — nothing to do in that case.
+            if (_masterNetworkManager.RuntimeMode == NetworkRuntimeMode.Client && ConnectedEndpoint != null)
+                return;
+
+            var attempts = Mathf.Max(1, _ResumeReconnectAttempts);
+            for (var attempt = 0; attempt < attempts; attempt++)
+            {
+                if (destroyCancellationToken.IsCancellationRequested)
+                    return;
+
+                // Tear down any wedged client state from the dead session so the connect attempt
+                // starts from a clean Disconnected baseline, then give the network stack (Wi-Fi/DNS)
+                // a moment to recover before trying.
+                NetworkManager.main.StopClient();
+                await UniTask.Delay(TimeSpan.FromSeconds(attempt == 0 ? 1f : 2f), true, cancellationToken: destroyCancellationToken);
+
+                try
+                {
+                    // endpoint == null → try every endpoint on the record (relay room name stays
+                    // valid across the reconnect, direct address may not).
+                    if (await ConnectToServerAsync(server, null, destroyCancellationToken))
+                    {
+                        Debug.Log($"[NetworkServerManager] Reconnected to '{server.ServerName}' after resume.");
+                        return;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                Debug.LogWarning($"[NetworkServerManager] Reconnect attempt {attempt + 1}/{attempts} to '{server.ServerName}' failed.");
+            }
+
+            Debug.LogError($"[NetworkServerManager] Failed to reconnect to '{server.ServerName}' after resume.");
+        }
+
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
         {
             ConnectToServerAsync(server, endpoint).Forget();
@@ -270,7 +345,17 @@ namespace EDIVE.Networking.ServerManagement
                     return true;
 
                 nm.StopClient();
-                await stopped.Task.AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
+
+                // Bound the wait for the Disconnected callback. If the transport is left in a
+                // broken state (e.g. after an app pause/resume on Quest) it may never raise
+                // Disconnected; without a timeout this await — and therefore the _connecting
+                // latch released in the finally below — would hang forever, permanently
+                // blocking every future reconnect attempt.
+                using (var stopCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                {
+                    stopCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
+                    await stopped.Task.AttachExternalCancellation(stopCts.Token).SuppressCancellationThrow();
+                }
 
                 cancellationToken.ThrowIfCancellationRequested();
                 return false;
