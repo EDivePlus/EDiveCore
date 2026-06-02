@@ -3,14 +3,14 @@
 
 using System;
 using EDIVE.Time.TimeSpanUtils;
-using EnhancedUI.EnhancedScroller;
+using EDIVE.UIElements.RecyclableScroller;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace EDIVE.Replay.UI
 {
-    public class ReplayListElementDisplay : EnhancedScrollerCellView
+    public class ReplayListElementDisplay : RecyclableScrollerItemView
     {
         [SerializeField]
         private TMP_Text _IDText;

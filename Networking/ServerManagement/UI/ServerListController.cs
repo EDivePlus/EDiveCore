@@ -5,16 +5,16 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
-using EnhancedUI.EnhancedScroller;
+using EDIVE.UIElements.RecyclableScroller;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace EDIVE.Networking.ServerManagement.UI
 {
-    public class ServerListController : MonoBehaviour, IEnhancedScrollerDelegate
+    public class ServerListController : MonoBehaviour
     {
         [SerializeField]
-        public EnhancedScroller _Scroller;
+        public RecyclableScroller _Scroller;
 
         [SerializeField]
         private ServerListElementDisplay _ElementDisplayPrefab;
@@ -35,7 +35,11 @@ namespace EDIVE.Networking.ServerManagement.UI
         private void Initialize(NetworkServerManager manager)
         {
             _serverManager = manager;
-            _Scroller.Delegate = this;
+            _Scroller.Source = RecyclableScrollerSource.CreateForSinglePrefab(
+                _Scroller,
+                _ElementDisplayPrefab,
+                _currentServers,
+                (item, server) => item.SetServer(server));
             
             if (_RefreshButton)
                 _RefreshButton.onClick.AddListener(OnRefreshClicked);
@@ -81,18 +85,5 @@ namespace EDIVE.Networking.ServerManagement.UI
             _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);
         }
 
-        public int GetNumberOfCells(EnhancedScroller scroller) => _currentServers.Count;
-
-        public float GetCellViewSize(EnhancedScroller scroller, int dataIndex) => ((RectTransform)_ElementDisplayPrefab.transform).rect.height;
-
-        public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
-        {
-            var cell = (ServerListElementDisplay) _Scroller.GetCellView(_ElementDisplayPrefab);
-            if (!cell)
-                return null;
-
-            cell.SetServer(_currentServers[dataIndex]);
-            return cell;
-        }
     }
 }

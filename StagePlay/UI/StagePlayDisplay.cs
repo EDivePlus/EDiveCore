@@ -2,23 +2,24 @@
 // Created: 23.06.2025
 
 using System.Collections.Generic;
+using DG.Tweening;
 using EDIVE.StateHandling.ToggleStates;
+using EDIVE.UIElements.RecyclableScroller;
 using EDIVE.Utils.Activations;
-using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 
 namespace EDIVE.StagePlay.UI
 {
-    public class StagePlayDisplay : MonoBehaviour, IEnhancedScrollerDelegate
+    public class StagePlayDisplay : MonoBehaviour
     {
         [Required]
         [SerializeField]
         private StagePlayController _Controller;
         
         [SerializeField]
-        private EnhancedScroller _Scroller;
+        private RecyclableScroller _Scroller;
         
         [SerializeField]
         private StagePlaySegmentDisplay _SpeechDisplayPrefab;
@@ -45,7 +46,7 @@ namespace EDIVE.StagePlay.UI
         private float _AutoScrollCellOffset = 0.5f;
         
         [SerializeField]
-        private EnhancedScroller.TweenType _AutoScrollEase = EnhancedScroller.TweenType.easeInOutQuad;
+        private Ease _AutoScrollEase = Ease.InOutQuad;
         
         [SerializeField]
         private float _AutoScrollTweenTime = 0.3f;
@@ -61,8 +62,11 @@ namespace EDIVE.StagePlay.UI
             if (_Controller == null)
                 return;
             
-            _Scroller.Delegate = this;
-            _Scroller.cellViewWillRecycle = OnCellViewWillRecycle;
+            _Scroller.Source = new RecyclableScrollerSource(
+                () => _segmentsList?.Count ?? 0,
+                GetSegmentSize,
+                GetSegmentItemView);
+            _Scroller.ItemWillRecycle += OnItemWillRecycle;
             
             if(_AutoScrollToggle)
                 _AutoScrollToggle.SetState(_autoScroll);
@@ -83,6 +87,8 @@ namespace EDIVE.StagePlay.UI
         private void OnDestroy()
         {
             _Controller.DefinitionChanged -= UpdateDefinition;
+            if (_Scroller != null)
+                _Scroller.ItemWillRecycle -= OnItemWillRecycle;
         }
 
         private void Start()
@@ -146,13 +152,13 @@ namespace EDIVE.StagePlay.UI
         [Button]
         public void JumpToCurrentSegment()
         {
-            _Scroller.JumpToDataIndex(
-                _currentState.CurrentSegmentIndex, 
-                _AutoScrollScrollerOffset,
-                _AutoScrollCellOffset,
-                true, 
-                _AutoScrollEase, 
-                _AutoScrollTweenTime);
+            _Scroller.JumpToDataIndex(_currentState.CurrentSegmentIndex, new RecyclableScroller.JumpOptions
+            {
+                ScrollerOffset = _AutoScrollScrollerOffset,
+                ItemOffset = _AutoScrollCellOffset,
+                Ease = _AutoScrollEase,
+                TweenTime = _AutoScrollTweenTime,
+            });
         }
         
         private void OnScrollToCurrentActivated()
@@ -160,15 +166,13 @@ namespace EDIVE.StagePlay.UI
             JumpToCurrentSegment();
         }
         
-        private static void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
+        private static void OnItemWillRecycle(RecyclableScrollerItemView itemView)
         {
-            if (cellView is StagePlaySegmentDisplay display) 
+            if (itemView is StagePlaySegmentDisplay display)
                 display.Clear();
         }
         
-        public int GetNumberOfCells(EnhancedScroller scroller) => _segmentsList?.Count ?? 0;
-        
-        public float GetCellViewSize(EnhancedScroller scroller, int dataIndex)
+        private float GetSegmentSize(int dataIndex)
         {
             var segmentData = _segmentsList[dataIndex];
             return segmentData.Segment.Type switch
@@ -179,20 +183,20 @@ namespace EDIVE.StagePlay.UI
             };
         }
 
-        public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
+        private RecyclableScrollerItemView GetSegmentItemView(int dataIndex, int itemIndex)
         {
-            var cellView = _segmentsList[dataIndex].Segment.Type switch
+            var itemView = _segmentsList[dataIndex].Segment.Type switch
             {
-                StagePlaySegmentType.Speach => _SpeechDisplayPrefab ? _Scroller.GetCellView(_SpeechDisplayPrefab) as StagePlaySegmentDisplay : null,
-                StagePlaySegmentType.Direction => _DirectionDisplayPrefab ? _Scroller.GetCellView(_DirectionDisplayPrefab) as StagePlaySegmentDisplay : null,
+                StagePlaySegmentType.Speach => _SpeechDisplayPrefab ? _Scroller.GetItemView(_SpeechDisplayPrefab) as StagePlaySegmentDisplay : null,
+                StagePlaySegmentType.Direction => _DirectionDisplayPrefab ? _Scroller.GetItemView(_DirectionDisplayPrefab) as StagePlaySegmentDisplay : null,
                 _ => null
             };
-            
-            if (!cellView)
+
+            if (!itemView)
                 return null;
-            
-            cellView.SetData(_segmentsList[dataIndex]);
-            return cellView;
+
+            itemView.SetData(_segmentsList[dataIndex]);
+            return itemView;
         }
     }
 }

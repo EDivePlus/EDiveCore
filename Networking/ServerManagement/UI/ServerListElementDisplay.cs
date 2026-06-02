@@ -2,14 +2,14 @@
 // Created: 13.06.2025
 
 using EDIVE.Core;
-using EnhancedUI.EnhancedScroller;
+using EDIVE.UIElements.RecyclableScroller;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace EDIVE.Networking.ServerManagement.UI
 {
-    public class ServerListElementDisplay : EnhancedScrollerCellView
+    public class ServerListElementDisplay : RecyclableScrollerItemView
     {
         [SerializeField]
         private ServerRecordDisplay _Display;

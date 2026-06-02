@@ -4,17 +4,17 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.UIElements.RecyclableScroller;
 using EDIVE.Utils.Activations;
-using EnhancedUI.EnhancedScroller;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Replay.UI
 {
-    public class ReplayListDisplay : MonoBehaviour, IEnhancedScrollerDelegate
+    public class ReplayListDisplay : MonoBehaviour
     {
         [SerializeField]
-        public EnhancedScroller _Scroller;
+        public RecyclableScroller _Scroller;
         
         [SerializeField] 
         private ReplayListElementDisplay _ElementPrefab;
@@ -26,7 +26,11 @@ namespace EDIVE.Replay.UI
         
         private void OnEnable()
         {
-            _Scroller.Delegate = this;
+            _Scroller.Source = RecyclableScrollerSource.CreateForSinglePrefab(
+                _Scroller,
+                _ElementPrefab,
+                _currentRecords,
+                (item, record) => item.SetReplay(record, OnReplayRecordedSelected));
             _RefreshActivation?.RegisterActivationListener(RefreshList);
         }
 
@@ -61,18 +65,5 @@ namespace EDIVE.Replay.UI
                 controller.LoadRecord(info);
         }
 
-        public int GetNumberOfCells(EnhancedScroller scroller) => _currentRecords.Count;
-
-        public float GetCellViewSize(EnhancedScroller scroller, int dataIndex) => ((RectTransform)_ElementPrefab.transform).rect.height;
-
-        public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
-        {
-            var cell = (ReplayListElementDisplay) _Scroller.GetCellView(_ElementPrefab);
-            if (!cell)
-                return null;
-
-            cell.SetReplay(_currentRecords[dataIndex], OnReplayRecordedSelected);
-            return cell;
-        }
     }
 }

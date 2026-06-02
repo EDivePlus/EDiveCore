@@ -16,7 +16,7 @@
         "FishNet.Runtime",
         "EDIVE.Utils.Cysharp",
         "EDIVE.Core",
-        "EnhancedScroller"
+        "EDIVE.UIElements.RecyclableScroller"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

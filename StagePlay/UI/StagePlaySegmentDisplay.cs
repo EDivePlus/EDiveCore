@@ -2,14 +2,14 @@
 // Created: 23.06.2025
 
 using EDIVE.StateHandling.MultiStates;
-using EnhancedUI.EnhancedScroller;
+using EDIVE.UIElements.RecyclableScroller;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 
 namespace EDIVE.StagePlay.UI
 {
-    internal class StagePlaySegmentDisplay : EnhancedScrollerCellView
+    internal class StagePlaySegmentDisplay : RecyclableScrollerItemView
     {
         [SerializeField]
         private TMP_Text _LineText;

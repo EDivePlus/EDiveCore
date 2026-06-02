@@ -4,7 +4,6 @@
     "references": [
         "UniTask",
         "Unity.TextMeshPro",
-        "EnhancedScroller",
         "EDIVE.Core",
         "EDIVE.AppLoading",
         "EDIVE.External.ParrelSync",
@@ -43,7 +42,8 @@
         "EDIVE.UnityServices",
         "Unity.Mathematics",
         "EDIVE.UIElements",
-        "FishNet.Runtime"
+        "FishNet.Runtime",
+        "EDIVE.UIElements.RecyclableScroller"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
