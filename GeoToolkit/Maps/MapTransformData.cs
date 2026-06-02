@@ -2,23 +2,29 @@
 // Created: 17.11.2025
 
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace EDIVE.GeoToolkit.Maps
 {
-    public readonly struct MapTransformData
+    public struct MapTransformData
     {
-        public readonly float3 Origin;
-        public readonly float3 Max;
-        public readonly float3 AxisX; // Right (Map X)
-        public readonly float3 AxisY; // Up (Map Normal)
-        public readonly float3 AxisZ; // Forward (Map Y)
+        public float3 Origin;
+        public float3 Max;
+        public float3 AxisX; // Right (Map X)
+        public float3 AxisY; // Up (Map Normal)
+        public float3 AxisZ; // Forward (Map Y)
 
-        public readonly float3 AxisXNormalized;
-        public readonly float3 AxisYNormalized;
-        public readonly float3 AxisZNormalized;
+        [HideInInspector]
+        public float3 AxisXNormalized;
+        [HideInInspector]
+        public float3 AxisYNormalized;
+        [HideInInspector]
+        public float3 AxisZNormalized;
 
-        public readonly float3 Size;
-        public readonly quaternion Rotation;
+        [HideInInspector]
+        public float3 Size;
+        [HideInInspector]
+        public quaternion Rotation;
 
         public MapTransformData(float3 origin, float3 axisX, float3 axisY, float3 axisZ) : this()
         {

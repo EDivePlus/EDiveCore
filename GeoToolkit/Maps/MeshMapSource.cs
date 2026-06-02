@@ -20,10 +20,22 @@ namespace EDIVE.GeoToolkit.Maps
     public class MeshMapSource : IMapSource
     {
         [SerializeField]
+        [HideIf(nameof(_OverrideBounds))]
         [ListDrawerSettings(OnTitleBarGUI = "OnMeshFiltersTitleBarGUI")]
         private List<MeshFilter> _MeshFilters = new();
 
-        public bool IsValid => _MeshFilters.Any(mf => mf != null && mf.sharedMesh != null);
+        [SerializeField]
+        private bool _OverrideBounds;
+
+        [SerializeField]
+        [ShowIf(nameof(_OverrideBounds))]
+        private Vector3 _BoundsMin;
+
+        [SerializeField]
+        [ShowIf(nameof(_OverrideBounds))]
+        private Vector3 _BoundsMax;
+
+        public bool IsValid => _OverrideBounds || _MeshFilters.Any(mf => mf != null && mf.sharedMesh != null);
 
         public void PopulateFromChildren(Transform root)
         {
@@ -32,36 +44,48 @@ namespace EDIVE.GeoToolkit.Maps
 
         public MapTransformData CalculateTransformData(Transform mapTransform)
         {
-            var localMin = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-            var localMax = new float3(float.MinValue, float.MinValue, float.MinValue);
+            // Bounds are expressed in mapTransform's local space.
+            float3 localMin;
+            float3 localMax;
 
-            foreach (var meshFilter in _MeshFilters)
+            if (_OverrideBounds)
             {
-                if (meshFilter == null || meshFilter.sharedMesh == null)
-                    continue;
+                localMin = _BoundsMin;
+                localMax = _BoundsMax;
+            }
+            else
+            {
+                localMin = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
+                localMax = new float3(float.MinValue, float.MinValue, float.MinValue);
 
-                var bounds = meshFilter.sharedMesh.bounds;
-                var min = bounds.min;
-                var max = bounds.max;
-
-                var corners = new[]
+                foreach (var meshFilter in _MeshFilters)
                 {
-                    new float3(min.x, min.y, min.z),
-                    new float3(max.x, min.y, min.z),
-                    new float3(min.x, max.y, min.z),
-                    new float3(max.x, max.y, min.z),
-                    new float3(min.x, min.y, max.z),
-                    new float3(max.x, min.y, max.z),
-                    new float3(min.x, max.y, max.z),
-                    new float3(max.x, max.y, max.z),
-                };
-                foreach (var corner in corners)
-                {
-                    float3 worldCorner = meshFilter.transform.TransformPoint(corner);
-                    float3 refLocalCorner = mapTransform.InverseTransformPoint(worldCorner);
+                    if (meshFilter == null || meshFilter.sharedMesh == null)
+                        continue;
 
-                    localMin = math.min(localMin, refLocalCorner);
-                    localMax = math.max(localMax, refLocalCorner);
+                    var bounds = meshFilter.sharedMesh.bounds;
+                    var min = bounds.min;
+                    var max = bounds.max;
+
+                    var corners = new[]
+                    {
+                        new float3(min.x, min.y, min.z),
+                        new float3(max.x, min.y, min.z),
+                        new float3(min.x, max.y, min.z),
+                        new float3(max.x, max.y, min.z),
+                        new float3(min.x, min.y, max.z),
+                        new float3(max.x, min.y, max.z),
+                        new float3(min.x, max.y, max.z),
+                        new float3(max.x, max.y, max.z),
+                    };
+                    foreach (var corner in corners)
+                    {
+                        float3 worldCorner = meshFilter.transform.TransformPoint(corner);
+                        float3 refLocalCorner = mapTransform.InverseTransformPoint(worldCorner);
+
+                        localMin = math.min(localMin, refLocalCorner);
+                        localMax = math.max(localMax, refLocalCorner);
+                    }
                 }
             }
 
@@ -71,11 +95,11 @@ namespace EDIVE.GeoToolkit.Maps
             var localAxisZ = new float3(0f, 0f, localSize.z);
 
             var worldOrigin = mapTransform.TransformPoint(localMin);
-            var worldAxisU = mapTransform.TransformVector(localAxisX);
+            var worldAxisX = mapTransform.TransformVector(localAxisX);
             var worldAxisY = mapTransform.TransformVector(localAxisY);
             var worldAxisZ = mapTransform.TransformVector(localAxisZ);
 
-            return new MapTransformData(worldOrigin, worldAxisU, worldAxisY, worldAxisZ);
+            return new MapTransformData(worldOrigin, worldAxisX, worldAxisY, worldAxisZ);
         }
 
 #if UNITY_EDITOR

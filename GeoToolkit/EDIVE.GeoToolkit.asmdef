@@ -14,7 +14,8 @@
         "EDIVE.Utils",
         "EDIVE.External.TriangleNet",
         "Unity.Formats.Fbx.Editor",
-        "EDIVE.ScriptableArchitecture"
+        "EDIVE.ScriptableArchitecture",
+        "Unity.XR.Interaction.Toolkit"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -28,6 +29,11 @@
             "name": "com.virgis.geojson.net",
             "expression": "",
             "define": "GEO_JSON"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "",
+            "define": "XR_TOOLKIT"
         }
     ],
     "noEngineReferences": false
