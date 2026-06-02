@@ -63,7 +63,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
 
             var fieldRect = EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginVertical();
             CallNextDrawer(label);
+            EditorGUILayout.EndVertical();
             var tooltip = !_tooltipResolver.HasError ? _tooltipResolver.GetValue() : "";
             var rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,  GUILayoutOptions.ExpandWidth(false).Width(18));
 
