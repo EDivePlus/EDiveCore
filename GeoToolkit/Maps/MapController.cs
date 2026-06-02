@@ -17,26 +17,26 @@ namespace EDIVE.GeoToolkit.Maps
         [SerializeReference]
         [InlineProperty]
         [HideLabel]
-        protected IMapSource _Source;
+        private IMapSource _Source;
         
         [SerializeField]
-        protected VariableField<GeoAreaRect> _Area = new();
+        private VariableField<GeoAreaRect> _Area = new();
         
         [SerializeField]
-        protected LayerMask _CastLayerMask;
+        private LayerMask _CastLayerMask;
         
         [SerializeField]
-        protected float _CastBias = 0.1f;
+        private float _CastBias = 0.1f;
         
         [SerializeField]
-        protected bool _ShowDebugRays;
+        private bool _ShowDebugRays;
 
         public GeoAreaRect GeoArea => _Area.Value;
         public MapTransformData MapTransformData { get; private set; }
 
         public bool IsValid => _Source?.IsValid ?? false;
 
-        protected virtual void Awake()
+        private void Awake()
         {
             RecalculateTransformData();
         }
@@ -145,7 +145,7 @@ namespace EDIVE.GeoToolkit.Maps
         }
         
 #if UNITY_EDITOR
-        protected virtual void OnValidate()
+        private void OnValidate()
         {
             if (IsValid)
                 RecalculateTransformData();

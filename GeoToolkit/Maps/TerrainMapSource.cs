@@ -14,7 +14,6 @@ using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 #endif
 
-
 namespace EDIVE.GeoToolkit.Maps
 {
     [Serializable]
