@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
+using UnityEngine;
+
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.GeoToolkit.TerrainTools
 {
