@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
@@ -678,15 +679,15 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             else if (col.ColumnType == ColumnType.Property)
             {
                 var cell = _filter[rowIndex].Children[col.Name];
-                
-                cell?.Draw(null);
+
+                cell?.Draw(GetCellLabel(cell));
                 if (col.RootPropertyName != null)
                 {
                     var rootCell = Property.Children[rowIndex].Children[col.RootPropertyName];
                     if (rootCell.GetAttribute<InlinePropertyAttribute>() != null)
                     {
                         var childCell = rootCell.Children[col.Name];
-                        childCell?.Draw(null);
+                        childCell?.Draw(GetCellLabel(childCell));
                     }
                 }
             }
@@ -694,6 +695,17 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             {
                 throw new NotImplementedException(col.ColumnType.ToString());
             }
+        }
+
+        // Most drawers treat a null label as "no label", but collection drawers (list/dictionary/table)
+        // fall back to printing the property's type/name. Pass an empty label for those so they stay blank,
+        // while keeping null for everything else so simple fields draw full-width without a prefix.
+        private static GUIContent GetCellLabel(InspectorProperty cell)
+        {
+            var type = cell.ValueEntry?.TypeOfValue;
+            if (type != null && (typeof(IList).IsAssignableFrom(type) || typeof(IDictionary).IsAssignableFrom(type)))
+                return GUIHelper.TempContent(" ");
+            return null;
         }
 
         private void HandleObjectPickerEvents()
