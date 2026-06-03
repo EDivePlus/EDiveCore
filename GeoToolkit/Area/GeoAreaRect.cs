@@ -50,10 +50,10 @@ namespace EDIVE.GeoToolkit.Area
         
         public string ToCommaSeparatedString()
         {
-            return $"({Min.x.ToString(CultureInfo.InvariantCulture)}," +
-                   $"{Min.y.ToString(CultureInfo.InvariantCulture)})," +
-                   $"({Max.x.ToString(CultureInfo.InvariantCulture)}," +
-                   $"{Max.y.ToString(CultureInfo.InvariantCulture)})";
+            return $"{Min.x.ToString(CultureInfo.InvariantCulture)}," +
+                   $"{Min.y.ToString(CultureInfo.InvariantCulture)}," +
+                   $"{Max.x.ToString(CultureInfo.InvariantCulture)}," +
+                   $"{Max.y.ToString(CultureInfo.InvariantCulture)}";
         }
         
         public double2 InverseLerp(GeoCoords geoCoord)
