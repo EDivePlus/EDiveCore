@@ -13,6 +13,9 @@ namespace EDIVE.OdinExtensions.Editor
 
         public override bool CanProcessSelfAttributes(InspectorProperty property)
         {
+            if (property.Parent?.ChildResolver is ICollectionResolver)
+                return false;
+
             return property.Attributes.HasAttribute<TooltipAttribute>() || property.Attributes.HasAttribute<PropertyTooltipAttribute>();
         }
 
