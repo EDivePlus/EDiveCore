@@ -23,6 +23,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private const string INDEX_ARGUMENT_ID = "index";
         private const string ELEMENT_ARGUMENT_ID = "element";
+        private const char TOOLTIP_ICON = 'ⓘ';
         
         private IOrderedCollectionResolver _resolver;
         private LocalPersistentContext<bool> _isPagingExpanded;
@@ -378,16 +379,28 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                                     resolver = ValueResolver.GetForString(childProperty, groupAttr.GroupName);
                                     _columnNameResolvers[groupAttr.GroupName] = resolver;
                                 }
-                                
+
                                 niceName = resolver.GetValue();
                             }
                         }
 
+                        string tooltip = null;
+                        var unityTooltipAttr = GetColumnAttribute<TooltipAttribute>(childProperty);
+                        if (unityTooltipAttr != null)
+                            tooltip = unityTooltipAttr.tooltip;
+
+                        var propertyTooltipAttr = GetColumnAttribute<PropertyTooltipAttribute>(childProperty);
+                        if (propertyTooltipAttr != null && !string.IsNullOrEmpty(propertyTooltipAttr.Tooltip))
+                            tooltip = ValueResolver.GetForString(childProperty, propertyTooltipAttr.Tooltip).GetValue();
+
                         if (!TryGetColumn(childProperty.Name, out var resultColumn))
                         {
+                            var headerText = string.IsNullOrEmpty(tooltip) ? niceName : $"{niceName} {TOOLTIP_ICON}";
                             var newCol = new Column(minWidth, width, preserve, resizable, childProperty.Name, ColumnType.Property, order)
                             {
-                                NiceName = niceName
+                                NiceName = niceName,
+                                Tooltip = tooltip,
+                                HeaderContent = new GUIContent(headerText, tooltip)
                             };
                             newCol.NiceNameLabelWidth = (int) SirenixGUIStyles.Label.CalcSize(new GUIContent(newCol.NiceName)).x;
                             newCol.PreferWide = preferWide;
@@ -534,7 +547,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
                     if (col.NiceName != null)
                     {
-                        GUI.Label(rect, col.NiceName, SirenixGUIStyles.LabelCentered);
+                        GUI.Label(rect, col.HeaderContent ?? new GUIContent(col.NiceName), SirenixGUIStyles.LabelCentered);
                     }
 
                     rect.x += col.ColWidth;
@@ -750,6 +763,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             public bool Preserve;
             public bool Resizable;
             public string NiceName;
+            public string Tooltip;
+            public GUIContent HeaderContent;
             public int NiceNameLabelWidth;
             public float Order;
             public ColumnType ColumnType;
