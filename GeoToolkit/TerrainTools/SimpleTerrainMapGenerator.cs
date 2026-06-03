@@ -35,13 +35,14 @@ namespace EDIVE.GeoToolkit.TerrainTools
             var nonZeroValues = heightMapFlat.Where(i => i != 0);
             var terrainMax = heightMapFlat.Max();
             var terrainMin = nonZeroValues.Min();
+            var terrainHeight = terrainMax - terrainMin;
 
             var textureSize = new int2(_HeightMap.width, _HeightMap.height);
             var heightmapResolution = math.max(textureSize.x, textureSize.y);
             var terrainData = new TerrainData
             {
                 heightmapResolution = heightmapResolution,
-                size = new Vector3(_Size.x, _Size.y, _Size.z)
+                size = new Vector3(_Size.x, terrainHeight, _Size.z)
             };
 
             if (_DrawHoles)
@@ -86,6 +87,18 @@ namespace EDIVE.GeoToolkit.TerrainTools
             var terrainTr = terrain.transform;
             terrainTr.SetParent(transform);
             terrainTr.Reset();
+        }
+        
+        [Button]
+        public float GetHeightMapFromTexture()
+        {
+            var heightMap = _HeightMap.LoadGrayScale();
+
+            var heightMapFlat = heightMap.To1DArray();
+            var nonZeroValues = heightMapFlat.Where(i => i != 0);
+            var terrainMax = heightMapFlat.Max();
+            var terrainMin = nonZeroValues.Min();
+            return terrainMax - terrainMin;
         }
     }
 }
