@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EDIVE.OdinExtensions;
+using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -19,8 +20,8 @@ namespace EDIVE.StateHandling
     {
         [PropertyOrder(10)]
         [LabelText("@$property.Parent.NiceName")]
-        [ListDrawerSettings(OnTitleBarGUI = "OnObjectPresetsTitleBarGUI")]
         [SerializeField]
+        [EnhancedTableList(OnTitleBarGUI = "OnObjectPresetsTitleBarGUI")]
         private List<ObjectStatePresetRecord> _ObjectPresets = new();
 
         public IReadOnlyList<ObjectStatePresetRecord> ObjectPresets => _ObjectPresets;
