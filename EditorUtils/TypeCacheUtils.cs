@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Sirenix.Utilities;
 using UnityEditor;
 
 namespace EDIVE.EditorUtils
@@ -54,7 +55,33 @@ namespace EDIVE.EditorUtils
 
         public static IEnumerable<Type> GetAssignableTypes(Type targetType)
         {
-            return TypeCache.GetTypesDerivedFrom(targetType).Append(targetType).Where(type => !type.IsAbstract && !type.IsGenericType);
+            var result = TypeCache.GetTypesDerivedFrom(targetType)
+                .Append(targetType)
+                .Where(type => !type.IsAbstract && !type.IsGenericType)
+                .ToList();
+
+            // TypeCache.GetTypesDerivedFrom on a constructed generic (e.g. IFoo<Bar>) does not return
+            // open-generic implementers (e.g. RawFoo<>), since those implement the open IFoo<T>. Query the
+            // open definition and close each candidate over our type args. This mirrors Odin's own
+            // TypeRegistry.GetInheritors / TryGetCompatibleClosedGenericType.
+            if (targetType.IsConstructedGenericType)
+            {
+                var typeArgs = targetType.GetGenericArguments();
+                var openTarget = targetType.GetGenericTypeDefinition();
+                foreach (var type in TypeCache.GetTypesDerivedFrom(openTarget))
+                {
+                    if (type.IsAbstract || !type.IsGenericTypeDefinition)
+                        continue;
+                    if (type.TryInferGenericParameters(out var inferredParams, typeArgs))
+                    {
+                        var closed = type.MakeGenericType(inferredParams);
+                        if (targetType.IsAssignableFrom(closed) && !result.Contains(closed))
+                            result.Add(closed);
+                    }
+                }
+            }
+
+            return result;
         }
 
         public static IEnumerable<Type> GetDerivedGenericTypes<TParent,T>()
