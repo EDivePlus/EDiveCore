@@ -165,34 +165,22 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private void DrawDropdown()
         {
             IEnumerable<object> newResult = null;
-            if (!_isList)
-            {
-                GUILayout.BeginHorizontal();
-                {
-                    var width = 18f;
-                    if (_label != null)
-                    {
-                        width += GUIHelper.BetterLabelWidth;
-                    }
 
-                    newResult = GenericSelector<object>.DrawSelectorDropdown(_label, GUIContent.none, ShowSelector, GUIStyle.none, GUILayoutOptions.Width(width));
-                    if (Event.current.type == EventType.Repaint)
-                    {
-                        var btnRect = GUILayoutUtility.GetLastRect().AlignRight(18);
-                        FontAwesomeEditorIcons.SquareCaretDownRegular.Draw(btnRect);
-                    }
+            SirenixEditorGUI.BeginVerticalPropertyLayout(_label);
+            EditorGUILayout.BeginHorizontal(GUIStyle.none);
 
-                    GUILayout.BeginVertical();
-                    CallNextDrawer(null);
-                    GUILayout.EndVertical();
-                }
-                GUILayout.EndHorizontal();
-            }
-            else
-            {
-                var valueName = GetCurrentValueName();
-                newResult = GenericSelector<object>.DrawSelectorDropdown(_label, valueName, ShowSelector);
-            }
+            var caretRect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,
+                GUILayoutOptions.Width(18).ExpandWidth(false));
+            newResult = GenericSelector<object>.DrawSelectorDropdown(caretRect, GUIContent.none, ShowSelector);
+            if (Event.current.type == EventType.Repaint)
+                FontAwesomeEditorIcons.SquareCaretDownRegular.Draw(caretRect);
+
+            EditorGUILayout.BeginVertical();
+            CallNextDrawer(null);
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.EndHorizontal();
+            SirenixEditorGUI.EndVerticalPropertyLayout();
 
             if (newResult != null && newResult.Any())
             {
@@ -297,16 +285,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
 
             return selector;
-        }
-
-        private string GetCurrentValueName()
-        {
-            if (EditorGUI.showMixedValue) 
-                return SirenixEditorGUI.MixedValueDashChar;
-            
-            var weakValue = Property.ValueEntry.WeakSmartValue;
-            return weakValue + "";
-
         }
     }
 }

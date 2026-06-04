@@ -264,33 +264,28 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             IEnumerable<object> newResult = null;
             if (Attribute.AppendNextDrawer && !_isList)
             {
-                GUILayout.BeginHorizontal();
-                {
-                    var width = 18f;
-                    if (_label != null)
-                    {
-                        width += GUIHelper.BetterLabelWidth;
-                    }
+                var t = GUIHelper.TempContent("");
+                if (Property.Info.TypeOfValue == typeof(Type))
+                    t.image = GUIHelper.GetAssetThumbnail(null, Property.ValueEntry.WeakSmartValue as Type, false);
 
-                    var t = GUIHelper.TempContent("");
-                    if (Property.Info.TypeOfValue == typeof(Type))
-                        t.image = GUIHelper.GetAssetThumbnail(null, Property.ValueEntry.WeakSmartValue as Type, false);
+                SirenixEditorGUI.BeginVerticalPropertyLayout(_label);
+                EditorGUILayout.BeginHorizontal(GUIStyle.none);
 
-                    newResult = EnhancedDropdownSelector<object>.DrawSelectorDropdown(_label, t, ShowSelector, !Attribute.OnlyChangeValueOnConfirm, GUIStyle.none, GUILayoutOptions.Width(width));
-                    if (Event.current.type == EventType.Repaint)
-                    {
-                        var btnRect = GUILayoutUtility.GetLastRect().AlignRight(18);
-                        FontAwesomeEditorIcons.SquareCaretDownRegular.Draw(btnRect);
-                    }
+                var caretRect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button,
+                    GUILayoutOptions.Width(18).ExpandWidth(false));
+                newResult = EnhancedDropdownSelector<object>.DrawSelectorDropdown(caretRect, t, ShowSelector);
+                if (Event.current.type == EventType.Repaint)
+                    FontAwesomeEditorIcons.SquareCaretDownRegular.Draw(caretRect);
 
-                    GUILayout.BeginVertical();
-                    bool disable = Attribute.DisableGUIInAppendedDrawer;
-                    if (disable) GUIHelper.PushGUIEnabled(false);
-                    CallNextDrawer(null);
-                    if (disable) GUIHelper.PopGUIEnabled();
-                    GUILayout.EndVertical();
-                }
-                GUILayout.EndHorizontal();
+                EditorGUILayout.BeginVertical();
+                bool disable = Attribute.DisableGUIInAppendedDrawer;
+                if (disable) GUIHelper.PushGUIEnabled(false);
+                CallNextDrawer(null);
+                if (disable) GUIHelper.PopGUIEnabled();
+                EditorGUILayout.EndVertical();
+
+                EditorGUILayout.EndHorizontal();
+                SirenixEditorGUI.EndVerticalPropertyLayout();
             }
             else
             {
