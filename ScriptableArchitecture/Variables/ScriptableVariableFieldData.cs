@@ -3,6 +3,7 @@
 
 using System;
 using EDIVE.DataStructures.VariableFields;
+using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -10,9 +11,9 @@ using UnityEngine;
 namespace EDIVE.ScriptableArchitecture.Variables
 {
     [Serializable]
+    [TypeRegistryItem("Scriptable Variable")]
     public class ScriptableVariableFieldData<T> : IVariableFieldData<T>
     {
-        [HideLabel]
         [SerializeField]
         private AScriptableVariable<T> _Variable;
 

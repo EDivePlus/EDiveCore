@@ -1,10 +1,12 @@
 // Author: František Holubec
 // Created: 17.11.2025
 
+using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
 
 namespace EDIVE.GeoToolkit.Maps
 {
+    [EnhancedTypeSelector(true)]
     public interface IMapSource
     {
         public bool IsValid { get; }

@@ -8,9 +8,9 @@ using UnityEngine;
 namespace EDIVE.DataStructures.VariableFields
 {
     [Serializable]
+    [TypeRegistryItem("Transform Position")]
     public class TransformPositionVariableFieldData : IVariableFieldData<Vector3>
     {
-        [HideLabel]
         [SerializeField]
         private Transform _Target;
         

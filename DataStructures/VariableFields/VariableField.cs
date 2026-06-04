@@ -2,17 +2,19 @@
 // Created: 20.10.2025
 
 using System;
-using Sirenix.OdinInspector;
+using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.DataStructures.VariableFields
 {
     [Serializable]
-    [InlineProperty]
     public class VariableField<T>
     {
-        [HideLabel]
-        [InlineProperty]
+        [EnhancedTypeSelector(true)]
         [SerializeReference]
         private IVariableFieldData<T> _Data = new RawVariableFieldData<T>();
         
@@ -24,4 +26,14 @@ namespace EDIVE.DataStructures.VariableFields
             set => Data.Value = value;
         }
     }
+
+#if UNITY_EDITOR
+    public sealed class VariableFieldDrawer<T> : OdinValueDrawer<VariableField<T>>
+    {
+        protected override void DrawPropertyLayout(GUIContent label)
+        {
+            Property.Children["_Data"].Draw(label);
+        }
+    }
+#endif
 }

@@ -8,6 +8,7 @@ using UnityEngine;
 namespace EDIVE.DataStructures.VariableFields
 {
     [Serializable]
+    [TypeRegistryItem("Raw Data")]
     public class RawVariableFieldData<T> : IVariableFieldData<T>
     {
         [HideLabel]

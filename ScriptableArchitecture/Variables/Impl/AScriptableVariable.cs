@@ -3,6 +3,7 @@
 
 using System;
 using EDIVE.External.Signals;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -23,6 +24,7 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
         [SerializeField]
         private bool _IsReadOnly;
         
+        [EnhancedInlineProperty]
         [SerializeField]
         private T _DefaultValue;
         
@@ -32,6 +34,7 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
         [NonSerialized]
         private bool _initialized;
 
+        [EnhancedInlineProperty]
         [HideIf(nameof(_IsReadOnly))]
         [ShowInInspector]
         public virtual T Value

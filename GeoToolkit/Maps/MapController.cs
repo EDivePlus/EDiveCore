@@ -20,8 +20,6 @@ namespace EDIVE.GeoToolkit.Maps
     {
         [Required]
         [SerializeReference]
-        [InlineProperty]
-        [HideLabel]
         private IMapSource _Source;
 
         [SerializeField]
