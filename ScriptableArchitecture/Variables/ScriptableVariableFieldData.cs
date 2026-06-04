@@ -15,6 +15,7 @@ namespace EDIVE.ScriptableArchitecture.Variables
     public class ScriptableVariableFieldData<T> : IVariableFieldData<T>
     {
         [SerializeField]
+        [EnhancedAssetSelector]
         private AScriptableVariable<T> _Variable;
 
         public T Value
