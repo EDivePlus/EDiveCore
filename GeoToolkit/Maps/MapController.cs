@@ -19,9 +19,11 @@ namespace EDIVE.GeoToolkit.Maps
     public class MapController : MonoBehaviour
     {
         [Required]
+        [EnhancedBoxGroup("Map Source", false)]
         [SerializeReference]
         private IMapSource _Source;
 
+        [EnhancedBoxGroup("Area", false)]
         [SerializeField]
         private VariableField<GeoAreaRect> _Area = new();
 
