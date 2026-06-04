@@ -23,7 +23,7 @@ namespace EDIVE.XRTools.Interactions
                 result.AddError("UI Interaction Layer must be used with FilteredTrackedDeviceGraphicRaycaster")
                     .WithFix(() =>
                     {
-                        raycaster.ChangeScriptType<FilteredTrackedDeviceGraphicRaycaster>();
+                        raycaster.ChangeType<FilteredTrackedDeviceGraphicRaycaster>();
                     });
             }
         }

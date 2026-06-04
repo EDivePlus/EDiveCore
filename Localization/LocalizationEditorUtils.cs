@@ -17,7 +17,7 @@ namespace EDIVE.Localization
             if (command.context is not LocalizeStringEvent behaviour)
                 return;
 
-            var newBehaviour = behaviour.ChangeScriptType<EnhancedLocalizeStringEvent>();
+            var newBehaviour = behaviour.ChangeType<EnhancedLocalizeStringEvent>();
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(behaviour), newBehaviour);
             EditorUtility.SetDirty(newBehaviour);
         }

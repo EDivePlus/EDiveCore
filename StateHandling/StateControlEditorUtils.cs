@@ -38,7 +38,7 @@ namespace EDIVE.StateHandling
                 newStatePresets.Add(new MultiStateRecord( statePreset.StateID, newObjectPresets));
             }
 
-            var newBehaviour = behaviour.ChangeScriptType<MultiState>();
+            var newBehaviour = behaviour.ChangeType<MultiState>();
             newBehaviour._StatePresets = newStatePresets;
             EditorUtility.SetDirty(newBehaviour);
         }
@@ -71,7 +71,7 @@ namespace EDIVE.StateHandling
                 newPresets.Add(new GameObjectRecord(statePreset.StateID, enabledObjects));
             }
             
-            var newBehaviour = behaviour.ChangeScriptType<MultiStateObjects>();
+            var newBehaviour = behaviour.ChangeType<MultiStateObjects>();
             newBehaviour._StatePresets = newPresets;
             EditorUtility.SetDirty(newBehaviour);
         }
@@ -102,7 +102,7 @@ namespace EDIVE.StateHandling
                 newStatePresets.Add(newPreset);
             }
 
-            var newBehaviour = behaviour.ChangeScriptType<ToggleState>();
+            var newBehaviour = behaviour.ChangeType<ToggleState>();
             newBehaviour._ObjectToggleStatePreset = newStatePresets;
             EditorUtility.SetDirty(newBehaviour);
         }
@@ -137,7 +137,7 @@ namespace EDIVE.StateHandling
                     return;
                 }
             }
-            var newBehaviour = behaviour.ChangeScriptType<ToggleStateObjects>();
+            var newBehaviour = behaviour.ChangeType<ToggleStateObjects>();
             newBehaviour._OnTargets = onObjects;
             newBehaviour._OffTargets = offObjects;
             EditorUtility.SetDirty(newBehaviour);

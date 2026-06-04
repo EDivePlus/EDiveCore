@@ -26,19 +26,16 @@ namespace EDIVE.AppLoading.LoadItems
 {
     public class LoadItemDefinition : AUniqueDefinition, IComparable<LoadItemDefinition>, ISerializationCallbackReceiver
     {
-        [HideLabel]
-        [InlineProperty]
         [SerializeReference]
-        [EnhancedBoxGroup("Source", Color = "@ColorTools.Lime")]
-        [ExchangeableScriptType(HideDropdownLabel = true, OnScriptChanged = "OnSourceChanged")]
+        [EnhancedBoxGroup("Source", false, Color = "@ColorTools.Lime")]
+        [EnhancedTypeSelector(true, OnTypeChanged = "OnSourceChanged")]
         [EnhancedValidate("ValidateSource")]
         [OnValueChanged("RefreshResolvedData", true)]
         protected ALoadItemSource _Source;
         
-        [HideLabel]
-        [InlineProperty]
         [SerializeReference]
-        [EnhancedBoxGroup("Condition", Color = "@ColorTools.Cyan", SpaceBefore = 4)]
+        [EnhancedTypeSelector(true)]
+        [EnhancedBoxGroup("Condition", false, Color = "@ColorTools.Cyan", SpaceBefore = 4)]
         protected ICondition _Condition;
 
         [PropertySpace]

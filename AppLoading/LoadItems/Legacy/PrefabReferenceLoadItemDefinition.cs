@@ -29,7 +29,7 @@ namespace EDIVE.AppLoading.LoadItems.Legacy
         {
 #if UNITY_EDITOR
             result.AddError("PrefabLoadItemDefinition is obsolete, migrate to base class")
-                .WithFix(() => this.ChangeScriptType<LoadItemDefinition>());
+                .WithFix(() => this.ChangeType<LoadItemDefinition>());
 #endif
         }
     #endregion

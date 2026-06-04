@@ -11,10 +11,10 @@ using Object = UnityEngine.Object;
 
 namespace EDIVE.EditorUtils
 {
-    public static class ChangeScriptTypeUtility
+    public static class ObjectTypeUtility
     {
-        [MenuItem("CONTEXT/Object/Change Script Type")]
-        public static void ChangeScriptType(MenuCommand command)
+        [MenuItem("CONTEXT/Object/Change Type")]
+        private static void ChangeType(MenuCommand command)
         {
             var type = command.context switch
             {
@@ -24,7 +24,7 @@ namespace EDIVE.EditorUtils
             };
             if (type == null) return;
 
-            var targets = Selection.objects.Where(o => type.IsInstanceOfType(o));
+            var targets = Selection.objects.Where(type.IsInstanceOfType);
             var selector = new TypeSelector(TypeCache.GetTypesDerivedFrom(type), false);
             selector.SelectionConfirmed += selection =>
             {
@@ -34,23 +34,20 @@ namespace EDIVE.EditorUtils
 
                 foreach (var target in targets)
                 {
-                    target.ChangeScriptType(newType);
+                    target.ChangeType(newType);
                 }
             };
 
             var field = typeof(Event).GetField("s_Current", BindingFlags.Static | BindingFlags.NonPublic);
-            if (field != null)
-            {
-                if (field.GetValue(null) is Event current)
-                {
-                    var rect = new Rect(current.mousePosition, Vector2.zero);
-                    selector.ShowInPopup(rect);
-                }
-            }
+            if (field == null || field.GetValue(null) is not Event current) 
+                return;
+            
+            var rect = new Rect(current.mousePosition, Vector2.zero);
+            selector.ShowInPopup(rect);
         }
 
-        [MenuItem("CONTEXT/Object/Change Script Type", true)]
-        public static bool ChangeScriptTypeValidate(MenuCommand command) => command.context is ScriptableObject or Component;
+        [MenuItem("CONTEXT/Object/Change Type", true)]
+        private static bool ChangeTypeValidate(MenuCommand command) => command.context is ScriptableObject or Component;
 
         [CustomEditorHeaderItem(10)]
         private static bool ChangeScriptTypeHeaderItem(Rect rect, Object[] targets)
@@ -62,7 +59,7 @@ namespace EDIVE.EditorUtils
             if (targets.Any(t => t is not ScriptableObject && t is not Component))
                 return false;
 
-            if (EditorGUI.DropdownButton(rect, GUIHelper.TempContent(FontAwesomeEditorIcons.ArrowsRepeatSolid.Highlighted, "Change Script Type"), FocusType.Passive, EditorHeaderExtender.IconButtonStyle))
+            if (EditorGUI.DropdownButton(rect, GUIHelper.TempContent(FontAwesomeEditorIcons.ArrowsRepeatSolid.Highlighted, "Change Type"), FocusType.Passive, EditorHeaderExtender.IconButtonStyle))
             {
                 var type = firstTarget switch
                 {
@@ -80,7 +77,7 @@ namespace EDIVE.EditorUtils
 
                     foreach (var target in targets)
                     {
-                        target.ChangeScriptType(newType);
+                        target.ChangeType(newType);
                     }
                 };
 
@@ -90,10 +87,12 @@ namespace EDIVE.EditorUtils
             return true;
         }
 
-        public static TTargetType ChangeScriptType<TTargetType>(this Object target, Action<TTargetType> onScriptChangedCallback = null) where TTargetType : Object => 
-            ChangeScriptType(target, typeof(TTargetType), o => onScriptChangedCallback?.Invoke(o as TTargetType)) as TTargetType;
-        
-        public static Object ChangeScriptType(this Object target, Type targetType, Action<Object> onScriptChangedCallback = null)
+        public static TTargetType ChangeType<TTargetType>(this Object target, Action<TTargetType> onScriptChangedCallback = null) where TTargetType : Object
+        {
+            return target.ChangeType(typeof(TTargetType), o => onScriptChangedCallback?.Invoke(o as TTargetType)) as TTargetType;
+        }
+
+        public static Object ChangeType(this Object target, Type targetType, Action<Object> onScriptChangedCallback = null)
         {
             if (target == null)
             {
@@ -112,6 +111,7 @@ namespace EDIVE.EditorUtils
                 return null;
             }
 
+            var prevJson = JsonUtility.ToJson(target);
             var so = new SerializedObject(target);
             var scriptProperty = so.FindProperty("m_Script");
             if (scriptProperty == null)
@@ -127,6 +127,7 @@ namespace EDIVE.EditorUtils
             var result = so.targetObject;
             scriptProperty.Dispose();
             so.Dispose();
+            JsonUtility.FromJsonOverwrite(prevJson, result);
             onScriptChangedCallback?.Invoke(result);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

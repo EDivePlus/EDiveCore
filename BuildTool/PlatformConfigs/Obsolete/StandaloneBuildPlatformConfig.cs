@@ -22,7 +22,7 @@ namespace EDIVE.BuildTool.PlatformConfigs.Obsolete
             result.AddError("AndroidBuildPlatformConfig is obsolete, migrate to base class")
                 .WithFix(() => 
                 { 
-                    this.ChangeScriptType<BuildPlatformConfig>(config =>
+                    this.ChangeType<BuildPlatformConfig>(config =>
                     {
                         var json = JsonUtility.ToJson(this);
                         config._BuildTargetModule = JsonUtility.FromJson<StandaloneBuildPlatformModule>(json);
