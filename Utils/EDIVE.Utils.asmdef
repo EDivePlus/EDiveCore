@@ -10,7 +10,8 @@
         "EDIVE.DataStructures",
         "EDIVE.External.DomainReloadHelper",
         "Whinarn.UnityMeshSimplifier.Runtime",
-        "EDIVE.Core"
+        "EDIVE.Core",
+        "EDIVE.ScriptableArchitecture"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
