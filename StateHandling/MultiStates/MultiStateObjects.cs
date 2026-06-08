@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.NativeUtils;
-using JetBrains.Annotations;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.StateHandling.MultiStates
 {
@@ -13,8 +17,8 @@ namespace EDIVE.StateHandling.MultiStates
         [SerializeField]
         [InlineProperty]
         [HideReferenceObjectPicker]
-        [CustomValueDrawer("CustomStatePresetDrawer")]
-        internal List<GameObjectRecord> _StatePresets = new();
+        [ListDrawerSettings(ShowFoldout = false)]
+        internal List<MultiStateObjectsRecord> _StatePresets = new();
 
         protected override bool TrySetStateInternal(string stateID, bool immediate = false)
         {
@@ -47,21 +51,9 @@ namespace EDIVE.StateHandling.MultiStates
         }
 
 #if UNITY_EDITOR
-        [UsedImplicitly]
-        private GameObjectRecord CustomStatePresetDrawer(GameObjectRecord value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
-        {
-            var previousBgColor = GUI.backgroundColor;
-            GUI.backgroundColor = ColorTools.GetRainbowColor(_StatePresets.IndexOf(value), _StatePresets.Count);
-            Sirenix.Utilities.Editor.SirenixEditorGUI.BeginBox();
-            GUI.backgroundColor = previousBgColor;
-            callNextDrawer(label);
-            Sirenix.Utilities.Editor.SirenixEditorGUI.EndBox();
-            return value;
-        }
-
         public override void AddState(string id)
         {
-            _StatePresets.Add(new GameObjectRecord(id));
+            _StatePresets.Add(new MultiStateObjectsRecord(id));
         }
 
         public override bool RemoveState(string id)
@@ -72,11 +64,16 @@ namespace EDIVE.StateHandling.MultiStates
     }
     
     [Serializable]
-    public class GameObjectRecord
+    public class MultiStateObjectsRecord
     {
+        [EnhancedFoldoutGroup("State", nameof(GetFoldoutColor), true)]
+        [ShowInFoldoutHeader]
+        [HideLabel]
         [SerializeField]
         private string _StateID;
 
+        [EnhancedFoldoutGroup("State")]
+        [ListDrawerSettings(ShowFoldout = false)]
         [SerializeField]
         private List<GameObject> _Targets = new();
 
@@ -91,11 +88,19 @@ namespace EDIVE.StateHandling.MultiStates
             }
         }
 
-        public GameObjectRecord() { }
-        public GameObjectRecord(string stateID, List<GameObject> targets = null)
+        public MultiStateObjectsRecord() { }
+        public MultiStateObjectsRecord(string stateID, List<GameObject> targets = null)
         {
             _StateID = stateID;
             _Targets = targets ?? new List<GameObject>();
         }
+
+#if UNITY_EDITOR
+        private Color GetFoldoutColor(InspectorProperty property)
+        {
+            var element = property.FindParent(p => p.Parent?.ChildResolver is IOrderedCollectionResolver, true);
+            return element != null ? ColorTools.GetRainbowColor(element.Index, element.Parent.Children.Count) : Color.gray;
+        }
+#endif
     }
 }

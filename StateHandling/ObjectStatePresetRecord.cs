@@ -5,6 +5,8 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.StateValuePresets;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
+using Sirenix.Utilities;
+using Sirenix.Utilities.Editor;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -15,9 +17,8 @@ using Sirenix.OdinInspector.Editor;
 namespace EDIVE.StateHandling
 {
     [System.Serializable]
-    public class ObjectStatePresetRecord 
+    public class ObjectStatePresetRecord
     {
-        [Required]
         [SerializeField]
         [InlineButton("Apply")]
         [EnhancedObjectDrawer(ShowSelectRoot = false)]
@@ -25,7 +26,7 @@ namespace EDIVE.StateHandling
 
         [SerializeReference]
         [HideReferenceObjectPicker]
-        [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = "OnPresetsTitleBarGUI")]
+        [CompactList]
         [EnhancedValidate("ValidateValuePresets", ContinuousValidationCheck = true)]
         [ValueDropdown("GetValuePresetDropdown", IsUniqueList = true, DrawDropdownForListElements = false)]
         internal List<AStateValuePreset> _ValuePresets = new();
@@ -83,10 +84,14 @@ namespace EDIVE.StateHandling
             EditorUtility.SetDirty(_Target);
         }
         
-        [UsedImplicitly]
-        private void OnPresetsTitleBarGUI(List<AStateValuePreset> value, InspectorProperty property)
+        [EnhancedTableColumn("Controls", 55)]
+        [OnInspectorGUI]
+        private void DrawControls(InspectorProperty property)
         {
-            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.UploadSolid, "Apply"))
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            var rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+            if (SirenixEditorGUI.IconButton(rect, FontAwesomeEditorIcons.UploadSolid, "Apply"))
             {
                 if (Target != null)
                 {
@@ -95,8 +100,9 @@ namespace EDIVE.StateHandling
                     SetDirty();
                 }
             }
-
-            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.DownloadSolid, "Capture"))
+            
+            rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+            if (SirenixEditorGUI.IconButton(rect, FontAwesomeEditorIcons.DownloadSolid, "Capture"))
             {
                 if (Target != null)
                 {
@@ -104,6 +110,8 @@ namespace EDIVE.StateHandling
                     property.MarkSerializationRootDirty();
                 }
             }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
         }
 
         [UsedImplicitly]

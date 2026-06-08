@@ -49,7 +49,7 @@ namespace EDIVE.StateHandling
             if (command.context is not MultiState behaviour)
                 return;
 
-            var newPresets = new List<GameObjectRecord>();
+            var newPresets = new List<MultiStateObjectsRecord>();
             foreach (var statePreset in behaviour._StatePresets)
             {
                 var enabledObjects = new List<GameObject>();
@@ -68,7 +68,7 @@ namespace EDIVE.StateHandling
                         return;
                     }
                 }
-                newPresets.Add(new GameObjectRecord(statePreset.StateID, enabledObjects));
+                newPresets.Add(new MultiStateObjectsRecord(statePreset.StateID, enabledObjects));
             }
             
             var newBehaviour = behaviour.ChangeType<MultiStateObjects>();

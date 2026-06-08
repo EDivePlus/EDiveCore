@@ -21,7 +21,7 @@ namespace EDIVE.StateHandling
         [PropertyOrder(10)]
         [LabelText("@$property.Parent.NiceName")]
         [SerializeField]
-        [EnhancedTableList(OnTitleBarGUI = "OnObjectPresetsTitleBarGUI", HideToolbar = true)]
+        [EnhancedTableList(HideToolbar = true)]
         private List<ObjectStatePresetRecord> _ObjectPresets = new();
 
         public IReadOnlyList<ObjectStatePresetRecord> ObjectPresets => _ObjectPresets;
@@ -47,34 +47,5 @@ namespace EDIVE.StateHandling
                 objectPreset?.Capture();
             }
         }
-
-#if UNITY_EDITOR
-        [UsedImplicitly]
-        private void OnObjectPresetsTitleBarGUI(List<ObjectStatePresetRecord> value, InspectorProperty property)
-        {
-            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.UploadSolid, "Apply"))
-            {
-                foreach (var record in value)
-                {
-                    if (record.Target == null)
-                        continue;
-                    Undo.RecordObject(record.Target, "Apply state presets");
-                    record.Apply();
-                    record.SetDirty();
-                }
-            }
-
-            if (OdinExtensionUtils.ToolbarIconButton(FontAwesomeEditorIcons.DownloadSolid, "Capture"))
-            {
-                foreach (var record in value)
-                {
-                    if (record.Target == null)
-                        continue;
-                    record.Capture();
-                }
-                property.MarkSerializationRootDirty();
-            }
-        }
-#endif
     }
 }
