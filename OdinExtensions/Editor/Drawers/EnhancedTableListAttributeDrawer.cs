@@ -25,6 +25,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private const string INDEX_ARGUMENT_ID = "index";
         private const string ELEMENT_ARGUMENT_ID = "element";
         private const char TOOLTIP_ICON = 'ⓘ';
+        private const int DELETE_BUTTON_COLUMN_WIDTH = 22;
         
         private IOrderedCollectionResolver _resolver;
         private LocalPersistentContext<bool> _isPagingExpanded;
@@ -131,7 +132,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
             if (!_isReadOnly)
             {
-                _columns.Add(new Column(22, true, false, null, ColumnType.DeleteButton, 0));
+                _columns.Add(new Column(DELETE_BUTTON_COLUMN_WIDTH, true, false, null, ColumnType.DeleteButton, 0));
             }
         }
 
@@ -189,14 +190,14 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 if (!drawFoldout)
                 {
                     Property.State.Expanded = true;
-                    DrawColumnHeaders();
+                    DrawColumnHeaders(label);
                     DrawTable();
                 }
                 else
                 {
                     if (SirenixEditorGUI.BeginFadeGroup(this, Property.State.Expanded) && Property.Children.Count > 0)
                     {
-                        DrawColumnHeaders();
+                        DrawColumnHeaders(label);
                         DrawTable();
                     }
                     SirenixEditorGUI.EndFadeGroup();
@@ -473,34 +474,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 var addButtonRect = GUILayoutUtility.GetLastRect();
                 if (SirenixEditorGUI.ToolbarButton(SdfIconType.Plus))
                 {
-                    var hasCustomAdd = _customAddFunctionResolver != null && !_customAddFunctionResolver.HasError;
-                    var hasCustomAddVoid = _customAddVoidFunctionResolver != null && !_customAddVoidFunctionResolver.HasError;
-                    if (CollectionDrawerStaticInfo.NextCustomAddFunction != null)
-                    {
-                        CollectionDrawerStaticInfo.NextCustomAddFunction?.Invoke();
-                        CollectionDrawerStaticInfo.NextCustomAddFunction = null;
-                    }
-                    else if (Attribute.CustomAddFunction != null && (hasCustomAdd || hasCustomAddVoid))
-                    {
-                        if (hasCustomAdd)
-                        {
-                            var value = _customAddFunctionResolver.GetWeakValue();
-                            var values = new object[] {value};
-                            _resolver.QueueAdd(values);
-                        }
-                        else
-                        {
-                            _customAddVoidFunctionResolver.DoAction();
-                        }
-                    }
-                    else
-                    {
-                        _picker.ShowObjectPicker(
-                            null,
-                            Property.GetAttribute<AssetsOnlyAttribute>() == null && !typeof(ScriptableObject).IsAssignableFrom(_resolver.ElementType),
-                            addButtonRect,
-                            !Property.ValueEntry.SerializationBackend.SupportsPolymorphism);
-                    }
+                    DoAdd(addButtonRect);
                 }
             }
 
@@ -511,23 +485,77 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             SirenixEditorGUI.EndHorizontalToolbar();
         }
 
-        private void DrawColumnHeaders()
+        // When the toolbar (and thus its add button) is hidden, the add button moves into the header of the remove-buttons column.
+        private bool ShowHeaderAddButton => Attribute.HideToolbar && !_isReadOnly && !Attribute.HideAddButton;
+
+        private void DoAdd(Rect addButtonRect)
         {
-            if (Property.Children.Count == 0)
+            var hasCustomAdd = _customAddFunctionResolver != null && !_customAddFunctionResolver.HasError;
+            var hasCustomAddVoid = _customAddVoidFunctionResolver != null && !_customAddVoidFunctionResolver.HasError;
+            if (CollectionDrawerStaticInfo.NextCustomAddFunction != null)
             {
+                CollectionDrawerStaticInfo.NextCustomAddFunction?.Invoke();
+                CollectionDrawerStaticInfo.NextCustomAddFunction = null;
+            }
+            else if (Attribute.CustomAddFunction != null && (hasCustomAdd || hasCustomAddVoid))
+            {
+                if (hasCustomAdd)
+                {
+                    var value = _customAddFunctionResolver.GetWeakValue();
+                    var values = new object[] {value};
+                    _resolver.QueueAdd(values);
+                }
+                else
+                {
+                    _customAddVoidFunctionResolver.DoAction();
+                }
+            }
+            else
+            {
+                _picker.ShowObjectPicker(
+                    null,
+                    Property.GetAttribute<AssetsOnlyAttribute>() == null && !typeof(ScriptableObject).IsAssignableFrom(_resolver.ElementType),
+                    addButtonRect,
+                    !Property.ValueEntry.SerializationBackend.SupportsPolymorphism);
+            }
+        }
+
+        private void DrawColumnHeaders(GUIContent label)
+        {
+            var isEmpty = Property.Children.Count == 0;
+
+            // Nothing to show and no add button to offer.
+            if (isEmpty && !ShowHeaderAddButton)
                 return;
-            }
 
-            _columnHeaderRect = GUILayoutUtility.GetRect(0, 21);
-
-            _columnHeaderRect.height += 1;
-            _columnHeaderRect.y -= 1;
-
-            if (Event.current.type == EventType.Repaint)
+            // Draw the header as a real toolbar so its background, borders and the add button match
+            // the regular toolbar exactly - identical whether the collection is empty or not.
+            _columnHeaderRect = SirenixEditorGUI.BeginHorizontalToolbar();
             {
-                SirenixEditorGUI.DrawBorders(_columnHeaderRect, 1);
-                EditorGUI.DrawRect(_columnHeaderRect, SirenixGUIStyles.ColumnTitleBg);
+                // With no elements there are no column headers, so show the field label on the
+                // left just like the regular toolbar does.
+                if (isEmpty)
+                {
+                    EditorGUILayout.LabelField(label ?? GUIHelper.TempContent(""));
+                }
+
+                // The column labels are overlaid manually afterwards (they must align to the table
+                // columns below), so the toolbar layout itself only positions the add button.
+                GUILayout.FlexibleSpace();
+                if (ShowHeaderAddButton)
+                {
+                    var addButtonRect = GUILayoutUtility.GetLastRect();
+                    if (SirenixEditorGUI.ToolbarButton(SdfIconType.Plus))
+                    {
+                        DoAdd(addButtonRect);
+                    }
+                }
             }
+            SirenixEditorGUI.EndHorizontalToolbar();
+
+            // An empty collection has no laid out columns, so the add button above is all there is.
+            if (isEmpty)
+                return;
 
             var offset = _columnHeaderRect.width - _table.ContentRect.width;
             _columnHeaderRect.width -= offset;
