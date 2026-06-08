@@ -5,11 +5,14 @@ using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities;
+using UnityEngine;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.StateHandling.MultiStates
 {
@@ -57,7 +60,7 @@ namespace EDIVE.StateHandling.MultiStates
     [Serializable]
     public class MultiStateRecord
     {
-        [EnhancedFoldoutGroup("State", nameof(GetFoldoutColor), true)]
+        [EnhancedFoldoutGroup("State", "GetFoldoutColor", true)]
         [ShowInFoldoutHeader]
         [HideLabel]
         [SerializeField]

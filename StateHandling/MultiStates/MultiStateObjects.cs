@@ -66,7 +66,7 @@ namespace EDIVE.StateHandling.MultiStates
     [Serializable]
     public class MultiStateObjectsRecord
     {
-        [EnhancedFoldoutGroup("State", nameof(GetFoldoutColor), true)]
+        [EnhancedFoldoutGroup("State", "GetFoldoutColor", true)]
         [ShowInFoldoutHeader]
         [HideLabel]
         [SerializeField]

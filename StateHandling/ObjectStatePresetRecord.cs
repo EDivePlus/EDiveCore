@@ -6,12 +6,12 @@ using EDIVE.StateHandling.StateValuePresets;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using Sirenix.Utilities;
-using Sirenix.Utilities.Editor;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
 #endif
 
 namespace EDIVE.StateHandling
