@@ -1,25 +1,19 @@
 using System;
 using System.Collections.Generic;
-using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
-using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
-using UnityEditor;
 #endif
 
 namespace EDIVE.StateHandling
 {
-    [HideLabel]
-    [InlineProperty]
     [Serializable]
     public class ObjectStatePresetField
     {
         [PropertyOrder(10)]
-        [LabelText("@$property.Parent.NiceName")]
         [SerializeField]
         [EnhancedTableList(HideToolbar = true)]
         private List<ObjectStatePresetRecord> _ObjectPresets = new();
@@ -48,4 +42,14 @@ namespace EDIVE.StateHandling
             }
         }
     }
+
+#if UNITY_EDITOR
+    public sealed class ObjectStatePresetFieldDrawer : OdinValueDrawer<ObjectStatePresetField>
+    {
+        protected override void DrawPropertyLayout(GUIContent label)
+        {
+            Property.Children["_ObjectPresets"].Draw(label);
+        }
+    }
+#endif
 }
