@@ -64,7 +64,6 @@ namespace EDIVE.StateHandling.MultiStates
         private string _StateID;
 
         [EnhancedFoldoutGroup("State")]
-        [HideLabel]
         [SerializeField]
         [InlineProperty]
         private ObjectStatePresetField _ObjectPresets = new();
