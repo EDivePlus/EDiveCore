@@ -20,7 +20,7 @@ namespace EDIVE.StateHandling
         [Required]
         [SerializeField]
         [InlineButton("Apply")]
-        [EnhancedObjectDrawer]
+        [EnhancedObjectDrawer(ShowSelectRoot = false)]
         private Object _Target;
 
         [SerializeReference]

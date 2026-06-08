@@ -21,7 +21,7 @@ namespace EDIVE.StateHandling
         [PropertyOrder(10)]
         [LabelText("@$property.Parent.NiceName")]
         [SerializeField]
-        [EnhancedTableList(OnTitleBarGUI = "OnObjectPresetsTitleBarGUI")]
+        [EnhancedTableList(OnTitleBarGUI = "OnObjectPresetsTitleBarGUI", HideToolbar = true)]
         private List<ObjectStatePresetRecord> _ObjectPresets = new();
 
         public IReadOnlyList<ObjectStatePresetRecord> ObjectPresets => _ObjectPresets;
