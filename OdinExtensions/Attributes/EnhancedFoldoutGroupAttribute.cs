@@ -38,13 +38,24 @@ namespace EDIVE.OdinExtensions.Attributes
             HasColorDefined = true;
         }
 
-        public EnhancedFoldoutGroupAttribute(string group, string getColor, bool expanded = false, int order = 0)
+        public EnhancedFoldoutGroupAttribute(string group, string getColor, int order = 0)
+            : base(group, (float) order)
+        {
+            Color = getColor;
+        }
+
+        public EnhancedFoldoutGroupAttribute(string group, string getColor, bool expanded, int order = 0)
             : base(group, expanded, order)
         {
             Color = getColor;
         }
 
-        public EnhancedFoldoutGroupAttribute(string group, bool expanded = false, int order = 0)
+        public EnhancedFoldoutGroupAttribute(string group, int order = 0)
+            : base(group, (float) order)
+        {
+        }
+
+        public EnhancedFoldoutGroupAttribute(string group, bool expanded, int order = 0)
             : base(group, expanded, order)
         {
         }
