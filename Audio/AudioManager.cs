@@ -10,8 +10,8 @@ using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
 using Adrenak.UniVoice.Inputs;
 using Adrenak.UniVoice.Networks;
-using Adrenak.UniVoice.Outputs;
 using Cysharp.Threading.Tasks;
+using EDIVE.Audio.Playback;
 using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
@@ -335,7 +335,7 @@ namespace EDIVE.Audio
             if (_Config.UseRnNoise)
                 filters.Add(new RNNoiseFilter()); // Noise suppression
             if (_Config.UseSimpleVad)
-                filters.Add(new SimpleVadFilter(new SimpleVad())); // Voice activity detection
+                filters.Add(new SimpleVadFilter(new SimpleVad(_Config.BuildVadConfig()))); // Voice activity detection
             filters.Add(new ConcentusEncodeFilter(
                 _Config.OpusFrequency,
                 resamplerQuality: _Config.ResamplerQuality,

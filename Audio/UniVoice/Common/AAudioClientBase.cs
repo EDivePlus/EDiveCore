@@ -6,18 +6,7 @@ using UnityEngine;
 
 namespace Adrenak.UniVoice.Networks
 {
-    /// <summary>
-    /// Network-agnostic base for <see cref="IAudioClient{T}"/> implementations.
-    /// Handles the BRW-encoded protocol (<see cref="AudioBroadcastTags.AUDIO_FRAME"/>,
-    /// <see cref="AudioBroadcastTags.VOICE_SETTINGS"/>), the local peer roster and event
-    /// dispatching. Subclasses bind it to a specific framework by:
-    ///  - subscribing to framework events and forwarding them via
-    ///    <see cref="HandleLocalJoined"/> / <see cref="HandleLocalLeft"/> /
-    ///    <see cref="HandlePeerJoined"/> / <see cref="HandlePeerLeft"/>;
-    ///  - delivering received payload bytes via <see cref="HandleIncomingPayload"/>;
-    ///  - implementing <see cref="SendToServer"/>, <see cref="IsConnected"/>,
-    ///    <see cref="HasLocalId"/>, <see cref="WriteId"/> and <see cref="ReadId"/>.
-    /// </summary>
+
     public abstract class AAudioClientBase<T> : IAudioClient<T>
     {
         public T ID { get; protected set; }
@@ -37,11 +26,7 @@ namespace Adrenak.UniVoice.Networks
         protected abstract void SendToServer(byte[] data, bool reliable);
         protected abstract void WriteId(BytesWriter writer, T id);
         protected abstract T ReadId(BytesReader reader);
-
-        /// <summary>
-        /// Reset <see cref="ID"/> to the sentinel value the subclass uses to
-        /// represent "no local id assigned" (e.g. -1 for int, default(PlayerID)).
-        /// </summary>
+        
         protected abstract void ResetLocalId();
 
         public virtual void Dispose()
@@ -94,12 +79,7 @@ namespace Adrenak.UniVoice.Networks
             var tag = reader.ReadString();
             DispatchIncomingTag(tag, reader);
         }
-
-        /// <summary>
-        /// Override to add backend-specific tags (e.g. Mirror's PEER_INIT/JOINED/LEFT).
-        /// Always call <c>base.DispatchIncomingTag</c> so the shared AUDIO_FRAME
-        /// handling still runs.
-        /// </summary>
+        
         protected virtual void DispatchIncomingTag(string tag, BytesReader reader)
         {
             if (tag == AudioBroadcastTags.AUDIO_FRAME)

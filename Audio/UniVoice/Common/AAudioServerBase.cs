@@ -6,19 +6,6 @@ using UnityEngine;
 
 namespace Adrenak.UniVoice.Networks
 {
-    /// <summary>
-    /// Network-agnostic base for <see cref="IAudioServer{T}"/> implementations.
-    /// Owns the client roster and per-client <see cref="VoiceSettings"/>, applies
-    /// mute/deafen filtering, and re-broadcasts <see cref="AudioBroadcastTags.AUDIO_FRAME"/>
-    /// payloads to the appropriate recipients.
-    /// <para>
-    /// Constrained to <c>int</c> client ids because <see cref="VoiceSettings"/> itself stores
-    /// mute/deafen lists as <c>List&lt;int&gt;</c>. Frameworks whose native id type is not
-    /// <c>int</c> (e.g. PurrNet's <c>PlayerID</c>) convert at the boundary before calling
-    /// <see cref="HandleClientConnected"/> / <see cref="HandleClientDisconnected"/> /
-    /// <see cref="HandleIncomingPayload"/>.
-    /// </para>
-    /// </summary>
     public abstract class AAudioServerBase : IAudioServer<int>
     {
         public event Action OnServerStart;
@@ -65,20 +52,8 @@ namespace Adrenak.UniVoice.Networks
                 $"Client {clientId} disconnected. IDs now: {string.Join(", ", ClientIDs)}");
             OnAfterClientDisconnected(clientId);
         }
-
-        /// <summary>
-        /// Hook for backends that need to push state to peers when a client connects
-        /// (e.g. Mirror's PEER_INIT / PEER_JOINED notifications). Default is no-op.
-        /// <see cref="ClientIDs"/> already contains <paramref name="clientId"/> when this fires.
-        /// </summary>
+        
         protected virtual void OnAfterClientConnected(int clientId) { }
-
-        /// <summary>
-        /// Hook for backends that need to push state to peers when a client disconnects
-        /// (e.g. Mirror's PEER_LEFT notification). Default is no-op.
-        /// <paramref name="clientId"/> has already been removed from <see cref="ClientIDs"/>
-        /// when this fires.
-        /// </summary>
         protected virtual void OnAfterClientDisconnected(int clientId) { }
 
         protected void HandleIncomingPayload(int clientId, byte[] data)

@@ -1,19 +1,12 @@
-#define PURRNET
 #if PURRNET
-using System;
 using Adrenak.BRW;
-using EDIVE.Audio;
 using PurrNet;
 using PurrNet.Transports;
 using UnityEngine;
 
 namespace Adrenak.UniVoice.Networks
 {
-    /// <summary>
-    /// PurrNet implementation of <see cref="IAudioClient{T}"/>.
-    /// Inherits the BRW protocol and peer bookkeeping from <see cref="AAudioClientBase{T}"/>;
-    /// only the framework wiring lives here.
-    /// </summary>
+
     public class PurrNetClient : AAudioClientBase<PlayerID>
     {
         protected sealed override string Tag => "[PurrNetClient]";
@@ -61,7 +54,7 @@ namespace Adrenak.UniVoice.Networks
         protected override void SendToServer(byte[] data, bool reliable)
         {
             var message = new PurrNetBroadcast { data = data };
-            _networkManager.SendToServer(message, reliable ? Channel.ReliableOrdered : Channel.Unreliable);
+            _networkManager.SendToServer(message, reliable ? Channel.ReliableOrdered : Channel.UnreliableSequenced);
         }
 
         protected override void WriteId(BytesWriter writer, PlayerID id) => writer.WritePlayerID(id);
@@ -76,9 +69,7 @@ namespace Adrenak.UniVoice.Networks
 
         private void OnPlayerJoined(PlayerID player, bool isReconnect, bool asServer)
         {
-            // Only react to the client-side view; ignore server-side mirrors of the event.
             if (asServer) return;
-            // Until we know our own id we cannot tell which join refers to ourselves.
             if (!_hasLocalId) return;
             HandlePeerJoined(player);
         }

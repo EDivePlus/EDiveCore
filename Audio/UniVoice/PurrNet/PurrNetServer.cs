@@ -1,4 +1,3 @@
-#define PURRNET
 #if PURRNET
 using PurrNet;
 using PurrNet.Transports;
@@ -6,11 +5,6 @@ using UnityEngine;
 
 namespace Adrenak.UniVoice.Networks
 {
-    /// <summary>
-    /// PurrNet implementation of <see cref="IAudioServer{T}"/>.
-    /// Inherits the forwarding/filtering protocol from <see cref="AAudioServerBase"/>;
-    /// only the framework wiring lives here.
-    /// </summary>
     public class PurrNetServer : AAudioServerBase
     {
         protected sealed override string Tag => "[PurrNetServer]";
@@ -49,7 +43,7 @@ namespace Adrenak.UniVoice.Networks
         {
             if (!TryGetPlayer(clientId, out var player)) return;
             var message = new PurrNetBroadcast { data = data };
-            _networkManager.Send(player, message, reliable ? Channel.ReliableOrdered : Channel.Unreliable);
+            _networkManager.Send(player, message, reliable ? Channel.ReliableOrdered : Channel.UnreliableSequenced);
         }
 
         private void OnServerConnectionStateChanged(ConnectionState state)

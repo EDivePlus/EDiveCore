@@ -36,6 +36,11 @@
             "name": "com.adrenak.univoice",
             "expression": "",
             "define": "UNIVOICE"
+        },
+        {
+            "name": "dev.purrnet.purrnet",
+            "expression": "",
+            "define": "PURRNET"
         }
     ],
     "noEngineReferences": false

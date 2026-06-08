@@ -1,7 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 23.04.2025
 
-using Adrenak.UniVoice.Outputs;
+using EDIVE.Audio.Playback;
 using UnityEngine;
 
 namespace EDIVE.Audio

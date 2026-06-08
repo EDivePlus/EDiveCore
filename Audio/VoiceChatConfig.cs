@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Adrenak.UniVoice;
 using Adrenak.UniVoice.Filters;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -109,6 +110,42 @@ namespace EDIVE.Audio
         [Tooltip("Drops frames when no speech is detected. Saves bandwidth but can clip word onsets.")]
         private bool _UseSimpleVad = true;
 
+        [SerializeField]
+        [BoxGroup("Filters")]
+        [ShowIf(nameof(_UseSimpleVad))]
+        [LabelText("VAD Attack")]
+        [PropertyRange(0, 200)]
+        [SuffixLabel("ms", true)]
+        [Tooltip("How long speech must persist before the VAD opens. Lower = less onset clipping, but more false triggers from transient noise.")]
+        private int _VadAttackMs = 20;
+
+        [SerializeField]
+        [BoxGroup("Filters")]
+        [ShowIf(nameof(_UseSimpleVad))]
+        [LabelText("VAD Release (hangover)")]
+        [PropertyRange(100, 2000)]
+        [SuffixLabel("ms", true)]
+        [Tooltip("How long the VAD keeps transmitting after speech stops. This is the hold-over/hangover: higher values prevent the receiver's jitter buffer from stopping mid-sentence on brief pauses.")]
+        private int _VadReleaseMs = 1000;
+
+        [SerializeField]
+        [BoxGroup("Filters")]
+        [ShowIf(nameof(_UseSimpleVad))]
+        [LabelText("VAD Max Gap")]
+        [PropertyRange(0, 1000)]
+        [SuffixLabel("ms", true)]
+        [Tooltip("Quiet gaps up to this long are tolerated without closing while already speaking (keeps short pauses inside a sentence from clipping).")]
+        private int _VadMaxGapMs = 300;
+
+        [SerializeField]
+        [BoxGroup("Filters")]
+        [ShowIf(nameof(_UseSimpleVad))]
+        [LabelText("VAD No-Drop Window")]
+        [PropertyRange(0, 1000)]
+        [SuffixLabel("ms", true)]
+        [Tooltip("After opening, the VAD refuses to close for at least this long. Prevents flicker at the very start of an utterance.")]
+        private int _VadNoDropWindowMs = 400;
+
         public int MicSamplingFrequency => _MicSamplingFrequency;
         public int MicFrameDurationMs => _MicFrameDurationMs;
         public ConcentusFrequencies OpusFrequency => _OpusFrequency;
@@ -117,10 +154,22 @@ namespace EDIVE.Audio
         public int ResamplerQuality => _ResamplerQuality;
         public bool UseRnNoise => _UseRnNoise;
         public bool UseSimpleVad => _UseSimpleVad;
+        public int VadAttackMs => _VadAttackMs;
+        public int VadReleaseMs => _VadReleaseMs;
+        public int VadMaxGapMs => _VadMaxGapMs;
+        public int VadNoDropWindowMs => _VadNoDropWindowMs;
         public float TargetLatencySeconds => _TargetLatencyMs / 1000f;
         public float PitchMaxCorrection => _PitchMaxCorrection;
         public float PitchProportionalGain => _PitchProportionalGain;
         public float DownwardPitchCorrectionScale => _DownwardPitchCorrectionScale;
+        
+        public SimpleVad.Config BuildVadConfig() => new()
+        {
+            AttackMs = _VadAttackMs,
+            ReleaseMs = _VadReleaseMs,
+            MaxGapMs = _VadMaxGapMs,
+            NoDropWindowMs = _VadNoDropWindowMs,
+        };
 
         public void ApplyPreset(VoiceChatPreset preset)
         {
