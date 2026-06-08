@@ -12,16 +12,14 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private ValueResolver<string> _labelResolver;
         private ValueResolver<Color> _colorResolver;
         private ValueResolver<bool> _useIfResolver;
-
-        /// <summary>Initializes this instance.</summary>
+        
         protected override void Initialize()
         {
             _labelResolver = ValueResolver.GetForString(Property, Attribute.LabelText ?? Attribute.GroupName);
             _colorResolver = ValueResolver.Get(Property, Attribute.Color, Attribute.DefaultColor);
             _useIfResolver = ValueResolver.Get(Property, Attribute.UseIf, true);
         }
-
-        /// <summary>Draws the property.</summary>
+        
         protected override void DrawPropertyLayout(GUIContent label)
         {
             ValueResolver.DrawErrors( _useIfResolver);
@@ -49,13 +47,13 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 GUI.backgroundColor = backgroundColor;
             }
             
-            var headerLabel = (string) null;
+            string headerLabel = null;
             if (Attribute.ShowLabel)
             {
                 headerLabel = _labelResolver.GetValue();
                 if (string.IsNullOrEmpty(headerLabel))
                 {
-                    headerLabel = "Null"; // The user has asked for a header. So he gets a header.
+                    headerLabel = "Null";
                 }
             }
             

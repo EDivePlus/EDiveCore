@@ -1,7 +1,9 @@
+using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.ValueResolvers;
 using Sirenix.Utilities.Editor;
+using UnityEditor;
 using UnityEngine;
 
 namespace EDIVE.OdinExtensions.Editor.Drawers
@@ -11,8 +13,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private ValueResolver<Color> _colorResolver;
         private ValueResolver<string> _titleResolver;
         private ValueResolver<bool> _useIfResolver;
-
-        /// <summary>Initializes this instance.</summary>
+        
         protected override void Initialize()
         {
             _colorResolver = ValueResolver.Get(Property, Attribute.Color, Attribute.DefaultColor);
@@ -22,12 +23,11 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (Attribute.HasDefinedExpanded)
                 Property.State.Expanded = Attribute.Expanded;
         }
-
-        /// <summary>Draws the property.</summary>
+        
         protected override void DrawPropertyLayout(GUIContent label)
         {
             ValueResolver.DrawErrors(_useIfResolver);
-            if (_useIfResolver.GetValue() == false)
+            if (!_useIfResolver.GetValue())
             {
                 foreach (var child in Property.Children)
                 {
@@ -54,17 +54,48 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             SirenixEditorGUI.BeginBox();
             GUI.backgroundColor = previousBgColor;
             SirenixEditorGUI.BeginBoxHeader();
+
             var style = new GUIStyle(SirenixGUIStyles.Foldout);
             if (Attribute.Bold)
             {
                 style.fontStyle = FontStyle.Bold;
             }
-            Property.State.Expanded = SirenixEditorGUI.Foldout(Property.State.Expanded, GUIHelper.TempContent(_titleResolver.GetValue()), style);
+
+            var titleContent = Attribute.HideGroupTitle
+                ? GUIContent.none
+                : GUIHelper.TempContent(_titleResolver.GetValue());
+
+            var hasHeaderChildren = Property.Children.Any(child => child.GetAttribute<ShowInFoldoutHeaderAttribute>() != null);
+            if (hasHeaderChildren)
+            {
+                EditorGUILayout.BeginHorizontal();
+                
+                var titleWidth = Attribute.TitleWidth > 0 ? Attribute.TitleWidth
+                    : Attribute.HideGroupTitle ? 15
+                    : EditorGUIUtility.labelWidth;
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxWidth(titleWidth));
+                Property.State.Expanded = SirenixEditorGUI.Foldout(Property.State.Expanded, titleContent, style);
+                EditorGUILayout.EndHorizontal();
+
+                foreach (var child in Property.Children)
+                {
+                    if (child.GetAttribute<ShowInFoldoutHeaderAttribute>() != null)
+                        child.Draw(child.Label);
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            else
+            {
+                Property.State.Expanded = SirenixEditorGUI.Foldout(Property.State.Expanded, titleContent, style);
+            }
+
             SirenixEditorGUI.EndBoxHeader();
             if (SirenixEditorGUI.BeginFadeGroup(this, Property.State.Expanded))
             {
                 foreach (var child in Property.Children)
                 {
+                    if (child.GetAttribute<ShowInFoldoutHeaderAttribute>() != null)
+                        continue;
                     child.Draw(child.Label);
                 }
             }

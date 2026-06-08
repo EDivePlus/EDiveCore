@@ -11,6 +11,8 @@ namespace EDIVE.OdinExtensions.Attributes
         public string UseIf;
 
         public bool Bold;
+        public bool HideGroupTitle;
+        public float TitleWidth;
         public float SpaceBefore = 0;
         public float SpaceAfter = 0;
         
@@ -76,6 +78,8 @@ namespace EDIVE.OdinExtensions.Attributes
             }
 
             Bold = attr.Bold = Bold || attr.Bold;
+            HideGroupTitle = attr.HideGroupTitle = HideGroupTitle || attr.HideGroupTitle;
+            TitleWidth = attr.TitleWidth = Mathf.Max(TitleWidth, attr.TitleWidth);
             SpaceBefore = attr.SpaceBefore = Mathf.Max(SpaceBefore, attr.SpaceBefore);
             SpaceAfter = attr.SpaceAfter = Mathf.Max(SpaceAfter, attr.SpaceAfter);
         }
