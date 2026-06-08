@@ -13,6 +13,7 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 using ActionNamedValue = Sirenix.OdinInspector.Editor.ActionResolvers.NamedValue;
+using Object = UnityEngine.Object;
 using SerializationUtility = Sirenix.Serialization.SerializationUtility;
 
 #pragma warning disable
@@ -35,7 +36,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private HashSet<string> _seenColumnNames;
         private List<Column> _columns;
         private ObjectPicker _picker;
-        private int _colOffset;
         private GUIContent _indexLabel;
         private bool _isReadOnly;
         private int _indexLabelWidth;
@@ -43,7 +43,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private GUIPagingHelper _paging;
         private bool _drawAsList;
         private bool _isFirstFrame = true;
-        private Dictionary<string, ValueResolver<string>> _columnNameResolvers = new Dictionary<string, ValueResolver<string>>();
+        private readonly Dictionary<string, ValueResolver<string>> _columnNameResolvers = new();
 
         private ActionResolver _onTitleBarGUIResolver;
         private ActionResolver _customAddVoidFunctionResolver;
@@ -52,24 +52,17 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private MultiCollectionFilter<IOrderedCollectionResolver> _filter;
         
-        /// <summary>
-        /// Determines whether this instance [can draw attribute property] the specified property.
-        /// </summary>
         protected override bool CanDrawAttributeProperty(InspectorProperty property)
         {
             return property.ChildResolver is IOrderedCollectionResolver;
         }
-
-        /// <summary>
-        /// Initializes this instance.
-        /// </summary>
+        
         protected override void Initialize()
         {
             _drawAsList = false;
             _isReadOnly = Attribute.IsReadOnly || !Property.ValueEntry.IsEditable;
             _indexLabelWidth = (int)SirenixGUIStyles.Label.CalcSize(new GUIContent("100")).x + 15;
             _indexLabel = new GUIContent();
-            _colOffset = 0;
             _seenColumnNames = new HashSet<string>();
             _table = new GUITableRowLayoutGroup();
             _table.MinScrollViewHeight = Attribute.MinScrollViewHeight;
@@ -126,7 +119,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
             if (Attribute.ShowIndexLabels)
             {
-                _colOffset++;
                 _columns.Add(new Column(_indexLabelWidth, true, false, null, ColumnType.Index, 0));
             }
 
@@ -141,10 +133,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             padding = new RectOffset(0, 0, 0, 3),
             margin = new RectOffset(3, 3, 0, 0)
         };
-
-        /// <summary>
-        /// Draws the property layout.
-        /// </summary>
+        
         protected override void DrawPropertyLayout(GUIContent label)
         {
             if (_drawAsList)
@@ -236,7 +225,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
             for (var i = 0; i < valueEntry.ValueCount; i++)
             {
-                var uObj = valueEntry.WeakValues[i] as UnityEngine.Object;
+                var uObj = valueEntry.WeakValues[i] as Object;
                 if (uObj)
                 {
                     EditorUtility.SetDirty(uObj);
@@ -249,9 +238,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (_isReadOnly) return;
 
             var eventType = Event.current.type;
-            if ((eventType == EventType.DragUpdated || eventType == EventType.DragPerform) && rect.Contains(Event.current.mousePosition))
+            if (eventType is EventType.DragUpdated or EventType.DragPerform && rect.Contains(Event.current.mousePosition))
             {
-                UnityEngine.Object[] objReferences = null;
+                Object[] objReferences = null;
 
                 if (DragAndDrop.objectReferences.Any(n => n != null && _resolver.ElementType.IsInstanceOfType(n)))
                 {
@@ -259,7 +248,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 }
                 else if (_resolver.ElementType.InheritsFrom(typeof(Component)))
                 {
-                    objReferences = DragAndDrop.objectReferences.OfType<GameObject>().Select(x => x.GetComponent(_resolver.ElementType)).Where(x => x != null).Reverse().ToArray();
+                    objReferences = DragAndDrop.objectReferences.OfType<GameObject>().Select(x => x.GetComponent(_resolver.ElementType)).Where(x => x != null).Reverse().ToArray<Object>();
                 }
                 else if (_resolver.ElementType.InheritsFrom(typeof(Sprite)) && DragAndDrop.objectReferences.Any(n => n is Texture2D && AssetDatabase.Contains(n)))
                 {
@@ -267,7 +256,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     {
                         var path = AssetDatabase.GetAssetPath(x);
                         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
-                    }).Where(x => x != null).Reverse().ToArray();
+                    }).Where(x => x != null).Reverse().ToArray<Object>();
                 }
 
                 var acceptsDrag = objReferences != null && objReferences.Length > 0;
@@ -502,7 +491,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 if (hasCustomAdd)
                 {
                     var value = _customAddFunctionResolver.GetWeakValue();
-                    var values = new object[] {value};
+                    var values = new[] {value};
                     _resolver.QueueAdd(values);
                 }
                 else
@@ -523,24 +512,17 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private void DrawColumnHeaders(GUIContent label)
         {
             var isEmpty = Property.Children.Count == 0;
-
-            // Nothing to show and no add button to offer.
+            
             if (isEmpty && !ShowHeaderAddButton)
                 return;
 
-            // Draw the header as a real toolbar so its background, borders and the add button match
-            // the regular toolbar exactly - identical whether the collection is empty or not.
             _columnHeaderRect = SirenixEditorGUI.BeginHorizontalToolbar();
             {
-                // With no elements there are no column headers, so show the field label on the
-                // left just like the regular toolbar does.
                 if (isEmpty)
                 {
                     EditorGUILayout.LabelField(label ?? GUIHelper.TempContent(""));
                 }
-
-                // The column labels are overlaid manually afterwards (they must align to the table
-                // columns below), so the toolbar layout itself only positions the add button.
+                
                 GUILayout.FlexibleSpace();
                 if (ShowHeaderAddButton)
                 {
@@ -553,7 +535,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
             SirenixEditorGUI.EndHorizontalToolbar();
 
-            // An empty collection has no laid out columns, so the add button above is all there is.
             if (isEmpty)
                 return;
 
@@ -599,8 +580,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     var colWidth = (int)col.ColWidth;
                     if (_isFirstFrame && col.PreferWide)
                     {
-                        // First frame is often rendered with minWidth becase we don't know the full width yet.
-                        // resulting in very tall rows. This tweak will give a better first guess at how tall a row is.
                         colWidth = 200;
                     }
 
@@ -724,10 +703,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 throw new NotImplementedException(col.ColumnType.ToString());
             }
         }
-
-        // Most drawers treat a null label as "no label", but collection drawers (list/dictionary/table)
-        // fall back to printing the property's type/name. Pass an empty label for those so they stay blank,
-        // while keeping null for everything else so simple fields draw full-width without a prefix.
+        
         private static GUIContent GetCellLabel(InspectorProperty cell)
         {
             var type = cell.ValueEntry?.TypeOfValue;
