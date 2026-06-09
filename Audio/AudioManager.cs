@@ -43,6 +43,18 @@ namespace EDIVE.Audio
         [Required]
         private AudioMixerGroup _VoiceMixerGroup;
 
+        [SerializeField]
+        [Required]
+        private AudioMixer _Mixer;
+
+        [SerializeField]
+        [ValueDropdown(nameof(GetExposedParameterOptions))]
+        private List<string> _ManagedVolumeParameters = new() { "MasterVolume", "MusicVolume", "SFXVolume", "VoiceVolume" };
+
+        private const float MIN_VOLUME_LINEAR = 0.0001f;
+        // +20 dB is the mixer's Attenuation ceiling (linear 10). Lets a group boost above unity (1 = 0 dB).
+        private const float MAX_VOLUME_LINEAR = 10f;
+
         private ClientSession<PlayerID> _voiceChatSession;
         private bool _microphonePermissionGranted = false;
 
@@ -106,11 +118,38 @@ namespace EDIVE.Audio
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
+            ApplySavedVolumes();
             InitializeAudioInput();
             InitializeVoiceChat();
             return UniTask.CompletedTask;
         }
 
+        private static string VolumePrefKey(string parameter) => $"Audio_Volume_{parameter}";
+        
+        public float GetVolume(string parameter) => PlayerPrefs.GetFloat(VolumePrefKey(parameter), 1f);
+        
+        public void SetVolume(string parameter, float linear)
+        {
+            linear = Mathf.Clamp(linear, 0f, MAX_VOLUME_LINEAR);
+            PlayerPrefs.SetFloat(VolumePrefKey(parameter), linear);
+            ApplyVolume(parameter, linear);
+        }
+
+        private void ApplyVolume(string parameter, float linear)
+        {
+            if (_Mixer == null || string.IsNullOrEmpty(parameter))
+                return;
+            // Mixer volumes are dB (logarithmic); convert from the linear slider value.
+            var db = Mathf.Log10(Mathf.Max(linear, MIN_VOLUME_LINEAR)) * 20f;
+            _Mixer.SetFloat(parameter, db);
+        }
+
+        private void ApplySavedVolumes()
+        {
+            foreach (var parameter in _ManagedVolumeParameters)
+                ApplyVolume(parameter, GetVolume(parameter));
+        }
+        
         private void InitializeAudioInput()
         {
             // No microphone needed in headless mode
@@ -532,6 +571,8 @@ namespace EDIVE.Audio
             get => CurrentMicrophoneName;
             set => TrySetMicrophone(value);
         }
+        
+        private IEnumerable<string> GetExposedParameterOptions() => _Mixer.GetExposedParameterOptions();
 #endif
     }
 }

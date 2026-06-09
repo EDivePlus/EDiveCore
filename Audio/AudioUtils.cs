@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Adrenak.UniVoice;
 using UnityEngine;
+using UnityEngine.Audio;
 using ZLinq;
 
 namespace EDIVE.Audio
@@ -134,5 +135,25 @@ namespace EDIVE.Audio
 
             return frame.samples != null && frame.samples.Length > 0;
         }
+        
+#if UNITY_EDITOR
+        public static IEnumerable<string> GetExposedParameterOptions(this AudioMixer mixer)
+        {
+            if (mixer == null)
+                yield break;
+
+            var so = new UnityEditor.SerializedObject(mixer);
+            var exposed = so.FindProperty("m_ExposedParameters");
+            if (exposed == null || !exposed.isArray)
+                yield break;
+
+            for (var i = 0; i < exposed.arraySize; i++)
+            {
+                var nameProp = exposed.GetArrayElementAtIndex(i).FindPropertyRelative("name");
+                if (nameProp != null && !string.IsNullOrEmpty(nameProp.stringValue))
+                    yield return nameProp.stringValue;
+            }
+        }
+#endif
     }
 }
