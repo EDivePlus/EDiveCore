@@ -14,7 +14,6 @@ namespace EDIVE.DataStructures.VariableFields
     [Serializable]
     public class VariableField<T>
     {
-        [EnhancedTypeSelector(true)]
         [SerializeReference]
         private IVariableFieldData<T> _Data = new RawVariableFieldData<T>();
         

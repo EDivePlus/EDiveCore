@@ -28,13 +28,12 @@ namespace EDIVE.AppLoading.LoadItems
     {
         [SerializeReference]
         [EnhancedBoxGroup("Source", false, Color = "@ColorTools.Lime")]
-        [EnhancedTypeSelector(true, OnTypeChanged = "OnSourceChanged")]
+        [EnhancedTypeSelector(true, 1, OnTypeChanged = "OnSourceChanged")]
         [EnhancedValidate("ValidateSource")]
         [OnValueChanged("RefreshResolvedData", true)]
         protected ALoadItemSource _Source;
         
         [SerializeReference]
-        [EnhancedTypeSelector(true)]
         [EnhancedBoxGroup("Condition", false, Color = "@ColorTools.Cyan", SpaceBefore = 4)]
         protected ICondition _Condition;
 

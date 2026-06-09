@@ -54,20 +54,12 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         protected override void DrawPropertyLayout(GUIContent label)
         {
-            // Draw only if property is tree root in case of value is type of UnityEngine.Object
             if (!_showInInlineEditors && EnhancedInlineEditorAttributeDrawer.UniversalMaxCurrentInlineEditorDrawDepth > 0)
             {
                 CallNextDrawer(label);
                 return;
             }
             
-            // Draw only if property is tree root in case of value is type of UnityEngine.Object
-            if (typeof(Object).IsAssignableFrom(ValueEntry.BaseValueType) && !Property.IsTreeRoot)
-            {
-                CallNextDrawer(label);
-                return;
-            }
- 
             EditorGUILayout.BeginVertical();
             ActionResolver.DrawErrors(_onTypeChanged);
             ValueResolver.DrawErrors(_baseTypeResolver, _customTypesResolver);
@@ -95,28 +87,37 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 valueIcon = resolvedIcon != SdfIconType.None ? resolvedIcon : SdfIconType.PuzzleFill;
             }
             
-            var inlineFoldout = dropdownLabel != null && !typeof(Object).IsAssignableFrom(ValueEntry.BaseValueType);
+            var inlineFoldout = !typeof(Object).IsAssignableFrom(ValueEntry.BaseValueType);
             if (inlineFoldout)
             {
-                var rowRect = EditorGUILayout.GetControlRect(false);
-                var fieldRect = rowRect;
-                fieldRect.xMin = rowRect.x + EditorGUIUtility.labelWidth;
-                var foldoutRect = rowRect;
-                foldoutRect.xMax = fieldRect.xMin;
-
                 bool expanded;
-                if (Attribute.HideFoldout)
+                if (dropdownLabel == null)
                 {
-                    EditorGUI.LabelField(foldoutRect, dropdownLabel);
+                    var fieldRect = EditorGUILayout.GetControlRect(false);
+                    DrawDropdown(fieldRect);
                     expanded = true;
                 }
                 else
                 {
-                    Property.State.Expanded = SirenixEditorGUI.Foldout(foldoutRect, Property.State.Expanded, dropdownLabel);
-                    expanded = Property.State.Expanded;
-                }
+                    var rowRect = EditorGUILayout.GetControlRect(false);
+                    var fieldRect = rowRect;
+                    fieldRect.xMin = rowRect.x + EditorGUIUtility.labelWidth;
+                    var foldoutRect = rowRect;
+                    foldoutRect.xMax = fieldRect.xMin;
 
-                DrawDropdown(fieldRect);
+                    if (Attribute.HideFoldout)
+                    {
+                        EditorGUI.LabelField(foldoutRect, dropdownLabel);
+                        expanded = true;
+                    }
+                    else
+                    {
+                        Property.State.Expanded = SirenixEditorGUI.Foldout(foldoutRect, Property.State.Expanded, dropdownLabel);
+                        expanded = Property.State.Expanded;
+                    }
+
+                    DrawDropdown(fieldRect);
+                }
 
                 if (SirenixEditorGUI.BeginFadeGroup(this, expanded))
                 {
@@ -224,8 +225,6 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
         }
 
-        // Mirrors Odin's internal TypeRegistry resolution (which is not public): the user TypeRegistry config
-        // takes precedence, then the [TypeRegistryItem] attribute, then the type's plain nice name.
         private static string GetSelectorNiceName(Type type)
         {
             var userSettings = TypeRegistryUserConfig.Instance.TryGetSettings(type);

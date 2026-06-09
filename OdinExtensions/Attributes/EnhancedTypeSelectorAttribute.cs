@@ -17,7 +17,7 @@ namespace EDIVE.OdinExtensions.Attributes
         public bool HideFoldout;
 
         public float Space;
-        public int ContentIndent = 1;
+        public int ContentIndent;
         
         public string OnTypeChanged;
 
@@ -35,6 +35,13 @@ namespace EDIVE.OdinExtensions.Attributes
                 HideFoldout = hideFoldout;
                 HideDropdownLabel = hideDropdownLabel;
         }
+        public EnhancedTypeSelectorAttribute(bool hideFoldout, int contentIndent, bool hideDropdownLabel = false)
+        {
+            HideFoldout = hideFoldout;
+            ContentIndent = contentIndent;
+            HideDropdownLabel = hideDropdownLabel;
+        }
+        
         public EnhancedTypeSelectorAttribute(Type baseType, bool hideFoldout = false, bool hideDropdownLabel = false) : this(hideFoldout, hideDropdownLabel)
         {
             BaseType = baseType;

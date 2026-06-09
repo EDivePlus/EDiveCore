@@ -1,4 +1,5 @@
-﻿using Sirenix.OdinInspector;
+﻿using EDIVE.OdinExtensions.Attributes;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR

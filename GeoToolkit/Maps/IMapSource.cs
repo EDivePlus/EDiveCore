@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace EDIVE.GeoToolkit.Maps
 {
-    [EnhancedTypeSelector(true)]
+    [EnhancedTypeSelector(true, 1)]
     public interface IMapSource
     {
         public bool IsValid { get; }

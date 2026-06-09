@@ -6,7 +6,7 @@ using EDIVE.OdinExtensions.Attributes;
 
 namespace EDIVE.Utils.Activations
 {
-    [EnhancedTypeSelector(true)]
+    [EnhancedTypeSelector(true, 1)]
     public interface IActivation
     {
         public void RegisterActivationListener(Action onActivate);

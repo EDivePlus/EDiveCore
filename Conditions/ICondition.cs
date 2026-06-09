@@ -5,7 +5,7 @@ using EDIVE.OdinExtensions.Attributes;
 
 namespace EDIVE.Conditions
 {
-    [EnhancedTypeSelector(true)]
+    [EnhancedTypeSelector(true, 1)]
     public interface ICondition
     {
         bool Evaluate();
