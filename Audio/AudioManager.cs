@@ -16,6 +16,7 @@ using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
+using EDIVE.OdinExtensions.Attributes;
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -48,7 +49,7 @@ namespace EDIVE.Audio
         private AudioMixer _Mixer;
 
         [SerializeField]
-        [ValueDropdown(nameof(GetExposedParameterOptions))]
+        [EnhancedValueDropdown(nameof(GetExposedParameterOptions), IsUniqueList = true)]
         private List<string> _ManagedVolumeParameters = new() { "MasterVolume", "MusicVolume", "SFXVolume", "VoiceVolume" };
 
         private const float MIN_VOLUME_LINEAR = 0.0001f;
