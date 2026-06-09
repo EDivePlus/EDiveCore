@@ -54,8 +54,11 @@ namespace EDIVE.XRTools.Utils
             {
                 _Interactable.hoverEntered.AddListener(OnHoverEntered);
                 _Interactable.hoverExited.AddListener(OnHoverExited);
+                
+                _currentInteractors.Clear();
+                foreach (var interactor in _Interactable.interactorsHovering)
+                    _currentInteractors.Add(interactor);
             }
-            
             _AvailableTargetPoints.ForEach(point => point.gameObject.SetActive(false));
         }
 
@@ -66,34 +69,39 @@ namespace EDIVE.XRTools.Utils
                 _Interactable.hoverEntered.RemoveListener(OnHoverEntered);
                 _Interactable.hoverExited.RemoveListener(OnHoverExited);
             }
+            _currentInteractors.Clear();
         }
 
         private void LateUpdate()
         {
             if (_Collider == null)
                 return;
-            
+
             _currentPositions.Clear();
-            for (var i = 0; i < _AvailableTargetPoints.Count; i++)
+            
+            var pointIndex = 0;
+            for (var i = 0; i < _currentInteractors.Count && pointIndex < _AvailableTargetPoints.Count; i++)
             {
-                var targetPoint = _AvailableTargetPoints[i];
-                if (i < _currentInteractors.Count && _currentInteractors[i].TryGetCurrentRaycastTarget(_Collider, out var hit))
-                {
-                    _currentPositions.Add(hit.point);
-                    targetPoint.position = hit.point + transform.TransformDirection(_SurfaceOffset);
-                    if (ShowTargetPoints)
-                        targetPoint.gameObject.SetActive(true);
-                }
-                else
-                {
-                    targetPoint.gameObject.SetActive(false);
-                }
+                if (!_currentInteractors[i].TryGetCurrentRaycastTarget(_Collider, out var hit))
+                    continue;
+
+                _currentPositions.Add(hit.point);
+
+                var targetPoint = _AvailableTargetPoints[pointIndex];
+                targetPoint.position = hit.point + transform.TransformDirection(_SurfaceOffset);
+                targetPoint.gameObject.SetActive(_ShowTargetPoints);
+                pointIndex++;
+            }
+            for (var i = pointIndex; i < _AvailableTargetPoints.Count; i++)
+            {
+                _AvailableTargetPoints[i].gameObject.SetActive(false);
             }
         }
-        
+
         private void OnHoverEntered(HoverEnterEventArgs args)
         {
-            _currentInteractors.Add(args.interactorObject);
+            if (!_currentInteractors.Contains(args.interactorObject))
+                _currentInteractors.Add(args.interactorObject);
         }
 
         private void OnHoverExited(HoverExitEventArgs args)
