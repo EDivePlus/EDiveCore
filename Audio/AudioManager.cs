@@ -49,7 +49,7 @@ namespace EDIVE.Audio
         private AudioMixer _Mixer;
 
         [SerializeField]
-        [EnhancedValueDropdown(nameof(GetExposedParameterOptions), IsUniqueList = true)]
+        [EnhancedValueDropdown("GetExposedParameterOptions", IsUniqueList = true)]
         private List<string> _ManagedVolumeParameters = new() { "MasterVolume", "MusicVolume", "SFXVolume", "VoiceVolume" };
 
         private const float MIN_VOLUME_LINEAR = 0.0001f;

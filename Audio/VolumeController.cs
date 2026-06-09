@@ -18,7 +18,7 @@ namespace EDIVE.Audio
 
         [SerializeField]
         [Required]
-        [ValueDropdown(nameof(GetExposedParameterOptions))]
+        [ValueDropdown("GetExposedParameterOptions")]
         private string _ExposedParameter = "VoiceVolume";
 
         [SerializeField]
