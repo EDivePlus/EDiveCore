@@ -19,6 +19,7 @@ using EDIVE.Networking.Players;
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace EDIVE.Audio
 {
@@ -37,6 +38,10 @@ namespace EDIVE.Audio
         [SerializeField]
         [SuffixLabel("m", true)]
         private float _SpatialAudioDistance = 25f;
+
+        [SerializeField]
+        [Required]
+        private AudioMixerGroup _VoiceMixerGroup;
 
         private ClientSession<PlayerID> _voiceChatSession;
         private bool _microphonePermissionGranted = false;
@@ -323,6 +328,7 @@ namespace EDIVE.Audio
         {
             if (output == null || output.Stream == null)
                 return;
+            output.Stream.UnityAudioSource.outputAudioMixerGroup = _VoiceMixerGroup;
             output.Stream.TargetLatency = _Config.TargetLatencySeconds;
             output.Stream.PitchMaxCorrection = _Config.PitchMaxCorrection;
             output.Stream.PitchProportionalGain = _Config.PitchProportionalGain;
