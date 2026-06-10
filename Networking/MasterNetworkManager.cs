@@ -207,7 +207,7 @@ namespace EDIVE.Networking
         {
             if (!CanStartServer())
             {
-                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: server is {_serverConnectionState}.");
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: server is {LiveServerState}.");
                 return;
             }
             
@@ -269,15 +269,18 @@ namespace EDIVE.Networking
         {
             if (!CanStartClient())
             {
-                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartClient: client is {_clientConnectionState}.");
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartClient: client is {LiveClientState}.");
                 return;
             }
 
             StartClientInternal();
         }
+        
+        private bool CanStartServer() => !_serverStartRequested && LiveServerState == ConnectionState.Disconnected;
+        private bool CanStartClient() => !_clientStartRequested && LiveClientState == ConnectionState.Disconnected;
 
-        private bool CanStartServer() => !_serverStartRequested && _serverConnectionState == ConnectionState.Disconnected;
-        private bool CanStartClient() => !_clientStartRequested && _clientConnectionState == ConnectionState.Disconnected;
+        private static ConnectionState LiveServerState => NetworkManager.main != null ? NetworkManager.main.serverState : ConnectionState.Disconnected;
+        private static ConnectionState LiveClientState => NetworkManager.main != null ? NetworkManager.main.clientState : ConnectionState.Disconnected;
         
         public void StartRuntime(NetworkRuntimeMode runtimeMode)
         {

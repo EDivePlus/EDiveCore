@@ -288,8 +288,42 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
+        private async UniTask<bool> EnsureDisconnectedAsync(CancellationToken cancellationToken)
+        {
+            var nm = NetworkManager.main;
+            if (nm == null)
+                return false;
+
+            bool IsDisconnected() =>
+                nm.clientState == ConnectionState.Disconnected &&
+                nm.serverState == ConnectionState.Disconnected;
+
+            if (IsDisconnected())
+                return true;
+
+            // Tear down whatever is lingering from the previous session (host, server, or client).
+            nm.StopClient();
+            nm.StopServer();
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
+            try
+            {
+                await UniTask.WaitUntil(IsDisconnected, cancellationToken: cts.Token);
+                return true;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Debug.LogWarning("[NetworkServerManager] Timed out waiting for the previous session to disconnect.");
+                return false;
+            }
+        }
+
         private async UniTask<bool> TryConnectAsync(AServerEndpoint endpoint, CancellationToken cancellationToken)
         {
+            if (!await EnsureDisconnectedAsync(cancellationToken))
+                return false;
+
             if (!await endpoint.PrepareForConnect())
                 return false;
 
