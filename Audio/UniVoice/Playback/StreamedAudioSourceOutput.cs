@@ -28,6 +28,8 @@ namespace EDIVE.Audio.Playback
         public void Dispose()
         {
             Debug.unityLogger.Log(LogType.Log, TAG, "Disposing StreamedAudioSource");
+            if (this == null)
+                return;
             Destroy(gameObject);
         }
 
