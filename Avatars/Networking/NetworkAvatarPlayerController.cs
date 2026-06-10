@@ -1,10 +1,12 @@
 // Author: Michal Petr
 // Created: 17.03.2026
 
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.Extensions.Random;
 using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
@@ -27,7 +29,7 @@ namespace EDIVE.Avatars.Networking
         
         [ShowCreateNew]
         [SerializeField]
-        private AvatarDefinition _DefaultAvatar;
+        private List<AvatarDefinition> _DefaultAvatars = new();
 
         [SerializeField, Min(0f)]
         private float _PlayerSummonRadius = 0.75f;
@@ -76,7 +78,7 @@ namespace EDIVE.Avatars.Networking
             var result = await _saveDataService.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
 
             _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
-            _saveData.PlayerAvatar ??= _DefaultAvatar;
+            _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
             _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
 
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
