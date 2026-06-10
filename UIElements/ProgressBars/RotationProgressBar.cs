@@ -9,15 +9,7 @@ namespace EDIVE.UIElements.ProgressBars
     {
         [SerializeField] private Transform _Pointer;
         [SerializeField] private Vector2 _AngleRange = new(0f, -360f);
-        [SerializeField] private Vector2 _PointerPivot = new(0.5f, 0f);
-
         private float _progress;
-
-        private void Awake()
-        {
-            if (_Pointer != null && _Pointer.TryGetComponent<RectTransform>(out var rt))
-                rt.pivot = _PointerPivot;
-        }
 
         public override float Progress
         {
