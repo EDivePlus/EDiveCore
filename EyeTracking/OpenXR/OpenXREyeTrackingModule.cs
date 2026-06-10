@@ -66,7 +66,8 @@ namespace EDIVE.EyeTracking.OpenXR
             }
             
             _trackingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-            TrackingRoutine(_trackingCancellation.Token).Forget();
+            TrackingRoutine(_trackingCancellation.Token).Forget(); 
+            Debug.Log("[EyeTracking-DIAG] OpenXR StartTracking: routine started, IsAvailable=" + IsAvailable);
             callback?.Invoke(true);
         }
 
@@ -107,13 +108,25 @@ namespace EDIVE.EyeTracking.OpenXR
             return true;
         }
 
+        private float _diagNextLogTime;
+
         private EyeSample SampleEyeFromAction()
         {
-            if (_GazeIsTracked.action.ReadValue<float>() < 0.5f)
-                return EyeSample.INVALID;
-            
+            var isTracked = _GazeIsTracked.action.ReadValue<float>();
             var gazePos = _GazePosition.action.ReadValue<Vector3>();
             var gazeRot = _GazeRotation.action.ReadValue<Quaternion>();
+
+            // Throttled diagnostic: prints once per second so we can see what the actions actually return.
+            if (Time.unscaledTime >= _diagNextLogTime)
+            {
+                _diagNextLogTime = Time.unscaledTime + 1f;
+                Debug.Log($"[EyeTracking-DIAG] isTracked={isTracked} " +
+                          $"posEnabled={_GazePosition.action.enabled} rotEnabled={_GazeRotation.action.enabled} " +
+                          $"pos={gazePos} rot={gazeRot.eulerAngles}");
+            }
+
+            if (isTracked < 0.5f)
+                return EyeSample.INVALID;
 
             return new EyeSample(new Pose(gazePos, gazeRot), 1f);
         }
