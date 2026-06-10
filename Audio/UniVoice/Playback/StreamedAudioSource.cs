@@ -52,6 +52,12 @@ namespace EDIVE.Audio.Playback
         [SerializeField] private float startSafetyMarginSec = 0.02f;
         public float StartSafetyMarginSec { get => startSafetyMarginSec; set => startSafetyMarginSec = value; }
 
+        [Tooltip("Length of the silence written ahead of the write head (seconds). Prevents the looping " +
+                 "clip from replaying stale audio when the consumer catches up to / overruns the producer.")]
+        [Range(0.02f, 0.2f)]
+        [SerializeField] private float silenceGuardSec = 0.08f;
+        public float SilenceGuardSec { get => silenceGuardSec; set => silenceGuardSec = value; }
+
         public AudioSource UnityAudioSource
         {
             get
@@ -99,6 +105,11 @@ namespace EDIVE.Audio.Playback
         private int perChannelSamplesInFrame;
         private float secondsPerFrame;
 
+        // Silence guard: a block of zeros kept just ahead of the write head so the looping
+        // playhead reads silence (not stale data) if it ever catches up to / overruns the producer.
+        private float[] silenceGuard;
+        private int silenceGuardPerChannel;
+
         // Frame staleness tracking
         private readonly Stopwatch frameStopwatch = new Stopwatch();
         private float TimeSinceLastFrame => (float) frameStopwatch.Elapsed.TotalSeconds;
@@ -144,15 +155,18 @@ namespace EDIVE.Audio.Playback
                 ReinitClip(desiredClipSamplesPerCh, channels, frequency);
             }
 
-            // Write the frame into the ring, splitting at the wrap boundary if needed.
+            // Write the frame into the ring, advance the write head, then lay down a fresh
+            // silence guard immediately ahead of it. All under one lock so the guard and the
+            // advanced pointer are always consistent with the data actually present in the clip.
             lock (audioWriteLock)
             {
                 WriteFrameToRing(samples);
-            }
 
-            // Advance write pointers
-            absWritePerChannel += perChannelSamplesInFrame;
-            writePosPerChannel = (writePosPerChannel + perChannelSamplesInFrame) % samplesPerChannel;
+                absWritePerChannel += perChannelSamplesInFrame;
+                writePosPerChannel = (writePosPerChannel + perChannelSamplesInFrame) % samplesPerChannel;
+
+                WriteSilenceGuard();
+            }
             frameStopwatch.Restart();
 
             // Startup: begin only when enough audio is prebuffered
@@ -261,6 +275,30 @@ namespace EDIVE.Audio.Playback
             clip.SetData(tail, 0);
         }
 
+        // Writes a block of zeros starting at the current write head, wrapping at the ring
+        // boundary if needed. This region sits "in the future" relative to the read head, so
+        // overwriting it is always safe; the next real frame overwrites it again. If the
+        // consumer ever reaches the write head (gap / underrun / main-thread hitch), it reads
+        // this silence instead of replaying stale PCM left over from the previous lap.
+        private void WriteSilenceGuard()
+        {
+            if (silenceGuard == null || silenceGuardPerChannel <= 0) return;
+
+            int roomPerCh = samplesPerChannel - writePosPerChannel;
+            if (silenceGuardPerChannel <= roomPerCh)
+            {
+                clip.SetData(silenceGuard, writePosPerChannel);
+                return;
+            }
+
+            // Guard straddles the ring boundary: write zeros at the end, then the rest at 0.
+            int headLen = roomPerCh * curChannels;
+            clip.SetData(new float[headLen], writePosPerChannel);
+
+            int tailLen = silenceGuard.Length - headLen;
+            clip.SetData(new float[tailLen], 0);
+        }
+
         private float WrappedWriteTimeSec()
         {
             int writePosWrapped = (int) (absWritePerChannel % samplesPerChannel);
@@ -317,6 +355,10 @@ namespace EDIVE.Audio.Playback
 
             curFrequency = frequency;
             curChannels = channels;
+
+            // Keep the guard shorter than the ring so it can never wrap onto unplayed real data.
+            silenceGuardPerChannel = Mathf.Clamp(Mathf.CeilToInt(silenceGuardSec * frequency), 1, samplesPerChannel - 1);
+            silenceGuard = new float[silenceGuardPerChannel * channels];
 
             writePosPerChannel = 0;
             absWritePerChannel = 0;
