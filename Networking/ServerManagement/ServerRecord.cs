@@ -11,9 +11,22 @@ using UnityEngine;
 
 namespace EDIVE.Networking.ServerManagement
 {
-    public class ServerRecord
+    public class ServerRecord : IEquatable<ServerRecord>
     {
+        [HideReferenceObjectPicker]
+        [ListDrawerSettings(OnEndListElementGUI = "DrawEndpointConnect")]
+        public List<AServerEndpoint> Endpoints = new();
+        
+        public event Action<ServerRecord> StateChanged;
+        
         private string _instanceID;
+        private string _serverName;
+        private int _maxPlayers;
+        private int _currentPlayers;
+        private DateTime _lastUpdated;
+        private string _joinCode;
+        private AppVersion _version;
+        
         public string InstanceID
         {
             get => _instanceID;
@@ -26,7 +39,6 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
-        private string _serverName;
         public string ServerName
         {
             get => _serverName;
@@ -39,7 +51,6 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
-        private int _maxPlayers;
         public int MaxPlayers
         {
             get => _maxPlayers;
@@ -52,7 +63,6 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
-        private int _currentPlayers;
         public int CurrentPlayers
         {
             get => _currentPlayers;
@@ -65,7 +75,6 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
-        private DateTime _lastUpdated;
         public DateTime LastUpdated
         {
             get => _lastUpdated;
@@ -78,7 +87,6 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
         
-        private string _joinCode;
         public string JoinCode
         {
             get => _joinCode;
@@ -91,7 +99,6 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
 
-        private AppVersion _version;
         public AppVersion Version
         {
             get => _version;
@@ -110,12 +117,61 @@ namespace EDIVE.Networking.ServerManagement
             InstanceID = instanceID;
         }
 
-        [HideReferenceObjectPicker]
-        [ListDrawerSettings(OnEndListElementGUI = "DrawEndpointConnect")]
-        public List<AServerEndpoint> Endpoints = new();
+        public static ServerRecord CreateUnknown(AServerEndpoint endpoint)
+        {
+            var record = new ServerRecord(Guid.NewGuid().ToString())
+            {
+                ServerName = "Unknown Server",
+                MaxPlayers = 0,
+                CurrentPlayers = 0,
+                LastUpdated = DateTime.Now,
+                Endpoints = new List<AServerEndpoint> { endpoint },
+                JoinCode = string.Empty,
+                Version = AppVersion.ZERO
+            };
+            return record;
+        }
         
-        public event Action<ServerRecord> StateChanged;
+        private static bool EndpointsEqual(List<AServerEndpoint> a, List<AServerEndpoint> b)
+        {
+            if (ReferenceEquals(a, b)) return true;
 
+            var countA = a?.Count ?? 0;
+            var countB = b?.Count ?? 0;
+            if (countA != countB) return false;
+
+            for (var i = 0; i < countA; i++)
+            {
+                var ea = a[i];
+                var eb = b[i];
+                if (ea == null || eb == null)
+                {
+                    if (!ReferenceEquals(ea, eb)) return false;
+                    continue;
+                }
+                if (!ea.Equals(eb)) return false;
+            }
+            return true;
+        }
+        
+        public bool Equals(ServerRecord other)
+        {
+            if (ReferenceEquals(this, other)) return true;
+            if (other == null) return false;
+
+            return InstanceID == other.InstanceID
+                && ServerName == other.ServerName
+                && MaxPlayers == other.MaxPlayers
+                && CurrentPlayers == other.CurrentPlayers
+                && JoinCode == other.JoinCode
+                && Version == other.Version
+                && EndpointsEqual(Endpoints, other.Endpoints);
+        }
+
+        public override bool Equals(object obj) => Equals(obj as ServerRecord);
+        
+        public override int GetHashCode() => InstanceID != null ? InstanceID.GetHashCode() : 0;
+        
 #if UNITY_EDITOR
         [Button]
         private void ConnectAny()
@@ -139,20 +195,5 @@ namespace EDIVE.Networking.ServerManagement
             }
         }
 #endif
-        
-        public static ServerRecord CreateUnknown(AServerEndpoint endpoint)
-        {
-            var record = new ServerRecord(Guid.NewGuid().ToString())
-            {
-                ServerName = "Unknown Server",
-                MaxPlayers = 0,
-                CurrentPlayers = 0,
-                LastUpdated = DateTime.Now,
-                Endpoints = new List<AServerEndpoint> { endpoint },
-                JoinCode = string.Empty,
-                Version = AppVersion.ZERO
-            };
-            return record;
-        }
     }
 }

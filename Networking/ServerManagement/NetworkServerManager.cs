@@ -81,9 +81,7 @@ namespace EDIVE.Networking.ServerManagement
         private bool _serverRunning;
         private bool _connecting;
         private MasterNetworkManager _masterNetworkManager;
-
-        // The server we were joined to when the app was paused, captured before the transport's
-        // keepalive timeout clears JoinedServer, so we can reconnect to it on resume.
+        
         private ServerRecord _resumeReconnectTarget;
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
@@ -145,9 +143,6 @@ namespace EDIVE.Networking.ServerManagement
 
             if (paused)
             {
-                // Capture the joined server BEFORE the transport's keepalive timeout fires and
-                // OnClientConnectionStateChanged clears JoinedServer. On standalone XR the OS
-                // suspends the app while paused, so the connection will be dropped server-side.
                 _resumeReconnectTarget = _masterNetworkManager.RuntimeMode == NetworkRuntimeMode.Client
                     ? JoinedServer
                     : null;
@@ -163,8 +158,6 @@ namespace EDIVE.Networking.ServerManagement
 
         private async UniTaskVoid ReconnectAfterResumeAsync(ServerRecord server)
         {
-            // The pause may have been short enough that the connection survived the keepalive
-            // timeout — nothing to do in that case.
             if (_masterNetworkManager.RuntimeMode == NetworkRuntimeMode.Client && ConnectedEndpoint != null)
                 return;
 
@@ -173,17 +166,12 @@ namespace EDIVE.Networking.ServerManagement
             {
                 if (destroyCancellationToken.IsCancellationRequested)
                     return;
-
-                // Tear down any wedged client state from the dead session so the connect attempt
-                // starts from a clean Disconnected baseline, then give the network stack (Wi-Fi/DNS)
-                // a moment to recover before trying.
+                
                 NetworkManager.main.StopClient();
                 await UniTask.Delay(TimeSpan.FromSeconds(attempt == 0 ? 1f : 2f), true, cancellationToken: destroyCancellationToken);
 
                 try
                 {
-                    // endpoint == null → try every endpoint on the record (relay room name stays
-                    // valid across the reconnect, direct address may not).
                     if (await ConnectToServerAsync(server, null, destroyCancellationToken))
                     {
                         Debug.Log($"[NetworkServerManager] Reconnected to '{server.ServerName}' after resume.");
@@ -345,12 +333,7 @@ namespace EDIVE.Networking.ServerManagement
                     return true;
 
                 nm.StopClient();
-
-                // Bound the wait for the Disconnected callback. If the transport is left in a
-                // broken state (e.g. after an app pause/resume on Quest) it may never raise
-                // Disconnected; without a timeout this await — and therefore the _connecting
-                // latch released in the finally below — would hang forever, permanently
-                // blocking every future reconnect attempt.
+                
                 using (var stopCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 {
                     stopCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
@@ -455,9 +438,6 @@ namespace EDIVE.Networking.ServerManagement
 
         private void OnClientConnectionStateChanged(ConnectionState state)
         {
-            // During a multi-endpoint connect attempt, transient Disconnected events fire between
-            // failed endpoints. Only clear JoinedServer for "real" disconnects — once the
-            // failover loop is no longer in progress.
             if (state == ConnectionState.Disconnected && !_connecting)
             {
                 JoinedServer = null;
@@ -492,14 +472,14 @@ namespace EDIVE.Networking.ServerManagement
             if (_serverRunning)
                 return;
 
-            _servers.Clear();
-            _serverList.Clear();
             EnumerateAdapters(adapter =>
             {
                 adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
                 adapter.ServerListUpdated.AddListener(OnAdapterServerListUpdated);
                 adapter.StartSearch();
             });
+            
+            OnAdapterServerListUpdated();
         }
 
         public void StopSearch()

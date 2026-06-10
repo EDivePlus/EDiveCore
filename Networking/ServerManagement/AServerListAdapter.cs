@@ -55,10 +55,15 @@ namespace EDIVE.Networking.ServerManagement
 
         protected void SetServers(IEnumerable<ServerRecord> records)
         {
+            var newRecords = records.Where(r => r != null && !string.IsNullOrEmpty(r.InstanceID)).ToList();
+            
+            if (!HasMeaningfulChange(newRecords))
+                return;
+
             Servers.Clear();
             _serverList.Clear();
-            _serverList.AddRange(records.Where(r => r != null && !string.IsNullOrEmpty(r.InstanceID)));
-            
+            _serverList.AddRange(newRecords);
+
             var now = DateTime.UtcNow;
             foreach (var record in _serverList)
             {
@@ -66,6 +71,21 @@ namespace EDIVE.Networking.ServerManagement
                 Servers[record.InstanceID] = record;
             }
             ServerListUpdated.Dispatch();
+        }
+
+        private bool HasMeaningfulChange(List<ServerRecord> newRecords)
+        {
+            if (newRecords.Count != Servers.Count)
+                return true;
+
+            foreach (var record in newRecords)
+            {
+                if (!Servers.TryGetValue(record.InstanceID, out var existing))
+                    return true;
+                if (!record.Equals(existing))
+                    return true;
+            }
+            return false;
         }
     }
 }
