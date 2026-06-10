@@ -6,8 +6,6 @@ using UnityEngine;
 
 namespace EDIVE.MenuScreen
 {
-    public interface IViewContext { }
-    
     public class WidgetView : MonoBehaviour
     {
         public IViewContext CurrentContext { get; private set; }
