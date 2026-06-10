@@ -49,7 +49,7 @@ namespace EDIVE.Networking.Players
         
         public void Assign(AvatarController avatar)
         {
-            if (!isOwner || !isClient || avatar == null)
+            if (avatar == null)
                 return;
 
             if (avatar.RigFollow)
