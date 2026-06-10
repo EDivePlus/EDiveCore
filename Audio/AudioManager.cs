@@ -41,6 +41,17 @@ namespace EDIVE.Audio
         private float _SpatialAudioDistance = 25f;
 
         [SerializeField]
+        [SuffixLabel("m", true)]
+        [Tooltip("Full-volume radius around a speaker. Voices stay at full volume within this distance, then fade out toward Spatial Audio Distance.")]
+        private float _SpatialAudioMinDistance = 4f;
+
+        [SerializeField]
+        [SuffixLabel("°", true)]
+        [Range(0f, 180f)]
+        [Tooltip("Stereo spread of the voice source. A small spread avoids the voice collapsing into a single ear in VR.")]
+        private float _SpatialAudioSpread = 60f;
+
+        [SerializeField]
         [Required]
         private AudioMixerGroup _VoiceMixerGroup;
 
@@ -275,10 +286,8 @@ namespace EDIVE.Audio
                 return;
             }
             
-            var audioSource = output.Stream.UnityAudioSource;
-            audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0; 
-            audioSource.maxDistance = _SpatialAudioDistance;
-            
+            ApplySpatialAudioSettings(output.Stream.UnityAudioSource);
+
             peerAvatar.InitializePeerAudioOutput(output);
             
             Debug.Log($"[AudioManager] AudioSource of player '{playerID}' ");
@@ -360,8 +369,20 @@ namespace EDIVE.Audio
                 if (output is not StreamedAudioSourceOutput streamedOutput)
                     continue;
 
-                streamedOutput.Stream.UnityAudioSource.spatialBlend = EnableSpatialAudio ? 1 : 0;
+                ApplySpatialAudioSettings(streamedOutput.Stream.UnityAudioSource);
             }
+        }
+
+        private void ApplySpatialAudioSettings(AudioSource audioSource)
+        {
+            if (audioSource == null)
+                return;
+
+            audioSource.spatialBlend = EnableSpatialAudio ? 1 : 0;
+            audioSource.rolloffMode = AudioRolloffMode.Linear;
+            audioSource.minDistance = _SpatialAudioMinDistance;
+            audioSource.maxDistance = _SpatialAudioDistance;
+            audioSource.spread = _SpatialAudioSpread;
         }
         
         private void ApplyPlaybackSettings(StreamedAudioSourceOutput output)
