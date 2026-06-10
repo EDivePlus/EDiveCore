@@ -73,6 +73,7 @@ namespace EDIVE.StateHandling.MultiStates
         private string _StateID;
 
         [EnhancedFoldoutGroup("State")]
+        [CompactList]
         [ListDrawerSettings(ShowFoldout = false)]
         [SerializeField]
         private List<GameObject> _Targets = new();
