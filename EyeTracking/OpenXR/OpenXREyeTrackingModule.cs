@@ -9,7 +9,6 @@ using UnityEngine.InputSystem;
 
 #if UNITY_OPEN_XR
 using System.Threading;
-using UnityEngine.InputSystem.XR;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Interactions;
 #endif
@@ -103,8 +102,7 @@ namespace EDIVE.EyeTracking.OpenXR
             var cameraPose = mainCam != null
                 ? new Pose(mainCam.transform.position, mainCam.transform.rotation)
                 : Pose.IDENTITY;
-
-            // OpenXR EyeGazeInteraction provides only a single combined gaze — report it for both eyes.
+            
             eyeGazeFrame = new EyeGazeFrame(cameraPose, sample, sample, Time.timeAsDouble);
             return true;
         }
@@ -113,23 +111,11 @@ namespace EDIVE.EyeTracking.OpenXR
         {
             if (_GazeIsTracked.action.ReadValue<float>() < 0.5f)
                 return EyeSample.INVALID;
-
-            var hmd = InputSystem.GetDevice<XRHMD>();
-            if (hmd == null)
-                return EyeSample.INVALID;
-
+            
             var gazePos = _GazePosition.action.ReadValue<Vector3>();
             var gazeRot = _GazeRotation.action.ReadValue<Quaternion>();
 
-            // Both gaze and HMD poses are in OpenXR tracking space — transform gaze into head-local
-            // space so the existing EyeSample.ToWorldSpace(cameraPose) path keeps working.
-            var hmdPos = hmd.centerEyePosition.ReadValue();
-            var hmdRot = hmd.centerEyeRotation.ReadValue();
-            var invHmdRot = Quaternion.Inverse(hmdRot);
-            var headRelPos = invHmdRot * (gazePos - hmdPos);
-            var headRelRot = invHmdRot * gazeRot;
-
-            return new EyeSample(new Pose(headRelPos, headRelRot), 1f);
+            return new EyeSample(new Pose(gazePos, gazeRot), 1f);
         }
 
         private static bool IsEyeGazeFeatureEnabled()
