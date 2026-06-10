@@ -48,6 +48,7 @@ namespace EDIVE.Networking.Players
             add => _authUserInfo.onChanged += value;
             remove => _authUserInfo.onChanged -= value;
         }
+        
         public event Action<int> PingChanged
         {
             add => _ping.onChanged += value;
@@ -70,6 +71,9 @@ namespace EDIVE.Networking.Players
         {
             var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
             playerManager.RegisterPlayer(this, asServer);
+
+            _authUserInfo.onChanged += OnAuthUserInfoChanged;
+            RefreshNameTag(_authUserInfo.value);
 
             if (!asServer && isOwner)
             {
@@ -94,6 +98,8 @@ namespace EDIVE.Networking.Players
 
         protected override void OnDespawned(bool asServer)
         {
+            _authUserInfo.onChanged -= OnAuthUserInfoChanged;
+
             if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
             {
                 playerManager.UnregisterPlayer(this, asServer);
@@ -125,6 +131,17 @@ namespace EDIVE.Networking.Players
         private void ServerSetPlayerPing(int ping)
         {
             _ping.value = ping;
+        }
+
+        private void OnAuthUserInfoChanged(NetworkUserInfo userInfo)
+        {
+            RefreshNameTag(userInfo);
+        }
+
+        private void RefreshNameTag(NetworkUserInfo userInfo)
+        {
+            if (_NameTag)
+                _NameTag.SetText(userInfo?.Name);
         }
     }
 }
