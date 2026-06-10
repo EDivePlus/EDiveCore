@@ -22,6 +22,6 @@ namespace EDIVE.OdinExtensions.Attributes
 
         public bool IsReadOnly;
         
-        public int MaxItems;
+        public int MaxItems = 20;
     }
 }
