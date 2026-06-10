@@ -68,7 +68,8 @@ namespace EDIVE.Networking.Players
 
         protected override void OnSpawned(bool asServer)
         {
-            AppCore.Services.Get<NetworkPlayerManager>().RegisterPlayer(this, asServer);
+            var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
+            playerManager.RegisterPlayer(this, asServer);
 
             if (!asServer && isOwner)
             {
@@ -80,7 +81,7 @@ namespace EDIVE.Networking.Players
                 }
                 else
                 {
-                    _authUserInfo.value = NetworkUserInfo.CreateAnonymous();
+                    _authUserInfo.value = NetworkUserInfo.CreateAnonymous(playerManager.GeneratePlayerName());
                 }
             }
 

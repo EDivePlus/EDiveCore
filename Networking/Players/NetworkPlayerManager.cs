@@ -34,6 +34,11 @@ namespace EDIVE.Networking.Players
         {
             return UniTask.CompletedTask;
         }
+
+        public string GeneratePlayerName()
+        {
+            return _PlayerNameGenerator != null ? _PlayerNameGenerator.Generate() : null;
+        }
         
         public void RegisterPlayer(NetworkPlayerController player, bool asServer)
         {

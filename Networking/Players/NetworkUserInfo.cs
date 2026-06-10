@@ -41,10 +41,12 @@ namespace EDIVE.Networking.Players
             return new NetworkUserInfo(info.Id, info.Email, info.Name);
         }
         
-        public static NetworkUserInfo CreateAnonymous()
+        public static NetworkUserInfo CreateAnonymous(string name = null)
         {
             var id = Guid.NewGuid().ToString();
-            return new NetworkUserInfo(id, "", $"Anonymous-{id[..4]}");
+            if (string.IsNullOrWhiteSpace(name))
+                name = $"Anonymous-{id[..4]}";
+            return new NetworkUserInfo(id, "", name);
         }
     }
 }
