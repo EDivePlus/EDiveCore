@@ -16,18 +16,24 @@ namespace EDIVE.UIElements.Tooltips
         [SerializeField]
         private Canvas _ParentCanvas;
         
+        [SerializeField]
+        private RectTransform _TooltipRoot;
+        
         private Queue<TooltipDisplay> AvailableDisplays { get; set; }
 
         private void Awake()
         {
-            if (!_ParentCanvas)
+            if (_ParentCanvas == null)
                 _ParentCanvas = GetComponentInParent<Canvas>();
-            AvailableDisplays = new Queue<TooltipDisplay>(_Displays.Count);
             
+            if (_TooltipRoot == null)
+                _TooltipRoot = transform as RectTransform;
+            
+            AvailableDisplays = new Queue<TooltipDisplay>(_Displays.Count);
             foreach (var display in _Displays)
             {
                 display.gameObject.SetActive(false);
-                display.transform.SetParent(_ParentCanvas.transform, false);
+                display.transform.SetParent(_TooltipRoot, false);
                 AvailableDisplays.Enqueue(display);
             }
         }

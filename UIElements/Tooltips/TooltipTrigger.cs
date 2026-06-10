@@ -26,8 +26,24 @@ namespace EDIVE.UIElements.Tooltips
 
         private void Awake()
         {
-            _tooltipManager = GetComponentInParent<TooltipManagerProvider>().TooltipManager;
             _graphic = GetComponent<Graphic>();
+        }
+
+        private bool EnsureManager()
+        {
+            if (_tooltipManager != null)
+                return true;
+
+            var provider = GetComponentInParent<TooltipManagerProvider>(true);
+            if (provider == null)
+            {
+                Debug.LogError("TooltipTrigger requires a TooltipManagerProvider in its parent hierarchy.", this);
+                enabled = false;
+                return false;
+            }
+
+            _tooltipManager = provider.TooltipManager;
+            return true;
         }
 
         private void OnDestroy()
@@ -42,8 +58,11 @@ namespace EDIVE.UIElements.Tooltips
         
         public void OnPointerEnter(PointerEventData eventData)
         {
+            if (!EnsureManager())
+                return;
+
             _tooltipSubscription?.Dispose();
-            
+
             _currentVisualPreset ??= _DefaultPreset;
             _tooltipSubscription = _tooltipManager.ShowTooltip(_currentVisualPreset, _graphic.rectTransform, _Placement);
         }
