@@ -255,6 +255,8 @@ namespace EDIVE.UIElements.RecyclableScroller
         private bool _drivenScroll;
         private bool _savedInertia;
 
+        private bool _suppressAxisWrite;
+
         private enum ItemEdge
         {
             Leading,
@@ -456,6 +458,43 @@ namespace EDIVE.UIElements.RecyclableScroller
             Initialize();
             var factor = ScrollableLength > 0 ? Mathf.InverseLerp(0, ScrollableLength, scrollPosition) : 0f;
             ReloadData(factor);
+        }
+
+        public void ReloadDataKeepingPosition()
+        {
+            _reloadData = false;
+            Initialize();
+            
+            var preservedPosition = _scrollPosition;
+            var dragging = IsDragging;
+
+            RecycleAllItems();
+            
+            _suppressAxisWrite = dragging;
+            try
+            {
+                if (_source != null)
+                    Resize(true);
+            }
+            finally
+            {
+                _suppressAxisWrite = false;
+            }
+
+            if (ScrollRect == null || _scrollRectTransform == null || Container == null)
+            {
+                _scrollPosition = 0f;
+                return;
+            }
+
+            if (!dragging)
+            {
+                var length = ScrollableLength;
+                _scrollPosition = Mathf.Clamp(preservedPosition, 0, length);
+                SetNormalizedAxisPosition(length > 0 ? _scrollPosition / length : 0f);
+            }
+
+            RefreshActive();
         }
 
         public void RefreshActiveItems()
@@ -1004,6 +1043,9 @@ namespace EDIVE.UIElements.RecyclableScroller
         
         private void SetNormalizedAxisPosition(float factor)
         {
+            if (_suppressAxisWrite)
+                return;
+
             if (IsVertical)
                 ScrollRect.verticalNormalizedPosition = 1f - factor;
             else

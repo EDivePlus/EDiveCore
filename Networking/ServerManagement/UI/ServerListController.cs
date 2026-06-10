@@ -82,7 +82,7 @@ namespace EDIVE.Networking.ServerManagement.UI
         {
             _currentServers.Clear();
             _currentServers.AddRange(_serverManager.ServerList);
-            _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);
+            _Scroller.ReloadDataKeepingPosition();
         }
 
     }
