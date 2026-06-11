@@ -5,43 +5,37 @@ using System;
 using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 #if UNITY_OPEN_XR
 using System.Threading;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Interactions;
+#if UNITY_ANDROID && !UNITY_EDITOR
+using UnityEngine.Android;
+#endif
 #endif
 
 namespace EDIVE.EyeTracking.OpenXR
 {
     public class OpenXREyeTrackingModule : AEyeTrackingModule
     {
-        [SerializeField]
-        private InputActionReference _GazePosition;
-
-        [SerializeField]
-        private InputActionReference _GazeRotation;
-
-        [SerializeField]
-        private InputActionReference _GazeIsTracked;
-
 #if UNITY_OPEN_XR
-        public override bool IsAvailable => IsEyeGazeFeatureEnabled() && _GazePosition != null && _GazeRotation != null && _GazeIsTracked != null;
+        private const string EYE_TRACKING_PERMISSION = "com.oculus.permission.EYE_TRACKING";
+
+        public override bool IsAvailable => IsEyeGazeFeatureEnabled();
         public override bool IsTracking => _trackingCancellation != null;
         public override Observable<EyeGazeFrame> EyeGazeStream => _eyeGazeStream;
 
         private readonly Subject<EyeGazeFrame> _eyeGazeStream = new();
 
         private CancellationTokenSource _trackingCancellation;
+        private float _diagNextLogTime;
 
         public override UniTask Initialize()
         {
             Debug.Log("[EyeTrackingManager] OpenXR EyeTracking Module Initialized");
-            _GazePosition.action.actionMap.Enable();
-            _GazePosition.action.Enable();
-            _GazeRotation.action.Enable();
-            _GazeIsTracked.action.Enable();
             return UniTask.CompletedTask;
         }
 
@@ -64,11 +58,27 @@ namespace EDIVE.EyeTracking.OpenXR
                 callback?.Invoke(true);
                 return;
             }
-            
-            _trackingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-            TrackingRoutine(_trackingCancellation.Token).Forget(); 
-            Debug.Log("[EyeTracking-DIAG] OpenXR StartTracking: routine started, IsAvailable=" + IsAvailable);
-            callback?.Invoke(true);
+
+            RequestEyeTrackingPermission(granted =>
+            {
+                if (this == null)
+                    return;
+
+                if (!granted)
+                {
+                    Debug.LogWarning("[EyeTrackingManager] OpenXR EyeTracking permission denied.");
+                    callback?.Invoke(false);
+                    return;
+                }
+
+                if (!IsTracking)
+                {
+                    _trackingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+                    TrackingRoutine(_trackingCancellation.Token).Forget();
+                    Debug.Log("[EyeTrackingManager] OpenXR EyeTracking started.");
+                }
+                callback?.Invoke(true);
+            });
         }
 
         public override void StopTracking()
@@ -79,6 +89,25 @@ namespace EDIVE.EyeTracking.OpenXR
             _trackingCancellation?.Cancel();
             _trackingCancellation?.Dispose();
             _trackingCancellation = null;
+        }
+
+        private static void RequestEyeTrackingPermission(Action<bool> callback)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (Permission.HasUserAuthorizedPermission(EYE_TRACKING_PERMISSION))
+            {
+                callback(true);
+                return;
+            }
+
+            Debug.Log("[EyeTrackingManager] Requesting OpenXR EyeTracking permission...");
+            var callbacks = new PermissionCallbacks();
+            callbacks.PermissionGranted += _ => callback(true);
+            callbacks.PermissionDenied += _ => callback(false);
+            Permission.RequestUserPermission(EYE_TRACKING_PERMISSION, callbacks);
+#else
+            callback(true);
+#endif
         }
 
         private async UniTaskVoid TrackingRoutine(CancellationToken token)
@@ -95,40 +124,48 @@ namespace EDIVE.EyeTracking.OpenXR
 
         private bool TrySampleGaze(out EyeGazeFrame eyeGazeFrame)
         {
-            eyeGazeFrame = new EyeGazeFrame();
-
-            var sample = SampleEyeFromAction();
+            SampleEyesFromDevice(out var leftEye, out var rightEye);
 
             var mainCam = Camera.main;
             var cameraPose = mainCam != null
                 ? new Pose(mainCam.transform.position, mainCam.transform.rotation)
                 : Pose.IDENTITY;
-            
-            eyeGazeFrame = new EyeGazeFrame(cameraPose, sample, sample, Time.timeAsDouble);
+
+            eyeGazeFrame = new EyeGazeFrame(cameraPose, leftEye, rightEye, Time.timeAsDouble);
             return true;
         }
 
-        private float _diagNextLogTime;
-
-        private EyeSample SampleEyeFromAction()
+        private void SampleEyesFromDevice(out EyeSample leftEye, out EyeSample rightEye)
         {
-            var isTracked = _GazeIsTracked.action.ReadValue<float>();
-            var gazePos = _GazePosition.action.ReadValue<Vector3>();
-            var gazeRot = _GazeRotation.action.ReadValue<Quaternion>();
+            leftEye = rightEye = EyeSample.INVALID;
 
-            // Throttled diagnostic: prints once per second so we can see what the actions actually return.
-            if (Time.unscaledTime >= _diagNextLogTime)
+            var eyeGazeDevice = InputSystem.GetDevice<EyeGazeInteraction.EyeGazeDevice>();
+            var hmd = InputSystem.GetDevice<XRHMD>();
+            var isTracked = eyeGazeDevice != null && eyeGazeDevice.pose.isTracked.isPressed;
+
+            var gazePos = eyeGazeDevice != null ? eyeGazeDevice.pose.position.ReadValue() : Vector3.zero;
+            var gazeRot = eyeGazeDevice != null ? eyeGazeDevice.pose.rotation.ReadValue() : Quaternion.identity;
+            var headPos = hmd != null ? hmd.centerEyePosition.ReadValue() : Vector3.zero;
+            var headRot = hmd != null ? hmd.centerEyeRotation.ReadValue() : Quaternion.identity;
+            var leftEyePos = hmd != null ? hmd.leftEyePosition.ReadValue() : Vector3.zero;
+            var rightEyePos = hmd != null ? hmd.rightEyePosition.ReadValue() : Vector3.zero;
+            
+            if (!isTracked || hmd == null)
+                return;
+            
+            var invHeadRot = Quaternion.Inverse(headRot);
+            var headSpaceGazeRot = invHeadRot * gazeRot;
+
+            if (leftEyePos != Vector3.zero && rightEyePos != Vector3.zero)
             {
-                _diagNextLogTime = Time.unscaledTime + 1f;
-                Debug.Log($"[EyeTracking-DIAG] isTracked={isTracked} " +
-                          $"posEnabled={_GazePosition.action.enabled} rotEnabled={_GazeRotation.action.enabled} " +
-                          $"pos={gazePos} rot={gazeRot.eulerAngles}");
+                leftEye = new EyeSample(new Pose(invHeadRot * (leftEyePos - headPos), headSpaceGazeRot), 1f);
+                rightEye = new EyeSample(new Pose(invHeadRot * (rightEyePos - headPos), headSpaceGazeRot), 1f);
             }
-
-            if (isTracked < 0.5f)
-                return EyeSample.INVALID;
-
-            return new EyeSample(new Pose(gazePos, gazeRot), 1f);
+            else
+            {
+                var combined = new EyeSample(new Pose(invHeadRot * (gazePos - headPos), headSpaceGazeRot), 1f);
+                leftEye = rightEye = combined;
+            }
         }
 
         private static bool IsEyeGazeFeatureEnabled()
