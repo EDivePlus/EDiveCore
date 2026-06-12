@@ -37,6 +37,10 @@ namespace EDIVE.Localization.View
         private void OnEnable()
         {
             _Dropdown.onValueChanged.AddListener(OnLocaleChanged);
+            var selectedLocale = LocalizationSettings.SelectedLocale;
+            var selectedIndex = Locales.IndexOf(selectedLocale);
+            if (selectedIndex >= 0)
+                _Dropdown.value = selectedIndex;
         }
 
         private void OnDisable()
