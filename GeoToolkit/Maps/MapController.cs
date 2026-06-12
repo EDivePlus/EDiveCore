@@ -116,10 +116,9 @@ namespace EDIVE.GeoToolkit.Maps
 
             var mapNormal = MapTransformData.AxisYNormalized;
             var rayDir = -mapNormal;
-
-            // planePosition lies on the bottom face (AxisY = 0); lift to the top of the box so the ray sweeps down through the whole height.
-            var startPoint = planePosition + mapNormal * (MapTransformData.Size.y + bias);
-            var rayLength = MapTransformData.Size.y + bias * 2;
+            
+            var startPoint = planePosition + MapTransformData.AxisY + mapNormal * (_CastBias + bias);
+            var rayLength = MapTransformData.Size.y + _CastBias + bias * 2;
 
             if (bias.Approximately(0))
             {
