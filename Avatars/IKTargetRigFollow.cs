@@ -23,10 +23,10 @@ namespace EDIVE.Avatars
 
         private void Update()
         {
-            UpdatePositions();
+            Refresh();
         }
         
-        public override void UpdatePositions()
+        public override void Refresh()
         {
             if (!_Head.IsValid)
                 return;

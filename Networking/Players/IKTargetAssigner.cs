@@ -57,7 +57,7 @@ namespace EDIVE.Networking.Players
                 avatar.RigFollow.HeadSource = _HeadTarget.SkeletonTarget;
                 avatar.RigFollow.LeftHandSource = _LeftHandTarget.SkeletonTarget;
                 avatar.RigFollow.RightHandSource = _RightHandTarget.SkeletonTarget;
-                avatar.RigFollow.UpdatePositions();
+                avatar.RigFollow.Refresh();
             }
         }
     }
