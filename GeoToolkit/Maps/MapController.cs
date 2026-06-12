@@ -120,27 +120,22 @@ namespace EDIVE.GeoToolkit.Maps
             var startPoint = planePosition + MapTransformData.AxisY + mapNormal * (_CastBias + bias);
             var rayLength = MapTransformData.Size.y + _CastBias + bias * 2;
 
-            if (bias.Approximately(0))
+            if (!TryCast(startPoint, rayDir, rayLength, bias, out var hit))
             {
-                if (Physics.Raycast(startPoint, rayDir, out var hit, rayLength, _CastLayerMask))
-                {
-                    if (_ShowDebugRays) Debug.DrawRay(startPoint, rayDir * hit.distance, Color.green, 1);
-                    worldPoint = hit.point;
-                    return true;
-                }
-            }
-            else
-            {
-                if (Physics.SphereCast(startPoint, bias, rayDir, out var hit, rayLength, _CastLayerMask))
-                {
-                    if (_ShowDebugRays) Debug.DrawRay(startPoint, rayDir * rayLength, Color.yellow, 1);
-                    worldPoint = hit.point;
-                    return true;
-                }
+                if (_ShowDebugRays) Debug.DrawRay(startPoint, rayDir * rayLength, Color.red, 1);
+                return false;
             }
 
-            if (_ShowDebugRays) Debug.DrawRay(startPoint, rayDir * rayLength, Color.red, 1);
-            return false;
+            if (_ShowDebugRays) Debug.DrawRay(startPoint, rayDir * hit.distance, Color.green, 1);
+            worldPoint = planePosition + mapNormal * math.dot((float3) hit.point - planePosition, mapNormal);
+            return true;
+        }
+
+        private bool TryCast(float3 startPoint, float3 direction, float length, float radius, out RaycastHit hit)
+        {
+            return radius.Approximately(0)
+                ? Physics.Raycast(startPoint, direction, out hit, length, _CastLayerMask)
+                : Physics.SphereCast(startPoint, radius, direction, out hit, length, _CastLayerMask);
         }
         
         [Button]
