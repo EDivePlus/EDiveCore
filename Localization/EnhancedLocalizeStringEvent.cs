@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using EDIVE.Localization.LocalizeStringModifiers;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Localization.Components;
 
@@ -16,6 +17,7 @@ namespace EDIVE.Localization
     public class EnhancedLocalizeStringEvent : LocalizeStringEvent
     {
         [SerializeReference]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<ILocalizeStringModifier> _Modifiers = new();
 
         protected override void UpdateString(string value)
