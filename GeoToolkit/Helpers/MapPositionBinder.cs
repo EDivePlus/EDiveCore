@@ -2,6 +2,7 @@
 // Created: 03.05.2025
 
 using EDIVE.NativeUtils;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.GeoToolkit.Maps
@@ -20,6 +21,10 @@ namespace EDIVE.GeoToolkit.Maps
 
         [SerializeField]
         private bool _SampleHeight;
+        
+        [ShowIf(nameof(_SampleHeight))]
+        [SerializeField]
+        private float _HeightSampleBias = 0.01f;
 
         private void Update()
         {
@@ -28,7 +33,7 @@ namespace EDIVE.GeoToolkit.Maps
                 var sourceCoords = _SourceMap.ConvertToGeoCoordinates(_SourceTransform.position);
                 var targetPos = _TargetMap.ConvertToMapCoordinates(sourceCoords);
 
-                if (!_SampleHeight || !_TargetMap.TrySampleHeight(targetPos, out var hitPoint))
+                if (!_SampleHeight || !_TargetMap.TrySampleHeight(targetPos, out var hitPoint, _HeightSampleBias))
                     hitPoint = transform.position.WithXZ(targetPos.x, targetPos.z);
 
                 transform.position = hitPoint;

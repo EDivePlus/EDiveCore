@@ -22,6 +22,10 @@ namespace EDIVE.GeoToolkit.Maps
         [EnableIf(nameof(_ClampPositionToMap))]
         [SerializeField]
         private bool _SampleMapHeight;
+        
+        [ShowIf(nameof(_SampleMapHeight))]
+        [SerializeField]
+        private float _HeightSampleBias = 0.01f;
 
         [SerializeField]
         private TMP_Text _Text;
@@ -48,11 +52,11 @@ namespace EDIVE.GeoToolkit.Maps
                 if (_Map == null)
                     return;
 
-                var pos = _Map.ConvertToMapCoordinates(value);
+                var pos = _Map.ConvertToMapCoordinates(value, _SampleMapHeight, _HeightSampleBias);
                 transform.position = transform.position.WithXZ(pos.x, pos.z);
 
                 if (_ClampPositionToMap)
-                    ClampPositionToMap(_SampleMapHeight);
+                    ClampPositionToMap();
             }
         }
 
@@ -67,22 +71,22 @@ namespace EDIVE.GeoToolkit.Maps
         private void LateUpdate()
         {
             if (_ClampPositionToMap)
-                ClampPositionToMap(_SampleMapHeight);
+                ClampPositionToMap();
         }
 
         [Button]
-        public void ClampPositionToMap(bool sampleHeight = true)
+        public void ClampPositionToMap()
         {
             if (_Map == null)
                 return;
 
             // Clamp the position back inside the map area by round-tripping through clamped geo coordinates.
             var clampedGeo = _Map.ConvertToGeoCoordinates(transform.position, clamp: true);
-            var mapPos = _Map.ConvertToMapCoordinates(clampedGeo, sampleHeight);
+            var mapPos = _Map.ConvertToMapCoordinates(clampedGeo, _SampleMapHeight, _HeightSampleBias);
 
             // When sampling height, snap fully onto the sampled surface point; otherwise only clamp the XZ plane.
-            transform.position = sampleHeight
-                ? (Vector3) mapPos
+            transform.position = _SampleMapHeight
+                ? mapPos
                 : transform.position.WithXZ(mapPos.x, mapPos.z);
         }
     }

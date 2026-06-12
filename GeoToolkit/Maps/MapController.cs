@@ -84,11 +84,11 @@ namespace EDIVE.GeoToolkit.Maps
         }
 
         [Button]
-        public float3 ConvertToMapCoordinates(GeoCoords coords, bool sampleHeight = false)
+        public float3 ConvertToMapCoordinates(GeoCoords coords, bool sampleHeight = false, float heightSampleBias = 0)
         {
             var relativePosition = (float2) GeoArea.InverseLerp(coords);
             var position = MapTransformData.Origin + MapTransformData.AxisX * relativePosition.x + MapTransformData.AxisZ * relativePosition.y;
-            if (sampleHeight && TrySampleHeightPlaneProjected(position, out var sampledPosition))
+            if (sampleHeight && TrySampleHeightPlaneProjected(position, out var sampledPosition, heightSampleBias))
                 position = sampledPosition;
             return position;
         }
