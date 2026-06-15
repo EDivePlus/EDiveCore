@@ -78,9 +78,9 @@ namespace EDIVE.Avatars.Networking
             var result = await _saveDataService.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
 
             _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
-            _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
             _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
-
+            
+            _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
                 SetAvatar(_saveData.PlayerAvatar);
         }
