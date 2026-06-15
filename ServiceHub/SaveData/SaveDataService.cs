@@ -300,6 +300,9 @@ namespace EDIVE.ServiceHub.SaveData
             var local = ctx.Local;
             local.Set(key, json);
             local.Save();
+            
+            if (value is ASaveDataObject saveDataObject)
+                saveDataObject.ClearDirty();
 
             if (flag == SaveDataDirtyFlag.Immediate)
             {

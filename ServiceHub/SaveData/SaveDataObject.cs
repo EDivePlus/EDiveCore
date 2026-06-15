@@ -48,6 +48,9 @@ namespace EDIVE.ServiceHub.SaveData
         
         public void ClearDirty()
         {
+            if (DirtyFlag == SaveDataDirtyFlag.NoChange) 
+                return;
+            
             DirtyFlag = SaveDataDirtyFlag.NoChange;
             DirtyFlagChanged?.Invoke(DirtyFlag);
             MarkedAsClean?.Invoke();
