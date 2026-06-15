@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.Avatars
 {
@@ -261,19 +262,21 @@ namespace EDIVE.Avatars
         
         [EnhancedFoldoutGroup("Arms", "@ColorTools.Magenta", SpaceAfter = 4)]
         [SerializeField]
-        [Tooltip("Default elbow direction, root space. Mirrored on x for left.")]
+        [Tooltip("Default elbow hint direction, root space. Mirrored on x for left.")]
         private Vector3 _ElbowBaseDirection = new(0.35f, -1f, -0.25f);
-
-        [EnhancedFoldoutGroup("Arms")]
-        [ShowIf("@_WristBendInfluence > 0")]
-        [SerializeField]
-        [Tooltip("Hand axis that pulls the elbow. Mirrored on x for left.")]
-        private Vector3 _WristPoleAxis = new(0f, -1f, 0f);
 
         [EnhancedFoldoutGroup("Arms")]
         [SerializeField]
         [Range(0f, 1f)]
+        [Tooltip("How much the hand's rotation tilts the elbow hint.")]
         private float _WristBendInfluence = 0.3f;
+
+        [EnhancedFoldoutGroup("Arms")]
+        [ShowIf("@_WristBendInfluence > 0")]
+        [SerializeField]
+        [FormerlySerializedAs("_WristPoleAxis")]
+        [Tooltip("Hand axis that tilts the elbow hint. Mirrored on x for left.")]
+        private Vector3 _WristHintAxis = new(0f, -1f, 0f);
 
         [EnhancedFoldoutGroup("Arms")]
         [SerializeField]
@@ -933,12 +936,12 @@ namespace EDIVE.Avatars
                 return;
 
             // Knee bends to the hint, or forward if none
-            var kneePole = leg.BendGoal != null
-                ? leg.BendGoal.position - leg.Thigh.position
+            var kneeHint = leg.Hint != null
+                ? leg.Hint.position - leg.Thigh.position
                 : transform.forward;
-            leg.KneePole = kneePole;
+            leg.KneeHint = kneeHint;
 
-            SolveTwoBone(leg.Thigh, leg.Calf, leg.Foot, leg.FootPosition, kneePole, 1f, transform.forward);
+            SolveTwoBone(leg.Thigh, leg.Calf, leg.Foot, leg.FootPosition, kneeHint, 1f, transform.forward);
             leg.Foot.rotation = leg.FootRotation;
         }
 
@@ -1001,8 +1004,8 @@ namespace EDIVE.Avatars
                 if (arm.Shoulder != null && _ShoulderRotationWeight > 0f)
                     shoulderLift = SolveShoulder(arm, targetPos, positionWeight);
 
-                var poleDirection = GetElbowPole(arm, targetRot, isLeft);
-                SolveTwoBone(arm.UpperArm, arm.Forearm, arm.Hand, targetPos, poleDirection, _MaxArmExtension, transform.forward);
+                var hintDirection = GetElbowHint(arm, targetRot, isLeft);
+                SolveTwoBone(arm.UpperArm, arm.Forearm, arm.Hand, targetPos, hintDirection, _MaxArmExtension, transform.forward);
 
                 // Twist the upper arm as the hand rises
                 var twist = Mathf.Clamp(shoulderLift * positionWeight * _ShoulderRotationWeight * _ShoulderTwistWeight, 0f, 180f);
@@ -1044,28 +1047,29 @@ namespace EDIVE.Avatars
             child.rotation = childRotation;
         }
 
-        private Vector3 GetElbowPole(ArmRecord arm, Quaternion handTargetRot, bool isLeft)
+        private Vector3 GetElbowHint(ArmRecord arm, Quaternion handTargetRot, bool isLeft)
         {
             var baseDirection = _ElbowBaseDirection;
-            var wristAxis = _WristPoleAxis;
+            var wristAxis = _WristHintAxis;
             if (isLeft)
             {
                 baseDirection.x = -baseDirection.x;
                 wristAxis.x = -wristAxis.x;
             }
 
-            var pole = (transform.rotation * baseDirection).normalized;
+            var hint = (transform.rotation * baseDirection).normalized;
 
             if (_WristBendInfluence > 0f && wristAxis != Vector3.zero)
-                pole = Vector3.Slerp(pole, (handTargetRot * wristAxis).normalized, _WristBendInfluence);
+                hint = Vector3.Slerp(hint, (handTargetRot * wristAxis).normalized, _WristBendInfluence);
 
-            if (arm.BendGoal != null && arm.BendGoalWeight > 0f)
-                pole = Vector3.Slerp(pole, (arm.BendGoal.position - arm.Forearm.position).normalized, arm.BendGoalWeight);
+            // Hint direction is measured from the limb root (upper arm), matching the leg
+            if (arm.Hint != null && arm.HintWeight > 0f)
+                hint = Vector3.Slerp(hint, (arm.Hint.position - arm.UpperArm.position).normalized, arm.HintWeight);
 
-            return pole;
+            return hint;
         }
 
-        private static void SolveTwoBone(Transform upper, Transform lower, Transform end, Vector3 targetPos, Vector3 poleDirection, float maxExtension, Vector3 fallbackBendDirection)
+        private static void SolveTwoBone(Transform upper, Transform lower, Transform end, Vector3 targetPos, Vector3 hintDirection, float maxExtension, Vector3 fallbackBendDirection)
         {
             // Two-bone IK as delta rotations; keeps the animated roll
             var upperPos = upper.position;
@@ -1082,7 +1086,7 @@ namespace EDIVE.Avatars
             targetDistance = Mathf.Clamp(targetDistance, 0.01f, maxLength);
             targetPos = upperPos + direction * targetDistance;
 
-            var bendAxis = Vector3.Cross(direction, poleDirection);
+            var bendAxis = Vector3.Cross(direction, hintDirection);
             if (bendAxis.sqrMagnitude < 1e-6f)
                 bendAxis = Vector3.Cross(direction, fallbackBendDirection);
             bendAxis.Normalize();
@@ -1161,9 +1165,9 @@ namespace EDIVE.Avatars
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            DrawTargetGizmo(_HeadTarget, Color.cyan);
-            DrawTargetGizmo(_LeftHandTarget, Color.green);
-            DrawTargetGizmo(_RightHandTarget, Color.yellow);
+            DrawTargetGizmo(_HeadTarget, Color.cyan, _Head);
+            DrawTargetGizmo(_LeftHandTarget, Color.green, _LeftArm.Hand);
+            DrawTargetGizmo(_RightHandTarget, Color.yellow, _RightArm.Hand);
 
             if (_LeftArm.IsValid && _LeftHandTarget.IsValid)
                 DrawElbowGizmo(_LeftArm, _LeftHandTarget, true);
@@ -1173,28 +1177,60 @@ namespace EDIVE.Avatars
             DrawKneeGizmo(_LeftLeg);
             DrawKneeGizmo(_RightLeg);
         }
-
-        private void DrawTargetGizmo(TargetRecord target, Color color)
+        
+        private void DrawTargetGizmo(TargetRecord target, Color color, Transform drivenBone)
         {
             if (!target.IsValid)
                 return;
+
+            var rawPos = target.Target.position;
+            var anchorPos = target.GetPosition();
+
             Gizmos.color = color;
-            Gizmos.DrawWireSphere(target.GetPosition(), 0.04f);
-            Gizmos.DrawRay(target.GetPosition(), target.GetRotation() * Vector3.forward * 0.1f);
+            Gizmos.DrawWireSphere(anchorPos, 0.04f);
+            Gizmos.DrawRay(anchorPos, target.GetRotation() * Vector3.forward * 0.1f);
+            Gizmos.DrawWireSphere(rawPos, 0.025f);
+            Gizmos.DrawLine(rawPos, anchorPos);
+            
+            if (drivenBone != null)
+            {
+                Gizmos.DrawLine(anchorPos, drivenBone.position);
+                Gizmos.DrawWireSphere(drivenBone.position, 0.02f);
+            }
         }
 
         private void DrawElbowGizmo(ArmRecord arm, TargetRecord target, bool isLeft)
         {
+            // Resolved elbow hint direction (base + wrist tilt + hint transform)
             Gizmos.color = Color.yellow;
-            Gizmos.DrawRay(arm.Forearm.position, GetElbowPole(arm, target.GetRotation(), isLeft) * 0.25f);
+            Gizmos.DrawRay(arm.Forearm.position, GetElbowHint(arm, target.GetRotation(), isLeft) * 0.25f);
+
+            DrawHintGizmo(arm.Hint, arm.Forearm.position);
         }
 
         private void DrawKneeGizmo(LegRecord leg)
         {
-            if (!leg.IsValid || !Application.isPlaying)
+            if (!leg.IsValid)
                 return;
-            Gizmos.color = Color.magenta;
-            Gizmos.DrawRay(leg.Calf.position, leg.KneePole * 0.25f);
+
+            // Resolved knee hint direction is only computed while solving
+            if (Application.isPlaying)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawRay(leg.Calf.position, leg.KneeHint * 0.25f);
+            }
+
+            DrawHintGizmo(leg.Hint, leg.Calf.position);
+        }
+
+        // Assigned hint transform, with a line from the mid joint (elbow/knee) toward it
+        private static void DrawHintGizmo(Transform hint, Vector3 midJoint)
+        {
+            if (hint == null)
+                return;
+            Gizmos.color = Color.white;
+            Gizmos.DrawWireSphere(hint.position, 0.03f);
+            Gizmos.DrawLine(midJoint, hint.position);
         }
         
         [EnhancedFoldoutGroup("Bones")]
@@ -1285,12 +1321,14 @@ namespace EDIVE.Avatars
             private Transform _Hand;
 
             [SerializeField]
-            [Tooltip("Optional elbow hint. Overrides the default direction.")]
-            private Transform _BendGoal;
+            [FormerlySerializedAs("_BendGoal")]
+            [Tooltip("Optional elbow hint. Bends the elbow toward this transform.")]
+            private Transform _Hint;
 
             [SerializeField]
             [Range(0f, 1f)]
-            private float _BendGoalWeight = 1f;
+            [FormerlySerializedAs("_BendGoalWeight")]
+            private float _HintWeight = 1f;
 
             public Transform Shoulder
             {
@@ -1316,8 +1354,8 @@ namespace EDIVE.Avatars
                 set => _Hand = value;
             }
 
-            public Transform BendGoal => _BendGoal;
-            public float BendGoalWeight => _BendGoalWeight;
+            public Transform Hint => _Hint;
+            public float HintWeight => _HintWeight;
 
             public bool IsValid => _UpperArm != null && _Forearm != null && _Hand != null;
         }
@@ -1335,8 +1373,9 @@ namespace EDIVE.Avatars
             private Transform _Foot;
 
             [SerializeField]
+            [FormerlySerializedAs("_BendGoal")]
             [Tooltip("Optional knee hint. Default bends forward.")]
-            private Transform _BendGoal;
+            private Transform _Hint;
 
             [SerializeField]
             private Transform _GroundingAnchor;
@@ -1361,11 +1400,11 @@ namespace EDIVE.Avatars
 
             public bool IsValid => _Thigh != null && _Calf != null && _Foot != null;
 
-            public Transform BendGoal => _BendGoal;
+            public Transform Hint => _Hint;
             public Transform GroundingAnchor { get => _GroundingAnchor; set => _GroundingAnchor = value; }
             public Vector3 FootPosition { get; private set; }
             public Quaternion FootRotation { get; private set; }
-            public Vector3 KneePole { get; set; }
+            public Vector3 KneeHint { get; set; }
             public float MaxLength { get; private set; }
             public float GroundOffset { get; private set; }
 
