@@ -2,17 +2,22 @@
 // Created: 29.10.2025
 
 using System;
+using EDIVE.Utils.Json.TypeNames;
 using EDIVE.VisualPresets.VisualIDs;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.VisualPresets.Presets
 {
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    [JsonTypeName("VisualPreset.Color")]
     public class ColorVisualPresetRecord : AVisualPresetRecord<ColorVisualID>
     {
         [VerticalGroup("Value")]
         [SerializeField]
+        [JsonProperty("Color")]
         private Color _Color;
         
         public Color Color => _Color;

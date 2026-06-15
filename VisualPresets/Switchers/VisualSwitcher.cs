@@ -12,6 +12,7 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
+using EDIVE.VisualPresets.VisualIDs;
 using Sirenix.Utilities.Editor;
 #endif
 
@@ -72,6 +73,11 @@ namespace EDIVE.VisualPresets.Switchers
         }
         
         private Texture2D GetRecordIcon(AVisualSwitcherRecord record) => GUIHelper.GetAssetThumbnail(null, record.EditorIconTargetType, false);
+        
+        public IEnumerable<ABaseVisualID> GetVisualIDs()
+        {
+            return _Records.Select(r => r.BaseVisualID).Where(id => id != null);
+        }
 #endif
     }
 }

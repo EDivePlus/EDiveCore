@@ -4,14 +4,20 @@
 using System;
 using EDIVE.NativeUtils;
 using EDIVE.Utils.FontSymbols;
+using EDIVE.Utils.Json.TypeNames;
 using EDIVE.VisualPresets.Presets;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Scripting;
 
 namespace EDIVE.VisualPresets.Switchers
 {
+    // Note: the FontSymbol value is intentionally not serialized to JSON (its FontSymbolsDefinition is a
+    // raw ScriptableObject reference that cannot round-trip); only the VisualID (ID) and the type discriminator are persisted.
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    [JsonTypeName("VisualPreset.FontSymbol")]
     public class FontSymbolVisualPresetRecord : AVisualPresetRecord<FontSymbolVisualID>
     {
         [VerticalGroup("Value")]

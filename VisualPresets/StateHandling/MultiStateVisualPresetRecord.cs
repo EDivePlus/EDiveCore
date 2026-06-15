@@ -5,8 +5,10 @@ using System;
 using System.Collections;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Utils.Json.TypeNames;
 using EDIVE.VisualPresets.Presets;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -19,6 +21,8 @@ using UnityEditor;
 namespace EDIVE.VisualPresets.StateHandling
 {
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    [JsonTypeName("VisualPreset.MultiState")]
     public class MultiStateVisualPresetRecord : AVisualPresetRecord<MultiStateVisualID>
     {
         [VerticalGroup("Value")]
@@ -26,6 +30,7 @@ namespace EDIVE.VisualPresets.StateHandling
         [EnhancedValueDropdown("GetStatesDropdown")]
         [InlineIconButton("Pen", "OpenStatesEdit", EnableIf = "@VisualID != null")]
         [SerializeField]
+        [JsonProperty("State")]
         private string _State;
         
         public string State

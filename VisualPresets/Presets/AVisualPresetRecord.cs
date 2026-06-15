@@ -11,6 +11,7 @@ using UnityEngine;
 namespace EDIVE.VisualPresets.Presets
 {
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
     public abstract class AVisualPresetRecord : IEquatable<AVisualPresetRecord>
     {
         public abstract string EditorLabel { get; }
@@ -40,6 +41,7 @@ namespace EDIVE.VisualPresets.Presets
     }
     
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
     public abstract class AVisualPresetRecord<TVisualID> : AVisualPresetRecord where TVisualID : ABaseVisualID
     {
         [HideLabel]
@@ -50,7 +52,5 @@ namespace EDIVE.VisualPresets.Presets
         
         public TVisualID VisualID => _VisualID;
         public override ABaseVisualID BaseVisualID => _VisualID;
-        
-        
     }
 }

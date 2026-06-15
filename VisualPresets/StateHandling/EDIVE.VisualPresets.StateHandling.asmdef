@@ -6,7 +6,8 @@
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "EDIVE.AssetTranslation"
+        "EDIVE.AssetTranslation",
+        "EDIVE.Utils.Json"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

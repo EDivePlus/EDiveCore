@@ -4,8 +4,10 @@
 #if UNITY_LOCALIZATION
 using System;
 using EDIVE.Localization;
+using EDIVE.Utils.Json.TypeNames;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
@@ -13,11 +15,14 @@ using UnityEngine.Scripting.APIUpdating;
 namespace EDIVE.VisualPresets.Localization
 {
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    [JsonTypeName("VisualPreset.LocalizedString")]
     [MovedFrom(true, "EDIVE.VisualPresets.Localization", "EDIVE.Localization")]
     public class LocalizedStringVisualPresetRecord : AVisualPresetRecord<StringVisualID>
     {
         [VerticalGroup("Value")]
         [SerializeField]
+        [JsonProperty("Text")]
         private SafeLocalizedString _LocalizedText;
         
         public SafeLocalizedString LocalizedText

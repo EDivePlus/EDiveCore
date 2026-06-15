@@ -9,6 +9,7 @@ using System.Linq;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.VisualPresets.VisualIDs;
+using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 
 #if UNITY_EDITOR
@@ -20,6 +21,7 @@ namespace EDIVE.VisualPresets.Presets
     [HideLabel]
     [InlineProperty]
     [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
     public class VisualPreset
     {
         [SerializeReference]
@@ -27,6 +29,7 @@ namespace EDIVE.VisualPresets.Presets
         [HideReferenceObjectPicker]
         [LabelText("@$property.Parent.NiceName")]
         [EnhancedValueDropdown("GetAvailableRecords", DrawDropdownForListElements = false, SortDropdownItems = true)]
+        [JsonProperty("Records", ItemTypeNameHandling = TypeNameHandling.Auto, ObjectCreationHandling = ObjectCreationHandling.Replace)]
         private List<AVisualPresetRecord> _Records = new();
 
         public VisualPreset() { }

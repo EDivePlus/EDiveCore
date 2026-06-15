@@ -10,7 +10,8 @@
         "EDIVE.StateHandling",
         "EDIVE.VisualPresets",
         "EDIVE.AssetTranslation",
-        "EDIVE.EditorUtils"
+        "EDIVE.EditorUtils",
+        "EDIVE.Utils.Json"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
