@@ -15,6 +15,7 @@ using PurrNet;
 using PurrNet.Transports;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace EDIVE.Networking.ServerManagement.ServiceHub
 {
@@ -34,6 +35,25 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         [MinValue(1f)]
         [Tooltip("Interval between heartbeat updates. Backend default TTL is ~40s.")]
         private float _HeartbeatInterval = 15f;
+
+        [SerializeField]
+        [MinValue(1)]
+        [Tooltip("Timeout (seconds) for the lobby registration request. The TLS handshake on a freshly started dedicated server can be slow, so this is intentionally higher than the default API timeout.")]
+        private int _RegisterTimeoutSeconds = 15;
+
+        [SerializeField]
+        [MinValue(0f)]
+        [Tooltip("Base delay (seconds) for the exponential backoff between failed registration attempts.")]
+        private float _RegisterRetryBaseDelay = 2f;
+
+        [SerializeField]
+        [MinValue(1f)]
+        [Tooltip("Maximum delay (seconds) between failed registration attempts.")]
+        private float _RegisterRetryMaxDelay = 30f;
+
+        [SerializeField]
+        [Tooltip("DIAGNOSTIC ONLY. Bypass TLS certificate validation for the registration request to test whether registration timeouts are caused by certificate validation/revocation. Leave OFF in production.")]
+        private bool _BypassCertificateValidation;
 
         private ServiceHubManager _serviceHub;
         private LobbyService Lobby => _serviceHub.Lobby;
@@ -64,10 +84,39 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         public override async UniTask PrepareServerStart()
         {
             await base.PrepareServerStart();
+
+            if (!_serviceHub.HasValidSetup)
+                return;
+
+            var transports = await AppCore.Services.AwaitRegistered<TransportController>();
+            if (transports.IsLocal())
+            {
+                Debug.LogWarning("[ServiceHubServerListAdapter] Server hosted as local, skipping lobby registration.");
+                return;
+            }
+
+            InitializeRelay(transports);
+
+            // First attempt happens here so the join code is available as early as possible.
+            // If it fails, the heartbeat loop keeps retrying with backoff instead of giving up.
             await RegisterLobby(destroyCancellationToken);
-            
+
             _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             HeartbeatTask(_heartbeatCancellation.Token).Forget();
+        }
+
+        private void InitializeRelay(TransportController transports)
+        {
+            if (_relayInitialized)
+                return;
+
+            if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
+            {
+                _purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
+                purrTransport.roomName = _purrRelayRoom;
+            }
+
+            _relayInitialized = true;
         }
         
         private void OnDestroy()
@@ -187,29 +236,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             }
         }
 
-        private async UniTask RegisterLobby(CancellationToken cancellationToken = default)
+        private async UniTask<bool> RegisterLobby(CancellationToken cancellationToken = default)
         {
             if (!_serviceHub.HasValidSetup)
-                return;
-            
-            var transports = await AppCore.Services.AwaitRegistered<TransportController>();
-
-            if (transports.IsLocal())
-            {
-                Debug.LogWarning("[ServiceHubServerListAdapter] Server hosted as local, skipping lobby registration.");
-                return;
-            }
-            
-            if (!_relayInitialized)
-            {
-                if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
-                {
-                    _purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
-                    purrTransport.roomName = _purrRelayRoom;
-                }
-                
-                _relayInitialized = true;
-            }
+                return false;
 
             var serverManager = AppCore.Services.Get<NetworkServerManager>();
 
@@ -218,6 +248,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 InstanceID = serverManager.InstanceID,
                 PurrRelayRoom = _purrRelayRoom
             };
+
+            var certificateHandler = _BypassCertificateValidation ? new BypassCertificateHandler() : null;
+
             var response = await Lobby.RegisterServerAsync(new RegisterServerRequest
             {
                 Name = _serverConfig.ServerName,
@@ -228,19 +261,19 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 Data = data.Serialize(),
                 IsPrivate = _serverConfig.IsPrivate,
                 IsDebug = Debug.isDebugBuild
-            }, cancellationToken);
-            
+            }, _RegisterTimeoutSeconds, certificateHandler, cancellationToken);
+
             if (!response.IsSuccess || response.Result == null)
             {
                 Debug.LogError($"[ServiceHubServerListAdapter] Server registration failed: {response.ErrorMessage}");
-                return;
+                return false;
             }
             _serverSecret = response.Result.Secret;
             _joinCode = response.Result.Code;
-            
+
             if (_currentServerRecord != null)
                 _currentServerRecord.JoinCode = _joinCode;
-            
+
             _lastSuccessfulContactUtc = DateTime.UtcNow;
 
             var endpoints = new List<AServerEndpoint>();
@@ -253,7 +286,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     Port = serverManager.ResolvedPort,
                 });
             }
-            
+
             if (!string.IsNullOrEmpty(_purrRelayRoom))
             {
                 endpoints.Add(new PurrRelayServerEndpoint
@@ -262,18 +295,41 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     RoomName = _purrRelayRoom
                 });
             }
-            
+
             _localEndpoints = endpoints.ToArray();
+            Debug.Log($"[ServiceHubServerListAdapter] Server registered (join code: {_joinCode}).");
+            return true;
         }
         
         private async UniTaskVoid HeartbeatTask(CancellationToken cancellationToken)
         {
+            var registerAttempt = 0;
             while (!cancellationToken.IsCancellationRequested)
             {
+                // (Re)registration path: runs whenever we don't hold a valid secret — i.e. the initial
+                // registration failed, or the lobby entry was lost. Retries with exponential backoff so a
+                // transient failure (e.g. a slow TLS handshake on startup) no longer permanently drops the
+                // server from the lobby.
+                if (string.IsNullOrEmpty(_serverSecret))
+                {
+                    if (await RegisterLobby(cancellationToken))
+                    {
+                        registerAttempt = 0;
+                    }
+                    else
+                    {
+                        registerAttempt++;
+                        var delay = Mathf.Min(_RegisterRetryMaxDelay, _RegisterRetryBaseDelay * Mathf.Pow(2f, registerAttempt - 1));
+                        Debug.LogWarning($"[ServiceHubServerListAdapter] Registration attempt {registerAttempt} failed — retrying in {delay:0.#}s.");
+                        await UniTask.Delay(TimeSpan.FromSeconds(delay), true, cancellationToken: cancellationToken);
+                        continue;
+                    }
+                }
+
                 await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(1f, _HeartbeatInterval)), true, cancellationToken: cancellationToken);
 
                 if (string.IsNullOrEmpty(_serverSecret))
-                    return;
+                    continue;
 
                 try
                 {
@@ -293,7 +349,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     else if (response.ApiStatus is (int) ServiceHubStatus.InvalidSecret or (int) ServiceHubStatus.ServerNotFound)
                     {
                         Debug.Log($"[ServiceHubServerListAdapter] Lobby entry no longer valid (api status {response.ApiStatus}: {response.ErrorMessage}) — re-registering server.");
-                        await RegisterLobby(cancellationToken);
+                        _serverSecret = null;
                     }
                     else
                     {
@@ -305,7 +361,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     if ((DateTime.UtcNow - _lastSuccessfulContactUtc).TotalSeconds >= Mathf.Max(1f, _HeartbeatInterval))
                     {
                         Debug.Log($"[ServiceHubServerListAdapter] Lobby entry lost (exception: {e.Message}) — re-registering server.");
-                        await RegisterLobby(cancellationToken);
+                        _serverSecret = null;
                     }
                     else
                     {
@@ -339,5 +395,15 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 Debug.LogWarning($"[ServiceHubServerListAdapter] Dispose exception: {e.Message}");
             }
         }
+    }
+
+    /// <summary>
+    /// DIAGNOSTIC ONLY certificate handler that accepts any TLS certificate. Used to test whether
+    /// registration timeouts are caused by certificate validation/revocation in Unity's TLS stack.
+    /// Never use this for anything that requires real transport security.
+    /// </summary>
+    internal class BypassCertificateHandler : CertificateHandler
+    {
+        protected override bool ValidateCertificate(byte[] certificateData) => true;
     }
 }

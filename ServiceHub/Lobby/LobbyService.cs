@@ -8,6 +8,7 @@ using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace EDIVE.ServiceHub.Lobby
 {
@@ -32,6 +33,8 @@ namespace EDIVE.ServiceHub.Lobby
 
         public async UniTask<NetworkResponse<ServerRegistrationResponse>> RegisterServerAsync(
             RegisterServerRequest request,
+            int? timeoutSeconds = null,
+            CertificateHandler certificateHandler = null,
             CancellationToken cancellationToken = default)
         {
             if (request == null)
@@ -45,8 +48,9 @@ namespace EDIVE.ServiceHub.Lobby
                 request,
                 authToken: null,
                 headers: null,
-                timeout: RequestTimeoutSeconds,
-                cancellationToken: cancellationToken
+                timeout: timeoutSeconds ?? RequestTimeoutSeconds,
+                cancellationToken: cancellationToken,
+                certificateHandler: certificateHandler
             );
             return ApiResponseHelper.UnwrapApi(response, "RegisterServer");
         }

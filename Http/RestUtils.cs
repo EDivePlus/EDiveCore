@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -19,9 +19,9 @@ namespace EDIVE.Http
         [ClearOnReload] public static event Action<RequestCompletedEvent> OnRequestCompleted;
         [ClearOnReload] public static event Action<RequestCancelledEvent> OnRequestCancelled;
 
-        public static UniTask<NetworkResponse<TResponse>> PostAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
+        public static UniTask<NetworkResponse<TResponse>> PostAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default, CertificateHandler certificateHandler = null)
         {
-            return SendRequestAsync<TResponse, TRequest>(url, UnityWebRequest.kHttpVerbPOST, request, authToken, headers, timeout, cancellationToken);
+            return SendRequestAsync<TResponse, TRequest>(url, UnityWebRequest.kHttpVerbPOST, request, authToken, headers, timeout, cancellationToken, certificateHandler);
         }
 
         public static UniTask<NetworkResponse<TResponse>> PutAsync<TResponse, TRequest>(string url, TRequest request, string authToken = null, Dictionary<string, string> headers = null, int timeout = DEFAULT_TIMEOUT, CancellationToken cancellationToken = default)
@@ -113,9 +113,10 @@ namespace EDIVE.Http
             string authToken,
             Dictionary<string, string> headers,
             int timeout,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            CertificateHandler certificateHandler = null)
         {
-            var result = await SendRawRequestAsync(url, method, jsonPayload, authToken, headers, timeout, cancellationToken);
+            var result = await SendRawRequestAsync(url, method, jsonPayload, authToken, headers, timeout, cancellationToken, certificateHandler);
 
             if (!result.IsSuccess)
             {
@@ -141,16 +142,17 @@ namespace EDIVE.Http
         }
 
         private static async UniTask<NetworkResponse<TResponse>> SendRequestAsync<TResponse, TRequest>(
-            string url, 
-            string method, 
+            string url,
+            string method,
             TRequest payload,
-            string authToken, 
+            string authToken,
             Dictionary<string, string> headers,
             int timeout,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            CertificateHandler certificateHandler = null)
         {
             var jsonPayload = payload != null ? JsonConvert.SerializeObject(payload) : null;
-            return await SendRequestAsync<TResponse>(url, method, jsonPayload, authToken, headers, timeout, cancellationToken);
+            return await SendRequestAsync<TResponse>(url, method, jsonPayload, authToken, headers, timeout, cancellationToken, certificateHandler);
         }
         
         private static async UniTask<NetworkResponse<TResponse>> SendRequestAsync<TResponse>(
@@ -165,13 +167,14 @@ namespace EDIVE.Http
         }
 
         private static async UniTask<RawNetworkResponse> SendRawRequestAsync(
-            string url, 
-            string method, 
-            string jsonPayload, 
-            string authToken = null, 
-            Dictionary<string, string> headers = null, 
-            int timeout = DEFAULT_TIMEOUT, 
-            CancellationToken cancellationToken = default)
+            string url,
+            string method,
+            string jsonPayload,
+            string authToken = null,
+            Dictionary<string, string> headers = null,
+            int timeout = DEFAULT_TIMEOUT,
+            CancellationToken cancellationToken = default,
+            CertificateHandler certificateHandler = null)
         {
             var requestId = _nextRequestId++;
 
@@ -194,6 +197,9 @@ namespace EDIVE.Http
             using var webRequest = new UnityWebRequest(url, method);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.timeout = timeout;
+
+            if (certificateHandler != null)
+                webRequest.certificateHandler = certificateHandler;
 
             if (!string.IsNullOrEmpty(jsonPayload))
             {
