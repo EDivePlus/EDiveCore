@@ -185,19 +185,19 @@ namespace EDIVE.Avatars
         [ShowIf(nameof(_RootFollowsHead))]
         [SerializeField]
         [Tooltip("Max head-to-root distance before the root is dragged.")]
-        private float _MaxRootOffset = 0.4f;
+        private float _MaxRootOffset = 0.5f;
 
         [EnhancedFoldoutGroup("Root")]
         [ShowIf(nameof(_RootFollowsHead))]
         [SerializeField]
         [Tooltip("Root catch-up rate while walking. Higher = less leg drag.")]
-        private float _RootCatchUpSpeedMoving = 12f;
+        private float _RootCatchUpSpeedMoving = 30f;
 
         [EnhancedFoldoutGroup("Root")]
         [ShowIf(nameof(_RootFollowsHead))]
         [SerializeField]
         [Tooltip("Root catch-up rate while turning.")]
-        private float _RootCatchUpSpeedTurning = 8f;
+        private float _RootCatchUpSpeedTurning = 10f;
 
         [EnhancedFoldoutGroup("Body", "@ColorTools.Green", SpaceAfter = 4)]
         [SerializeField]
@@ -412,6 +412,18 @@ namespace EDIVE.Avatars
         private float _VelocitySmoothTime = 0.1f;
 
         [EnhancedFoldoutGroup("Locomotion")]
+        [SerializeField]
+        [Range(0f, 90f)]
+        [Tooltip("Head-vs-root angle before the turn-in-place animation starts. Higher = less sensitive.")]
+        private float _TurnStartAngle = 30f;
+
+        [EnhancedFoldoutGroup("Locomotion")]
+        [SerializeField]
+        [Range(0.5f, 10f)]
+        [Tooltip("How fast the Turn param eases toward its target. Lower = slower, gentler turn-in-place.")]
+        private float _TurnResponseSpeed = 5f;
+
+        [EnhancedFoldoutGroup("Locomotion")]
         [MinMaxSlider(0f, 5f, true)]
         [SerializeField]
         [Tooltip("Min/max playback speed.")]
@@ -471,6 +483,7 @@ namespace EDIVE.Avatars
         private Vector3 _velocityLocalDamp;
         private float _animationSpeed = 1f;
         private float _animationSpeedDamp;
+        private float _currentVelocitySmoothTime = 0.05f;
         private float _clipUnitSpeed = 1f;
         private float _stopMoveTimer = 1f;
         private float _catchUpSpeed;
@@ -479,6 +492,7 @@ namespace EDIVE.Avatars
         private float _groundDampVelocity;
         private float _pelvisGroundOffset;
         private bool _isMoving;
+        private bool _turning;
         private bool _hasLastState;
         private readonly RaycastHit[] _rayHits = new RaycastHit[1];
 
@@ -494,12 +508,14 @@ namespace EDIVE.Avatars
             _rightHandStillTime = 0f;
             _velocityLocal = Vector3.zero;
             _velocityLocalDamp = Vector3.zero;
+            _currentVelocitySmoothTime = 0.05f;
             _lastRootCorrection = Vector3.zero;
             _animationSpeed = 1f;
             _clipUnitSpeed = 1f;
             _stopMoveTimer = 1f;
             _catchUpSpeed = 0f;
             _isMoving = false;
+            _turning = false;
             _turn = 0f;
             _currentMaxRootAngle = _MaxRootAngleStanding;
             
@@ -683,7 +699,6 @@ namespace EDIVE.Avatars
 
         private void UpdateLocomotion(Vector3 headTargetPos, Quaternion anchorRot, Quaternion animatedRootRotation, float deltaTime)
         {
-            const float turnDeadzoneAngle = 20f;
             const float stopDelay = 0.06f; // keep IsMoving this long after motion stops, to debounce
 
             if (!_hasLastState)
@@ -713,10 +728,31 @@ namespace EDIVE.Avatars
             offset -= _lastRootCorrection;
             offset.y = 0f;
 
+            // Head heading vs root; ignore small angles. Computed before the velocity
+            // smoothing so a turn-in-place can damp the step it would otherwise trigger.
+            var headingAngle = SignedHeadingAngle(anchorRot);
+            var absHeading = Mathf.Abs(headingAngle);
+
+            // Hysteresis: a heading hovering at the threshold can't flicker the turn state on/off
+            var turnBar = _turning ? _TurnStartAngle * 0.7f : _TurnStartAngle;
+            _turning = absHeading > turnBar;
+            var isTurning = _turning;
+
+            // Ramp Turn up continuously from the deadzone (0 exactly at _TurnStartAngle, full at 90°) so
+            // crossing the threshold can't snap it to a step value - that snap was the idle "0 -> 0.2" hiccup.
+            var over = Mathf.Max(0f, absHeading - _TurnStartAngle);
+            var turnTarget = Mathf.Sign(headingAngle) * Mathf.Clamp01(over / Mathf.Max(90f - _TurnStartAngle, 1f));
+            _turn = Mathf.Lerp(_turn, turnTarget, deltaTime * _TurnResponseSpeed);
+
             // Command = head motion + offset, in body space
             var commandWorld = headVelocityWorld + offset;
             var velocityTarget = Quaternion.Inverse(animatedRootRotation) * commandWorld * _Weight;
-            _velocityLocal = Vector3.SmoothDamp(_velocityLocal, velocityTarget, ref _velocityLocalDamp, _VelocitySmoothTime, Mathf.Infinity, deltaTime);
+
+            // Heavier smoothing while turning in place, so a quick head turn doesn't inject
+            // a horizontal velocity spike that crosses the move threshold and fires a step.
+            var smoothTimeTarget = isTurning && !_isMoving ? 0.2f : _VelocitySmoothTime;
+            _currentVelocitySmoothTime = Mathf.Lerp(_currentVelocitySmoothTime, smoothTimeTarget, deltaTime * 20f);
+            _velocityLocal = Vector3.SmoothDamp(_velocityLocal, velocityTarget, ref _velocityLocalDamp, _currentVelocitySmoothTime, Mathf.Infinity, deltaTime);
 
             // Moving: separate start/stop bars + short hold to avoid flicker
             var speed = _velocityLocal.magnitude;
@@ -724,12 +760,6 @@ namespace EDIVE.Avatars
             var movingNow = speed > bar;
             _stopMoveTimer = movingNow ? 0f : _stopMoveTimer + deltaTime;
             _isMoving = _stopMoveTimer < stopDelay;
-
-            // Head heading vs root; ignore small angles
-            var headingAngle = SignedHeadingAngle(anchorRot);
-            var isTurning = Mathf.Abs(headingAngle) > turnDeadzoneAngle;
-            var turnTarget = isTurning ? Mathf.Clamp(headingAngle / 90f, -1f, 1f) : 0f;
-            _turn = Mathf.Lerp(_turn, turnTarget, 1f - Mathf.Exp(-deltaTime * 8f));
 
             // Wider turn dead zone standing, tighter moving
             var maxAngleTarget = _isMoving ? _MaxRootAngleMoving : _MaxRootAngleStanding;
@@ -770,10 +800,9 @@ namespace EDIVE.Avatars
             }
 
             // Chase the head only while moving/turning, so the torso stays over the feet (no leg drag).
-            // Rate grows with head speed, plus a small idle term so a settled offset still closes.
-            const float chaseIdle = 0.15f;
+            // Rate grows with head speed; the 0.2 floor still closes a settled offset (matches VRIK).
             var chaseBase = _isMoving ? _RootCatchUpSpeedMoving : isTurning ? _RootCatchUpSpeedTurning : 0f;
-            var chaseRate = chaseBase * (headVelocityWorld.magnitude + chaseIdle);
+            var chaseRate = chaseBase * Mathf.Max(headVelocityWorld.magnitude, 0.2f);
             _catchUpSpeed = Mathf.Lerp(_catchUpSpeed, chaseRate, 1f - Mathf.Exp(-deltaTime * 18f));
 
             var before = transform.position;
