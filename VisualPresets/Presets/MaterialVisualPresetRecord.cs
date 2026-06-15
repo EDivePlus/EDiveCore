@@ -25,6 +25,10 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Material";
 
+        [JsonConstructor]
+        public MaterialVisualPresetRecord() { }
+        public MaterialVisualPresetRecord(MaterialVisualID visualID, Material material) : base(visualID) { _Material = material; }
+
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is MaterialVisualPresetRecord materialRecord && Equals(Material, materialRecord.Material);

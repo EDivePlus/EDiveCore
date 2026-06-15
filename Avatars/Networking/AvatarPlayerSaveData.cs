@@ -3,6 +3,7 @@
 
 using System;
 using EDIVE.ServiceHub.SaveData;
+using EDIVE.VisualPresets.Presets;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -20,6 +21,14 @@ namespace EDIVE.Avatars.Networking
         {
             get => _PlayerAvatar;
             set => SetProperty(ref _PlayerAvatar, value);
+        }
+        
+        [SerializeField, JsonProperty("visual_preset")]
+        private VisualPreset _CustomizationPreset;
+        public VisualPreset CustomizationPreset
+        {
+            get => _CustomizationPreset;
+            set => SetProperty(ref _CustomizationPreset, value);
         }
     }
 }

@@ -16,7 +16,8 @@
     "EDIVE.ServiceHub",
     "UniTask",
     "EDIVE.Input",
-    "EDIVE.OdinExtensions"
+    "EDIVE.OdinExtensions",
+    "EDIVE.VisualPresets"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -25,6 +25,10 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Prefab";
 
+        [JsonConstructor]
+        public PrefabVisualPresetRecord() { }
+        public PrefabVisualPresetRecord(PrefabVisualID visualID, GameObject prefab) : base(visualID) { _Prefab = prefab; }
+
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is PrefabVisualPresetRecord prefabRecord && _Prefab == prefabRecord._Prefab;

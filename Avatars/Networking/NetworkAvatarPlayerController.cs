@@ -13,6 +13,8 @@ using EDIVE.Networking.Players;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.SaveData;
+using EDIVE.VisualPresets.Presets;
+using EDIVE.VisualPresets.VisualIDs;
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -129,6 +131,9 @@ namespace EDIVE.Avatars.Networking
             if (owner.HasValue)
                 avatar.GiveOwnership(owner.Value);
             _avatar.value = avatar;
+            
+            if (_saveData?.CustomizationPreset != null)
+                avatar.ApplyCustomizationPreset(_saveData.CustomizationPreset);
         }
 
         public Transform GetWorldPoseTransform()

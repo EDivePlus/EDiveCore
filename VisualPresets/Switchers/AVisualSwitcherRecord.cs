@@ -55,7 +55,7 @@ namespace EDIVE.VisualPresets.Switchers
         private AVisualPresetRecord _currentPreset;
         private IDisposable _strategyHandle;
         
-        public override void TryApply(AVisualPresetRecord preset)
+        public sealed override void TryApply(AVisualPresetRecord preset)
         {
             if (_VisualID == null) return;
             if (!Equals(BaseVisualID.UniqueID, preset.BaseVisualID.UniqueID)) return;

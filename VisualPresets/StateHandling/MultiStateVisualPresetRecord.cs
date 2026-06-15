@@ -40,7 +40,11 @@ namespace EDIVE.VisualPresets.StateHandling
         }
         
         public override string EditorLabel => "MultiState";
-        
+
+        [JsonConstructor]
+        public MultiStateVisualPresetRecord() { }
+        public MultiStateVisualPresetRecord(MultiStateVisualID visualID, string state) : base(visualID) { _State = state; }
+
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is MultiStateVisualPresetRecord multiStatePreset && Equals(multiStatePreset.State, State);

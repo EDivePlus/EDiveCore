@@ -52,5 +52,8 @@ namespace EDIVE.VisualPresets.Presets
         
         public TVisualID VisualID => _VisualID;
         public override ABaseVisualID BaseVisualID => _VisualID;
+
+        protected AVisualPresetRecord() { }
+        protected AVisualPresetRecord(TVisualID visualID) { _VisualID = visualID; }
     }
 }

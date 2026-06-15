@@ -32,7 +32,11 @@ namespace EDIVE.VisualPresets.Localization
         }
         
         public override string EditorLabel => "Localized String";
-        
+
+        [JsonConstructor]
+        public LocalizedStringVisualPresetRecord() { }
+        public LocalizedStringVisualPresetRecord(StringVisualID visualID, SafeLocalizedString localizedText) : base(visualID) { _LocalizedText = localizedText; }
+
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is LocalizedStringVisualPresetRecord localizedPreset && Equals(LocalizedText, localizedPreset.LocalizedText);

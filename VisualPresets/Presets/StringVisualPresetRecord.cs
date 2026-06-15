@@ -24,6 +24,10 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "String";
 
+        [JsonConstructor]
+        public StringVisualPresetRecord() { }
+        public StringVisualPresetRecord(StringVisualID visualID, string text) : base(visualID) { _Text = text; }
+
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is StringVisualPresetRecord tOther && Text == tOther.Text;

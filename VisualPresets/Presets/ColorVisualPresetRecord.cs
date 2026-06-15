@@ -19,11 +19,17 @@ namespace EDIVE.VisualPresets.Presets
         [SerializeField]
         [JsonProperty("Color")]
         private Color _Color;
-        
+
+        [JsonConstructor]
+        public ColorVisualPresetRecord() { }
+        public ColorVisualPresetRecord(ColorVisualID visualID, Color color) : base(visualID) { _Color = color; }
+
         public Color Color => _Color;
 
         public override string EditorLabel => "Color";
 
+        
+        
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is ColorVisualPresetRecord colorRecord && Color.Equals(colorRecord.Color);

@@ -25,6 +25,10 @@ namespace EDIVE.VisualPresets.Presets
 
         public override string EditorLabel => "Sprite";
 
+        [JsonConstructor]
+        public SpriteVisualPresetRecord() { }
+        public SpriteVisualPresetRecord(SpriteVisualID visualID, Sprite sprite) : base(visualID) { _Sprite = sprite; }
+
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
             return other is SpriteVisualPresetRecord spriteRecord && Sprite == spriteRecord.Sprite;
