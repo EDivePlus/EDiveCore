@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using EDIVE.Avatars;
 using EDIVE.ScriptableArchitecture.Variables;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
@@ -17,6 +18,9 @@ namespace EDIVE.Networking.Players
 
         [SerializeField]
         private IKTargetRecord _RightHandTarget;
+        
+        [SerializeField]
+        private List<IKTargetRecord> _OtherTargets = new();
         
         [Serializable]
         public class IKTargetRecord
@@ -44,6 +48,12 @@ namespace EDIVE.Networking.Players
 
                 var rightHandFollow = _RightHandTarget.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
                 rightHandFollow.Source = _RightHandTarget.RigTarget;
+                
+                foreach (var record in _OtherTargets)
+                {
+                    var follow = record.SkeletonTarget.gameObject.AddComponent<ScriptableTransformFollow>();
+                    follow.Source = record.RigTarget;
+                }
             }
         }
         
