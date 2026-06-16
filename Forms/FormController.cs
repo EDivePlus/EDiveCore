@@ -54,6 +54,7 @@ namespace EDIVE.Forms
         public event Action<FormStateType> FormStateChanged;
         public event Action<int, AFormQuestion> CurrentQuestionChanged;
         public event Action<string, AFormAnswer> AnswerChanged;
+        public event Action AnswersCleared;
         
         public AFormQuestionController CurrentQuestionController { get; private set; }
         public FormAnswerBundle CurrentAnswers { get; private set; } = new(Guid.NewGuid().ToString());
@@ -85,9 +86,16 @@ namespace EDIVE.Forms
         [Button]
         public void Initialize()
         {
-            CurrentAnswers.Clear();
+            ClearAnswers();
+            AnswersCleared?.Invoke();
             SetFormState(FormStateType.Initial);
             TrySetQuestion(-1);
+        }
+
+        // Clears the local answer mirror without raising AnswersCleared (used when applying a synced clear).
+        public void ClearAnswers()
+        {
+            CurrentAnswers.Clear();
         }
         
         public void Terminate()

@@ -76,6 +76,7 @@ namespace EDIVE.Forms.Networking
             _formController.CurrentQuestionChanged += OnLocalCurrentQuestionChanged;
             _formController.FormStateChanged += OnLocalFormStateChanged;
             _formController.AnswerChanged += OnLocalAnswerChanged;
+            _formController.AnswersCleared += OnLocalAnswersCleared;
         }
 
         private void UnregisterLocalEvents()
@@ -83,11 +84,17 @@ namespace EDIVE.Forms.Networking
             _formController.CurrentQuestionChanged -= OnLocalCurrentQuestionChanged;
             _formController.FormStateChanged -= OnLocalFormStateChanged;
             _formController.AnswerChanged -= OnLocalAnswerChanged;
+            _formController.AnswersCleared -= OnLocalAnswersCleared;
         }
-        
+
         private void OnLocalAnswerChanged(string answerID, AFormAnswer answer)
         {
             SetAnswer(answerID, JsonConvert.SerializeObject(answer, typeof(AFormAnswer), JSON_SETTINGS));
+        }
+
+        private void OnLocalAnswersCleared()
+        {
+            ClearAnswers();
         }
 
         private void OnLocalFormStateChanged(FormStateType formState)
@@ -117,6 +124,12 @@ namespace EDIVE.Forms.Networking
         {
             _answers[questionID] = answerJson;
         }
+
+        [ServerRpc(requireOwnership: false)]
+        private void ClearAnswers()
+        {
+            _answers.Clear();
+        }
         
         private void OnSyncAnswersChanged(SyncDictionaryChange<string, string> change)
         {
@@ -133,6 +146,7 @@ namespace EDIVE.Forms.Networking
                 }
                 case SyncDictionaryOperation.Cleared:
                     _parsedAnswers.Clear();
+                    _formController.ClearAnswers();
                     break;
                 case SyncDictionaryOperation.Removed:
                     _parsedAnswers.Remove(change.key);
