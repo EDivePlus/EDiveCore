@@ -5,6 +5,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Cysharp.Threading.Tasks;
+using EDIVE.Core;
+using EDIVE.Networking.ServerManagement;
+using PurrNet;
+using PurrNet.Transports;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.XR;
@@ -44,6 +48,19 @@ namespace EDIVE.Networking.Utils
 
         public static ClientPlatformType ClientPlatformType => XRSettings.enabled ? ClientPlatformType.Headset : ClientPlatformType.Desktop;
 
+
+        public static bool TrySetClientTransport<TTransport>(out TTransport transport) where TTransport : GenericTransport
+        {
+            transport = null;
+            if (NetworkManager.main != null && NetworkManager.main.transport is TTransport direct)
+            {
+                transport = direct;
+                return true;
+            }
+            
+            return AppCore.Services.TryGet<TransportController>(out var transportController) && transportController.TrySetClient(out transport);
+        }
+        
         // Best-effort local IPv4 lookup for displaying the host's LAN address. Returns "0.0.0.0" if no
         // routable adapter is found (DNS/host resolution failure or all-loopback).
         public static string GetLocalIPv4()

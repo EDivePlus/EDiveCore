@@ -9,6 +9,7 @@ using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Core.Versions;
 using EDIVE.Networking.ServerManagement.PurrNet;
+using EDIVE.Networking.Utils;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Lobby;
 using PurrNet;
@@ -87,15 +88,14 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             if (!_serviceHub.HasValidSetup)
                 return;
-
-            var transports = await AppCore.Services.AwaitRegistered<TransportController>();
-            if (transports.IsLocal())
+            
+            if (NetworkManager.main.transport is LocalTransport)
             {
                 Debug.LogWarning("[ServiceHubServerListAdapter] Server hosted as local, skipping lobby registration.");
                 return;
             }
 
-            InitializeRelay(transports);
+            InitializeRelay();
 
             // First attempt happens here so the join code is available as early as possible.
             // If it fails, the heartbeat loop keeps retrying with backoff instead of giving up.
@@ -105,12 +105,12 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             HeartbeatTask(_heartbeatCancellation.Token).Forget();
         }
 
-        private void InitializeRelay(TransportController transports)
+        private void InitializeRelay()
         {
             if (_relayInitialized)
                 return;
 
-            if (transports.TryGetTransport<PurrTransport>(out var purrTransport))
+            if (NetworkManager.main.TryGetCurrentTransport<PurrTransport>(out var purrTransport))
             {
                 _purrRelayRoom = Guid.NewGuid().ToString().Replace("-", "");
                 purrTransport.roomName = _purrRelayRoom;

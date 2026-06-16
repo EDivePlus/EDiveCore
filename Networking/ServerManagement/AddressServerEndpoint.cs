@@ -2,7 +2,6 @@
 // Created: 14.07.2025
 
 using Cysharp.Threading.Tasks;
-using EDIVE.Core;
 using EDIVE.Networking.Utils;
 using PurrNet.Transports;
 using UnityEngine;
@@ -24,10 +23,7 @@ namespace EDIVE.Networking.ServerManagement
             if (Port > 0 && !await NetworkUtils.IsServerReachable(Address, Port))
                 return false;
             
-            if (!AppCore.Services.TryGet<TransportController>(out var transportController))
-                return false;
-            
-            if (!transportController.TrySetClient<UDPTransport>(out var udp))
+            if (!NetworkUtils.TrySetClientTransport<UDPTransport>(out var udp))
                 return false;
 
             udp.address = Address;

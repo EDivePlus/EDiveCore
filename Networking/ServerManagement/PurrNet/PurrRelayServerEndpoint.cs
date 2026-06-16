@@ -4,6 +4,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.Networking.Utils;
 using PurrNet.Transports;
 using UnityEngine;
 
@@ -24,9 +25,9 @@ namespace EDIVE.Networking.ServerManagement.PurrNet
             if (!AppCore.Services.TryGet<TransportController>(out var transportController))
                 return false;
             
-            if (!transportController.TrySetClient<PurrTransport>(out var purrTransport))
+            if (!NetworkUtils.TrySetClientTransport<PurrTransport>(out var purrTransport))
                 return false;
-
+            
             try
             {
                 purrTransport.roomName = RoomName;
