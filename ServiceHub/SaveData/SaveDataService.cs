@@ -37,6 +37,8 @@ namespace EDIVE.ServiceHub.SaveData
 
         private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _dirtyEntries = new();
         private readonly Dictionary<SaveDataDirtyFlag, Dictionary<string, string>> _serverDirtyEntries = new();
+        private readonly Dictionary<string, object> _objectCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, object> _serverObjectCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly object _dirtyLock = new();
         private readonly object _serverDirtyLock = new();
         private CancellationTokenSource _syncCts;
@@ -95,12 +97,14 @@ namespace EDIVE.ServiceHub.SaveData
             _local = new PlayerPrefsSaveDataStore(string.IsNullOrEmpty(userId)
                 ? "uc.savedata."
                 : $"uc.savedata.{userId}.");
+            _objectCache.Clear();
             _contextsReady = false;
         }
 
         private void OnClientLoggedOut()
         {
             _local = new PlayerPrefsSaveDataStore();
+            _objectCache.Clear();
             _contextsReady = false;
         }
 
@@ -113,6 +117,7 @@ namespace EDIVE.ServiceHub.SaveData
                 return;
             }
             _serverLocal = new PlayerPrefsSaveDataStore($"uc.savedata.server.{serverId}.");
+            _serverObjectCache.Clear();
             _contextsReady = false;
         }
 
@@ -215,12 +220,17 @@ namespace EDIVE.ServiceHub.SaveData
             bool forceRefresh)
         {
             var local = ctx.Local;
+            var cache = ctx.ObjectCache;
+
+            if (!forceRefresh && cache.TryGetValue(key, out var cachedInstance) && cachedInstance is T typedInstance)
+                return SaveDataResult<T>.Success(typedInstance, false);
 
             if (!forceRefresh && local.TryGet(key, out var cachedJson))
             {
                 try
                 {
                     var cachedObj = JsonConvert.DeserializeObject<T>(cachedJson);
+                    cache[key] = cachedObj;
                     return SaveDataResult<T>.Success(cachedObj, false);
                 }
                 catch (Exception ex)
@@ -246,6 +256,7 @@ namespace EDIVE.ServiceHub.SaveData
                         var value = response.Result.Data.Value.ToObject<T>();
                         local.Set(key, response.Result.Data.Value.ToString(Formatting.None));
                         local.Save();
+                        cache[key] = value;
                         return SaveDataResult<T>.Success(value, true);
                     }
                     catch (Exception ex)
@@ -265,6 +276,7 @@ namespace EDIVE.ServiceHub.SaveData
                 try
                 {
                     var fallbackObj = JsonConvert.DeserializeObject<T>(fallbackJson);
+                    cache[key] = fallbackObj;
                     return SaveDataResult<T>.Success(fallbackObj, false);
                 }
                 catch
@@ -300,6 +312,7 @@ namespace EDIVE.ServiceHub.SaveData
             var local = ctx.Local;
             local.Set(key, json);
             local.Save();
+            ctx.ObjectCache[key] = value;
             
             if (value is ASaveDataObject saveDataObject)
                 saveDataObject.ClearDirty();
@@ -348,6 +361,7 @@ namespace EDIVE.ServiceHub.SaveData
             var local = ctx.Local;
             local.Delete(key);
             local.Save();
+            ctx.ObjectCache.Remove(key);
 
             lock (ctx.DirtyLock)
             {
@@ -572,6 +586,7 @@ namespace EDIVE.ServiceHub.SaveData
             }
 
             public ISaveDataLocalStore Local => _isServer ? _service._serverLocal : _service._local;
+            public Dictionary<string, object> ObjectCache => _isServer ? _service._serverObjectCache : _service._objectCache;
             public bool IsAuthValid => _isServer ? AuthStorage.Server.IsValid() : AuthStorage.Client.IsValid();
             public string AccessToken => _isServer ? AuthStorage.Server.GetAccessToken() : AuthStorage.Client.GetAccessToken();
             public string KeyUrl(string key) => $"{RemoteBaseUrl}/{Uri.EscapeDataString(key)}";

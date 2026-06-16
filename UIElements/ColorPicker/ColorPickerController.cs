@@ -44,16 +44,9 @@ namespace EDIVE.UIElements.ColorPicker
         
         [ShowInInspector]
         [HideInEditorMode]
-        public Color Color
-        {
-            get => Color.HSVToRGB(_hue, _saturation, _value).WithA(_alpha);
-            set
-            {
-                Color.RGBToHSV(value, out _hue, out _saturation, out _value);
-                _alpha = value.a;
-                RefreshComponents();
-            }
-        }
+        public Color Color => Color.HSVToRGB(_hue, _saturation, _value).WithA(_alpha);
+
+        private bool _initialized;
 
         private void OnEnable()
         {
@@ -87,7 +80,16 @@ namespace EDIVE.UIElements.ColorPicker
         
         private void Start()
         {
-            Color = _DefaultColor;
+            if (!_initialized)
+                SetColor(_DefaultColor, false);
+        }
+        
+        public void SetColor(Color color, bool notify = true)
+        {
+            Color.RGBToHSV(color, out _hue, out _saturation, out _value);
+            _alpha = color.a;
+            RefreshComponents(notify);
+            _initialized = true;
         }
 
         private void OnHueChanged(float hue)
@@ -107,7 +109,7 @@ namespace EDIVE.UIElements.ColorPicker
 
         private void OnHexSubmitted(Color color)
         {
-            Color = color;
+            SetColor(color);
         }
 
         private void OnChannelChanged(ColorChannel channel, float value)
@@ -116,7 +118,7 @@ namespace EDIVE.UIElements.ColorPicker
             RefreshComponents();
         }
 
-        private void RefreshComponents()
+        private void RefreshComponents(bool notify = true)
         {
             if (_HueSlider)
                 _HueSlider.SetHue(_hue);
@@ -125,17 +127,18 @@ namespace EDIVE.UIElements.ColorPicker
                 _SaturationValueField.SetHue(_hue);
                 _SaturationValueField.SetSaturationValue(_saturation, _value);
             }
-            PushOutputs();
+            PushOutputs(notify);
         }
 
-        private void PushOutputs()
+        private void PushOutputs(bool notify = true)
         {
             var color = Color;
             if (_HexInput)
                 _HexInput.SetColor(color);
             _ColorPreviews.Where(p => p != null).ForEach(p => p.color = color);
             UpdateChannelWidgets(color);
-            ColorChanged?.Invoke(color);
+            if (_initialized && notify)
+                ColorChanged?.Invoke(color);
         }
 
         private void UpdateChannelWidgets(Color color)

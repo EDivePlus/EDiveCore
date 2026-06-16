@@ -14,6 +14,8 @@ namespace EDIVE.Avatars.Networking
     public class AvatarPlayerSaveData : ASaveDataObject
     {
         public const string KEY = "PlayerAvatar";
+        
+        public event Action<VisualPreset> CustomizationChanged;
 
         [SerializeField, JsonProperty("avatar_def")]
         private AvatarDefinition _PlayerAvatar;
@@ -28,7 +30,11 @@ namespace EDIVE.Avatars.Networking
         public VisualPreset CustomizationPreset
         {
             get => _CustomizationPreset;
-            set => SetProperty(ref _CustomizationPreset, value);
+            set
+            {
+                SetProperty(ref _CustomizationPreset, value);
+                CustomizationChanged?.Invoke(value);
+            }
         }
     }
 }

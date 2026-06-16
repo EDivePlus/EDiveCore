@@ -17,7 +17,8 @@
     "UniTask",
     "EDIVE.Input",
     "EDIVE.OdinExtensions",
-    "EDIVE.VisualPresets"
+    "EDIVE.VisualPresets",
+    "EDIVE.UIElements"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

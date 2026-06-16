@@ -85,6 +85,8 @@ namespace EDIVE.Avatars.Networking
             _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
                 SetAvatar(_saveData.PlayerAvatar);
+            
+            _saveData.CustomizationChanged += OnAvatarCustomizationChanged;
         }
 
         private void OnSaveDataMarkedAsDirty()
@@ -134,6 +136,12 @@ namespace EDIVE.Avatars.Networking
             
             if (_saveData?.CustomizationPreset != null)
                 avatar.ApplyCustomizationPreset(_saveData.CustomizationPreset);
+        }
+        
+        private void OnAvatarCustomizationChanged(VisualPreset preset)
+        {
+            if (_avatar.value != null)
+                _avatar.value.ApplyCustomizationPreset(preset);
         }
 
         public Transform GetWorldPoseTransform()
