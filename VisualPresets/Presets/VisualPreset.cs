@@ -62,9 +62,18 @@ namespace EDIVE.VisualPresets.Presets
             }
         }
         
-        public bool TryGetRecord(ABaseVisualID visualID, out AVisualPresetRecord record)
+        public bool TryGetRecord<TVisualID, TRecord>(TVisualID visualID, out TRecord record) 
+            where TVisualID : ABaseVisualID 
+            where TRecord : AVisualPresetRecord<TVisualID>
         {
-            return _Records.TryGetFirst(r => r.BaseVisualID == visualID, out record);
+            if (_Records.TryGetFirst(r => r.BaseVisualID == visualID, out var baseRecord) && baseRecord is TRecord typedRecord)
+            {
+                record = typedRecord;
+                return true;
+            }
+
+            record = null;
+            return false;
         }
         
         public VisualPreset CombineWith(VisualPreset other)
