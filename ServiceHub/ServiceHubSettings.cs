@@ -32,12 +32,12 @@ namespace EDIVE.ServiceHub
 
         [SerializeField]
         [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Green")]
-        private UTimeSpan _DirtyDataSyncInterval = TimeSpan.FromSeconds(30);
+        private UTimeSpan _BatchSaveDataSyncInterval = TimeSpan.FromSeconds(30);
 
         public string ServiceBaseUrl => (_ServiceBaseUrl ?? "").TrimEnd('/');
         public string AppSecret => _AppSecret ?? "";
         public int ApiTimeoutSeconds => Mathf.Max(3, _ApiTimeoutSeconds);
         public int AuthTimeoutSeconds => Mathf.Max(3, _AuthTimeoutSeconds);
-        public TimeSpan DirtyDataSyncInterval => _DirtyDataSyncInterval;
+        public TimeSpan BatchSaveDataSyncInterval => _BatchSaveDataSyncInterval;
     }
 }

@@ -98,7 +98,7 @@ namespace EDIVE.Networking
             {
                 if (state == ConnectionState.Disconnected)
                 {
-                    serviceHub.SaveData.FlushAllServerDirtyEntries(destroyCancellationToken).Forget();
+                    serviceHub.SaveData.Server.FlushAsync().Forget();
                 }
             }
         }
@@ -118,6 +118,7 @@ namespace EDIVE.Networking
                 if (state == ConnectionState.Disconnected)
                 {
                     serviceHub.ClientAuth.OnLoggedOut -= StopRuntime;
+                    serviceHub.SaveData.User.FlushAsync().Forget();
                 }
             }
         }

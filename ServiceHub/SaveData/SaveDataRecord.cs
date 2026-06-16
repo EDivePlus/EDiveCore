@@ -13,7 +13,7 @@ namespace EDIVE.ServiceHub.SaveData
     public class SaveDataResponse
     {
         [JsonProperty("key")]
-        private string Key;
+        public string Key;
 
         [JsonProperty("value")]
         public JToken Value;

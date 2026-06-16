@@ -14,7 +14,8 @@ namespace EDIVE.Avatars.Networking
     public class AvatarPlayerSaveData : ASaveDataObject
     {
         public const string KEY = "PlayerAvatar";
-        
+        public override string Key => KEY;
+
         public event Action<VisualPreset> CustomizationChanged;
 
         [SerializeField, JsonProperty("avatar_def")]

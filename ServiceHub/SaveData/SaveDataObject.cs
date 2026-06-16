@@ -5,29 +5,31 @@ using System;
 
 namespace EDIVE.ServiceHub.SaveData
 {
+    [Flags]
     public enum SaveDataDirtyFlag
     {
-        NoChange,       // No changes to be made
-        Manual,         // Synced with remote only when manually triggered
-        OnBatch,        // Synced with remote once SaveDataService calls BatchSync (can be triggered manually or automatically at certain intervals/events)
-        OnEndOfFrame,   // Synced with remote at the end of the frame (after all changes for the frame are done)
-        Immediate,      // Synced with remote immediately whenever a change is made
+        None = 0,                // No changes to be made
+        OnBatch = 1 << 0,        // Synced with remote once SaveDataService calls BatchSync (can be triggered manually or automatically at certain intervals/events)
+        OnEndOfFrame = 1 << 1,   // Synced with remote at the end of the frame (after all changes for the frame are done)
+        Immediate = 1 << 2,      // Synced with remote immediately whenever a change is made
     }
     
     public abstract class ASaveDataObject
     {
-        private SaveDataDirtyFlag DirtyFlag { get; set; } = SaveDataDirtyFlag.NoChange;
-        public bool IsDirty => DirtyFlag != SaveDataDirtyFlag.NoChange;
-
-        protected virtual SaveDataDirtyFlag DefaultDirtyFlag => SaveDataDirtyFlag.OnBatch;
+        public abstract string Key { get; }
         
-        public event Action<SaveDataDirtyFlag> DirtyFlagChanged;
+        public SaveDataDirtyFlag DirtyFlags { get; private set; } = SaveDataDirtyFlag.None;
+        public bool IsDirty => DirtyFlags != SaveDataDirtyFlag.None;
+
+        protected virtual SaveDataDirtyFlag DefaultDirtyFlags => SaveDataDirtyFlag.OnBatch;
+        
+        public event Action<SaveDataDirtyFlag> DirtyFlagsChanged;
         public event Action MarkedAsDirty;
         public event Action MarkedAsClean;
 
         protected void SetProperty<T>(ref T field, T value, SaveDataDirtyFlag? dirtyFlag = null)
         {
-            var effectiveFlag = dirtyFlag ?? DefaultDirtyFlag;
+            var effectiveFlag = dirtyFlag ?? DefaultDirtyFlags;
             if (Equals(field, value)) return;
             field = value;
             SetDirty(effectiveFlag);
@@ -35,24 +37,23 @@ namespace EDIVE.ServiceHub.SaveData
         
         public void SetDirty(SaveDataDirtyFlag? flag = null)
         {
-            var effectiveFlag = flag ?? DefaultDirtyFlag;
-            if (effectiveFlag <= DirtyFlag) return;
+            var effectiveFlag = flag ?? DefaultDirtyFlags;
 
-            var wasClean = DirtyFlag == SaveDataDirtyFlag.NoChange;
-            DirtyFlag = effectiveFlag;
+            var wasClean = DirtyFlags == SaveDataDirtyFlag.None;
+            DirtyFlags |= effectiveFlag;
 
             if (wasClean)
                 MarkedAsDirty?.Invoke();
-            DirtyFlagChanged?.Invoke(DirtyFlag);
+            DirtyFlagsChanged?.Invoke(DirtyFlags);
         }
         
         public void ClearDirty()
         {
-            if (DirtyFlag == SaveDataDirtyFlag.NoChange) 
+            if (DirtyFlags == SaveDataDirtyFlag.None) 
                 return;
             
-            DirtyFlag = SaveDataDirtyFlag.NoChange;
-            DirtyFlagChanged?.Invoke(DirtyFlag);
+            DirtyFlags = SaveDataDirtyFlag.None;
+            DirtyFlagsChanged?.Invoke(DirtyFlags);
             MarkedAsClean?.Invoke();
         }
     }

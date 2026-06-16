@@ -73,8 +73,8 @@ namespace EDIVE.ServiceHub
                 return;
             }
 
-            _ClientAuth.OnLoggingOutAsync += _SaveData.FlushAllDirtyEntries;
-            _ServerAuth.OnLoggingOutAsync += _SaveData.FlushAllServerDirtyEntries;
+            _ClientAuth.OnLoggingOutAsync += _ => _SaveData.User.FlushAsync();
+            _ServerAuth.OnLoggingOutAsync += _ => _SaveData.Server.FlushAsync();
 
             if (AuthStorage.Client.IsValid())
                 await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);

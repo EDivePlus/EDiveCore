@@ -33,12 +33,13 @@ namespace EDIVE.Avatars.Networking
         
         private async UniTask LoadSaveData()
         {
-            var result = await _saveDataService.GetSaveData<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY);
+            var result = await _saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY);
 
             _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
             _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
 
-            if (_saveData.CustomizationPreset.TryGetRecord(_ChangedVisualID, out ColorVisualPresetRecord record))
+            if (_saveData.CustomizationPreset != null &&
+                _saveData.CustomizationPreset.TryGetRecord(_ChangedVisualID, out ColorVisualPresetRecord record))
             {
                 _ColorPickerController.SetColor(record.Color, false);
             }
@@ -67,7 +68,7 @@ namespace EDIVE.Avatars.Networking
             if (_saveDataService == null || data == null)
                 return;
             
-            _saveDataService.SetSaveData(AvatarPlayerSaveData.KEY, data, SaveDataDirtyFlag.OnBatch).Forget();
+            _saveDataService.User.SetSaveDataAsync(data, SaveDataDirtyFlag.OnBatch).Forget();
         }
     }
 }
