@@ -7,11 +7,8 @@ using EDIVE.Conditions;
 namespace EDIVE.ServiceHub.Auth
 {
     [Serializable]
-    public class LoggedInCondition : ICondition
+    public class LoggedInCondition : ABoolCondition
     {
-        public bool Evaluate()
-        {
-            return AuthStorage.Client.IsValid();
-        }
+        protected override bool GetValue() => AuthStorage.Client.IsValid();
     }
 }

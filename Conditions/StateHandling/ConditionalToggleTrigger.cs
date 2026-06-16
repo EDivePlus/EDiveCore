@@ -1,62 +1,46 @@
 ﻿// Author: František Holubec
 // Created: 21.10.2025
 
-using System;
 using EDIVE.StateHandling.ToggleStates;
-using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Conditions.StateHandling
 {
     public class ConditionalToggleTrigger : MonoBehaviour
     {
-        [BoxGroup("Condition")]
         [SerializeReference] 
-        [InlineProperty] 
-        [HideLabel]
         private ICondition _Condition;
-
+        
         [SerializeField]
-        private EvaluationTime _EvaluationTime = EvaluationTime.Awake;
+        private bool _ObserveCondition = true;
         
         [SerializeField]
         private AToggleState _ToggleState;
         
-        private void Awake()
-        {
-            if (_EvaluationTime == EvaluationTime.Awake)
-                RefreshState();
-        }
-        
         private void OnEnable()
         {
-            if (_EvaluationTime == EvaluationTime.Enable)
-                RefreshState();
+            RefreshState();
+            if (_ObserveCondition)
+            {
+                _Condition.StateChanged += RefreshState;
+                _Condition.InitializeObserving();
+            }
         }
-        
-        private void Start()
+
+        private void OnDisable()
         {
-            if (_EvaluationTime == EvaluationTime.Start)
-                RefreshState();
+            if (_ObserveCondition)
+            {
+                _Condition.StateChanged -= RefreshState;
+                _Condition.TerminateObserving();
+            }
         }
         
         private void RefreshState()
         {
-            var state = Evaluate();
+            // If no condition, we consider it true
+            var state = _Condition?.Evaluate() ?? true;
             _ToggleState.SetState(state);
-        }
-        
-        private bool Evaluate()
-        {
-            return _Condition?.Evaluate() ?? true;
-        }
-        
-        [Serializable]
-        private enum EvaluationTime
-        {
-            Awake,
-            Enable,
-            Start
         }
     }
 }

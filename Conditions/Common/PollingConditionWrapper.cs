@@ -9,7 +9,7 @@ using UnityEngine;
 namespace EDIVE.Conditions
 {
     [Serializable]
-    public class PollingConditionWrapper : IObservableCondition
+    public class PollingConditionWrapper : ABaseCondition
     {
         [SerializeReference]
         private ICondition _Condition;
@@ -19,22 +19,18 @@ namespace EDIVE.Conditions
         
         private IDisposable _observingSubscription;
         
-        public bool Evaluate()
-        {
-            return _Condition != null && _Condition.Evaluate();
-        }
+        public override bool Evaluate() => _Condition != null && _Condition.Evaluate();
 
-        public event Action StateChanged;
-        public void InitializeObserving()
+        public override void InitializeObserving()
         {
             _observingSubscription = Observable
                 .Interval(_Timing.TimeStep, _Timing.TimeProvider)
                 .Select(_ => Evaluate())
                 .DistinctUntilChanged()
-                .Subscribe(_ => StateChanged?.Invoke());
+                .Subscribe(_ => InvokeStateChanged());
         }
 
-        public void TerminateObserving()
+        public override void TerminateObserving()
         {
             _observingSubscription?.Dispose();
         }

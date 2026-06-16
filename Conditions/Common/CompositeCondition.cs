@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using ZLinq;
 
 #if UNITY_EDITOR
 using Sirenix.Utilities.Editor;
@@ -28,6 +29,20 @@ namespace EDIVE.Conditions
 
         protected override IEnumerable<TCondition> GetEvaluationCollection() => _Conditions ?? Enumerable.Empty<TCondition>();
         protected override bool EvaluationMethod(TCondition value) => value.Evaluate();
+        
+        public override void InitializeObserving()
+        {
+            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().OfType<ICondition>().Where(c => c != null))
+                condition.StateChanged += OnConditionStateChanged;
+        }
+
+        public override void TerminateObserving()
+        {
+            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().OfType<ICondition>().Where(c => c != null))
+                condition.StateChanged -= OnConditionStateChanged;
+        }
+        
+        private void OnConditionStateChanged() => InvokeStateChanged();
         
 #if UNITY_EDITOR
         [UsedImplicitly]

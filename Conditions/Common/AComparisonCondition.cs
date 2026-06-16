@@ -11,7 +11,7 @@ namespace EDIVE.Conditions
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public abstract class AComparisonCondition<T> : ICondition where T: IComparable<T>
+    public abstract class AComparisonCondition<T> : ABaseCondition where T: IComparable<T>
     {
         [HideLabel]
         [HorizontalGroup("Comparison")]
@@ -24,7 +24,7 @@ namespace EDIVE.Conditions
         
         protected abstract bool TryGetValue(out T value);
         
-        public bool Evaluate()
+        public override bool Evaluate()
         {
             return TryGetValue(out var currentValue) && _Comparison.CompareValues(currentValue, CompareValue, CustomComparer);
         }

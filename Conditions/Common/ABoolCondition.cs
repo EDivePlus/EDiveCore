@@ -9,17 +9,13 @@ namespace EDIVE.Conditions
 {
     [Serializable] 
     [JsonObject(MemberSerialization.OptIn)]
-    public abstract class ABoolCondition : ICondition
+    public abstract class ABoolCondition : ABaseCondition
     {
         [SerializeField]
         [JsonProperty("Evaluation")]
         protected BoolEvaluationType _Evaluation;
         
         protected abstract bool GetValue();
-
-        public bool Evaluate()
-        {
-            return GetValue() == (_Evaluation == BoolEvaluationType.IsTrue);
-        }
+        public override bool Evaluate() => GetValue() == (_Evaluation == BoolEvaluationType.IsTrue);
     }
 }
