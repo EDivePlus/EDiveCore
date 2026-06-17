@@ -14,13 +14,16 @@ namespace EDIVE.VisualPresets.Switchers
     [Serializable]
     public class RendererMaterialColorVisualSwitcherRecord : AVisualSwitcherRecord<ColorVisualID>
     {
+        [VerticalGroup("Value")]
         [SerializeField]
         private Renderer _Renderer;
         
+        [VerticalGroup("Value")]
         [MinValue(0)]
         [SerializeField]
         private int _MaterialIndex;
         
+        [VerticalGroup("Value")]
         [SerializeField]
         private bool _UseSharedMaterial;
         
