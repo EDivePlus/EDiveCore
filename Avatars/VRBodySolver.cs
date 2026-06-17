@@ -1194,9 +1194,9 @@ namespace EDIVE.Avatars
             DrawTargetGizmo(_LeftHandTarget, Color.green, _LeftArm.Hand);
             DrawTargetGizmo(_RightHandTarget, Color.yellow, _RightArm.Hand);
 
-            if (_LeftArm.IsValid && _LeftHandTarget.IsValid)
+            if (_LeftArm.IsValid)
                 DrawElbowGizmo(_LeftArm, _LeftHandTarget, true);
-            if (_RightArm.IsValid && _RightHandTarget.IsValid)
+            if (_RightArm.IsValid)
                 DrawElbowGizmo(_RightArm, _RightHandTarget, false);
 
             DrawKneeGizmo(_LeftLeg);
@@ -1205,30 +1205,25 @@ namespace EDIVE.Avatars
         
         private void DrawTargetGizmo(TargetRecord target, Color color, Transform drivenBone)
         {
-            if (!target.IsValid)
+            Gizmos.color = color;
+            
+            if (drivenBone == null)
                 return;
 
-            var rawPos = target.Target.position;
-            var anchorPos = target.GetPosition();
+            var targetPos = target.GetInferredTargetPosition(drivenBone);
+            var targetRot = target.GetInferredTargetRotation(drivenBone);
 
-            Gizmos.color = color;
-            Gizmos.DrawWireSphere(anchorPos, 0.04f);
-            Gizmos.DrawRay(anchorPos, target.GetRotation() * Vector3.forward * 0.1f);
-            Gizmos.DrawWireSphere(rawPos, 0.025f);
-            Gizmos.DrawLine(rawPos, anchorPos);
-            
-            if (drivenBone != null)
-            {
-                Gizmos.DrawLine(anchorPos, drivenBone.position);
-                Gizmos.DrawWireSphere(drivenBone.position, 0.02f);
-            }
+            Gizmos.DrawWireSphere(drivenBone.position, 0.02f);
+            Gizmos.DrawLine(drivenBone.position, targetPos);
+            Gizmos.DrawWireSphere(targetPos, 0.04f);
+            Gizmos.DrawRay(targetPos, targetRot * Vector3.forward * 0.1f);
         }
 
         private void DrawElbowGizmo(ArmRecord arm, TargetRecord target, bool isLeft)
         {
-            // Resolved elbow hint direction (base + wrist tilt + hint transform)
+            var handRotation = target.IsValid ? target.GetRotation() : arm.Hand.rotation;
             Gizmos.color = Color.yellow;
-            Gizmos.DrawRay(arm.Forearm.position, GetElbowHint(arm, target.GetRotation(), isLeft) * 0.25f);
+            Gizmos.DrawRay(arm.Forearm.position, GetElbowHint(arm, handRotation, isLeft) * 0.25f);
 
             DrawHintGizmo(arm.Hint, arm.Forearm.position);
         }
@@ -1237,8 +1232,7 @@ namespace EDIVE.Avatars
         {
             if (!leg.IsValid)
                 return;
-
-            // Resolved knee hint direction is only computed while solving
+            
             if (Application.isPlaying)
             {
                 Gizmos.color = Color.magenta;
@@ -1247,8 +1241,7 @@ namespace EDIVE.Avatars
 
             DrawHintGizmo(leg.Hint, leg.Calf.position);
         }
-
-        // Assigned hint transform, with a line from the mid joint (elbow/knee) toward it
+        
         private static void DrawHintGizmo(Transform hint, Vector3 midJoint)
         {
             if (hint == null)
@@ -1327,6 +1320,9 @@ namespace EDIVE.Avatars
 
             public Vector3 GetPosition() => _Target.TransformPoint(_PositionOffset);
             public Quaternion GetRotation() => _Target.rotation * Quaternion.Euler(_RotationOffset);
+            
+            public Quaternion GetInferredTargetRotation(Transform reference) => reference.rotation * Quaternion.Inverse(Quaternion.Euler(_RotationOffset));
+            public Vector3 GetInferredTargetPosition(Transform reference) => reference.position - GetInferredTargetRotation(reference) * _PositionOffset;
         }
 
         [Serializable]
