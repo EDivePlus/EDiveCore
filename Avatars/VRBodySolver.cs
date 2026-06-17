@@ -255,7 +255,6 @@ namespace EDIVE.Avatars
         private float _AnimatedHeadHeightRange;
 
         [EnhancedFoldoutGroup("Body")]
-        [ShowIf("@_AnimatedHeadHeightRange > 0")]
         [SerializeField]
         [Tooltip("Blend range back to target height past the dead zone.")]
         private float _AnimatedHeadHeightBlend = 0.3f;
@@ -272,7 +271,6 @@ namespace EDIVE.Avatars
         private float _WristBendInfluence = 0.3f;
 
         [EnhancedFoldoutGroup("Arms")]
-        [ShowIf("@_WristBendInfluence > 0")]
         [SerializeField]
         [FormerlySerializedAs("_WristPoleAxis")]
         [Tooltip("Hand axis that tilts the elbow hint. Mirrored on x for left.")]
@@ -291,14 +289,12 @@ namespace EDIVE.Avatars
         private float _ShoulderRotationWeight = 1f;
 
         [EnhancedFoldoutGroup("Arms")]
-        [ShowIf("@_ShoulderRotationWeight > 0")]
         [SerializeField]
         [Range(0f, 1f)]
         [Tooltip("Upper arm twist when the hand lifts.")]
         private float _ShoulderTwistWeight = 1f;
 
         [EnhancedFoldoutGroup("Arms")]
-        [ShowIf("@_ShoulderRotationWeight > 0")]
         [SerializeField]
         [Range(0f, 90f)]
         [Tooltip("Max shoulder swing toward the hand.")]
