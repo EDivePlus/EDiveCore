@@ -468,7 +468,7 @@ namespace EDIVE.Avatars
         private float _headHeightOffset;
         private bool _heightOffsetCalibrated;
 
-        // Captured from the bind pose in OnEnable
+        // bind pose, set in OnEnable
         private Quaternion _anchorRelativeToHead = Quaternion.identity;
         private float _standingHeadHeight;
 
@@ -539,16 +539,16 @@ namespace EDIVE.Avatars
                     headTargetPos.y -= _headHeightOffset;
             }
 
-            // Body heading from the head target
+            // body heading from head
             var anchorRot = headTargetRot * _anchorRelativeToHead;
             var animatedRootRotation = transform.rotation;
 
             _currentCrouch = Mathf.Max(0f, _Head.position.y - headTargetPos.y);
 
-            // Pelvis rotation relative to head, used below
+            // pelvis rot relative to head
             var pelvisRelativeRotation = Quaternion.Inverse(_Head.rotation) * _Hips.rotation;
 
-            // Record feet before the root moves, so they stay planted
+            // record feet before root moves, keeps them planted
             if (_LeftLeg.IsValid)
                 _LeftLeg.Record();
             if (_RightLeg.IsValid)
@@ -577,12 +577,12 @@ namespace EDIVE.Avatars
                 default: throw new ArgumentOutOfRangeException();
             }
 
-            // Resting low hands fade back to animation
+            // resting low hands fade to anim
             UpdateHandAutoWeights(headTargetPos, anchorRot, deltaTime);
             var leftHandPositionWeight = _LeftHandPositionWeight * _leftHandAutoWeight;
             var rightHandPositionWeight = _RightHandPositionWeight * _rightHandAutoWeight;
 
-            // Snap the hips a little with the head
+            // hips snap a bit with head
             if (_BodyRotStiffness > 0f)
             {
                 var bodyDelta = ClampRotation(headTargetRot * pelvisRelativeRotation * Quaternion.Inverse(_Hips.rotation), 90f);
@@ -590,7 +590,7 @@ namespace EDIVE.Avatars
             }
 
             SolveSpine(headTargetRot, GetChestRotationByHands(headTargetPos, anchorRot, leftHandPositionWeight, rightHandPositionWeight));
-            // Hips take part first, then pin the head exactly
+            // hips take part, then pin head exactly
             SolveBodyPosition(headTargetPos, _BodyPositionStiffness, false);
             SolveHeadRotation(headTargetRot);
             SolveBodyPosition(headTargetPos, 1f, false);
@@ -611,14 +611,14 @@ namespace EDIVE.Avatars
             if (w <= 0f)
                 return;
 
-            // Head turn from the animated pose, capped
+            // head turn from anim pose, capped
             var delta = ClampRotation(headTargetRot * Quaternion.Inverse(_Head.rotation), _HeadMaxAngle);
 
-            // Neck takes part of the turn
+            // neck takes part of the turn
             if (_Neck != null)
                 _Neck.rotation = Quaternion.Slerp(Quaternion.identity, delta, _NeckBendWeight * w) * _Neck.rotation;
 
-            // Head finishes on the target
+            // head finishes on target
             _Head.rotation = Quaternion.Slerp(_Head.rotation, headTargetRot, w);
         }
 
@@ -631,7 +631,7 @@ namespace EDIVE.Avatars
                 return;
             }
 
-            // Heading only, so look up/down isn't counted as hand motion
+            // heading only, ignore look up/down
             var headingRot = GetHeadingRotation(anchorRot);
 
             if (!_handStateInitialized)
@@ -653,7 +653,7 @@ namespace EDIVE.Avatars
             var forward = anchorRot * Vector3.forward;
             forward.y = 0f;
 
-            // Straight up/down: use the right axis
+            // straight up/down, use right axis
             if (forward.sqrMagnitude < 1e-4f)
             {
                 forward = Vector3.Cross(anchorRot * Vector3.right, Vector3.up);
@@ -695,7 +695,7 @@ namespace EDIVE.Avatars
 
         private void UpdateLocomotion(Vector3 headTargetPos, Quaternion anchorRot, Quaternion animatedRootRotation, float deltaTime)
         {
-            const float stopDelay = 0.06f; // keep IsMoving this long after motion stops, to debounce
+            const float stopDelay = 0.06f; // debounce IsMoving after stop
 
             if (!_hasLastState)
             {
@@ -704,7 +704,7 @@ namespace EDIVE.Avatars
                 return;
             }
 
-            // Head motion this frame. Big jump = teleport, reset.
+            // head motion this frame; big jump = teleport
             var headStep = headTargetPos - _lastHeadTargetPos;
             _lastHeadTargetPos = headTargetPos;
             headStep.y = 0f;
@@ -719,50 +719,46 @@ namespace EDIVE.Avatars
 
             var headVelocityWorld = headStep / deltaTime;
 
-            // Head-to-root offset, minus last frame's catch-up so it isn't double-counted
+            // head-to-root offset, minus last catch-up so it's not double counted
             var offset = headTargetPos - transform.position;
             offset -= _lastRootCorrection;
             offset.y = 0f;
 
-            // Head heading vs root; ignore small angles. Computed before the velocity
-            // smoothing so a turn-in-place can damp the step it would otherwise trigger.
+            // heading vs root; before smoothing so turn-in-place damps its own step
             var headingAngle = SignedHeadingAngle(anchorRot);
             var absHeading = Mathf.Abs(headingAngle);
 
-            // Hysteresis: a heading hovering at the threshold can't flicker the turn state on/off
+            // hysteresis, no flicker at the threshold
             var turnBar = _turning ? _TurnStartAngle * 0.7f : _TurnStartAngle;
             _turning = absHeading > turnBar;
             var isTurning = _turning;
 
-            // Ramp Turn up continuously from the deadzone (0 exactly at _TurnStartAngle, full at 90°) so
-            // crossing the threshold can't snap it to a step value - that snap was the idle "0 -> 0.2" hiccup.
+            // ramp Turn from deadzone (0 at start angle, full at 90) so crossing doesn't snap
             var over = Mathf.Max(0f, absHeading - _TurnStartAngle);
             var turnTarget = Mathf.Sign(headingAngle) * Mathf.Clamp01(over / Mathf.Max(90f - _TurnStartAngle, 1f));
             _turn = Mathf.Lerp(_turn, turnTarget, deltaTime * _TurnResponseSpeed);
 
-            // Command = head motion + offset, in body space
+            // command = head motion + offset, body space
             var commandWorld = headVelocityWorld + offset;
             var velocityTarget = Quaternion.Inverse(animatedRootRotation) * commandWorld * _Weight;
 
-            // Heavier smoothing while turning in place, so a quick head turn doesn't inject
-            // a horizontal velocity spike that crosses the move threshold and fires a step.
+            // heavier smoothing turning in place, so a head turn doesn't spike a step
             var smoothTimeTarget = isTurning && !_isMoving ? 0.2f : _VelocitySmoothTime;
             _currentVelocitySmoothTime = Mathf.Lerp(_currentVelocitySmoothTime, smoothTimeTarget, deltaTime * 20f);
             _velocityLocal = Vector3.SmoothDamp(_velocityLocal, velocityTarget, ref _velocityLocalDamp, _currentVelocitySmoothTime, Mathf.Infinity, deltaTime);
 
-            // Moving: separate start/stop bars + short hold to avoid flicker
+            // separate start/stop bars + hold, no flicker
             var speed = _velocityLocal.magnitude;
             var bar = _isMoving ? _MoveThreshold * 0.7f : _MoveThreshold;
             var movingNow = speed > bar;
             _stopMoveTimer = movingNow ? 0f : _stopMoveTimer + deltaTime;
             _isMoving = _stopMoveTimer < stopDelay;
 
-            // Wider turn dead zone standing, tighter moving
+            // wider deadzone standing, tighter moving
             var maxAngleTarget = _isMoving ? _MaxRootAngleMoving : _MaxRootAngleStanding;
             _currentMaxRootAngle = Mathf.Lerp(_currentMaxRootAngle, maxAngleTarget, 1f - Mathf.Exp(-deltaTime * 6f));
 
-            // Estimate the clip's 1x travel speed from real movement, then playback = command / that.
-            // Running average so a noisy frame doesn't jump it. Stops foot sliding.
+            // estimate clip 1x speed from real travel, playback = command / that. avg, stops sliding
             var rootTravel = transform.position - _lastSolveEndRootPos;
             rootTravel.y = 0f;
             var measuredUnitSpeed = rootTravel.magnitude / deltaTime / Mathf.Max(_animationSpeed, 0.01f);
@@ -795,8 +791,7 @@ namespace EDIVE.Avatars
                 return;
             }
 
-            // Chase the head only while moving/turning, so the torso stays over the feet (no leg drag).
-            // Rate grows with head speed; the 0.2 floor still closes a settled offset (matches VRIK).
+            // chase head only moving/turning, torso stays over feet. 0.2 floor closes settled offset
             var chaseBase = _isMoving ? _RootCatchUpSpeedMoving : isTurning ? _RootCatchUpSpeedTurning : 0f;
             var chaseRate = chaseBase * Mathf.Max(headVelocityWorld.magnitude, 0.2f);
             _catchUpSpeed = Mathf.Lerp(_catchUpSpeed, chaseRate, 1f - Mathf.Exp(-deltaTime * 18f));
@@ -806,7 +801,7 @@ namespace EDIVE.Avatars
             if (_catchUpSpeed > 0f)
                 transform.position = Vector3.Lerp(transform.position, target, (1f - Mathf.Exp(-_catchUpSpeed * deltaTime)) * _Weight);
 
-            // Clamp: never let the head drift past the max offset
+            // clamp to max offset
             var slack = target - transform.position;
             slack.y = 0f;
             var slackMagnitude = slack.magnitude;
@@ -825,7 +820,7 @@ namespace EDIVE.Avatars
 
             var yaw = Quaternion.AngleAxis(overshoot, Vector3.up);
 
-            // Pivot the body under the head so the headset stays put while the root yaws beneath it
+            // pivot under head, headset stays put while root yaws
             var pivot = new Vector3(headTargetPos.x, transform.position.y, headTargetPos.z);
             transform.position = pivot + yaw * (transform.position - pivot);
             transform.rotation = yaw * transform.rotation;
@@ -836,7 +831,7 @@ namespace EDIVE.Avatars
             if (!_RootFollowsGround)
                 return;
 
-            // Probe down from the waist: plant the root on ground in range, else drop it with the head
+            // probe down from waist; ground in range else drop with head
             var probeOrigin = headTargetPos - Vector3.up * _RootProbeHeadOffset;
             var range = _standingHeadHeight - _RootProbeHeadOffset + _MaxStepHeight;
             var ray = new Ray(probeOrigin, Vector3.down);
@@ -869,15 +864,15 @@ namespace EDIVE.Avatars
                 var bend = Quaternion.Slerp(Quaternion.identity, remaining, _spineWeights[i] * _SpineBendWeight * _Weight);
                 var arch = Quaternion.Slerp(Quaternion.identity, crouchArch, _spineWeights[i]);
 
-                // Chest aim toward the hands
+                // chest aim to hands
                 bend = Quaternion.Slerp(Quaternion.identity, chestAdjust, _spineWeights[i] * _SpineBendWeight * _Weight) * bend;
 
                 bone.rotation = bend * arch * bone.rotation;
             }
         }
 
-        private const float CHEST_HANDS_MAX_ANGLE = 30f; // chest follow clamp, per axis
-        private const float CHEST_HANDS_FORWARD_FLOOR = 0.25f; // min forward reach so the aim stays stable
+        private const float CHEST_HANDS_MAX_ANGLE = 30f; // clamp per axis
+        private const float CHEST_HANDS_FORWARD_FLOOR = 0.25f; // min forward reach, stable aim
 
         private Quaternion GetChestRotationByHands(Vector3 headTargetPos, Quaternion anchorRot, float leftHandWeight, float rightHandWeight)
         {
@@ -892,16 +887,16 @@ namespace EDIVE.Avatars
             if (bodySize < 0.01f)
                 return Quaternion.identity;
 
-            // Hands relative to head, body space; weighted midpoint
+            // hands rel to head, body space, weighted mid
             var toBodySpace = Quaternion.Inverse(anchorRot);
             var leftLocal = toBodySpace * (_LeftHandTarget.GetPosition() - headTargetPos);
             var rightLocal = toBodySpace * (_RightHandTarget.GetPosition() - headTargetPos);
             var midpoint = (leftLocal * leftHandWeight + rightLocal * rightHandWeight) / totalWeight / bodySize;
 
-            // Min forward reach so close hands don't spin the aim
+            // min forward reach, close hands don't spin aim
             var forward = Mathf.Max(midpoint.z, CHEST_HANDS_FORWARD_FLOOR);
 
-            // Yaw to the hands, small pitch from their height
+            // yaw to hands, small pitch from height
             var yawAngle = Mathf.Atan2(midpoint.x, forward) * Mathf.Rad2Deg * _RotateChestByHands;
             var tiltAngle = Mathf.Atan2(midpoint.y, forward) * Mathf.Rad2Deg * _RotateChestByHands * 0.5f;
             yawAngle = Mathf.Clamp(yawAngle, -CHEST_HANDS_MAX_ANGLE, CHEST_HANDS_MAX_ANGLE);
@@ -920,7 +915,7 @@ namespace EDIVE.Avatars
 
             var correction = headTargetPos - _Head.position;
 
-            // Dead zone keeps idle head bob from the animation
+            // deadzone keeps idle head bob
             if (_AnimatedHeadHeightRange > 0f)
             {
                 var excess = Mathf.Max(0f, Mathf.Abs(correction.y) - _AnimatedHeadHeightRange);
@@ -931,7 +926,7 @@ namespace EDIVE.Avatars
 
             correction *= w;
 
-            // Keep hips within leg reach of the planted feet
+            // keep hips within leg reach
             if (limitByLegs)
             {
                 for (var i = 0; i < 2; i++)
@@ -960,7 +955,7 @@ namespace EDIVE.Avatars
             if (!leg.IsValid)
                 return;
 
-            // Knee bends to the hint, or forward if none
+            // knee to hint, else forward
             var kneeHint = leg.Hint != null
                 ? leg.Hint.position - leg.Thigh.position
                 : transform.forward;
@@ -981,7 +976,7 @@ namespace EDIVE.Avatars
             var ray = new Ray(footPos + Vector3.up * _MaxStepHeight, Vector3.down);
             if (Physics.RaycastNonAlloc(ray, _rayHits, _MaxStepHeight * 2f, _GroundLayers.value) == 0)
             {
-                // No ground: keep the animated pose
+                // no ground, keep anim pose
                 leg.ClearGrounding();
                 return 0f;
             }
@@ -990,7 +985,7 @@ namespace EDIVE.Avatars
             var groundNormal = _rayHits[0].normal;
             var offsetTarget = groundY - rootY;
 
-            // Lifted feet get less downward pull
+            // lifted feet pull down less
             var animatedFootHeight = footPos.y - rootY;
             var maxDownOffset = Mathf.Clamp(_MaxStepHeight - animatedFootHeight, 0f, _MaxStepHeight);
             offsetTarget = Mathf.Clamp(offsetTarget, -maxDownOffset, _MaxStepHeight);
@@ -1001,7 +996,7 @@ namespace EDIVE.Avatars
 
         private void GroundPelvis(float lowestOffset, float deltaTime)
         {
-            // Drop the pelvis so legs reach feet below the root
+            // drop pelvis so legs reach low feet
             var target = Mathf.Min(0f, lowestOffset) * _PelvisGroundingWeight;
             _pelvisGroundOffset = Mathf.Lerp(_pelvisGroundOffset, target, deltaTime * 5f);
             if (Mathf.Abs(_pelvisGroundOffset) > 0.0001f)
@@ -1024,7 +1019,7 @@ namespace EDIVE.Avatars
             {
                 var targetPos = Vector3.Lerp(arm.Hand.position, target.GetPosition(), positionWeight);
 
-                // Clavicle first, so the upper body follows
+                // clavicle first, upper body follows
                 var shoulderLift = 0f;
                 if (arm.Shoulder != null && _ShoulderRotationWeight > 0f)
                     shoulderLift = SolveShoulder(arm, targetPos, positionWeight);
@@ -1032,7 +1027,7 @@ namespace EDIVE.Avatars
                 var hintDirection = GetElbowHint(arm, targetRot, isLeft);
                 SolveTwoBone(arm.UpperArm, arm.Forearm, arm.Hand, targetPos, hintDirection, _MaxArmExtension, transform.forward);
 
-                // Twist the upper arm as the hand rises
+                // twist upper arm as hand rises
                 var twist = Mathf.Clamp(shoulderLift * positionWeight * _ShoulderRotationWeight * _ShoulderTwistWeight, 0f, 180f);
                 if (twist > 0.01f && arm.Shoulder != null)
                 {
@@ -1054,19 +1049,19 @@ namespace EDIVE.Avatars
             if (currentDir.sqrMagnitude < 1e-6f || targetDir.sqrMagnitude < 1e-6f)
                 return 0f;
 
-            // Swing the clavicle toward the hand, capped
+            // swing clavicle to hand, capped
             var toTarget = ClampRotation(Quaternion.FromToRotation(currentDir, targetDir), _ShoulderMaxAngle);
             var w = _ShoulderRotationWeight * positionWeight;
             shoulder.rotation = Quaternion.Slerp(Quaternion.identity, toTarget, w) * shoulder.rotation;
 
-            // Hand elevation above the shoulder; drives the twist
+            // hand elevation, drives the twist
             var elevation = Vector3.Dot(targetDir.normalized, transform.up);
             return Mathf.Asin(Mathf.Clamp(elevation, -1f, 1f)) * Mathf.Rad2Deg;
         }
 
         private static void ApplyTwist(Transform bone, Transform child, float angle)
         {
-            // Twist around the axis to the child; keep the child's world rotation
+            // twist around axis to child, keep child world rot
             var childRotation = child.rotation;
             bone.rotation = Quaternion.AngleAxis(angle, child.position - bone.position) * bone.rotation;
             child.rotation = childRotation;
@@ -1087,7 +1082,7 @@ namespace EDIVE.Avatars
             if (_WristBendInfluence > 0f && wristAxis != Vector3.zero)
                 hint = Vector3.Slerp(hint, (handTargetRot * wristAxis).normalized, _WristBendInfluence);
 
-            // Hint direction is measured from the limb root (upper arm), matching the leg
+            // hint from limb root (upper arm), like the leg
             if (arm.Hint != null && arm.HintWeight > 0f)
                 hint = Vector3.Slerp(hint, (arm.Hint.position - arm.UpperArm.position).normalized, arm.HintWeight);
 
@@ -1096,7 +1091,7 @@ namespace EDIVE.Avatars
 
         private static void SolveTwoBone(Transform upper, Transform lower, Transform end, Vector3 targetPos, Vector3 hintDirection, float maxExtension, Vector3 fallbackBendDirection)
         {
-            // Two-bone IK as delta rotations; keeps the animated roll
+            // two-bone IK as delta rots, keeps anim roll
             var upperPos = upper.position;
             var upperLength = Vector3.Distance(upperPos, lower.position);
             var lowerLength = Vector3.Distance(lower.position, end.position);
@@ -1116,7 +1111,7 @@ namespace EDIVE.Avatars
                 bendAxis = Vector3.Cross(direction, fallbackBendDirection);
             bendAxis.Normalize();
 
-            // Law of cosines: angle at the upper bone
+            // law of cosines, upper bone angle
             var cosAngle = (targetDistance * targetDistance + upperLength * upperLength - lowerLength * lowerLength)
                            / (2f * targetDistance * upperLength);
             var upperAngle = Mathf.Acos(Mathf.Clamp(cosAngle, -1f, 1f)) * Mathf.Rad2Deg;
@@ -1128,7 +1123,7 @@ namespace EDIVE.Avatars
 
         public void CalibrateRig()
         {
-            // From the bind pose, before the animator runs
+            // bind pose, before animator runs
             if (_Head == null || _Hips == null)
                 return;
 
@@ -1140,7 +1135,7 @@ namespace EDIVE.Avatars
 
         private void TryCalibrateHeightOffset(Vector3 headTargetPos)
         {
-            // Wait until the head target is placed, not at origin after spawn
+            // wait for head target placed (not origin)
             if (headTargetPos.y - transform.position.y < _standingHeadHeight * 0.5f)
                 return;
 
@@ -1150,13 +1145,13 @@ namespace EDIVE.Avatars
 
         public void RefreshChains()
         {
-            // Neck is solved separately in SolveHeadRotation
+            // neck solved in SolveHeadRotation
             var chain = new List<Transform>(2);
             if (_Spine != null) chain.Add(_Spine);
             if (_Chest != null) chain.Add(_Chest);
             _spineChain = chain.ToArray();
 
-            // Progressive weights, upper bones bend more, sum to 1
+            // progressive weights, upper bends more, sum 1
             _spineWeights = new float[_spineChain.Length];
             var sum = 0f;
             for (var i = 0; i < _spineWeights.Length; i++)
@@ -1206,10 +1201,11 @@ namespace EDIVE.Avatars
         private void DrawTargetGizmo(TargetRecord target, Color color, Transform drivenBone)
         {
             Gizmos.color = color;
-            
+
             if (drivenBone == null)
                 return;
 
+            // draw offset against the bone, as if the target were there
             var targetPos = target.GetInferredTargetPosition(drivenBone);
             var targetRot = target.GetInferredTargetRotation(drivenBone);
 
@@ -1321,6 +1317,7 @@ namespace EDIVE.Avatars
             public Vector3 GetPosition() => _Target.TransformPoint(_PositionOffset);
             public Quaternion GetRotation() => _Target.rotation * Quaternion.Euler(_RotationOffset);
             
+            // inverse of the offset: where target sits to drive this bone. for gizmos
             public Quaternion GetInferredTargetRotation(Transform reference) => reference.rotation * Quaternion.Inverse(Quaternion.Euler(_RotationOffset));
             public Vector3 GetInferredTargetPosition(Transform reference) => reference.position - GetInferredTargetRotation(reference) * _PositionOffset;
         }
@@ -1446,12 +1443,11 @@ namespace EDIVE.Avatars
             {
                 if (_grounded)
                 {
-                    // Grounded: follow the ground
                     GroundOffset = offsetTarget;
                 }
                 else
                 {
-                    // First contact: ease down
+                    // ease down on first contact
                     GroundOffset = Mathf.Lerp(GroundOffset, offsetTarget, deltaTime * footSpeed);
                     if (Mathf.Abs(GroundOffset - offsetTarget) < 0.005f)
                     {
@@ -1461,7 +1457,7 @@ namespace EDIVE.Avatars
                 }
                 FootPosition += Vector3.up * (GroundOffset + heightOffset);
 
-                // Don't sink below ground while easing
+                // don't sink below ground
                 if (FootPosition.y < groundY)
                     FootPosition = new Vector3(FootPosition.x, groundY, FootPosition.z);
 
