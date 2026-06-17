@@ -9,7 +9,8 @@
     "EDIVE.EditorUtils",
     "EDIVE.Utils.Json",
     "EDIVE.DataStructures",
-    "EDIVE.AssetTranslation"
+    "EDIVE.AssetTranslation",
+    "PurrNet.Runtime"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -18,6 +19,12 @@
   "precompiledReferences": [],
   "autoReferenced": true,
   "defineConstraints": [],
-  "versionDefines": [],
+  "versionDefines": [
+    {
+      "name": "dev.purrnet.purrnet",
+      "expression": "",
+      "define": "PURRNET"
+    }
+  ],
   "noEngineReferences": false
 }

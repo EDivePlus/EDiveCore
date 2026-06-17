@@ -6,7 +6,6 @@ using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.Switchers;
 using EDIVE.VisualPresets.VisualIDs;
 using JetBrains.Annotations;
-using PurrNet.Packing;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -29,10 +28,14 @@ namespace EDIVE.Avatars
         [SerializeField]
         [ListDrawerSettings(OnTitleBarGUI = "DrawVisualIDsTitleBar")]
         private List<ABaseVisualID> _CustomizationIDs = new();
-
+        
+        [SerializeField]
+        private VisualPreset _DefaultCustomizations;
+        
         public AvatarController AvatarPrefab => _AvatarPrefab;
         public VisualPreset Visual => _Visual;
         public IReadOnlyList<ABaseVisualID> CustomizationIDs => _CustomizationIDs;
+        public VisualPreset DefaultCustomizations => _DefaultCustomizations;
 
         public bool IsValid() => _AvatarPrefab != null;
         
@@ -59,15 +62,5 @@ namespace EDIVE.Avatars
             }
         }
 #endif
-    }
-
-    // Used by PurrNet for serialization of AvatarDefinition references.
-    // PurrNet auto-discovers static classes that contain `Write(this BitPacker, T)` and
-    // `Read(this BitPacker, ref T)` extension method pairs.
-    [UsedImplicitly]
-    public static class AvatarDefinitionExtensions
-    {
-        public static void Write(this BitPacker packer, AvatarDefinition value) => packer.CustomWriteTranslatedDefinition(value);
-        public static void Read(this BitPacker packer, ref AvatarDefinition value) => value = packer.CustomReadTranslatedDefinition<AvatarDefinition>();
     }
 }

@@ -8,7 +8,9 @@
     "EDIVE.Localization",
     "Unity.Localization",
     "Unity.Localization.Editor",
-    "EDIVE.Utils.Json"
+    "EDIVE.AssetTranslation",
+    "EDIVE.Utils.Json",
+    "PurrNet.Runtime"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -22,6 +24,11 @@
       "name": "com.unity.localization",
       "expression": "",
       "define": "UNITY_LOCALIZATION"
+    },
+    {
+      "name": "dev.purrnet.purrnet",
+      "expression": "",
+      "define": "PURRNET"
     }
   ],
   "noEngineReferences": false

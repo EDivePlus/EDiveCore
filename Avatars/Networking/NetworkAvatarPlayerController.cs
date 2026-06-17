@@ -14,7 +14,6 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.SaveData;
 using EDIVE.VisualPresets.Presets;
-using EDIVE.VisualPresets.VisualIDs;
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -41,12 +40,15 @@ namespace EDIVE.Avatars.Networking
         private AvatarPlayerSaveData _saveData;
 
         private readonly SyncVar<AvatarDefinition> _avatarDefinition = new(ownerAuth: true);
-        
+
         private readonly SyncLazyRef<AvatarController> _avatar = new(true);
+        
+        private readonly SyncVar<VisualPreset> _customizationPreset = new(ownerAuth: true);
 
         private void Awake()
         {
             _avatar.onChanged += OnAvatarChanged;
+            _customizationPreset.onChanged += OnSyncCustomizationChanged;
             _networkPlayerManager = AppCore.Services.Get<NetworkPlayerManager>();
             _saveDataService = AppCore.Services.Get<ServiceHubManager>().SaveData;
         }
@@ -55,6 +57,7 @@ namespace EDIVE.Avatars.Networking
         {
             base.OnDestroy();
             _avatar.onChanged -= OnAvatarChanged;
+            _customizationPreset.onChanged -= OnSyncCustomizationChanged;
         }
 
         protected override void OnSpawned()
@@ -82,11 +85,11 @@ namespace EDIVE.Avatars.Networking
             _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
             _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
             
-            _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
+            _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();;
+            _saveData.CustomizationPreset ??= _saveData.PlayerAvatar.DefaultCustomizations;
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
                 SetAvatar(_saveData.PlayerAvatar);
-            
-            _saveData.CustomizationChanged += OnAvatarCustomizationChanged;
+            _saveData.CustomizationChanged += OnSaveDataCustomizationChanged;
         }
 
         private void OnSaveDataMarkedAsDirty()
@@ -107,6 +110,9 @@ namespace EDIVE.Avatars.Networking
                 _IKAssigner.Assign(value);
 
             value.SetLocalPlayer(isOwner);
+            
+            if (_customizationPreset.value != null)
+                value.ApplyCustomizationPreset(_customizationPreset.value);
         }
 
         public void SetAvatar(AvatarDefinition avatarDef)
@@ -133,14 +139,19 @@ namespace EDIVE.Avatars.Networking
             if (owner.HasValue)
                 avatar.GiveOwnership(owner.Value);
             _avatar.value = avatar;
-            
+
             if (_saveData?.CustomizationPreset != null)
-                avatar.ApplyCustomizationPreset(_saveData.CustomizationPreset);
+                _customizationPreset.value = _saveData.CustomizationPreset;
         }
-        
-        private void OnAvatarCustomizationChanged(VisualPreset preset)
+
+        private void OnSaveDataCustomizationChanged(VisualPreset preset)
         {
-            if (_avatar.value != null)
+            _customizationPreset.value = preset;
+        }
+
+        private void OnSyncCustomizationChanged(VisualPreset preset)
+        {
+            if (_avatar.value != null && preset != null)
                 _avatar.value.ApplyCustomizationPreset(preset);
         }
 

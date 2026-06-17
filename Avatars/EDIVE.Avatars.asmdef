@@ -8,7 +8,6 @@
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
         "Unity.TextMeshPro",
-        "FishNet.Runtime",
         "PurrNet.Runtime",
         "Unity.ResourceManager",
         "UniTask.Addressables",
