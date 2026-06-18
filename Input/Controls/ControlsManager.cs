@@ -16,6 +16,14 @@ namespace EDIVE.Input.Controls
 
         private IEnumerable<AControls> AllControls => _Controls;
 
+        private const string HEIGHT_MODE_PREF_KEY = "XR_HeightMode";
+
+        public static RigHeightMode SavedHeightMode
+        {
+            get => (RigHeightMode) PlayerPrefs.GetInt(HEIGHT_MODE_PREF_KEY, (int) RigHeightMode.Floor);
+            set => PlayerPrefs.SetInt(HEIGHT_MODE_PREF_KEY, (int) value);
+        }
+
         protected void Awake()
         {
             CurrentControls = SelectControls();
@@ -34,6 +42,15 @@ namespace EDIVE.Input.Controls
             if (CurrentControls)
             {
                 CurrentControls.RequestTeleport(position, rotation);
+            }
+        }
+
+        public void SetHeightMode(RigHeightMode mode)
+        {
+            SavedHeightMode = mode;
+            if (CurrentControls)
+            {
+                CurrentControls.SetHeightMode(mode);
             }
         }
         
