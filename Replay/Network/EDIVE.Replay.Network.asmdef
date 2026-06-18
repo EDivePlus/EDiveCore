@@ -3,9 +3,7 @@
   "rootNamespace": "",
   "references": [
     "UniTask",
-    "FishNet.Runtime",
     "PurrNet.Runtime",
-    "EDIVE.External.Signals",
     "EDIVE.Replay",
     "EDIVE.OdinExtensions",
     "EDIVE.Core",

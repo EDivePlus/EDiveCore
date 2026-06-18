@@ -7,7 +7,6 @@
         "EDIVE.Core",
         "EDIVE.AppLoading",
         "EDIVE.External.ParrelSync",
-        "EDIVE.External.Signals",
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.OdinExtensions",
         "EDIVE.AddressableAssets",

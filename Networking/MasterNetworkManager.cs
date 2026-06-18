@@ -8,7 +8,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.Core.Restart;
-using EDIVE.External.Signals;
 using EDIVE.Networking.ServerManagement;
 using EDIVE.ServiceHub;
 using PurrNet;
@@ -28,10 +27,10 @@ namespace EDIVE.Networking
         private NetworkManager _networkManager;
 
         public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
-        public Signal<ConnectionState> ConnectionStateChanged { get; } = new();
+        public event Action<ConnectionState> ConnectionStateChanged;
 
         public NetworkRuntimeMode RuntimeMode { get; private set; } = NetworkRuntimeMode.None;
-        public Signal<NetworkRuntimeMode> RuntimeModeChanged { get; } = new();
+        public event Action<NetworkRuntimeMode> RuntimeModeChanged;
 
         private ConnectionState _serverConnectionState = ConnectionState.Disconnected;
         private ConnectionState _clientConnectionState = ConnectionState.Disconnected;
@@ -39,9 +38,9 @@ namespace EDIVE.Networking
         private bool _serverStartRequested;
         private bool _clientStartRequested;
 
-        public Signal BeforeHostStarted { get; } = new();
-        public Signal BeforeServerStarted { get; } = new();
-        public Signal BeforeClientStarted { get; } = new();
+        public event Action BeforeHostStarted;
+        public event Action BeforeServerStarted;
+        public event Action BeforeClientStarted;
         
         public StatisticsManager StatisticsManager => _StatisticsManager;
 
@@ -148,7 +147,7 @@ namespace EDIVE.Networking
             if (newMode != RuntimeMode)
             {
                 RuntimeMode = newMode;
-                RuntimeModeChanged.Dispatch(newMode);
+                RuntimeModeChanged?.Invoke(newMode);
             }
         }
 
@@ -158,7 +157,7 @@ namespace EDIVE.Networking
             if (newState != ConnectionState)
             {
                 ConnectionState = newState;
-                ConnectionStateChanged.Dispatch(newState);
+                ConnectionStateChanged?.Invoke(newState);
             }
         }
 
@@ -177,7 +176,7 @@ namespace EDIVE.Networking
                 return;
             }
 
-            BeforeHostStarted?.Dispatch();
+            BeforeHostStarted?.Invoke();
             UniTask.Void(async () =>
             {
                 if (AppCore.Services.TryGet<TransportController>(out var transportController))
@@ -242,7 +241,7 @@ namespace EDIVE.Networking
                     await UniTask.WhenAll(tasks);
                 }
 
-                BeforeServerStarted?.Dispatch();
+                BeforeServerStarted?.Invoke();
                 NetworkManager.main.StartServer();
             }
             finally
@@ -256,7 +255,7 @@ namespace EDIVE.Networking
             _clientStartRequested = true;
             try
             {
-                BeforeClientStarted?.Dispatch();
+                BeforeClientStarted?.Invoke();
                 NetworkManager.main.StartClient();
             }
             finally

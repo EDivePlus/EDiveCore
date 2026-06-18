@@ -56,7 +56,7 @@ namespace EDIVE.Audio.VoiceRecording
             }
             else
             {
-                _voiceRecordingManager.RecordingStateChanged.RemoveListener(OnVoiceRecordingStateChanged);
+                _voiceRecordingManager.RecordingStateChanged -= OnVoiceRecordingStateChanged;
                 _voiceRecordingManager.StopRecording();
                 HideRecordingUI();
             }
@@ -64,7 +64,7 @@ namespace EDIVE.Audio.VoiceRecording
 
         private void OnVoiceRecordingStateChanged(bool state)
         {
-            _voiceRecordingManager.RecordingStateChanged.RemoveListener(OnVoiceRecordingStateChanged);
+            _voiceRecordingManager.RecordingStateChanged -= OnVoiceRecordingStateChanged;
             if (!state)
                 HideRecordingUI();
         }

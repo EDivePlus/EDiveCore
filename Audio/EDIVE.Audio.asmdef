@@ -11,13 +11,11 @@
         "EDIVE.AppLoading",
         "EDIVE.NativeUtils",
         "EDIVE.Networking",
-        "FishNet.Runtime",
         "PurrNet.Runtime",
         "EDIVE.Utils",
         "EDIVE.Time",
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions",
-        "EDIVE.External.Signals",
         "EDIVE.Replay",
         "EDIVE.Utils.Cysharp",
         "EDIVE.External.Promises"

@@ -8,7 +8,6 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
-using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
 using EDIVE.Input.Controls;
 using EDIVE.Networking;
@@ -28,7 +27,7 @@ namespace EDIVE.Environment.SceneSetup
         private SceneSetupDefinition _DefaultSetup;
 
         public SceneSetupDefinition CurrentSetup { get; private set; }
-        public Signal<SceneSetupDefinition> CurrentContextChanged { get; } = new();
+        public event Action<SceneSetupDefinition> CurrentContextChanged;
         
         private bool _switchInProgress;
         private readonly List<ASceneSpawnPlace> _spawnPlaces = new();
@@ -117,7 +116,7 @@ namespace EDIVE.Environment.SceneSetup
                 TeleportToSpawn(definition, loadedScenes);
 
                 CurrentSetup = definition;
-                CurrentContextChanged.Dispatch(CurrentSetup);
+                CurrentContextChanged?.Invoke(CurrentSetup);
             }
             catch (Exception e)
             {

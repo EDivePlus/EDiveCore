@@ -7,7 +7,6 @@ using Adrenak.UniVoice.Filters;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
-using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Time.TimeSpanUtils;
@@ -33,7 +32,7 @@ namespace EDIVE.Audio.VoiceRecording
         public bool Recording { get; private set; }
 
         private static string RecordingsFolderPath => PathUtility.GetRootAppDataPath("VoiceRecordings");
-        public Signal<bool> RecordingStateChanged { get; } = new();
+        public event Action<bool> RecordingStateChanged;
 
         private AudioManager _audioManager;
         private float _recordingStartTime;
@@ -75,7 +74,7 @@ namespace EDIVE.Audio.VoiceRecording
             DebugLite.Log("[VoiceRecordingManager] Starting recording");
             Recording = true;
             
-            RecordingStateChanged.Dispatch(Recording);
+            RecordingStateChanged?.Invoke(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording started");
             
             _recordingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
@@ -119,7 +118,7 @@ namespace EDIVE.Audio.VoiceRecording
             
             DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
             _wavFileWriter?.Dispose();
-            RecordingStateChanged.Dispatch(Recording);
+            RecordingStateChanged?.Invoke(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording stopped");
         }
     }

@@ -184,11 +184,11 @@ namespace EDIVE.Input.Keyboard
             if (activeKeyboard == null || _isActivelyObservingKeyboard)
                 return;
 
-            activeKeyboard.TextUpdated.AddListener(OnTextUpdate);
-            activeKeyboard.TextSubmitted.AddListener(OnTextSubmit);
-            activeKeyboard.Closed.AddListener(KeyboardClosing);
-            activeKeyboard.Opened.AddListener(KeyboardOpening);
-            activeKeyboard.FocusChanged.AddListener(KeyboardFocusChanged);
+            activeKeyboard.TextUpdated += OnTextUpdate;
+            activeKeyboard.TextSubmitted += OnTextSubmit;
+            activeKeyboard.Closed += KeyboardClosing;
+            activeKeyboard.Opened += KeyboardOpening;
+            activeKeyboard.FocusChanged += KeyboardFocusChanged;
 
             _isActivelyObservingKeyboard = true;
         }
@@ -198,11 +198,11 @@ namespace EDIVE.Input.Keyboard
             if (activeKeyboard == null)
                 return;
 
-            activeKeyboard.TextUpdated.RemoveListener(OnTextUpdate);
-            activeKeyboard.TextSubmitted.RemoveListener(OnTextSubmit);
-            activeKeyboard.Closed.RemoveListener(KeyboardClosing);
-            activeKeyboard.Opened.RemoveListener(KeyboardOpening);
-            activeKeyboard.FocusChanged.RemoveListener(KeyboardFocusChanged);
+            activeKeyboard.TextUpdated -= OnTextUpdate;
+            activeKeyboard.TextSubmitted -= OnTextSubmit;
+            activeKeyboard.Closed -= KeyboardClosing;
+            activeKeyboard.Opened -= KeyboardOpening;
+            activeKeyboard.FocusChanged -= KeyboardFocusChanged;
 
             _isActivelyObservingKeyboard = false;
         }

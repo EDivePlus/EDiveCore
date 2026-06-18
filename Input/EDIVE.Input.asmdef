@@ -7,7 +7,6 @@
         "Unity.InputSystem",
         "EDIVE.NativeUtils",
         "EDIVE.StateHandling",
-        "EDIVE.External.Signals",
         "EDIVE.ScriptableArchitecture",
         "EDIVE.Core",
         "EDIVE.OdinExtensions",

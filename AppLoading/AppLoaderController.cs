@@ -73,7 +73,7 @@ namespace EDIVE.AppLoading
             _currentLoadingItems.Clear();
 
             foreach (var loadItem in validLoadItems)
-                loadItem.LoadStartedSignal.AddListener(OnLoadStarted);
+                loadItem.LoadStartedSignal += OnLoadStarted;
 
             await Setup.Load();
 
@@ -149,15 +149,15 @@ namespace EDIVE.AppLoading
         private void OnLoadStarted(LoadItemDefinition loadItem)
         {
             _currentLoadingItems.Add(loadItem);
-            loadItem.LoadStartedSignal.RemoveListener(OnLoadStarted);
-            loadItem.LoadCompletedSignal.AddListener(OnLoadCompleted);
+            loadItem.LoadStartedSignal -= OnLoadStarted;
+            loadItem.LoadCompletedSignal += OnLoadCompleted;
         }
 
         private void OnLoadCompleted(LoadItemDefinition loadItem)
         {
             _currentLoadingItems.Remove(loadItem);
             _currentLoadCompletedWeight += loadItem.LoadWeight;
-            loadItem.LoadCompletedSignal.RemoveListener(OnLoadCompleted);
+            loadItem.LoadCompletedSignal -= OnLoadCompleted;
         }
     }
 }

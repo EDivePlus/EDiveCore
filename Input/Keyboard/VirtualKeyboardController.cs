@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using EDIVE.External.Signals;
 using EDIVE.Input.Keyboard.InputFieldWrappers;
 using EDIVE.StateHandling.MultiStates;
 using TMPro;
@@ -33,7 +32,7 @@ namespace EDIVE.Input.Keyboard
                 _currentInputField = value;
                 StartObservingInputField(_currentInputField);
 
-                FocusChanged.Dispatch();
+                FocusChanged?.Invoke();
             }
         }
 
@@ -47,7 +46,7 @@ namespace EDIVE.Input.Keyboard
 
                 _text = value;
                 CaretPosition = Math.Clamp(CaretPosition, 0, _text.Length);
-                TextUpdated.Dispatch(_text);
+                TextUpdated?.Invoke(_text);
             }
         }
 
@@ -68,15 +67,15 @@ namespace EDIVE.Input.Keyboard
         public bool IsShifted => ShiftState != ShiftState.None;
         public bool IsOpen => _isOpen && isActiveAndEnabled;
 
-        public Signal Opened { get; } = new();
-        public Signal Closed { get; } = new();
-        public Signal<VirtualKeyboardKey> KeyPressed { get; } = new();
-        public Signal<KeyboardLayout> LayoutChanged { get; } = new();
-        public Signal<ShiftState> ShiftChanged { get; } = new();
-        public Signal<string> TextUpdated { get; } = new();
-        public Signal<string> TextSubmitted { get; } = new();
-        public Signal FocusChanged { get; } = new();
-        public Signal CharacterLimitReached { get; } = new();
+        public event Action Opened;
+        public event Action Closed;
+        public event Action<VirtualKeyboardKey> KeyPressed;
+        public event Action<KeyboardLayout> LayoutChanged;
+        public event Action<ShiftState> ShiftChanged;
+        public event Action<string> TextUpdated;
+        public event Action<string> TextSubmitted;
+        public event Action FocusChanged;
+        public event Action CharacterLimitReached;
 
         private AInputFieldWrapper _currentInputField;
         private List<VirtualKeyboardKey> _keys;
@@ -100,6 +99,8 @@ namespace EDIVE.Input.Keyboard
             _isOpen = false;
         }
 
+        public void RaiseKeyPressed(VirtualKeyboardKey key) => KeyPressed?.Invoke(key);
+
         public virtual void InsertText(string newText)
         {
             var selectionStart = Mathf.Min(SelectStartIndex, SelectEndIndex);
@@ -120,7 +121,7 @@ namespace EDIVE.Input.Keyboard
             }
             else
             {
-                CharacterLimitReached.Dispatch();
+                CharacterLimitReached?.Invoke();
             }
 
             if (ShiftState == ShiftState.Shift)
@@ -132,13 +133,13 @@ namespace EDIVE.Input.Keyboard
             CurrentLayout = layout;
             if (_LayoutState)
                 _LayoutState.SetState(layout);
-            LayoutChanged.Dispatch(layout);
+            LayoutChanged?.Invoke(layout);
         }
 
         public void Shift(ShiftState state)
         {
             ShiftState = state;
-            ShiftChanged.Dispatch(state);
+            ShiftChanged?.Invoke(state);
         }
 
         public void Backspace()
@@ -181,7 +182,7 @@ namespace EDIVE.Input.Keyboard
 
         public void Submit()
         {
-            TextSubmitted.Dispatch(Text);
+            TextSubmitted?.Invoke(Text);
 
             if (_CloseOnSubmit)
                 Close(false);
@@ -229,7 +230,7 @@ namespace EDIVE.Input.Keyboard
         {
             if (!isActiveAndEnabled)
             {
-                Opened.Dispatch();
+                Opened?.Invoke();
             }
 
             CaretPosition = newText.Length;
@@ -248,7 +249,7 @@ namespace EDIVE.Input.Keyboard
             if (resetLayout)
             {
                 CurrentLayout = KeyboardLayout.Characters;
-                LayoutChanged.Dispatch(CurrentLayout);
+                LayoutChanged?.Invoke(CurrentLayout);
             }
         }
 
@@ -262,7 +263,7 @@ namespace EDIVE.Input.Keyboard
             if (IsShifted)
                 Shift(ShiftState.None);
 
-            Closed.Dispatch();
+            Closed?.Invoke();
             gameObject.SetActive(false);
             _isOpen = false;
         }

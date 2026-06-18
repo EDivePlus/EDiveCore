@@ -88,22 +88,22 @@ namespace EDIVE.Input.Keyboard
         {
             if (_KeyType is KeyType.Text or KeyType.Shift)
             {
-                Keyboard.ShiftChanged.AddListener(OnKeyboardShiftChanged);
+                Keyboard.ShiftChanged += OnKeyboardShiftChanged;
                 OnKeyboardShiftChanged(Keyboard.ShiftState);
             }
 
 
             if (_KeyType == KeyType.Layout)
             {
-                Keyboard.LayoutChanged.AddListener(OnKeyboardLayoutChanged);
+                Keyboard.LayoutChanged += OnKeyboardLayoutChanged;
                 OnKeyboardLayoutChanged(Keyboard.CurrentLayout);
             }
         }
 
         private void UnregisterListeners()
         {
-            Keyboard.ShiftChanged.RemoveListener(OnKeyboardShiftChanged);
-            Keyboard.LayoutChanged.RemoveListener(OnKeyboardLayoutChanged);
+            Keyboard.ShiftChanged -= OnKeyboardShiftChanged;
+            Keyboard.LayoutChanged -= OnKeyboardLayoutChanged;
         }
 
         private void OnKeyboardShiftChanged(ShiftState shift)
@@ -166,7 +166,7 @@ namespace EDIVE.Input.Keyboard
                     throw new ArgumentOutOfRangeException();
             }
 
-            Keyboard.KeyPressed.Dispatch(this);
+            Keyboard.RaiseKeyPressed(this);
             _lastClickTime =  UnityEngine.Time.time;
         }
 

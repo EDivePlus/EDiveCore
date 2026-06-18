@@ -9,7 +9,6 @@ using EDIVE.AppLoading;
 using EDIVE.Configuration;
 using EDIVE.Console;
 using EDIVE.Core;
-using EDIVE.External.Signals;
 using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
@@ -48,7 +47,7 @@ namespace EDIVE.Networking.ServerManagement
         private int _ResumeReconnectAttempts = 3;
         
         public IEnumerable<ServerRecord> ServerList => _serverList;
-        public Signal ServerListUpdated { get; } = new();
+        public event Action ServerListUpdated;
         public ServerConfig ServerConfig => _ServerConfig;
         
         private readonly Dictionary<string, ServerRecord> _servers = new();
@@ -508,8 +507,8 @@ namespace EDIVE.Networking.ServerManagement
 
             EnumerateAdapters(adapter =>
             {
-                adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
-                adapter.ServerListUpdated.AddListener(OnAdapterServerListUpdated);
+                adapter.ServerListUpdated -= OnAdapterServerListUpdated;
+                adapter.ServerListUpdated += OnAdapterServerListUpdated;
                 adapter.StartSearch();
             });
             
@@ -520,7 +519,7 @@ namespace EDIVE.Networking.ServerManagement
         {
             EnumerateAdapters(adapter =>
             {
-                adapter.ServerListUpdated.RemoveListener(OnAdapterServerListUpdated);
+                adapter.ServerListUpdated -= OnAdapterServerListUpdated;
                 adapter.StopSearch();
             });
         }
@@ -554,7 +553,7 @@ namespace EDIVE.Networking.ServerManagement
                 }
             });
             _serverList.AddRange(_servers.Values);
-            ServerListUpdated.Dispatch();
+            ServerListUpdated?.Invoke();
         }
     }
 }

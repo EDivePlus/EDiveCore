@@ -9,7 +9,6 @@ using EDIVE.AppLoading.Utils;
 using EDIVE.AssetTranslation;
 using EDIVE.Conditions;
 using EDIVE.DataStructures.TypeStructures;
-using EDIVE.External.Signals;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
@@ -85,8 +84,8 @@ namespace EDIVE.AppLoading.LoadItems
         public bool IsLoaded => CurrentState == LoadItemState.Completed;
         public float LoadTime { get; private set; }
         
-        public Signal<LoadItemDefinition> LoadStartedSignal { get; } = new();
-        public Signal<LoadItemDefinition> LoadCompletedSignal { get; } = new();
+        public event Action<LoadItemDefinition> LoadStartedSignal;
+        public event Action<LoadItemDefinition> LoadCompletedSignal;
 
         private Tweener _fakeLoadingTimeTweener;
         private float _currentLoadProgress;
@@ -177,7 +176,7 @@ namespace EDIVE.AppLoading.LoadItems
             await UniTask.WhenAll(dependencySources);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            LoadStartedSignal.Dispatch(this);
+            LoadStartedSignal?.Invoke(this);
             CurrentState = LoadItemState.Loading;
             if (_FakeLoadingTime)
                 _fakeLoadingTimeTweener = DOTween.To(() => _currentLoadProgress, v => _currentLoadProgress = v, MAX_FAKE_PROGRESS, _FakeLoadingTimeDuration);
@@ -193,7 +192,7 @@ namespace EDIVE.AppLoading.LoadItems
 
             _fakeLoadingTimeTweener?.Kill();
             _fakeLoadingTimeTweener = null;
-            LoadCompletedSignal.Dispatch(this);
+            LoadCompletedSignal?.Invoke(this);
             CurrentState = LoadItemState.Completed;
             CompletionSource.TrySetResult();
 

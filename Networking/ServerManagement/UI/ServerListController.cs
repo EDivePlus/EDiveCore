@@ -44,7 +44,7 @@ namespace EDIVE.Networking.ServerManagement.UI
             if (_RefreshButton)
                 _RefreshButton.onClick.AddListener(OnRefreshClicked);
             
-            _serverManager.ServerListUpdated.AddListener(RefreshScroller);
+            _serverManager.ServerListUpdated += RefreshScroller;
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             
             UniTask.Void(async cancellationToken =>
@@ -64,7 +64,7 @@ namespace EDIVE.Networking.ServerManagement.UI
             
             if (_serverManager)
             {
-                _serverManager.ServerListUpdated.RemoveListener(RefreshScroller);
+                _serverManager.ServerListUpdated -= RefreshScroller;
                 _serverManager.StopSearch();
             }
             

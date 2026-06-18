@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using EDIVE.External.Signals;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -14,7 +13,7 @@ namespace EDIVE.Networking.ServerManagement
     public abstract class AServerListAdapter : MonoBehaviour
     {
         public Dictionary<string, ServerRecord> Servers { get; } = new();
-        public Signal ServerListUpdated { get; } = new();
+        public event Action ServerListUpdated;
 
         [HideReferenceObjectPicker]
         [ShowInInspector]   
@@ -70,7 +69,7 @@ namespace EDIVE.Networking.ServerManagement
                 record.LastUpdated = now;
                 Servers[record.InstanceID] = record;
             }
-            ServerListUpdated.Dispatch();
+            ServerListUpdated?.Invoke();
         }
 
         private bool HasMeaningfulChange(List<ServerRecord> newRecords)

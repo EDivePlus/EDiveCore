@@ -10,7 +10,6 @@
         "DOTween.Modules",
         "EDIVE.Utils",
         "EDIVE.OdinExtensions",
-        "EDIVE.External.Signals",
         "EDIVE.Core",
         "EDIVE.EditorUtils",
         "EDIVE.NativeUtils",

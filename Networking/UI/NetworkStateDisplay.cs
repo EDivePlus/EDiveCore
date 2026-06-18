@@ -50,8 +50,8 @@ namespace EDIVE.Networking.UI
         private void Initialize(MasterNetworkManager networkManager, NetworkServerManager serverManager)
         {
             _networkManager = networkManager;
-            _networkManager.ConnectionStateChanged.AddListener(OnClientConnectionStateChanged);
-            _networkManager.RuntimeModeChanged.AddListener(OnRuntimeModeChanged);
+            _networkManager.ConnectionStateChanged += OnClientConnectionStateChanged;
+            _networkManager.RuntimeModeChanged += OnRuntimeModeChanged;
             _serverManager = serverManager;
             RefreshState();
         }
@@ -60,8 +60,8 @@ namespace EDIVE.Networking.UI
         {
             if (_networkManager)
             {
-                _networkManager.ConnectionStateChanged.RemoveListener(OnClientConnectionStateChanged);
-                _networkManager.RuntimeModeChanged.RemoveListener(OnRuntimeModeChanged);
+                _networkManager.ConnectionStateChanged -= OnClientConnectionStateChanged;
+                _networkManager.RuntimeModeChanged -= OnRuntimeModeChanged;
             }
         }
 

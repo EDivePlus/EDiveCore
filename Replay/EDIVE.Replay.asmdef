@@ -10,7 +10,6 @@
         "EDIVE.EditorUtils",
         "EDIVE.NativeUtils",
         "EDIVE.Time",
-        "EDIVE.External.Signals",
         "EDIVE.StateHandling",
         "EDIVE.DataStructures",
         "FishNet.Runtime",

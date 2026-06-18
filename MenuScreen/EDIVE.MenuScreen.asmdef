@@ -13,7 +13,6 @@
     "EDIVE.VisualPresets",
     "EDIVE.Utils",
     "EDIVE.StateHandling",
-    "EDIVE.External.Signals",
     "EDIVE.OdinExtensions",
     "EDIVE.UIElements",
     "EDIVE.EditorUtils"

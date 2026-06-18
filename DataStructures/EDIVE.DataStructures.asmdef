@@ -8,7 +8,6 @@
         "EDIVE.NativeUtils",
         "EDIVE.External.DomainReloadHelper",
         "EDIVE.EditorUtils",
-        "EDIVE.External.Signals",
         "EDIVE.Utils.Json"
     ],
     "includePlatforms": [],

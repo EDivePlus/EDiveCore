@@ -2,7 +2,6 @@
 // Created: 20.10.2025
 
 using System;
-using EDIVE.OdinExtensions.Attributes;
 using UnityEngine;
 
 #if UNITY_EDITOR
