@@ -43,7 +43,8 @@
         "Unity.Mathematics",
         "EDIVE.UIElements",
         "FishNet.Runtime",
-        "EDIVE.UIElements.RecyclableScroller"
+        "EDIVE.UIElements.RecyclableScroller",
+        "EDIVE.Conditions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
