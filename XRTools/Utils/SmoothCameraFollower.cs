@@ -45,20 +45,34 @@ namespace EDIVE.XRTools
         [SerializeField]
         [Tooltip("Default rotation offset (euler) relative to the constrained camera frame. (0,0,0) faces away from the camera.")]
         private Vector3 _DefaultPoseRotation;
+        
+        [SerializeField]
+        [Tooltip("When following is turned on, automatically capture the target's current pose so it stays where it currently is.")]
+        private bool _SetCustomPoseOnFollow;
+     
+        [SerializeReference]
+        [Tooltip("Captures the current pose relative to the camera (target stays where it is while following)")]
+        private IActivation _SetCustomPoseActivation;
+        
+        [SerializeReference]
+        [Tooltip("Clears the captured pose and moves the target back to the default pose")]
+        private IActivation _ResetCustomPoseActivation;
 
         [SerializeField]
         [Tooltip("Duration of the tween used by Reposition() / ResetCustomPose()")]
         private float _RepositionDuration = 0.3f;
-
+        
         [SerializeField]
         private bool _RepositionOnAwake = true;
+        
+        [SerializeReference]
+        private IActivation _RepositionAction;
 
         [PropertySpace]
         [SerializeField]
-        [Tooltip("Follow camera pitch (X)")]
+        [Tooltip("Follow camera pitch (X), yaw (Y) and roll (Z) axes")]
         private bool3 _FollowRotation = new(true, true, false);
-
-        [PropertySpace]
+        
         [SerializeField]
         private float _PositionSmoothTime = 0.15f;
 
@@ -94,18 +108,6 @@ namespace EDIVE.XRTools
         [ShowIf(nameof(_FollowMode), FollowMode.Automatic)]
         [SerializeReference]
         private ICondition _AutoFollowCondition;
-        
-        [SerializeField]
-        [Tooltip("When following is turned on, automatically capture the target's current pose so it stays where it currently is.")]
-        private bool _SetCustomPoseOnFollow;
-     
-        [SerializeReference]
-        [Tooltip("Captures the current pose relative to the camera (target stays where it is while following)")]
-        private IActivation _SetCustomPoseActivation;
-        
-        [SerializeReference]
-        [Tooltip("Clears the captured pose and moves the target back to the default pose")]
-        private IActivation _ResetCustomPoseActivation;
 
         [SerializeField]
         private AToggleState _FollowState;
@@ -147,6 +149,7 @@ namespace EDIVE.XRTools
 
         private void OnEnable()
         {
+            _RepositionAction?.RegisterActivationListener(Reposition);
             _SetCustomPoseActivation?.RegisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.RegisterActivationListener(ResetCustomPose);
             if (_FollowMode == FollowMode.Manual)
@@ -166,6 +169,7 @@ namespace EDIVE.XRTools
 
         private void OnDisable()
         {
+            _RepositionAction?.UnregisterActivationListener(Reposition);
             _SetCustomPoseActivation?.UnregisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.UnregisterActivationListener(ResetCustomPose);
             if (_FollowMode == FollowMode.Manual)
@@ -244,8 +248,10 @@ namespace EDIVE.XRTools
             _hasCustomPose = false;
         }
         
+        public void Reposition() => Reposition(false);
+        
         [Button]
-        public void Reposition(bool immediate = false)
+        public void Reposition(bool immediate)
         {
             var cam = CameraTransform;
             if (cam == null)

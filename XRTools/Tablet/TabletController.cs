@@ -7,19 +7,18 @@ using EDIVE.Input.Keyboard;
 using EDIVE.Utils.Activations;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.XRTools.Tablet
 {
     public class TabletController : AServiceBehaviour<TabletController>
     {
         [SerializeField]
-        private VirtualKeyboardController _Keyboard;
-
-        [SerializeField]
         private SmoothCameraFollower _CameraFollower;
 
+        [FormerlySerializedAs("_RepositionAction")]
         [SerializeReference]
-        private IActivation _RepositionAction;
+        private IActivation _FocusAction;
         
         [SerializeField]
         [Range(0, 1)]
@@ -34,8 +33,6 @@ namespace EDIVE.XRTools.Tablet
 
         [SerializeField]
         private float _TweenDuration = 0.3f;
-
-        public VirtualKeyboardController Keyboard => _Keyboard;
 
         [ShowInInspector]
         public bool IsInView => CheckInView();
@@ -53,13 +50,13 @@ namespace EDIVE.XRTools.Tablet
         protected override void OnEnable()
         {
             base.OnEnable();
-            _RepositionAction?.RegisterActivationListener(ToggleTablet);
+            _FocusAction?.RegisterActivationListener(ToggleTablet);
         }
 
         protected override void OnDisable()
         {
             base.OnDisable();
-            _RepositionAction?.UnregisterActivationListener(ToggleTablet);
+            _FocusAction?.UnregisterActivationListener(ToggleTablet);
             _animTween?.Kill();
         }
 
