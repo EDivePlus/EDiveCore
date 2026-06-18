@@ -90,7 +90,7 @@ namespace EDIVE.UIElements.Selectables
         {
             base.OnPointerDown(eventData);
 
-            _initRotation = RotationTarget.rotation;
+            _initRotation = RotationTarget.localRotation;
             var currentVector = GetPointerVector(eventData);
             _initAngle = Mathf.Atan2(currentVector.y, currentVector.x) * Mathf.Rad2Deg;
         }
@@ -131,7 +131,7 @@ namespace EDIVE.UIElements.Selectables
             if (clamped)
                 ApplyVisualRotation();
             else
-                RotationTarget.rotation = finalRotation;
+                RotationTarget.localRotation = finalRotation;
             InvokeEvents(RawValue);
 
             _previousValue = _Value;
@@ -211,7 +211,7 @@ namespace EDIVE.UIElements.Selectables
             else
             {
                 newRotation.eulerAngles = _Direction == Direction.Clockwise ? new Vector3(0, 0, 360 - 360 * _Value) : new Vector3(0, 0, 360 * _Value);
-                RotationTarget.rotation = newRotation;
+                RotationTarget.localRotation = newRotation;
             }
             InvokeEvents(RawValue);
 
