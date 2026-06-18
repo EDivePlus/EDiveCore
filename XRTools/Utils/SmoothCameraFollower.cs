@@ -2,11 +2,13 @@
 // Created: 18.02.2026
 
 using DG.Tweening;
+using EDIVE.DataStructures.VariableFields;
 using EDIVE.NativeUtils;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Activations;
 using Sirenix.OdinInspector;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -21,6 +23,11 @@ namespace EDIVE.XRTools
         [SerializeField]
         [Tooltip("Target transform to follow. If not set, will use this GameObject's transform")]
         private Transform _FollowTarget;
+        
+        [FormerlySerializedAs("_SpaceTransform")]
+        [SerializeField]
+        [Tooltip("Reference frame for the following")]
+        private VariableField<Transform> _ReferenceFrame;
         
         [PropertySpace]
         [SerializeField]
@@ -45,19 +52,21 @@ namespace EDIVE.XRTools
 
         [SerializeField]
         private float _RotationSmoothTime = 0.1f;
-
-        [SerializeField]
-        [Tooltip("Follow the camera's Pitch (X). Enable to let the target tilt / move up & down as you look up & down.")]
-        private bool _FollowRotationX = true;
-
-        [SerializeField]
-        [Tooltip("Follow the camera's Yaw (Y). Enable to let the target rotate / orbit horizontally as you turn. This is the usual one.")]
-        private bool _FollowRotationY = true;
-
-        [SerializeField]
-        [Tooltip("Follow the camera's Roll (Z). Usually OFF so the target always stays horizontal.")]
-        private bool _FollowRotationZ;
         
+        [SerializeField]
+        [Tooltip("Follow camera pitch (X)")]
+        private bool3 _FollowRotation = new(true, true, false);
+
+        [SerializeField]
+        [Tooltip("Angular deadzone in degrees per axis (pitch X / yaw Y / roll Z), max deviation per axis")]
+        [SuffixLabel("°", true)]
+        [MinValue(0f)]
+        private Vector3 _AngularDeadzone;
+
+        [SerializeField]
+        [Tooltip("Positional deadzone half-extents in meters (max deviation per axis) along the panel's right/up/forward axes")]
+        private Vector3 _PositionDeadzone;
+
         [SerializeField]
         private bool _FollowOnAwake;
         
@@ -103,6 +112,10 @@ namespace EDIVE.XRTools
         private Vector3 _positionVelocity;
         private Vector3 _rotationVelocity;
         private Tween _repositionTween;
+        private bool _hasAnchorFrame;
+        private Quaternion _anchorFrame = Quaternion.identity;
+        private bool _hasAnchorPosition;
+        private Vector3 _anchorLocalPosition;
 
         private void OnEnable()
         {
@@ -136,8 +149,13 @@ namespace EDIVE.XRTools
         public void SetFollowing(bool following)
         {
             _isFollowing = following;
-            if (following && _SetCustomPoseOnFollow)
-                SetCustomPose();
+            if (following)
+            {
+                _hasAnchorFrame = false;
+                _hasAnchorPosition = false;
+                if (_SetCustomPoseOnFollow)
+                    SetCustomPose();
+            }
 
             if(_FollowState)
                 _FollowState.SetState(_isFollowing);
@@ -155,7 +173,8 @@ namespace EDIVE.XRTools
             if (cam == null)
                 return;
 
-            var frame = GetCameraFrame(cam);
+            ResolveSpace(out _, out var spaceRotation);
+            var frame = spaceRotation * GetLocalCameraFrame(cam, spaceRotation);
             var followTarget = FollowTarget;
             var inverse = Quaternion.Inverse(frame);
             _customPosePosition = inverse * (followTarget.position - cam.position);
@@ -177,7 +196,10 @@ namespace EDIVE.XRTools
             if (cam == null)
                 return;
 
-            GetTargetPose(cam, out var newPosition, out var newRotation);
+            GetLocalTargetPose(cam, out var localPosition, out var localRotation, false);
+            ResolveSpace(out var spacePosition, out var spaceRotation);
+            var newPosition = spacePosition + spaceRotation * localPosition;
+            var newRotation = spaceRotation * localRotation;
 
             var followTarget = FollowTarget;
             _repositionTween?.Kill();
@@ -200,41 +222,158 @@ namespace EDIVE.XRTools
             if (cam == null)
                 return;
 
-            GetTargetPose(cam, out var targetPosition, out var targetRotation);
+            GetLocalTargetPose(cam, out var localTargetPosition, out var localTargetRotation, true);
+
+            ResolveSpace(out var spacePosition, out var spaceRotation);
+            var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
 
             var followTarget = FollowTarget;
-            followTarget.position = Vector3.SmoothDamp(followTarget.position, targetPosition, ref _positionVelocity, _PositionSmoothTime);
-            followTarget.rotation = RotationUtility.SmoothDampQuaternion(followTarget.rotation, targetRotation, ref _rotationVelocity, _RotationSmoothTime);
+            var localCurrentPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
+            var localCurrentRotation = inverseSpaceRotation * followTarget.rotation;
+
+            var localNewPosition = Vector3.SmoothDamp(localCurrentPosition, localTargetPosition, ref _positionVelocity, _PositionSmoothTime);
+            var localNewRotation = RotationUtility.SmoothDampQuaternion(localCurrentRotation, localTargetRotation, ref _rotationVelocity, _RotationSmoothTime);
+
+            followTarget.position = spacePosition + spaceRotation * localNewPosition;
+            followTarget.rotation = spaceRotation * localNewRotation;
         }
 
-        private void GetTargetPose(Transform cam, out Vector3 position, out Quaternion rotation)
+        // Returns the target pose in the reference space's local coordinates (callers convert to world as needed).
+        private void GetLocalTargetPose(Transform cam, out Vector3 localPosition, out Quaternion localRotation, bool applyDeadzone)
         {
-            var frame = GetCameraFrame(cam);
-            if (_hasCustomPose)
+            ResolveSpace(out var spacePosition, out var spaceRotation);
+            var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
+
+            // --- Rotation: per-axis angular deadzone (the anchor frame trails the camera within the deadzone) ---
+            var desiredLocalFrame = GetLocalCameraFrame(cam, spaceRotation);
+            Quaternion localFrame;
+            if (!applyDeadzone || _AngularDeadzone == Vector3.zero || !_hasAnchorFrame)
             {
-                position = cam.position + frame * _customPosePosition;
-                rotation = frame * _customPoseRotation;
+                localFrame = desiredLocalFrame;
             }
             else
             {
-                position = cam.position + frame * _DefaultPosePosition;
-                rotation = frame * Quaternion.Euler(_DefaultPoseRotation);
+                // Measure the rotation from anchor to camera per axis and only let the part beyond the deadzone move the anchor.
+                var deltaEuler = ToSignedEuler((Quaternion.Inverse(_anchorFrame) * desiredLocalFrame).eulerAngles);
+                deltaEuler.x -= Mathf.Clamp(deltaEuler.x, -_AngularDeadzone.x, _AngularDeadzone.x);
+                deltaEuler.y -= Mathf.Clamp(deltaEuler.y, -_AngularDeadzone.y, _AngularDeadzone.y);
+                deltaEuler.z -= Mathf.Clamp(deltaEuler.z, -_AngularDeadzone.z, _AngularDeadzone.z);
+                localFrame = _anchorFrame * Quaternion.Euler(deltaEuler);
             }
-        }
-        
-        private Quaternion GetCameraFrame(Transform cam)
-        {
-            if (_FollowRotationX && _FollowRotationY && _FollowRotationZ)
-                return cam.rotation;
+            _anchorFrame = localFrame;
+            _hasAnchorFrame = true;
 
-            if (!_FollowRotationX && !_FollowRotationY && !_FollowRotationZ)
+            var offsetPosition = _hasCustomPose ? _customPosePosition : _DefaultPosePosition;
+            var offsetRotation = _hasCustomPose ? _customPoseRotation : Quaternion.Euler(_DefaultPoseRotation);
+
+            // --- Position: box deadzone (the anchor trails the camera within the box), all in reference space ---
+            var camLocalPosition = inverseSpaceRotation * (cam.position - spacePosition);
+            var desiredLocalPosition = camLocalPosition + localFrame * offsetPosition;
+            if (!applyDeadzone || !_hasAnchorPosition)
+            {
+                _anchorLocalPosition = desiredLocalPosition;
+            }
+            else
+            {
+                // Measure the deviation in the panel's local axes and only let the part beyond the box move the anchor.
+                var localDelta = Quaternion.Inverse(localFrame) * (desiredLocalPosition - _anchorLocalPosition);
+                localDelta.x -= Mathf.Clamp(localDelta.x, -_PositionDeadzone.x, _PositionDeadzone.x);
+                localDelta.y -= Mathf.Clamp(localDelta.y, -_PositionDeadzone.y, _PositionDeadzone.y);
+                localDelta.z -= Mathf.Clamp(localDelta.z, -_PositionDeadzone.z, _PositionDeadzone.z);
+                _anchorLocalPosition += localFrame * localDelta;
+            }
+            _hasAnchorPosition = true;
+
+            localPosition = _anchorLocalPosition;
+            localRotation = localFrame * offsetRotation;
+        }
+
+        private void ResolveSpace(out Vector3 spacePosition, out Quaternion spaceRotation)
+        {
+            var space = _ReferenceFrame?.Value;
+            spacePosition = space != null ? space.position : Vector3.zero;
+            spaceRotation = space != null ? space.rotation : Quaternion.identity;
+        }
+
+        // Converts a [0..360) euler into signed [-180..180) components so per-axis clamping works symmetrically.
+        private static Vector3 ToSignedEuler(Vector3 euler) => new(
+            Mathf.DeltaAngle(0f, euler.x),
+            Mathf.DeltaAngle(0f, euler.y),
+            Mathf.DeltaAngle(0f, euler.z));
+
+        // Camera orientation relative to the reference space (aircraft), with the unfollowed axes filtered out.
+        // Filtering happens in this local frame so the space's own rotation never eats into the deadzone.
+        private Quaternion GetLocalCameraFrame(Transform cam, Quaternion spaceRotation)
+        {
+            var localCamRotation = Quaternion.Inverse(spaceRotation) * cam.rotation;
+
+            if (_FollowRotation.x && _FollowRotation.y && _FollowRotation.z)
+                return localCamRotation;
+
+            if (!_FollowRotation.x && !_FollowRotation.y && !_FollowRotation.z)
                 return Quaternion.identity;
 
-            var euler = cam.eulerAngles;
+            var euler = localCamRotation.eulerAngles;
             return Quaternion.Euler(
-                _FollowRotationX ? euler.x : 0f,
-                _FollowRotationY ? euler.y : 0f,
-                _FollowRotationZ ? euler.z : 0f);
+                _FollowRotation.x ? euler.x : 0f,
+                _FollowRotation.y ? euler.y : 0f,
+                _FollowRotation.z ? euler.z : 0f);
         }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            var target = FollowTarget;
+            if (target == null)
+                return;
+            
+            var camFrame = target.rotation * Quaternion.Inverse(Quaternion.Euler(_DefaultPoseRotation));
+            var camPosition = target.position - camFrame * _DefaultPosePosition;
+
+            const float radius = 0.05f;
+            var forward = camFrame * Vector3.forward;
+
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(camPosition, radius);
+            Gizmos.DrawLine(camPosition, camPosition + forward * (target.position - camPosition).magnitude);
+
+            if (_PositionDeadzone != Vector3.zero)
+            {
+                // Position deadzone box: how far the camera can move (in the panel's right/up/forward axes) before the target follows.
+                var prevMatrix = Gizmos.matrix;
+                Gizmos.matrix = Matrix4x4.TRS(camPosition, camFrame, Vector3.one);
+                Gizmos.color = new Color(1f, 0.6f, 0f, 0.9f);
+                Gizmos.DrawWireCube(Vector3.zero, _PositionDeadzone * 2f);
+                Gizmos.matrix = prevMatrix;
+            }
+
+            if (_AngularDeadzone != Vector3.zero)
+            {
+                // Per-axis angular deadzone: how far the camera can rotate around each axis before the target follows.
+                var distance = (target.position - camPosition).magnitude;
+                var right = camFrame * Vector3.right;
+                var up = camFrame * Vector3.up;
+                var panelCenter = camPosition + forward * distance;
+
+                UnityEditor.Handles.color = new Color(1f, 0.6f, 0f, 0.9f);
+                Gizmos.color = new Color(1f, 0.6f, 0f, 0.7f);
+                DrawDeadzoneArc(camPosition, up, forward, _AngularDeadzone.y, distance);          // yaw
+                DrawDeadzoneArc(camPosition, right, forward, _AngularDeadzone.x, distance);        // pitch
+                DrawDeadzoneArc(panelCenter, forward, up, _AngularDeadzone.z, distance * 0.3f);    // roll
+            }
+        }
+
+        private static void DrawDeadzoneArc(Vector3 center, Vector3 axis, Vector3 zeroDir, float halfAngle, float radius)
+        {
+            if (halfAngle <= 0f)
+                return;
+
+            var from = Quaternion.AngleAxis(-halfAngle, axis) * zeroDir;
+            var to = Quaternion.AngleAxis(halfAngle, axis) * zeroDir;
+            UnityEditor.Handles.DrawWireArc(center, axis, from, halfAngle * 2f, radius);
+            Gizmos.DrawLine(center, center + from * radius);
+            Gizmos.DrawLine(center, center + to * radius);
+        }
+#endif
     }
 }

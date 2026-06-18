@@ -11,7 +11,6 @@ namespace EDIVE.DataStructures.VariableFields
     [TypeRegistryItem("Raw Data")]
     public class RawVariableFieldData<T> : IVariableFieldData<T>
     {
-        [HideLabel]
         [SerializeField]
         private T _Value;
         
