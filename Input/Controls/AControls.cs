@@ -23,6 +23,8 @@ namespace EDIVE.Input.Controls
         
         public abstract void RequestTeleport(Vector3 position, Quaternion? rotation = null);
 
+        public virtual void SetHeightMode(RigHeightMode mode) { }
+
         protected virtual void Awake() { }
 
         protected static Quaternion GetFloorRotation(Transform source)
