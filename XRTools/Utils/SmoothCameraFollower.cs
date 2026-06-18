@@ -2,6 +2,7 @@
 // Created: 18.02.2026
 
 using DG.Tweening;
+using EDIVE.Conditions;
 using EDIVE.DataStructures.VariableFields;
 using EDIVE.NativeUtils;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
@@ -16,6 +17,12 @@ namespace EDIVE.XRTools
 {
     public class SmoothCameraFollower : MonoBehaviour
     {
+        private enum FollowMode
+        {
+            Manual,
+            Automatic
+        }
+
         [SerializeField]
         [Tooltip("Optional camera transform variable. If not set, will use Camera.main.transform")]
         private TransformScriptableVariable _CameraTransformVariable;
@@ -23,12 +30,12 @@ namespace EDIVE.XRTools
         [SerializeField]
         [Tooltip("Target transform to follow. If not set, will use this GameObject's transform")]
         private Transform _FollowTarget;
-        
+
         [FormerlySerializedAs("_SpaceTransform")]
         [SerializeField]
         [Tooltip("Reference frame for the following")]
         private VariableField<Transform> _ReferenceFrame;
-        
+
         [PropertySpace]
         [SerializeField]
         [FormerlySerializedAs("_PositionOffset")]
@@ -38,14 +45,19 @@ namespace EDIVE.XRTools
         [SerializeField]
         [Tooltip("Default rotation offset (euler) relative to the constrained camera frame. (0,0,0) faces away from the camera.")]
         private Vector3 _DefaultPoseRotation;
-        
+
         [SerializeField]
         [Tooltip("Duration of the tween used by Reposition() / ResetCustomPose()")]
         private float _RepositionDuration = 0.3f;
-        
+
         [SerializeField]
         private bool _RepositionOnAwake = true;
-        
+
+        [PropertySpace]
+        [SerializeField]
+        [Tooltip("Follow camera pitch (X)")]
+        private bool3 _FollowRotation = new(true, true, false);
+
         [PropertySpace]
         [SerializeField]
         private float _PositionSmoothTime = 0.15f;
@@ -54,14 +66,9 @@ namespace EDIVE.XRTools
         private float _RotationSmoothTime = 0.1f;
 
         [SerializeField]
-        [Tooltip("If the camera jumps further than this many meters (measured in the reference frame) in a single frame, snap the target to it instead of smoothing. Catches teleports. Set 0 to disable.")]
+        [Tooltip("If the camera jumps further than this many meters in a single frame, snap the target to it instead of smoothing.")]
         [MinValue(0f)]
-        [SuffixLabel("m", true)]
-        private float _TeleportDistance = 1f;
-        
-        [SerializeField]
-        [Tooltip("Follow camera pitch (X)")]
-        private bool3 _FollowRotation = new(true, true, false);
+        private float _FollowTeleportDistance = 1f;
 
         [SerializeField]
         [Tooltip("Angular deadzone in degrees per axis (pitch X / yaw Y / roll Z), max deviation per axis")]
@@ -74,20 +81,28 @@ namespace EDIVE.XRTools
         private Vector3 _PositionDeadzone;
 
         [SerializeField]
+        private FollowMode _FollowMode = FollowMode.Manual;
+
+        [ShowIf(nameof(_FollowMode), FollowMode.Manual)]
+        [SerializeField]
         private bool _FollowOnAwake;
+        
+        [ShowIf(nameof(_FollowMode), FollowMode.Manual)]
+        [SerializeReference]
+        private IActivation _ToggleFollowActivation;
+        
+        [ShowIf(nameof(_FollowMode), FollowMode.Automatic)]
+        [SerializeReference]
+        private ICondition _AutoFollowCondition;
         
         [SerializeField]
         [Tooltip("When following is turned on, automatically capture the target's current pose so it stays where it currently is.")]
         private bool _SetCustomPoseOnFollow;
-
-        [PropertySpace]
-        [SerializeReference]
-        private IActivation _ToggleFollowActivation;
-
+     
         [SerializeReference]
         [Tooltip("Captures the current pose relative to the camera (target stays where it is while following)")]
         private IActivation _SetCustomPoseActivation;
-
+        
         [SerializeReference]
         [Tooltip("Clears the captured pose and moves the target back to the default pose")]
         private IActivation _ResetCustomPoseActivation;
@@ -122,8 +137,7 @@ namespace EDIVE.XRTools
         private bool _hasAnchorPosition;
         private Vector3 _anchorLocalPosition;
 
-        // The smoothed pose is persisted in the reference frame's local space so that motion of the
-        // frame itself moves the target rigidly (no lag); only camera-relative motion is smoothed.
+        // Smoothed pose kept in reference frame local space so frame motion is rigid and only camera motion smooths.
         private bool _hasLocalPose;
         private Vector3 _localPosition;
         private Quaternion _localRotation = Quaternion.identity;
@@ -133,16 +147,36 @@ namespace EDIVE.XRTools
 
         private void OnEnable()
         {
-            _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow);
             _SetCustomPoseActivation?.RegisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.RegisterActivationListener(ResetCustomPose);
+            if (_FollowMode == FollowMode.Manual)
+            {
+                _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow);
+            }
+            else
+            {
+                if (_AutoFollowCondition != null)
+                {
+                    _AutoFollowCondition.InitializeObserving();
+                    _AutoFollowCondition.StateChanged += OnAutoFollowConditionChanged;
+                }
+                OnAutoFollowConditionChanged();
+            }
         }
 
         private void OnDisable()
         {
-            _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
             _SetCustomPoseActivation?.UnregisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.UnregisterActivationListener(ResetCustomPose);
+            if (_FollowMode == FollowMode.Manual)
+            {
+                _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
+            }
+            else if (_AutoFollowCondition != null)
+            {
+                _AutoFollowCondition.StateChanged -= OnAutoFollowConditionChanged;
+                _AutoFollowCondition.TerminateObserving();
+            }
         }
 
         private void Start()
@@ -150,8 +184,13 @@ namespace EDIVE.XRTools
             if (_RepositionOnAwake)
                 Reposition(true);
 
-            if (_FollowOnAwake)
+            if (_FollowMode == FollowMode.Manual && _FollowOnAwake)
                 SetFollowing(true);
+        }
+
+        private void OnAutoFollowConditionChanged()
+        {
+            SetFollowing(_AutoFollowCondition != null && _AutoFollowCondition.Evaluate());
         }
 
         private void LateUpdate()
@@ -217,7 +256,7 @@ namespace EDIVE.XRTools
             var newPosition = spacePosition + spaceRotation * localPosition;
             var newRotation = spaceRotation * localRotation;
 
-            // The world pose is about to change; force the smoothed local pose to re-seed from it.
+            // World pose changes; re-seed the local pose from it.
             _hasLocalPose = false;
             _hasPrevCamLocalPosition = false;
 
@@ -245,10 +284,7 @@ namespace EDIVE.XRTools
             ResolveSpace(out var spacePosition, out var spaceRotation);
             var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
 
-            // If the reference frame itself was swapped for a different transform, every persisted value
-            // (local pose, deadzone anchors, previous camera position) belongs to the old frame. Drop them
-            // so they re-seed from the current world pose this frame - the target keeps its world pose
-            // (no pop) and smoothly re-settles into the new frame instead of being smoothed across spaces.
+            // Reference frame swapped: persisted state is in the old frame, drop it to re-seed from world (no pop).
             var referenceFrame = _ReferenceFrame?.Value;
             if (_hasLocalPose && !ReferenceEquals(referenceFrame, _prevReferenceFrame))
             {
@@ -259,17 +295,15 @@ namespace EDIVE.XRTools
             }
             _prevReferenceFrame = referenceFrame;
 
-            // Detect a camera teleport relative to the reference frame (e.g. the rig is teleported).
-            // Co-moving the whole frame (normal flight) leaves the local position unchanged, so it
-            // never trips this; only a real jump relative to the frame does.
+            // Camera teleport detection. Co-moving with the frame leaves local position unchanged; only a real jump trips this.
             var camLocalPosition = inverseSpaceRotation * (cam.position - spacePosition);
-            var teleported = _TeleportDistance > 0f
+            var teleported = _FollowTeleportDistance > 0f
                 && _hasPrevCamLocalPosition
-                && Vector3.Distance(camLocalPosition, _prevCamLocalPosition) > _TeleportDistance;
+                && Vector3.Distance(camLocalPosition, _prevCamLocalPosition) > _FollowTeleportDistance;
             _prevCamLocalPosition = camLocalPosition;
             _hasPrevCamLocalPosition = true;
 
-            // On teleport, drop the deadzone anchors so the target re-seeds at the new pose with no trailing.
+            // On teleport, drop deadzone anchors so they re-seed with no trailing.
             if (teleported)
             {
                 _hasAnchorFrame = false;
@@ -280,7 +314,7 @@ namespace EDIVE.XRTools
 
             var followTarget = FollowTarget;
 
-            // Seed the persisted local pose from the current world pose so the first follow frame doesn't snap.
+            // Seed local pose from current world pose so the first frame doesn't snap.
             if (!_hasLocalPose)
             {
                 _localPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
@@ -299,9 +333,7 @@ namespace EDIVE.XRTools
             }
             else
             {
-                // Smooth in the reference frame's local space. Because the smoothed pose is kept in
-                // local space (not re-derived from the world transform), frame motion moves the target
-                // rigidly and only camera-relative motion is smoothed - so it no longer lags the frame.
+                // Smooth in local space: frame motion stays rigid, only camera motion is smoothed.
                 _localPosition = Vector3.SmoothDamp(_localPosition, localTargetPosition, ref _positionVelocity, _PositionSmoothTime);
                 _localRotation = RotationUtility.SmoothDampQuaternion(_localRotation, localTargetRotation, ref _rotationVelocity, _RotationSmoothTime);
             }
@@ -310,13 +342,13 @@ namespace EDIVE.XRTools
             followTarget.rotation = spaceRotation * _localRotation;
         }
 
-        // Returns the target pose in the reference space's local coordinates (callers convert to world as needed).
+        // Target pose in reference space local coordinates.
         private void GetLocalTargetPose(Transform cam, out Vector3 localPosition, out Quaternion localRotation, bool applyDeadzone)
         {
             ResolveSpace(out var spacePosition, out var spaceRotation);
             var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
 
-            // --- Rotation: per-axis angular deadzone (the anchor frame trails the camera within the deadzone) ---
+            // Rotation: per-axis angular deadzone.
             var desiredLocalFrame = GetLocalCameraFrame(cam, spaceRotation);
             Quaternion localFrame;
             if (!applyDeadzone || _AngularDeadzone == Vector3.zero || !_hasAnchorFrame)
@@ -325,7 +357,7 @@ namespace EDIVE.XRTools
             }
             else
             {
-                // Measure the rotation from anchor to camera per axis and only let the part beyond the deadzone move the anchor.
+                // Only the rotation beyond the deadzone moves the anchor.
                 var deltaEuler = ToSignedEuler((Quaternion.Inverse(_anchorFrame) * desiredLocalFrame).eulerAngles);
                 deltaEuler.x -= Mathf.Clamp(deltaEuler.x, -_AngularDeadzone.x, _AngularDeadzone.x);
                 deltaEuler.y -= Mathf.Clamp(deltaEuler.y, -_AngularDeadzone.y, _AngularDeadzone.y);
@@ -338,7 +370,7 @@ namespace EDIVE.XRTools
             var offsetPosition = _hasCustomPose ? _customPosePosition : _DefaultPosePosition;
             var offsetRotation = _hasCustomPose ? _customPoseRotation : Quaternion.Euler(_DefaultPoseRotation);
 
-            // --- Position: box deadzone (the anchor trails the camera within the box), all in reference space ---
+            // Position: box deadzone in reference space.
             var camLocalPosition = inverseSpaceRotation * (cam.position - spacePosition);
             var desiredLocalPosition = camLocalPosition + localFrame * offsetPosition;
             if (!applyDeadzone || !_hasAnchorPosition)
@@ -347,7 +379,7 @@ namespace EDIVE.XRTools
             }
             else
             {
-                // Measure the deviation in the panel's local axes and only let the part beyond the box move the anchor.
+                // Only the deviation beyond the box moves the anchor.
                 var localDelta = Quaternion.Inverse(localFrame) * (desiredLocalPosition - _anchorLocalPosition);
                 localDelta.x -= Mathf.Clamp(localDelta.x, -_PositionDeadzone.x, _PositionDeadzone.x);
                 localDelta.y -= Mathf.Clamp(localDelta.y, -_PositionDeadzone.y, _PositionDeadzone.y);
@@ -366,15 +398,12 @@ namespace EDIVE.XRTools
             spacePosition = space != null ? space.position : Vector3.zero;
             spaceRotation = space != null ? space.rotation : Quaternion.identity;
         }
-
-        // Converts a [0..360) euler into signed [-180..180) components so per-axis clamping works symmetrically.
+        
         private static Vector3 ToSignedEuler(Vector3 euler) => new(
             Mathf.DeltaAngle(0f, euler.x),
             Mathf.DeltaAngle(0f, euler.y),
             Mathf.DeltaAngle(0f, euler.z));
-
-        // Camera orientation relative to the reference space (aircraft), with the unfollowed axes filtered out.
-        // Filtering happens in this local frame so the space's own rotation never eats into the deadzone.
+        
         private Quaternion GetLocalCameraFrame(Transform cam, Quaternion spaceRotation)
         {
             var localCamRotation = Quaternion.Inverse(spaceRotation) * cam.rotation;
@@ -411,7 +440,6 @@ namespace EDIVE.XRTools
 
             if (_PositionDeadzone != Vector3.zero)
             {
-                // Position deadzone box: how far the camera can move (in the panel's right/up/forward axes) before the target follows.
                 var prevMatrix = Gizmos.matrix;
                 Gizmos.matrix = Matrix4x4.TRS(camPosition, camFrame, Vector3.one);
                 Gizmos.color = new Color(1f, 0.6f, 0f, 0.9f);
@@ -421,7 +449,6 @@ namespace EDIVE.XRTools
 
             if (_AngularDeadzone != Vector3.zero)
             {
-                // Per-axis angular deadzone: how far the camera can rotate around each axis before the target follows.
                 var distance = (target.position - camPosition).magnitude;
                 var right = camFrame * Vector3.right;
                 var up = camFrame * Vector3.up;
