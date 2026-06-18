@@ -106,10 +106,15 @@ namespace EDIVE.MenuScreen
             if (_CollapseButton) _CollapseButton.onClick.RemoveListener(OnCollapseButtonClicked);
         }
 
-        public void Open()
+        public void Open(IViewContext context = null)
         {
             SetState(FrameState.Open);
-            if (View) View.OnOpen();
+            
+            if (!View) 
+                return;
+            
+            View.CurrentContext = context;
+            View.OnOpen();
         }
         
         public void Collapse()

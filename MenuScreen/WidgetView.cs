@@ -8,7 +8,7 @@ namespace EDIVE.MenuScreen
 {
     public class WidgetView : MonoBehaviour
     {
-        public IViewContext CurrentContext { get; private set; }
+        public IViewContext CurrentContext { get; internal set; }
         public bool IsInitialized { get; private set; } = false;
         public MenuScreenController Controller { get; private set; }
 

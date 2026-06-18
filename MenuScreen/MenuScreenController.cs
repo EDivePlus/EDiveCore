@@ -59,7 +59,7 @@ namespace EDIVE.MenuScreen
 
         private void OpenView(IViewSource view, IViewContext context = null)
         {
-            if (TryOpenActiveFrame(view))
+            if (TryOpenActiveFrame(view, context))
                 return;
 
             CreateNewFrame(view, context);
@@ -71,11 +71,11 @@ namespace EDIVE.MenuScreen
             return frame != null;
         }
         
-        private bool TryOpenActiveFrame(IViewSource view)
+        private bool TryOpenActiveFrame(IViewSource view, IViewContext context = null)
         {
             if (!TryGetActiveFrame(view, out var frame)) 
                 return false;
-            OpenFrame(frame);
+            OpenFrame(frame, context);
             return true;
         }
         
@@ -88,12 +88,12 @@ namespace EDIVE.MenuScreen
             if (open) OpenFrame(newFrame);
         }
         
-        public void OpenFrame(MenuScreenFrame frame)
+        public void OpenFrame(MenuScreenFrame frame, IViewContext context = null)
         {
             CollapseCurrentFrame();
             CurrentFrame = frame;
             CurrentFrame.gameObject.SetActive(true);
-            frame.Open();
+            frame.Open(context);
         }
         
         public void CollapseCurrentFrame()
