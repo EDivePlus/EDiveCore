@@ -52,6 +52,12 @@ namespace EDIVE.XRTools
 
         [SerializeField]
         private float _RotationSmoothTime = 0.1f;
+
+        [SerializeField]
+        [Tooltip("If the camera jumps further than this many meters (measured in the reference frame) in a single frame, snap the target to it instead of smoothing. Catches teleports. Set 0 to disable.")]
+        [MinValue(0f)]
+        [SuffixLabel("m", true)]
+        private float _TeleportDistance = 1f;
         
         [SerializeField]
         [Tooltip("Follow camera pitch (X)")]
@@ -88,7 +94,6 @@ namespace EDIVE.XRTools
 
         [SerializeField]
         private AToggleState _FollowState;
-
         
         [PropertySpace]
         [ShowInInspector]
@@ -116,6 +121,14 @@ namespace EDIVE.XRTools
         private Quaternion _anchorFrame = Quaternion.identity;
         private bool _hasAnchorPosition;
         private Vector3 _anchorLocalPosition;
+
+        // The smoothed pose is persisted in the reference frame's local space so that motion of the
+        // frame itself moves the target rigidly (no lag); only camera-relative motion is smoothed.
+        private bool _hasLocalPose;
+        private Vector3 _localPosition;
+        private Quaternion _localRotation = Quaternion.identity;
+        private bool _hasPrevCamLocalPosition;
+        private Vector3 _prevCamLocalPosition;
 
         private void OnEnable()
         {
@@ -153,6 +166,8 @@ namespace EDIVE.XRTools
             {
                 _hasAnchorFrame = false;
                 _hasAnchorPosition = false;
+                _hasLocalPose = false;
+                _hasPrevCamLocalPosition = false;
                 if (_SetCustomPoseOnFollow)
                     SetCustomPose();
             }
@@ -201,6 +216,10 @@ namespace EDIVE.XRTools
             var newPosition = spacePosition + spaceRotation * localPosition;
             var newRotation = spaceRotation * localRotation;
 
+            // The world pose is about to change; force the smoothed local pose to re-seed from it.
+            _hasLocalPose = false;
+            _hasPrevCamLocalPosition = false;
+
             var followTarget = FollowTarget;
             _repositionTween?.Kill();
             if (immediate)
@@ -222,20 +241,58 @@ namespace EDIVE.XRTools
             if (cam == null)
                 return;
 
-            GetLocalTargetPose(cam, out var localTargetPosition, out var localTargetRotation, true);
-
             ResolveSpace(out var spacePosition, out var spaceRotation);
             var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
 
+            // Detect a camera teleport relative to the reference frame (e.g. the rig is teleported).
+            // Co-moving the whole frame (normal flight) leaves the local position unchanged, so it
+            // never trips this; only a real jump relative to the frame does.
+            var camLocalPosition = inverseSpaceRotation * (cam.position - spacePosition);
+            var teleported = _TeleportDistance > 0f
+                && _hasPrevCamLocalPosition
+                && Vector3.Distance(camLocalPosition, _prevCamLocalPosition) > _TeleportDistance;
+            _prevCamLocalPosition = camLocalPosition;
+            _hasPrevCamLocalPosition = true;
+
+            // On teleport, drop the deadzone anchors so the target re-seeds at the new pose with no trailing.
+            if (teleported)
+            {
+                _hasAnchorFrame = false;
+                _hasAnchorPosition = false;
+            }
+
+            GetLocalTargetPose(cam, out var localTargetPosition, out var localTargetRotation, true);
+
             var followTarget = FollowTarget;
-            var localCurrentPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
-            var localCurrentRotation = inverseSpaceRotation * followTarget.rotation;
 
-            var localNewPosition = Vector3.SmoothDamp(localCurrentPosition, localTargetPosition, ref _positionVelocity, _PositionSmoothTime);
-            var localNewRotation = RotationUtility.SmoothDampQuaternion(localCurrentRotation, localTargetRotation, ref _rotationVelocity, _RotationSmoothTime);
+            // Seed the persisted local pose from the current world pose so the first follow frame doesn't snap.
+            if (!_hasLocalPose)
+            {
+                _localPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
+                _localRotation = inverseSpaceRotation * followTarget.rotation;
+                _positionVelocity = Vector3.zero;
+                _rotationVelocity = Vector3.zero;
+                _hasLocalPose = true;
+            }
 
-            followTarget.position = spacePosition + spaceRotation * localNewPosition;
-            followTarget.rotation = spaceRotation * localNewRotation;
+            if (teleported)
+            {
+                _localPosition = localTargetPosition;
+                _localRotation = localTargetRotation;
+                _positionVelocity = Vector3.zero;
+                _rotationVelocity = Vector3.zero;
+            }
+            else
+            {
+                // Smooth in the reference frame's local space. Because the smoothed pose is kept in
+                // local space (not re-derived from the world transform), frame motion moves the target
+                // rigidly and only camera-relative motion is smoothed - so it no longer lags the frame.
+                _localPosition = Vector3.SmoothDamp(_localPosition, localTargetPosition, ref _positionVelocity, _PositionSmoothTime);
+                _localRotation = RotationUtility.SmoothDampQuaternion(_localRotation, localTargetRotation, ref _rotationVelocity, _RotationSmoothTime);
+            }
+
+            followTarget.position = spacePosition + spaceRotation * _localPosition;
+            followTarget.rotation = spaceRotation * _localRotation;
         }
 
         // Returns the target pose in the reference space's local coordinates (callers convert to world as needed).
