@@ -129,6 +129,7 @@ namespace EDIVE.XRTools
         private Quaternion _localRotation = Quaternion.identity;
         private bool _hasPrevCamLocalPosition;
         private Vector3 _prevCamLocalPosition;
+        private Transform _prevReferenceFrame;
 
         private void OnEnable()
         {
@@ -243,6 +244,20 @@ namespace EDIVE.XRTools
 
             ResolveSpace(out var spacePosition, out var spaceRotation);
             var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
+
+            // If the reference frame itself was swapped for a different transform, every persisted value
+            // (local pose, deadzone anchors, previous camera position) belongs to the old frame. Drop them
+            // so they re-seed from the current world pose this frame - the target keeps its world pose
+            // (no pop) and smoothly re-settles into the new frame instead of being smoothed across spaces.
+            var referenceFrame = _ReferenceFrame?.Value;
+            if (_hasLocalPose && !ReferenceEquals(referenceFrame, _prevReferenceFrame))
+            {
+                _hasLocalPose = false;
+                _hasPrevCamLocalPosition = false;
+                _hasAnchorFrame = false;
+                _hasAnchorPosition = false;
+            }
+            _prevReferenceFrame = referenceFrame;
 
             // Detect a camera teleport relative to the reference frame (e.g. the rig is teleported).
             // Co-moving the whole frame (normal flight) leaves the local position unchanged, so it
