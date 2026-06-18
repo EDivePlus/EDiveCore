@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 18.02.2026
 
+using System;
 using DG.Tweening;
 using EDIVE.Conditions;
 using EDIVE.DataStructures.VariableFields;
@@ -149,24 +150,28 @@ namespace EDIVE.XRTools
         private bool _hasPrevCamLocalPosition;
         private Vector3 _prevCamLocalPosition;
         private Transform _prevReferenceFrame;
+        private bool _started;
 
         private void OnEnable()
         {
             _RepositionAction?.RegisterActivationListener(Reposition);
             _SetCustomPoseActivation?.RegisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.RegisterActivationListener(ResetCustomPose);
-            if (_FollowMode == FollowMode.Manual)
+            switch (_FollowMode)
             {
-                _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow);
-            }
-            else
-            {
-                if (_AutoFollowCondition != null)
-                {
-                    _AutoFollowCondition.InitializeObserving();
-                    _AutoFollowCondition.StateChanged += OnAutoFollowConditionChanged;
-                }
-                OnAutoFollowConditionChanged();
+                case FollowMode.Manual: _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow); 
+                    break;
+                case FollowMode.Automatic:
+                    if (_AutoFollowCondition != null)
+                    {
+                        _AutoFollowCondition.InitializeObserving();
+                        _AutoFollowCondition.StateChanged += OnAutoFollowConditionChanged;
+                    }
+                    if (_started)
+                        OnAutoFollowConditionChanged();
+                    break;
+                default: 
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -175,11 +180,8 @@ namespace EDIVE.XRTools
             _RepositionAction?.UnregisterActivationListener(Reposition);
             _SetCustomPoseActivation?.UnregisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.UnregisterActivationListener(ResetCustomPose);
-            if (_FollowMode == FollowMode.Manual)
-            {
-                _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
-            }
-            else if (_AutoFollowCondition != null)
+            _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
+            if (_AutoFollowCondition != null)
             {
                 _AutoFollowCondition.StateChanged -= OnAutoFollowConditionChanged;
                 _AutoFollowCondition.TerminateObserving();
@@ -188,11 +190,21 @@ namespace EDIVE.XRTools
 
         private void Start()
         {
+            _started = true;
+
             if (_RepositionOnAwake)
                 Reposition(true);
 
-            if (_FollowMode == FollowMode.Manual && _FollowOnAwake)
-                SetFollowing(true);
+            switch (_FollowMode)
+            {
+                case FollowMode.Manual:
+                    if (_FollowOnAwake)
+                        SetFollowing(true);
+                    break;
+                case FollowMode.Automatic:
+                    OnAutoFollowConditionChanged();
+                    break;
+            }
         }
 
         private void OnAutoFollowConditionChanged()
@@ -441,16 +453,9 @@ namespace EDIVE.XRTools
         {
             return MaskFollowedAxes(Quaternion.Inverse(spaceRotation) * cam.rotation);
         }
-
-        // zero out non-followed axes (they stay upright in the reference frame)
+        
         private Quaternion MaskFollowedAxes(Quaternion localRotation)
         {
-            if (_FollowRotation.x && _FollowRotation.y && _FollowRotation.z)
-                return localRotation;
-
-            if (!_FollowRotation.x && !_FollowRotation.y && !_FollowRotation.z)
-                return Quaternion.identity;
-
             var euler = localRotation.eulerAngles;
             return Quaternion.Euler(
                 _FollowRotation.x ? euler.x : 0f,
