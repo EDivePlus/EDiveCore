@@ -18,6 +18,7 @@ namespace EDIVE.EditorUtils
             NamedBuildTarget.WebGL,
             NamedBuildTarget.WindowsStoreApps,
             NamedBuildTarget.PS4,
+            NamedBuildTarget.PS5,
             NamedBuildTarget.XboxOne,
             NamedBuildTarget.tvOS,
             NamedBuildTarget.VisionOS,
