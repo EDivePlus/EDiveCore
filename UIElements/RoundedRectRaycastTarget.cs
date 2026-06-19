@@ -18,7 +18,7 @@ namespace EDIVE.UIElements
         [SerializeField] 
         private bool _UseRadiusPercentage;
         
-        [Min(0f)]
+        [MinValue(0f)]
         [HideIf(nameof(_UseRadiusPercentage))]
         [SerializeField] 
         private float _Radius;

@@ -20,7 +20,7 @@ namespace EDIVE.UIElements.Layout
     public class RadialLayout : LayoutGroup
     {
         [SerializeField]
-        [Min(0f)]
+        [MinValue(0f)]
         private float _Radius = 100f;
 
         [Tooltip("Angle (degrees, measured from the top, growing counter-clockwise) where the arc begins.")]

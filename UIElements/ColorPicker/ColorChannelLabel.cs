@@ -26,7 +26,7 @@ namespace EDIVE.UIElements.ColorPicker
         private float _MaxValue = 255f;
 
         [SerializeField]
-        [Min(0)]
+        [MinValue(0)]
         private int _Precision = 0;
 
         public ColorChannel Channel => _Channel;

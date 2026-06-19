@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Time.DateTimeUtils
@@ -11,7 +12,7 @@ namespace EDIVE.Time.DateTimeUtils
     public class CurrentDateTimeDisplay : DateTimeDisplay
     {
         [SerializeField]
-        [Min(0.01f)]
+        [MinValue(0.01f)]
         private float _UpdateInterval = 1f;
 
         private CancellationTokenSource _cts;

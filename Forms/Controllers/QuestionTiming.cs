@@ -15,22 +15,22 @@ namespace EDIVE.Forms.Controllers
         
         [ShowIf(nameof(_EnableTiming))]
         [SerializeField]
-        [Min(0f)]
+        [MinValue(0f)]
         private float _PreparingDuration = 2f;
         
         [ShowIf(nameof(_EnableTiming))]
         [SerializeField]
-        [Min(0f)]
+        [MinValue(0f)]
         private float _ReadingDuration = 5f;
         
         [ShowIf(nameof(_EnableTiming))]
         [SerializeField]
-        [Min(0f)]
+        [MinValue(0f)]
         private float _AnsweringDuration = 20f;
 
         [ShowIf(nameof(_EnableTiming))]
         [SerializeField]
-        [Min(0f)]
+        [MinValue(0f)]
         private float _SummaryDuration = 6f;
 
         public bool EnableTiming => _EnableTiming;
