@@ -3,7 +3,6 @@
   "rootNamespace": "",
   "references": [
     "EDIVE.Networking",
-    "FishNet.Runtime",
     "PurrNet.Runtime",
     "EDIVE.Avatars",
     "EDIVE.XRTools",

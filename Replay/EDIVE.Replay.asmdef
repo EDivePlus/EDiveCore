@@ -12,7 +12,6 @@
         "EDIVE.Time",
         "EDIVE.StateHandling",
         "EDIVE.DataStructures",
-        "FishNet.Runtime",
         "EDIVE.Utils.Cysharp",
         "EDIVE.Core",
         "EDIVE.UIElements.RecyclableScroller"

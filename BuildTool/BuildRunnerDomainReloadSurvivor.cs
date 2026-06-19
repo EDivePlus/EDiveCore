@@ -1,5 +1,5 @@
 using System;
-using EDIVE.EditorUtils.DomainReload;
+using EDIVE.EditorTools.DomainReload;
 using UnityEngine;
 
 namespace EDIVE.BuildTool

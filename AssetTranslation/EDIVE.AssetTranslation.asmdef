@@ -7,7 +7,6 @@
         "EDIVE.NativeUtils",
         "EDIVE.EditorUtils",
         "EDIVE.Utils.Json",
-        "FishNet.Runtime",
         "PurrNet.Runtime"
     ],
     "includePlatforms": [],

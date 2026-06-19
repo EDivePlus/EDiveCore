@@ -7,7 +7,6 @@
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "EDIVE.External.DomainReloadHelper",
-        "EDIVE.EditorUtils",
         "EDIVE.Utils.Json"
     ],
     "includePlatforms": [],

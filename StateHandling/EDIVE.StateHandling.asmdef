@@ -8,7 +8,6 @@
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
         "EDIVE.Utils",
-        "FishNet.Runtime",
         "PurrNet.Runtime"
     ],
     "includePlatforms": [],

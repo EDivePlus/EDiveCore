@@ -4,27 +4,10 @@
 using Sirenix.OdinInspector;
 using Object = UnityEngine.Object;
 
-#if UNITY_EDITOR
-using EDIVE.EditorUtils;
-using EDIVE.External.DomainReloadHelper;
-#endif
-
 namespace EDIVE.ScriptableArchitecture
 {
     public static class ScriptableArchitectureUtils
     {
-#if UNITY_EDITOR
-        [ExecuteOnReload(-1000)]
-        private static void OnReload()
-        {
-            var scriptables = EditorAssetUtils.FindAllAssetsOfType<AScriptableBase>();
-            foreach (var scriptable in scriptables)
-            {
-                scriptable.ResetState();
-            }
-        }
-#endif
-
         public static void ValidateScriptableValue(SelfValidationResult result, AScriptableBase scriptable, object value)
         {
             if (scriptable == null)

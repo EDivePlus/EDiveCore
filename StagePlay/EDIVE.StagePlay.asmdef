@@ -4,7 +4,6 @@
     "references": [
         "UniTask",
         "EnhancedScroller",
-        "FishNet.Runtime",
         "Unity.TextMeshPro",
         "Unity.XR.Interaction.Toolkit",
         "EDIVE.OdinExtensions",

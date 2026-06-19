@@ -10,10 +10,10 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sirenix.OdinInspector;
-using UnityEditor;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using UnityEditor;
 using EDIVE.EditorUtils;
 using Sirenix.OdinInspector.Editor;
 #endif

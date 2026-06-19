@@ -5,6 +5,7 @@
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "EDIVE.EditorUtils",
+        "EDIVE.EditorTools",
         "Unity.Addressables",
         "Unity.EditorCoroutines.Editor"
     ],

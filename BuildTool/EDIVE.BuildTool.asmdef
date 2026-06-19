@@ -9,6 +9,7 @@
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.EditorUtils",
+        "EDIVE.EditorTools",
         "EDIVE.DataStructures"
     ],
     "includePlatforms": [

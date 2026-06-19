@@ -5,8 +5,6 @@
         "UniTask",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "EDIVE.EditorUtils",
-        "EDIVE.External.DomainReloadHelper",
         "EDIVE.DataStructures"
     ],
     "includePlatforms": [],

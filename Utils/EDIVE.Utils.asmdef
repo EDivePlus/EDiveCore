@@ -8,7 +8,6 @@
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "EDIVE.DataStructures",
-        "EDIVE.External.DomainReloadHelper",
         "Whinarn.UnityMeshSimplifier.Runtime",
         "EDIVE.Core",
         "EDIVE.ScriptableArchitecture"

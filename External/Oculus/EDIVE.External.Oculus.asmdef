@@ -8,7 +8,6 @@
         "Unity.TextMeshPro",
         "Unity.TextMeshPro.Editor",
         "EDIVE.OdinExtensions.Editor",
-        "EDIVE.EditorUtils",
         "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],

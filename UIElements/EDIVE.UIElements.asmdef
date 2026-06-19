@@ -4,7 +4,6 @@
     "references": [
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
-        "EDIVE.EditorUtils",
         "EDIVE.Tweening",
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions.Editor",

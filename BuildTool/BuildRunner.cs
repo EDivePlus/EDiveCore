@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Utils;
-using EDIVE.EditorUtils.DomainReload;
+using EDIVE.EditorTools.DomainReload;
 using EDIVE.NativeUtils;
 using EDIVE.NativeUtils.TeamCity;
 using Unity.EditorCoroutines.Editor;

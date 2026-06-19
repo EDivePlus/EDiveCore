@@ -1,0 +1,21 @@
+{
+    "name": "EDIVE.Networking.Editor",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.Networking",
+        "EDIVE.EditorUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.External.ToolbarExtensions"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

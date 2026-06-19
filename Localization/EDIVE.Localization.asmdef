@@ -13,7 +13,6 @@
         "Unity.ResourceManager",
         "EDIVE.EditorUtils",
         "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
-        "EDIVE.External.ToolbarExtensions",
         "EDIVE.AppLoading",
         "EDIVE.DataStructures",
         "EDIVE.OdinExtensions.Editor",

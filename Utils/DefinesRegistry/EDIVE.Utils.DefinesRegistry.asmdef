@@ -3,8 +3,7 @@
   "rootNamespace": "",
   "references": [
     "EDIVE.Core",
-    "EDIVE.Conditions",
-    "EDIVE.EditorUtils"
+    "EDIVE.Conditions"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -9,10 +9,6 @@ using EDIVE.Tweening;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-#if UNITY_EDITOR
-using EDIVE.EditorUtils;
-#endif
-
 namespace EDIVE.UIElements.Selectables
 {
     [Serializable]
