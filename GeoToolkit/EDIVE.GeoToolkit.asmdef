@@ -13,7 +13,6 @@
         "EDIVE.NativeUtils",
         "EDIVE.Utils",
         "EDIVE.External.TriangleNet",
-        "Unity.Formats.Fbx.Editor",
         "EDIVE.ScriptableArchitecture",
         "Unity.XR.Interaction.Toolkit"
     ],
@@ -34,11 +33,6 @@
             "name": "com.unity.xr.interaction.toolkit",
             "expression": "",
             "define": "XR_TOOLKIT"
-        },
-        {
-            "name": "com.unity.formats.fbx",
-            "expression": "",
-            "define": "FBX_EXPORTER"
         }
     ],
     "noEngineReferences": false
