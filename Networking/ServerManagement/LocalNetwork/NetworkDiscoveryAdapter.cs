@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 15.07.2025
 
+#if NETWORK_DISCOVERY
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -87,3 +88,4 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         }
     }
 }
+#endif

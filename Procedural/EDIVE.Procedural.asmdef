@@ -28,6 +28,11 @@
             "name": "com.unity.splines",
             "expression": "",
             "define": "UNITY_SPLINES"
+        },
+        {
+            "name": "com.unity.formats.fbx",
+            "expression": "",
+            "define": "FBX_EXPORTER"
         }
     ],
     "noEngineReferences": false

@@ -9,7 +9,9 @@ using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using Unity.Mathematics;
 using UnityEditor;
+#if FBX_EXPORTER
 using UnityEditor.Formats.Fbx.Exporter;
+#endif
 using UnityEngine;
 
 namespace EDIVE.GeoToolkit.TerrainTools
@@ -106,6 +108,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
             meshRenderer.material = _Material;
         }
 
+#if FBX_EXPORTER
         [Button]
         public void SaveMesh()
         {
@@ -115,6 +118,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 ModelExporter.ExportObject(path, _MeshObject);
             }
         }
+#endif
     }
 }
 #endif

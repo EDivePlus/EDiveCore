@@ -65,6 +65,11 @@
             "name": "com.veriorpies.parrelsync",
             "expression": "",
             "define": "PARREL_SYNC"
+        },
+        {
+            "name": "com.unilabs.unity-network-discovery",
+            "expression": "",
+            "define": "NETWORK_DISCOVERY"
         }
     ],
     "noEngineReferences": false

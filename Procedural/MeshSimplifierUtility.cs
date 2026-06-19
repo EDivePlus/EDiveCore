@@ -12,7 +12,9 @@ using UnityMeshSimplifier;
 
 #if UNITY_EDITOR
 using UnityEditor;
+#if FBX_EXPORTER
 using UnityEditor.Formats.Fbx.Exporter;
+#endif
 #endif
 
 namespace EDIVE.Procedural
@@ -91,7 +93,7 @@ namespace EDIVE.Procedural
                 case MeshSimplifierTarget.MeshCollider:
                     _MeshCollider.sharedMesh = newMesh;
                     break;
-#if UNITY_EDITOR
+#if UNITY_EDITOR && FBX_EXPORTER
                 case MeshSimplifierTarget.FbxFile:
                     
                     var path = EditorUtility.SaveFilePanel("Save FBX", Application.dataPath, "Object.fbx", "fbx");
@@ -118,7 +120,7 @@ namespace EDIVE.Procedural
         {
             MeshFilter,
             MeshCollider,
-#if UNITY_EDITOR
+#if UNITY_EDITOR && FBX_EXPORTER
             FbxFile
 #endif
         }

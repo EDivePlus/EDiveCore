@@ -1,7 +1,7 @@
 // Author: František Holubec
 // Created: 09.06.2026
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && FBX_EXPORTER
 using System.IO;
 using UnityEditor;
 using UnityEditor.Formats.Fbx.Exporter;

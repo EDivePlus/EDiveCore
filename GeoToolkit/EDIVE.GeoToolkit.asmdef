@@ -34,6 +34,11 @@
             "name": "com.unity.xr.interaction.toolkit",
             "expression": "",
             "define": "XR_TOOLKIT"
+        },
+        {
+            "name": "com.unity.formats.fbx",
+            "expression": "",
+            "define": "FBX_EXPORTER"
         }
     ],
     "noEngineReferences": false
