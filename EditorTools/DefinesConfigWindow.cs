@@ -82,6 +82,16 @@ namespace EDIVE.EditorTools
                 SupportedBuildTarget.Server => FontAwesomeEditorIcons.ServerSolid,
                 SupportedBuildTarget.Android => CustomEditorIcons.Android,
                 SupportedBuildTarget.IOS => FontAwesomeEditorIcons.Apple,
+                SupportedBuildTarget.WebGL => FontAwesomeEditorIcons.GlobeSolid,
+                SupportedBuildTarget.WindowsStore => FontAwesomeEditorIcons.Windows,
+                SupportedBuildTarget.PS4 => FontAwesomeEditorIcons.Playstation,
+                SupportedBuildTarget.XboxOne => FontAwesomeEditorIcons.Xbox,
+                SupportedBuildTarget.TvOS => FontAwesomeEditorIcons.TvSolid,
+                SupportedBuildTarget.VisionOS => FontAwesomeEditorIcons.VrCardboardSolid,
+                SupportedBuildTarget.Switch => FontAwesomeEditorIcons.GamepadSolid,
+                SupportedBuildTarget.LinuxHeadlessSimulation => FontAwesomeEditorIcons.Linux,
+                SupportedBuildTarget.EmbeddedLinux => FontAwesomeEditorIcons.MicrochipSolid,
+                SupportedBuildTarget.QNX => FontAwesomeEditorIcons.MemorySolid,
                 _ => FontAwesomeEditorIcons.SquareQuestionSolid
             };
         }
@@ -94,6 +104,16 @@ namespace EDIVE.EditorTools
                 SupportedBuildTarget.Server => NamedBuildTarget.Server,
                 SupportedBuildTarget.Android => NamedBuildTarget.Android,
                 SupportedBuildTarget.IOS => NamedBuildTarget.iOS,
+                SupportedBuildTarget.WebGL => NamedBuildTarget.WebGL,
+                SupportedBuildTarget.WindowsStore => NamedBuildTarget.WindowsStoreApps,
+                SupportedBuildTarget.PS4 => NamedBuildTarget.PS4,
+                SupportedBuildTarget.XboxOne => NamedBuildTarget.XboxOne,
+                SupportedBuildTarget.TvOS => NamedBuildTarget.tvOS,
+                SupportedBuildTarget.VisionOS => NamedBuildTarget.VisionOS,
+                SupportedBuildTarget.Switch => NamedBuildTarget.NintendoSwitch,
+                SupportedBuildTarget.LinuxHeadlessSimulation => NamedBuildTarget.LinuxHeadlessSimulation,
+                SupportedBuildTarget.EmbeddedLinux => NamedBuildTarget.EmbeddedLinux,
+                SupportedBuildTarget.QNX => NamedBuildTarget.QNX,
                 _ => NamedBuildTarget.Unknown
             };
         }
@@ -103,7 +123,17 @@ namespace EDIVE.EditorTools
             Standalone,
             Server,
             Android,
-            IOS
+            IOS,
+            WebGL,
+            WindowsStore,
+            PS4,
+            XboxOne,
+            TvOS,
+            VisionOS,
+            Switch,
+            LinuxHeadlessSimulation,
+            EmbeddedLinux,
+            QNX
         }
 
         [Serializable]
@@ -130,16 +160,21 @@ namespace EDIVE.EditorTools
                 _BuildTargets = targets;
             }
 
-            [EnhancedTableColumn(100)]
+            private const int ICON_SIZE = 18;
+            private const int ICON_SPACING = 2;
+            private const int TARGET_COUNT = 14;
+            private const int PLATFORMS_COLUMN_WIDTH = ICON_SPACING + TARGET_COUNT * (ICON_SIZE + ICON_SPACING + 3) + ICON_SPACING;
+
+            [EnhancedTableColumn(PLATFORMS_COLUMN_WIDTH)]
             [VerticalGroup("Platforms", Order = -1)]
             [OnInspectorGUI]
             private void DrawBuildTargets(InspectorProperty property)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Space(4);
+                GUILayout.Space(ICON_SPACING);
                 foreach (var targetGroup in SupportedBuildTargets)
                 {
-                    var rect = GUILayoutUtility.GetRect(18, 18, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(18));
+                    var rect = GUILayoutUtility.GetRect(ICON_SIZE, ICON_SIZE, SirenixGUIStyles.Button, GUILayoutOptions.ExpandWidth(false).Width(ICON_SIZE));
                     var enabled = _BuildTargets.Contains(targetGroup);
                     var editorIcon = GetEditorIcon(targetGroup);
                     var icon = enabled ? editorIcon.Highlighted : editorIcon.Inactive;
@@ -151,9 +186,8 @@ namespace EDIVE.EditorTools
                         property.MarkSerializationRootDirty();
                     }
                     GUIHelper.PopContentColor();
-                    GUILayout.Space(2);
+                    GUILayout.Space(ICON_SPACING);
                 }
-                GUILayout.Space(2);
                 GUILayout.EndHorizontal();
             }
 
