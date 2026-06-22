@@ -5,7 +5,8 @@
         "UniTask",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "EDIVE.Conditions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

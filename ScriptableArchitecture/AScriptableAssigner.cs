@@ -1,38 +1,46 @@
 ﻿// Author: František Holubec
 // Created: 06.06.2025
 
+using EDIVE.Conditions;
 using UnityEngine;
 
 namespace EDIVE.ScriptableArchitecture
 {
     public abstract class AScriptableAssigner : MonoBehaviour
     {
-        [SerializeField]
-        private AssignLifetime _Lifetime;
-
-        private void Awake()
-        {
-            if (_Lifetime == AssignLifetime.Full)
-                AssignReferences();
-        }
+        [SerializeReference]
+        private ICondition _Condition;
 
         private void OnEnable()
         {
-            if (_Lifetime == AssignLifetime.Enabled)
+            if (_Condition != null)
+            {
+                _Condition.InitializeObserving();
+                _Condition.StateChanged += OnConditionStateChanged;
+            }
+            
+            if (_Condition?.Evaluate() ?? true)
                 AssignReferences();
+        }
+
+        private void OnConditionStateChanged()
+        {
+            if (_Condition.Evaluate())
+                AssignReferences();
+            else 
+                UnassignReferences();
         }
 
         private void OnDisable()
         {
-            if (_Lifetime == AssignLifetime.Enabled)
-                UnassignReferences();
+            if (_Condition != null)
+            {
+                _Condition.TerminateObserving();
+                _Condition.StateChanged -= OnConditionStateChanged;
+            }
+            UnassignReferences();
         }
-
-        private void OnDestroy()
-        {
-            if (_Lifetime == AssignLifetime.Full)
-                UnassignReferences();
-        }
+        
 
         protected abstract void AssignReferences();
         protected abstract void UnassignReferences();
