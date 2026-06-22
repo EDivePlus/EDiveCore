@@ -214,8 +214,14 @@ namespace EDIVE.XRTools
 
         private void LateUpdate()
         {
-            if (_isFollowing && (!_repositionTween.IsActive() || !_repositionTween.IsPlaying()))
+            // the reposition tween drives the world pose directly
+            if (_repositionTween.IsActive() && _repositionTween.IsPlaying())
+                return;
+
+            if (_isFollowing)
                 FollowCamera();
+            else
+                HoldInReferenceFrame();
         }
 
         public void SetFollowing(bool following)
@@ -365,6 +371,35 @@ namespace EDIVE.XRTools
                 // smooth in local space so only camera motion smooths, not frame motion
                 _localPosition = Vector3.SmoothDamp(_localPosition, localTargetPosition, ref _positionVelocity, _PositionSmoothTime);
                 _localRotation = RotationUtility.SmoothDampQuaternion(_localRotation, localTargetRotation, ref _rotationVelocity, _RotationSmoothTime);
+            }
+
+            followTarget.position = spacePosition + spaceRotation * _localPosition;
+            followTarget.rotation = spaceRotation * _localRotation;
+        }
+
+        // keep the target pinned to its local pose within the reference frame while not following,
+        // so frame motion still carries it
+        private void HoldInReferenceFrame()
+        {
+            ResolveSpace(out var spacePosition, out var spaceRotation);
+            var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
+
+            // reference frame changed: re-capture local pose from the current world pose
+            var referenceFrame = _ReferenceFrame?.Value;
+            if (_hasLocalPose && !ReferenceEquals(referenceFrame, _prevReferenceFrame))
+                _hasLocalPose = false;
+            _prevReferenceFrame = referenceFrame;
+
+            var followTarget = FollowTarget;
+
+            // capture the current world pose as the local pose to hold
+            if (!_hasLocalPose)
+            {
+                _localPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
+                _localRotation = inverseSpaceRotation * followTarget.rotation;
+                _positionVelocity = Vector3.zero;
+                _rotationVelocity = Vector3.zero;
+                _hasLocalPose = true;
             }
 
             followTarget.position = spacePosition + spaceRotation * _localPosition;
