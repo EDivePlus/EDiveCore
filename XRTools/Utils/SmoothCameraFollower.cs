@@ -152,6 +152,10 @@ namespace EDIVE.XRTools
         private Transform _prevReferenceFrame;
         private bool _started;
 
+        private bool _hasFrameSample;
+        private Vector3 _frameSamplePosition;
+        private Quaternion _frameSampleRotation = Quaternion.identity;
+
         private void OnEnable()
         {
             _RepositionAction?.RegisterActivationListener(Reposition);
@@ -210,6 +214,26 @@ namespace EDIVE.XRTools
         private void OnAutoFollowConditionChanged()
         {
             SetFollowing(_AutoFollowCondition != null && _AutoFollowCondition.Evaluate());
+        }
+
+        private void Update()
+        {
+            SampleReferenceFrame();
+        }
+
+        // sample in Update: an interpolated rigidbody frame updates its
+        // transform after Update, so a LateUpdate read would lag a frame.
+        private void SampleReferenceFrame()
+        {
+            var space = _ReferenceFrame?.Value;
+            if (space == null)
+            {
+                _hasFrameSample = false;
+                return;
+            }
+            _frameSamplePosition = space.position;
+            _frameSampleRotation = space.rotation;
+            _hasFrameSample = true;
         }
 
         private void LateUpdate()
@@ -287,28 +311,41 @@ namespace EDIVE.XRTools
             if (cam == null)
                 return;
 
-            GetLocalTargetPose(cam, out var localPosition, out var localRotation, false);
             ResolveSpace(out var spacePosition, out var spaceRotation);
-            var newPosition = spacePosition + spaceRotation * localPosition;
-            var newRotation = spaceRotation * localRotation;
-
-            // re-seed local pose from new world pose
-            _hasLocalPose = false;
-            _hasPrevCamLocalPosition = false;
-
+            var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
             var followTarget = FollowTarget;
+
+            // target pose expressed in the reference frame's local space
+            GetLocalTargetPose(cam, out var targetLocalPosition, out var targetLocalRotation, false);
+
+            _hasPrevCamLocalPosition = false;
             _repositionTween?.Kill();
+
             if (immediate)
             {
-                followTarget.position = newPosition;
-                followTarget.rotation = newRotation;
+                _localPosition = targetLocalPosition;
+                _localRotation = targetLocalRotation;
+                _positionVelocity = Vector3.zero;
+                _rotationVelocity = Vector3.zero;
+                _hasLocalPose = true;
+                followTarget.position = spacePosition + spaceRotation * _localPosition;
+                followTarget.rotation = spaceRotation * _localRotation;
+                return;
             }
-            else
+
+            // tween local pose, rebuild world from the live frame each step
+            var startLocalPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
+            var startLocalRotation = inverseSpaceRotation * followTarget.rotation;
+            _hasLocalPose = true;
+            _repositionTween = DOVirtual.Float(0f, 1f, _RepositionDuration, t =>
             {
-                _repositionTween = DOTween.Sequence()
-                    .Append(followTarget.DOMove(newPosition, _RepositionDuration).SetEase(Ease.InOutQuad))
-                    .Join(followTarget.DORotateQuaternion(newRotation, _RepositionDuration).SetEase(Ease.InOutQuad));
-            }
+                _localPosition = Vector3.Lerp(startLocalPosition, targetLocalPosition, t);
+                _localRotation = Quaternion.Slerp(startLocalRotation, targetLocalRotation, t);
+                SampleReferenceFrame(); // keep the sample current
+                ResolveSpace(out var sp, out var sr);
+                followTarget.position = sp + sr * _localPosition;
+                followTarget.rotation = sr * _localRotation;
+            }).SetEase(Ease.InOutQuad);
         }
 
         private void FollowCamera()
@@ -377,8 +414,7 @@ namespace EDIVE.XRTools
             followTarget.rotation = spaceRotation * _localRotation;
         }
 
-        // keep the target pinned to its local pose within the reference frame while not following,
-        // so frame motion still carries it
+        // not following: hold local pose, frame still carries it
         private void HoldInReferenceFrame()
         {
             ResolveSpace(out var spacePosition, out var spaceRotation);
@@ -474,6 +510,13 @@ namespace EDIVE.XRTools
 
         private void ResolveSpace(out Vector3 spacePosition, out Quaternion spaceRotation)
         {
+            // use the Update sample
+            if (_hasFrameSample)
+            {
+                spacePosition = _frameSamplePosition;
+                spaceRotation = _frameSampleRotation;
+                return;
+            }
             var space = _ReferenceFrame?.Value;
             spacePosition = space != null ? space.position : Vector3.zero;
             spaceRotation = space != null ? space.rotation : Quaternion.identity;
