@@ -54,7 +54,7 @@ namespace EDIVE.MenuScreen
 
         public void OpenWidget(WidgetDefinition definition, IViewContext context = null)
         {
-            OpenView(new ReferenceViewSource(definition.WidgetView), context);
+            OpenView(definition.ViewSource, context);
         }
 
         private void OpenView(IViewSource view, IViewContext context = null)
@@ -135,7 +135,7 @@ namespace EDIVE.MenuScreen
         private void OnWidgetDisplayClicked(WidgetDefinition definition)
         {
             // todo get rid of pattern matching ?
-            if (CurrentFrame != null && CurrentFrame.ViewSource is ReferenceViewSource currentRef && currentRef.Reference == definition.WidgetView)
+            if (CurrentFrame != null && CurrentFrame.ViewSource is AddressablePrefabViewSource currentRef && Equals(currentRef, definition.ViewSource))
             {
                 CollapseCurrentFrame();
                 return;

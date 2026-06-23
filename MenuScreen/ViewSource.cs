@@ -1,7 +1,11 @@
-﻿using UnityEngine.AddressableAssets;
+﻿using System;
+using EDIVE.OdinExtensions.Attributes;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace EDIVE.MenuScreen
 {
+    [EnhancedTypeSelector(true, 1)]
     public interface IViewSource { }
     
     public class InstanceViewSource : IViewSource
@@ -33,19 +37,57 @@ namespace EDIVE.MenuScreen
             return Instance != null ? Instance.GetHashCode() : 0;
         }
     }
-
-    public class ReferenceViewSource : IViewSource
+    
+    [Serializable]
+    public class PrefabViewSource : IViewSource
     {
-        public AssetReferenceGameObject Reference { get; }
+        [SerializeField]
+        private GameObject _Prefab;
+        public GameObject Prefab { get => _Prefab; internal set => _Prefab = value; }
 
-        public ReferenceViewSource(AssetReferenceGameObject reference)
+        public PrefabViewSource() { }
+        public PrefabViewSource(GameObject prefab)
         {
-            Reference = reference;
+            _Prefab = prefab;
         }
         
-        public static implicit operator ReferenceViewSource(AssetReferenceGameObject reference) => new(reference);
+        public static implicit operator PrefabViewSource(GameObject prefab) => new(prefab);
 
-        protected bool Equals(ReferenceViewSource other)
+        protected bool Equals(PrefabViewSource other)
+        {
+            return Equals(Prefab, other.Prefab);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            return Equals((PrefabViewSource) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return Prefab != null ? Prefab.GetHashCode() : 0;
+        }
+    }
+
+    [Serializable]
+    public class AddressablePrefabViewSource : IViewSource
+    {
+        [SerializeField]
+        private AssetReferenceGameObject _Reference;
+        public AssetReferenceGameObject Reference { get => _Reference; internal set => _Reference = value; }
+
+        public AddressablePrefabViewSource() { }
+        public AddressablePrefabViewSource(AssetReferenceGameObject reference)
+        {
+            _Reference = reference;
+        }
+        
+        public static implicit operator AddressablePrefabViewSource(AssetReferenceGameObject reference) => new(reference);
+
+        protected bool Equals(AddressablePrefabViewSource other)
         {
             return Equals(Reference, other.Reference);
         }
@@ -55,12 +97,12 @@ namespace EDIVE.MenuScreen
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((ReferenceViewSource) obj);
+            return Equals((AddressablePrefabViewSource) obj);
         }
 
         public override int GetHashCode()
         {
-            return (Reference != null ? Reference.GetHashCode() : 0);
+            return Reference != null ? Reference.GetHashCode() : 0;
         }
     }
 }

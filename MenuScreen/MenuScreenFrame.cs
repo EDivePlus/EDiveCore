@@ -6,6 +6,7 @@ using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 
 namespace EDIVE.MenuScreen
@@ -31,12 +32,14 @@ namespace EDIVE.MenuScreen
         
         [SerializeField]
         private AToggleState _LoadingState;
-        
+
         public MenuScreenController Controller { get; private set; }
         public IViewSource ViewSource { get; private set; }
         public WidgetView View { get; private set; }
         public FrameState State { get; set; } = FrameState.Initial;
         public bool IsPersistent => _IsPersistent;
+        
+        private AsyncOperationHandle<GameObject> _asyncViewHandle;
         
         public bool IsLoading { get; private set; }
 
@@ -56,12 +59,17 @@ namespace EDIVE.MenuScreen
             {
                 View = instanceSource.Instance;
             }
-            else if (source is ReferenceViewSource referenceSource)
+            else if (source is PrefabViewSource prefabSource)
+            {
+                var prefab = prefabSource.Prefab;
+                var viewObj = Instantiate(prefab, _ViewRoot);
+                View = viewObj.GetComponent<WidgetView>();
+            }
+            else if (source is AddressablePrefabViewSource referenceSource)
             {
                 var reference = referenceSource.Reference;
-                // todo handle needs to be released when frame is terminated!
-                var handle = reference.InstantiateAsync(_ViewRoot);
-                var viewObj = await handle;
+                _asyncViewHandle = reference.InstantiateAsync(_ViewRoot);
+                var viewObj = await _asyncViewHandle;
                 View = viewObj.GetComponent<WidgetView>();
             }
             
@@ -89,6 +97,8 @@ namespace EDIVE.MenuScreen
                 Debug.LogWarning($"Attempted to terminate a persistent frame {name}. Ignoring.", this);
                 return;
             }
+            
+            _asyncViewHandle.Release();
             
             SetState(FrameState.Terminated);
             if (View) View.OnTerminate();
