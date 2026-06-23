@@ -5,6 +5,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using R3;
 using UnityEngine;
+using UnityEngine.XR;
 
 #if UNITY_OPEN_XR
 using System.Threading;
@@ -31,7 +32,6 @@ namespace EDIVE.EyeTracking.OpenXR
         private readonly Subject<EyeGazeFrame> _eyeGazeStream = new();
 
         private CancellationTokenSource _trackingCancellation;
-        private float _diagNextLogTime;
 
         public override UniTask Initialize()
         {
@@ -139,9 +139,11 @@ namespace EDIVE.EyeTracking.OpenXR
         {
             leftEye = rightEye = EyeSample.INVALID;
 
-            var eyeGazeDevice = InputSystem.GetDevice<EyeGazeInteraction.EyeGazeDevice>();
+            var eyeGazeDevice = GetEyeGazeDevice();
             var hmd = InputSystem.GetDevice<XRHMD>();
-            var isTracked = eyeGazeDevice != null && eyeGazeDevice.pose.isTracked.isPressed;
+            
+            var trackingState = (InputTrackingState) (eyeGazeDevice != null ? eyeGazeDevice.pose.trackingState.ReadValue() : 0);
+            var isTracked = (trackingState & (InputTrackingState.Rotation | InputTrackingState.Position)) != 0 || (eyeGazeDevice != null && eyeGazeDevice.pose.isTracked.isPressed);
 
             var gazePos = eyeGazeDevice != null ? eyeGazeDevice.pose.position.ReadValue() : Vector3.zero;
             var gazeRot = eyeGazeDevice != null ? eyeGazeDevice.pose.rotation.ReadValue() : Quaternion.identity;
@@ -149,10 +151,12 @@ namespace EDIVE.EyeTracking.OpenXR
             var headRot = hmd != null ? hmd.centerEyeRotation.ReadValue() : Quaternion.identity;
             var leftEyePos = hmd != null ? hmd.leftEyePosition.ReadValue() : Vector3.zero;
             var rightEyePos = hmd != null ? hmd.rightEyePosition.ReadValue() : Vector3.zero;
+
+            if (headRot is { x: 0, y: 0, z: 0, w: 0 }) headRot = Quaternion.identity;
             
             if (!isTracked || hmd == null)
                 return;
-            
+
             var invHeadRot = Quaternion.Inverse(headRot);
             var headSpaceGazeRot = invHeadRot * gazeRot;
 
@@ -168,6 +172,20 @@ namespace EDIVE.EyeTracking.OpenXR
             }
         }
 
+        private static EyeGazeInteraction.EyeGazeDevice GetEyeGazeDevice()
+        {
+            var typed = InputSystem.GetDevice<EyeGazeInteraction.EyeGazeDevice>();
+            if (typed != null)
+                return typed;
+
+            foreach (var device in InputSystem.devices)
+            {
+                if (device is EyeGazeInteraction.EyeGazeDevice || device.layout == "EyeGaze")
+                    return device as EyeGazeInteraction.EyeGazeDevice;
+            }
+            return null;
+        }
+        
         private static bool IsEyeGazeFeatureEnabled()
         {
             var settings = OpenXRSettings.Instance;
