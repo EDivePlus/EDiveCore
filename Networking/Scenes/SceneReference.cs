@@ -85,6 +85,9 @@ namespace EDIVE.Networking.Scenes
         }
 
 #if UNITY_EDITOR
+        public SceneAsset EditorDirectSceneAsset => _DirectScene.EditorSceneAsset;
+        public SceneAsset EditorAddressableSceneAsset => _AddressableScene.editorAsset;
+
         public static SceneReference FromSceneAsset(SceneAsset asset)
         {
             return new SceneReference
@@ -93,6 +96,19 @@ namespace EDIVE.Networking.Scenes
                 _DirectScene = new SceneField(asset)
             };
         }
+
+#if ADDRESSABLES
+        public static SceneReference FromAddressableSceneAsset(SceneAsset asset)
+        {
+            var reference = new SceneReference
+            {
+                _Kind = SceneKind.Addressable,
+                _AddressableScene = new SceneAssetReference()
+            };
+            reference._AddressableScene.SetEditorAsset(asset);
+            return reference;
+        }
+#endif
 
         private SceneKind DrawKind(SceneKind value, InspectorProperty property)
         {
