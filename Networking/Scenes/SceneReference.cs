@@ -29,6 +29,7 @@ namespace EDIVE.Networking.Scenes
         [SerializeField]
         [HideLabel]
         [CustomValueDrawer("DrawKind")]
+        [OnValueChanged("OnKindChanged")]
         private SceneKind _Kind;
 
         [HorizontalGroup]
@@ -124,6 +125,21 @@ namespace EDIVE.Networking.Scenes
         {
             menu.AddItem(new GUIContent(kind.ToString()), current == kind,
                 () => property.Tree.DelayAction(() => ((IPropertyValueEntry<SceneKind>) property.ValueEntry).SmartValue = kind));
+        }
+
+        private void OnKindChanged(InspectorProperty property)
+        {
+            switch (_Kind)
+            {
+                case SceneKind.Direct:
+                    _DirectScene = new SceneField(_AddressableScene.editorAsset);
+                    break;
+                case SceneKind.Addressable: 
+                    _AddressableScene.SetEditorAsset(_DirectScene.EditorSceneAsset);
+                    break;
+                default: throw new ArgumentOutOfRangeException();
+            }
+            property.MarkSerializationRootDirty();
         }
 #endif
     }
