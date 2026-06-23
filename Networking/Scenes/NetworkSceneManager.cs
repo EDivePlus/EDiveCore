@@ -13,10 +13,14 @@ using UnityEngine.SceneManagement;
 
 namespace EDIVE.Networking.Scenes
 {
-    public class NetworkSceneManager : ALoadableServiceBehaviour<NetworkSceneManager>
+    public class NetworkSceneManager : ALoadableServiceBehaviour<NetworkSceneManager>, ISerializationCallbackReceiver
     {
         [SerializeField]
-        private List<SceneReference> _GlobalScenes = new();
+        private List<SceneReference> _GlobalSceneReferences = new();
+
+        [SerializeField]
+        [HideInInspector]
+        private List<string> _GlobalScenes;
 
         [SerializeField]
         private float _JoinTimeout = 5f;
@@ -286,7 +290,7 @@ namespace EDIVE.Networking.Scenes
         {
             if (_networkManager.sceneModule == null) return;
 
-            foreach (var sceneRef in _GlobalScenes)
+            foreach (var sceneRef in _GlobalSceneReferences)
             {
                 if (!sceneRef.IsValid) continue;
                 ServerEnsureSceneLoaded(sceneRef.Key, isPublic: true).Forget();
@@ -366,12 +370,53 @@ namespace EDIVE.Networking.Scenes
 
         private bool IsGlobalScene(SceneKey key)
         {
-            foreach (var g in _GlobalScenes)
+            foreach (var g in _GlobalSceneReferences)
             {
                 if (g.IsValid && g.Key.Equals(key))
                     return true;
             }
             return false;
         }
+
+        public void OnBeforeSerialize() { }
+
+        public void OnAfterDeserialize()
+        {
+#if UNITY_EDITOR
+            if (_GlobalScenes == null || _GlobalScenes.Count == 0) return;
+            if (_migrationQueued) return;
+            _migrationQueued = true;
+            UnityEditor.EditorApplication.delayCall += MigrateLegacyScenes;
+#endif
+        }
+
+#if UNITY_EDITOR
+        [NonSerialized]
+        private bool _migrationQueued;
+
+        private void MigrateLegacyScenes()
+        {
+            _migrationQueued = false;
+            if (this == null) return;
+            if (_GlobalScenes == null || _GlobalScenes.Count == 0) return;
+
+            _GlobalSceneReferences ??= new List<SceneReference>();
+            foreach (var path in _GlobalScenes)
+            {
+                if (string.IsNullOrEmpty(path)) continue;
+                var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEditor.SceneAsset>(path);
+                if (asset == null)
+                {
+                    Debug.LogWarning($"[NetworkSceneManager] Could not migrate legacy global scene path '{path}'", this);
+                    continue;
+                }
+                _GlobalSceneReferences.Add(SceneReference.FromSceneAsset(asset));
+            }
+
+            _GlobalScenes = null;
+            UnityEditor.EditorUtility.SetDirty(this);
+            Debug.Log($"[NetworkSceneManager] Migrated legacy global scenes", this);
+        }
+#endif
     }
 }
