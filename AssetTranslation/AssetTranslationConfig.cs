@@ -1,4 +1,4 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 13.04.2025
 
 using System;
@@ -8,40 +8,53 @@ using System.Text;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
-using Sirenix.OdinInspector;
-using Sirenix.Utilities;
 using UnityEngine;
 
 #if UNITY_EDITOR
-using UnityEditor;
+using EDIVE.EditorUtils;
+using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 #endif
 
 namespace EDIVE.AssetTranslation
 {
-    [GlobalConfig("Assets/_Shared/Settings/Resources/")]
-    public class AssetTranslationConfig : GlobalConfig<AssetTranslationConfig>
+    public class AssetTranslationConfig : ScriptableObject
     {
         [EnhancedValidate("ValidateTranslators")]
         [EnhancedAssetList]
         [SerializeField]
         private List<ADefinitionTranslator> _Translators = new();
 
+        private static AssetTranslationConfig _instance;
+
+        public static AssetTranslationConfig Instance
+        {
+            get
+            {
+                if (_instance != null)
+                    return _instance;
+
+                if (PreloadedAssets.TryGet<AssetTranslationConfig>(out var preloaded))
+                    return _instance = preloaded;
+
+#if UNITY_EDITOR
+                _instance = EditorAssetUtils.FindAllAssetsOfType<AssetTranslationConfig>()?.FirstOrDefault();
+#endif
+                return _instance;
+            }
+        }
+
         public bool TryGetTranslator(Type type, out ADefinitionTranslator result)
         {
             return _Translators.TryGetFirst(t => t.DefinitionType.IsAssignableFrom(type), out result);
         }
-        
+
         public bool TryGetTranslator<TTranslator>(out TTranslator result) where TTranslator : ADefinitionTranslator
         {
             return _Translators.TryGetFirstT(out result);
         }
 
 #if UNITY_EDITOR
-        // Force instance creation in editor
-        [InitializeOnLoadMethod]
-        private static void Initialize() => _ = Instance.name;
-
         [UsedImplicitly]
         private void ValidateTranslators(List<ADefinitionTranslator> translators, SelfValidationResult result, InspectorProperty property)
         {
