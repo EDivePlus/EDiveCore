@@ -3,10 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
-using EDIVE.OdinExtensions.Attributes;
 using PurrNet;
 using PurrNet.Modules;
 using PurrNet.Transports;
@@ -18,21 +16,19 @@ namespace EDIVE.Networking.Scenes
     public class NetworkSceneManager : ALoadableServiceBehaviour<NetworkSceneManager>
     {
         [SerializeField]
-        [SceneReference]
-        private List<string> _GlobalScenes = new();
+        private List<SceneReference> _GlobalScenes = new();
 
         [SerializeField]
         private float _JoinTimeout = 5f;
 
         private NetworkManager _networkManager;
-        
-        private readonly Dictionary<string, SceneID> _serverLoadedScenes = new();
-        private readonly Dictionary<string, UniTaskCompletionSource<SceneID>> _serverPendingLoads = new();
 
-        public IEnumerable<Scene> LoadedScenes => EnumerateLoadedScenes(includeGlobals: true);
-        public IEnumerable<Scene> LoadedLocalScenes => EnumerateLoadedScenes(includeGlobals: false);
+        private readonly Dictionary<SceneKey, SceneID> _serverLoadedScenes = new();
+        private readonly Dictionary<SceneKey, UniTaskCompletionSource<SceneID>> _serverPendingLoads = new();
+        private readonly HashSet<SceneKey> _clientJoinedScenes = new();
 
-        
+        public IReadOnlyCollection<SceneKey> JoinedScenes => _clientJoinedScenes;
+
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
             _networkManager = NetworkManager.main;
@@ -50,60 +46,103 @@ namespace EDIVE.Networking.Scenes
         {
             base.OnDestroy();
             if (_networkManager == null) return;
-            
+
             _networkManager.onServerConnectionState -= OnServerConnectionState;
             _networkManager.Unsubscribe<ConnectionSceneRequest>(OnConnectionSceneRequest, asServer: true);
-            
+
             if (_networkManager.sceneModule == null) return;
             _networkManager.sceneModule.onSceneLoaded -= OnServerSceneLoaded;
+#if ADDRESSABLES
+            _networkManager.sceneModule.onAddressableSceneLoaded -= OnServerAddressableSceneLoaded;
+#endif
         }
-        
-        public async UniTask<Scene?> AwaitJoinScene(string sceneName)
+
+        public async UniTask<Scene?> AwaitJoinScene(SceneReference reference)
         {
-            if (string.IsNullOrEmpty(sceneName)) 
-                return null;
-            
+            if (!reference.IsValid) return null;
+            var key = reference.Key;
+            if (!key.IsValid) return null;
+
+            var module = _networkManager.sceneModule;
             var tcs = new UniTaskCompletionSource<Scene>();
 
-            void OnLoaded(SceneID id, bool asServer)
+            void OnDirectLoaded(SceneID id, bool asServer)
             {
-                if (_networkManager.sceneModule.TryGetSceneState(id, out var state) &&
+                if (module.TryGetSceneState(id, out var state) &&
                     state.scene.IsValid() &&
                     state.scene.isLoaded &&
-                    state.scene.name == sceneName)
+                    state.scene.name == key.Id)
                 {
                     tcs.TrySetResult(state.scene);
                 }
             }
 
-            _networkManager.sceneModule.onSceneLoaded += OnLoaded;
+#if ADDRESSABLES
+            void OnAddressableLoaded(SceneID id, string guid, bool asServer)
+            {
+                if (guid != key.Id) return;
+                if (module.TryGetSceneState(id, out var state) &&
+                    state.scene.IsValid() &&
+                    state.scene.isLoaded)
+                {
+                    tcs.TrySetResult(state.scene);
+                }
+            }
+#endif
+
+            if (key.IsAddressable)
+            {
+#if ADDRESSABLES
+                module.onAddressableSceneLoaded += OnAddressableLoaded;
+#endif
+            }
+            else
+            {
+                module.onSceneLoaded += OnDirectLoaded;
+            }
+
             try
             {
-                if (TryFindLoadedScene(sceneName, out var existing))
+                if (TryGetLoadedScene(key, out var existing))
+                {
+                    _clientJoinedScenes.Add(key);
                     return existing;
-                
-                _networkManager.SendToServer(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Join));
+                }
+
+                _networkManager.SendToServer(new ConnectionSceneRequest(key, ConnectionSceneRequestOperation.Join));
 
                 var result = await tcs.Task.TimeoutWithoutException(TimeSpan.FromSeconds(_JoinTimeout));
                 if (result.IsTimeout)
                 {
-                    Debug.LogWarning($"[NetworkSceneManager] Timed out waiting for scene '{sceneName}' to load.", this);
+                    Debug.LogWarning($"[NetworkSceneManager] Timed out waiting for scene '{key}' to load.", this);
                     return null;
                 }
+
+                _clientJoinedScenes.Add(key);
                 return result.Result;
             }
             finally
             {
-                _networkManager.sceneModule.onSceneLoaded -= OnLoaded;
+                if (key.IsAddressable)
+                {
+#if ADDRESSABLES
+                    module.onAddressableSceneLoaded -= OnAddressableLoaded;
+#endif
+                }
+                else
+                {
+                    module.onSceneLoaded -= OnDirectLoaded;
+                }
             }
         }
-        
-        public void LeaveScene(string sceneName)
+
+        public void LeaveScene(SceneKey key)
         {
-            if (string.IsNullOrEmpty(sceneName)) return;
+            if (!key.IsValid) return;
             if (_networkManager == null) return;
 
-            _networkManager.SendToServer(new ConnectionSceneRequest(sceneName, ConnectionSceneRequestOperation.Leave));
+            _clientJoinedScenes.Remove(key);
+            _networkManager.SendToServer(new ConnectionSceneRequest(key, ConnectionSceneRequestOperation.Leave));
         }
 
         private void OnConnectionSceneRequest(PlayerID sender, ConnectionSceneRequest request, bool asServer)
@@ -113,19 +152,19 @@ namespace EDIVE.Networking.Scenes
             switch (request.Operation)
             {
                 case ConnectionSceneRequestOperation.Join:
-                    ServerJoinScene(sender, request.SceneName).Forget();
+                    ServerJoinScene(sender, request.Scene).Forget();
                     break;
                 case ConnectionSceneRequestOperation.Leave:
-                    ServerLeaveScene(sender, request.SceneName);
+                    ServerLeaveScene(sender, request.Scene);
                     break;
             }
         }
 
-        private async UniTask ServerJoinScene(PlayerID player, string sceneName)
+        private async UniTask ServerJoinScene(PlayerID player, SceneKey key)
         {
             try
             {
-                var sceneId = await ServerEnsureSceneLoaded(sceneName, isPublic: false);
+                var sceneId = await ServerEnsureSceneLoaded(key, isPublic: false);
                 if (sceneId == null) return;
 
                 if (_networkManager.TryGetModule<ScenePlayersModule>(true, out var scenePlayers))
@@ -137,9 +176,9 @@ namespace EDIVE.Networking.Scenes
             }
         }
 
-        private void ServerLeaveScene(PlayerID player, string sceneName)
+        private void ServerLeaveScene(PlayerID player, SceneKey key)
         {
-            if (!_serverLoadedScenes.TryGetValue(sceneName, out var sceneId))
+            if (!_serverLoadedScenes.TryGetValue(key, out var sceneId))
                 return;
 
             if (!_networkManager.TryGetModule<ScenePlayersModule>(true, out var scenePlayers))
@@ -147,39 +186,64 @@ namespace EDIVE.Networking.Scenes
 
             scenePlayers.RemovePlayerFromScene(player, sceneId);
 
-            if (IsGlobalScene(sceneName))
+            if (IsGlobalScene(key))
                 return;
-            
+
             if (scenePlayers.TryGetPlayersAttachedToScene(sceneId, out var remaining) && remaining.Count == 0)
             {
-                _networkManager.sceneModule.UnloadSceneAsync(sceneId);
-                _serverLoadedScenes.Remove(sceneName);
+                if (key.IsAddressable)
+                {
+#if ADDRESSABLES
+                    _networkManager.sceneModule.UnloadAddressableSceneByGuid(key.Id);
+#endif
+                }
+                else
+                {
+                    _networkManager.sceneModule.UnloadSceneAsync(sceneId);
+                }
+                _serverLoadedScenes.Remove(key);
             }
         }
 
-        private async UniTask<SceneID?> ServerEnsureSceneLoaded(string sceneName, bool isPublic)
+        private async UniTask<SceneID?> ServerEnsureSceneLoaded(SceneKey key, bool isPublic)
         {
-            if (_serverLoadedScenes.TryGetValue(sceneName, out var existing))
+            if (_serverLoadedScenes.TryGetValue(key, out var existing))
                 return existing;
 
-            if (_serverPendingLoads.TryGetValue(sceneName, out var pending))
+            if (_serverPendingLoads.TryGetValue(key, out var pending))
             {
                 try { return await pending.Task; }
                 catch { return null; }
             }
 
             var tcs = new UniTaskCompletionSource<SceneID>();
-            _serverPendingLoads[sceneName] = tcs;
+            _serverPendingLoads[key] = tcs;
 
-            var op = _networkManager.sceneModule.LoadSceneAsync(sceneName, new PurrSceneSettings
+            var settings = new PurrSceneSettings
             {
                 mode = LoadSceneMode.Additive,
                 isPublic = isPublic
-            });
+            };
 
-            if (op == null)
+            bool started;
+            if (key.IsAddressable)
             {
-                _serverPendingLoads.Remove(sceneName);
+#if ADDRESSABLES
+                var loadHandle = _networkManager.sceneModule.LoadAddressableSceneAsync(key.Id, settings);
+                started = loadHandle.IsValid();
+#else
+                started = false;
+#endif
+            }
+            else
+            {
+                var op = _networkManager.sceneModule.LoadSceneAsync(key.Id, settings);
+                started = op != null;
+            }
+
+            if (!started)
+            {
+                _serverPendingLoads.Remove(key);
                 tcs.TrySetCanceled();
                 return null;
             }
@@ -201,27 +265,31 @@ namespace EDIVE.Networking.Scenes
                     pending.TrySetCanceled();
                 _serverPendingLoads.Clear();
                 _serverLoadedScenes.Clear();
+                _clientJoinedScenes.Clear();
             }
         }
-        
+
         private void HookServerSceneEvents()
         {
             var module = _networkManager.sceneModule;
             if (module == null) return;
+
             module.onSceneLoaded -= OnServerSceneLoaded;
             module.onSceneLoaded += OnServerSceneLoaded;
+#if ADDRESSABLES
+            module.onAddressableSceneLoaded -= OnServerAddressableSceneLoaded;
+            module.onAddressableSceneLoaded += OnServerAddressableSceneLoaded;
+#endif
         }
 
         private void LoadGlobalScenes()
         {
-            var module = _networkManager.sceneModule;
-            if (module == null) return;
+            if (_networkManager.sceneModule == null) return;
 
             foreach (var sceneRef in _GlobalScenes)
             {
-                var sceneName = GetSceneName(sceneRef);
-                if (string.IsNullOrEmpty(sceneName)) continue;
-                ServerEnsureSceneLoaded(sceneName, isPublic: true).Forget();
+                if (!sceneRef.IsValid) continue;
+                ServerEnsureSceneLoaded(sceneRef.Key, isPublic: true).Forget();
             }
         }
 
@@ -236,43 +304,56 @@ namespace EDIVE.Networking.Scenes
             if (IsBootstrapScene(state.scene))
                 return;
 
-            _serverLoadedScenes[state.scene.name] = id;
-
-            if (_serverPendingLoads.TryGetValue(state.scene.name, out var tcs))
-            {
-                tcs.TrySetResult(id);
-                _serverPendingLoads.Remove(state.scene.name);
-            }
-        }
-        
-        private IEnumerable<Scene> EnumerateLoadedScenes(bool includeGlobals)
-        {
-            foreach (var state in _networkManager.sceneModule.sceneStates.Values)
-            {
-                var scene = state.scene;
-                if (!scene.IsValid() || !scene.isLoaded) continue;
-                if (IsBootstrapScene(scene)) continue;
-                if (!includeGlobals && IsGlobalScene(scene.name)) continue;
-                yield return scene;
-            }
+            ResolvePendingLoad(new SceneKey(state.scene.name, false), id);
         }
 
-        private bool TryFindLoadedScene(string sceneName, out Scene scene)
+#if ADDRESSABLES
+        private void OnServerAddressableSceneLoaded(SceneID id, string guid, bool asServer)
         {
+            if (!asServer) return;
+            ResolvePendingLoad(new SceneKey(guid, true), id);
+        }
+#endif
+
+        private void ResolvePendingLoad(SceneKey key, SceneID id)
+        {
+            if (!_serverPendingLoads.TryGetValue(key, out var tcs))
+                return;
+
+            _serverLoadedScenes[key] = id;
+            tcs.TrySetResult(id);
+            _serverPendingLoads.Remove(key);
+        }
+
+        private bool TryGetLoadedScene(SceneKey key, out Scene scene)
+        {
+            scene = default;
             var module = _networkManager?.sceneModule;
-            if (module != null)
+            if (module == null) return false;
+
+            if (key.IsAddressable)
             {
-                foreach (var state in module.sceneStates.Values)
+#if ADDRESSABLES
+                if (module.TryGetSceneIdByAddressableGuid(key.Id, out var id) &&
+                    module.TryGetSceneState(id, out var state) &&
+                    state.scene.IsValid() && state.scene.isLoaded)
                 {
-                    var stateScene = state.scene;
-                    if (stateScene.name != sceneName || !stateScene.IsValid() || !stateScene.isLoaded)
-                        continue;
-                    
-                    scene = stateScene;
+                    scene = state.scene;
+                    return true;
+                }
+#endif
+                return false;
+            }
+
+            foreach (var state in module.sceneStates.Values)
+            {
+                var s = state.scene;
+                if (s.name == key.Id && s.IsValid() && s.isLoaded)
+                {
+                    scene = s;
                     return true;
                 }
             }
-            scene = default;
             return false;
         }
 
@@ -283,20 +364,14 @@ namespace EDIVE.Networking.Scenes
             return false;
         }
 
-        private bool IsGlobalScene(string sceneName)
+        private bool IsGlobalScene(SceneKey key)
         {
             foreach (var g in _GlobalScenes)
             {
-                if (!string.IsNullOrEmpty(g) && GetSceneName(g) == sceneName)
+                if (g.IsValid && g.Key.Equals(key))
                     return true;
             }
             return false;
         }
-
-        private static string GetSceneName(string fullPath)
-        {
-            return string.IsNullOrEmpty(fullPath) ? fullPath : Path.GetFileNameWithoutExtension(fullPath);
-        }
-
     }
 }

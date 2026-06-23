@@ -7,12 +7,12 @@ namespace EDIVE.Networking.Scenes
 {
     public struct ConnectionSceneRequest : IPackedAuto
     {
-        public readonly string SceneName;
+        public readonly SceneKey Scene;
         public readonly ConnectionSceneRequestOperation Operation;
 
-        public ConnectionSceneRequest(string sceneName, ConnectionSceneRequestOperation operation)
+        public ConnectionSceneRequest(SceneKey scene, ConnectionSceneRequestOperation operation)
         {
-            SceneName = sceneName;
+            Scene = scene;
             Operation = operation;
         }
     }

@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
@@ -141,34 +140,33 @@ namespace EDIVE.Environment.SceneSetup
                 return loaded;
             }
 
-            var targetNames = new HashSet<string>(definition.Scenes.Select(GetSceneName));
-            Debug.Log($"[SceneSetupManager] SwitchScenes targets=[{string.Join(", ", targetNames)}]", this);
+            var targets = definition.Scenes.ToList();
+            var targetKeys = new HashSet<SceneKey>(targets.Select(r => r.Key));
+            Debug.Log($"[SceneSetupManager] SwitchScenes targets=[{string.Join(", ", targetKeys)}]", this);
 
-            var scenesToLeave = networkSceneManager.LoadedLocalScenes
-                .Where(s => !targetNames.Contains(s.name))
-                .Select(s => s.name)
+            var scenesToLeave = networkSceneManager.JoinedScenes
+                .Where(k => !targetKeys.Contains(k))
                 .ToList();
 
             foreach (var sceneToLeave in scenesToLeave)
                 networkSceneManager.LeaveScene(sceneToLeave);
 
-            var joinTasks = targetNames.Select(networkSceneManager.AwaitJoinScene).ToArray();
+            var joinTasks = targets.Select(networkSceneManager.AwaitJoinScene).ToArray();
             var joined = await UniTask.WhenAll(joinTasks);
 
-            var orderedTargets = targetNames.ToArray();
             for (var i = 0; i < joined.Length; i++)
             {
                 var scene = joined[i];
                 if (scene.HasValue && scene.Value.IsValid() && scene.Value.isLoaded)
                     loaded.Add(scene.Value);
                 else
-                    Debug.LogWarning($"[SceneSetupManager] Scene '{orderedTargets[i]}' failed to join (null/invalid/not loaded)", this);
+                    Debug.LogWarning($"[SceneSetupManager] Scene '{targets[i].Key}' failed to join (null/invalid/not loaded)", this);
             }
 
             if (definition.SetFirstSceneActive && loaded.Count > 0)
                 UnitySceneManager.SetActiveScene(loaded[0]);
 
-            Debug.Log($"[SceneSetupManager] SwitchScenes finished: {loaded.Count}/{targetNames.Count} scenes loaded", this);
+            Debug.Log($"[SceneSetupManager] SwitchScenes finished: {loaded.Count}/{targetKeys.Count} scenes loaded", this);
             return loaded;
         }
 
@@ -196,11 +194,6 @@ namespace EDIVE.Environment.SceneSetup
                 controlsManager.RequestTeleport(position, rotation);
             else
                 Debug.LogWarning($"[SceneSetupManager] TeleportToSpawn: spawn place '{spawnPlace.name}' did not provide a location for player {localPlayer}", this);
-        }
-
-        private static string GetSceneName(string fullPath)
-        {
-            return string.IsNullOrEmpty(fullPath) ? fullPath : Path.GetFileNameWithoutExtension(fullPath);
         }
     }
 }
