@@ -2,10 +2,12 @@
 // Created: 03.06.2026
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
+using Cysharp.Text;
 using Cysharp.Threading.Tasks;
+using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 
 namespace EDIVE.Utils.SystemInformation
@@ -16,14 +18,8 @@ namespace EDIVE.Utils.SystemInformation
         private SystemInfoManager _Manager;
 
         [SerializeField]
-        private SystemInfoCategoryDisplay _DisplayPrefab;
-
-        [SerializeField]
-        private Transform _DisplayContainer;
-
-        [SerializeField]
-        private List<SystemInfoCategoryDisplay> _Displays = new();
-
+        private TMP_Text _Text;
+        
         [SerializeField]
         private bool _RefreshPeriodically;
         
@@ -31,13 +27,16 @@ namespace EDIVE.Utils.SystemInformation
         private float _RefreshInterval = 1f;
         
         [SerializeField]
-        private float _IndentEm = 20f;
+        private RichTextUnitField _LabelIndent = new(0.5f, RichTextUnit.Em);
+        
+        [SerializeField]
+        private RichTextUnitField _ValueIndent = new(20, RichTextUnit.Em);
         
         private CancellationTokenSource _refreshCts;
         
         private void OnEnable()
         {
-            RefreshList();
+            RefreshDisplay();
             
             if (_RefreshPeriodically)
             {
@@ -58,12 +57,12 @@ namespace EDIVE.Utils.SystemInformation
             while (enabled)
             {
                 await UniTask.Delay(TimeSpan.FromSeconds(_RefreshInterval), cancellationToken: cts);
-                RefreshList();
+                RefreshDisplay();
             }
         }
         
         [Button]
-        private void RefreshList()
+        private void RefreshDisplay()
         {
             if (_Manager == null)
                 return;
@@ -71,23 +70,23 @@ namespace EDIVE.Utils.SystemInformation
             var categories = _Manager.Categories;
             if (categories == null || categories.Count == 0)
                 return;
-            
-            for (var i = 0; i < categories.Count; i++)
+
+            using var sb = ZString.CreateStringBuilder(true);
+            foreach (var category in categories)
             {
-                if (i >= _Displays.Count)
+                sb.AppendLine(category.Name.Bold());
+                foreach (var entry in category.Entries)
                 {
-                    var display = Instantiate(_DisplayPrefab, _DisplayContainer);
-                    _Displays.Add(display);
+                    sb.Append(entry.Name.Indent(_LabelIndent));
+                    sb.Append(entry.GetValue().Indent(_ValueIndent));
+                    sb.AppendLine();
                 }
-
-                _Displays[i].SetCategory(categories[i], _IndentEm);
-                _Displays[i].gameObject.SetActive(true);
+                sb.AppendLine();
             }
-
-            for (var i = categories.Count; i < _Displays.Count; i++)
-            {
-                _Displays[i].gameObject.SetActive(false);
-            }
+            var finalText = sb.ToString();
+                
+            if (_Text) 
+                _Text.text = finalText;
         }
     }
 }

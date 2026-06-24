@@ -10,7 +10,8 @@
         "EDIVE.DataStructures",
         "Whinarn.UnityMeshSimplifier.Runtime",
         "EDIVE.Core",
-        "EDIVE.ScriptableArchitecture"
+        "EDIVE.ScriptableArchitecture",
+        "ZString"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
