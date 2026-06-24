@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace EDIVE.ScriptableArchitecture.Variables
 {
+    [DefaultExecutionOrder(-100)]
     public class ScriptableTransformFollow : MonoBehaviour
     {
         [SerializeField]

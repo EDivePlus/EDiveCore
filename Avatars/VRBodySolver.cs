@@ -10,6 +10,7 @@ using UnityEngine.Serialization;
 
 namespace EDIVE.Avatars
 {
+    [DefaultExecutionOrder(100)]
     public class VRBodySolver : MonoBehaviour
     {
         [EnhancedFoldoutGroup("Animator", "@ColorTools.Red", SpaceAfter = 4)]
