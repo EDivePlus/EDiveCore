@@ -97,12 +97,13 @@ namespace EDIVE.UIElements.Selectables
 
         public void OnDrag(PointerEventData eventData)
         {
+            if (!IsInteractable())
+                return;
+
             var currentVector = GetPointerVector(eventData);
             var currentAngle = Mathf.Atan2(currentVector.y, currentVector.x) * Mathf.Rad2Deg;
 
-            var addRotation = Quaternion.AngleAxis(currentAngle - _initAngle, RotationTarget.forward);
-            addRotation.eulerAngles = new Vector3(0, 0, addRotation.eulerAngles.z);
-
+            var addRotation = Quaternion.Euler(0, 0, currentAngle - _initAngle);
             var finalRotation = _initRotation * addRotation;
 
             if (_Direction == Direction.Clockwise)
@@ -139,6 +140,12 @@ namespace EDIVE.UIElements.Selectables
 
         private Vector2 GetPointerVector(PointerEventData eventData)
         {
+            if (RotationTarget.parent is RectTransform parentRect &&
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(parentRect, eventData.position, eventData.pressEventCamera, out var localPoint))
+            {
+                return localPoint - (Vector2) RotationTarget.localPosition;
+            }
+
             var screenPoint = RectTransformUtility.WorldToScreenPoint(eventData.pressEventCamera, RotationTarget.position);
             return eventData.position - screenPoint;
         }
