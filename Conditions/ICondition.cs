@@ -4,10 +4,13 @@
 using System;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
+using UnityEngine;
+
+#if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
-using UnityEngine;
+#endif
 
 namespace EDIVE.Conditions
 {
