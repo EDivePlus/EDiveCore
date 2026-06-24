@@ -30,8 +30,8 @@ namespace EDIVE.XRTools.Conditions
         {
             if (_Interactable != null)
             {
-                _Interactable.hoverEntered.AddListener(OnHoverEntered);
-                _Interactable.hoverExited.AddListener(OnHoverExited);
+                _Interactable.hoverEntered.RemoveListener(OnHoverEntered);
+                _Interactable.hoverExited.RemoveListener(OnHoverExited);
             }
         }
 

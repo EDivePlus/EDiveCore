@@ -15,7 +15,7 @@ namespace EDIVE.XRTools.Conditions
         [SerializeField]
         private XRBaseInteractable _Interactable;
         
-        protected override bool GetValue() => _Interactable != null && _Interactable.isHovered;
+        protected override bool GetValue() => _Interactable != null && _Interactable.isSelected;
         
         public override void InitializeObserving()
         {
@@ -30,8 +30,8 @@ namespace EDIVE.XRTools.Conditions
         {
             if (_Interactable != null)
             {
-                _Interactable.selectEntered.AddListener(OnSelectEntered);
-                _Interactable.selectExited.AddListener(OnSelectExited);
+                _Interactable.selectEntered.RemoveListener(OnSelectEntered);
+                _Interactable.selectExited.RemoveListener(OnSelectExited);
             }
         }
 
