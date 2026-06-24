@@ -88,16 +88,20 @@ namespace EDIVE.XRTools.Tablet
                 _CameraFollower.Reposition();
         }
 
-        public void SetOpen(bool open)
+        public void SetOpen(bool open, bool immediate = false)
         {
             _animTween?.Kill();
             _isOpen = open;
             
             if (_CameraFollower != null)
-                _CameraFollower.Reposition();
+                _CameraFollower.Reposition(immediate);
             
             var newScale = open ? Vector3.one : Vector3.zero;
-            _animTween = transform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
+
+            if (immediate)
+                transform.localScale = newScale;
+            else
+                _animTween = transform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
         }
 
         private bool CheckInView()
