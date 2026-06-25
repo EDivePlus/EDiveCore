@@ -8,7 +8,6 @@ using EDIVE.NativeUtils;
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 using Object = UnityEngine.Object;
 
@@ -31,7 +30,8 @@ namespace EDIVE.Networking.Utils
         private void Awake()
         {
             _rules = GetRuleTemplates().Select(r => r.GetCopy()).ToList();
-            _rules.ForEach(r => r.Initialize(gameObject.scene));
+            var rootGameObjects = gameObject.scene.GetRootGameObjects();
+            _rules.ForEach(r => r.Initialize(rootGameObjects));
         }
         
         protected override void OnSpawned()
@@ -97,7 +97,7 @@ namespace EDIVE.Networking.Utils
     
     public interface IObserverUpdaterRule
     {
-        void Initialize(Scene scene);
+        void Initialize(GameObject[] targetGameObjects);
         void UpdateVisibility(bool prevVisible, bool nextVisible);
         IObserverUpdaterRule GetCopy();
     }
@@ -107,9 +107,9 @@ namespace EDIVE.Networking.Utils
         where TSelf : IObserverUpdaterRule, new()
     {
         protected abstract string Label { get; }
-        public abstract void Initialize(Scene scene);
+        public abstract void Initialize(GameObject[] targetGameObjects);
         public abstract void UpdateVisibility(bool prevVisible, bool nextVisible);
-        public IObserverUpdaterRule GetCopy() => new TSelf();
+        public virtual IObserverUpdaterRule GetCopy() => new TSelf();
 
 #if UNITY_EDITOR
         [PropertyOrder(-100)]
@@ -139,21 +139,13 @@ namespace EDIVE.Networking.Utils
         where TSelf : IObserverUpdaterRule, new()
         where T : Component
     {
-        public override void Initialize(Scene scene)
+        public override void Initialize(GameObject[] targetGameObjects)
         {
-            _Targets = GetAllComponentsInScene<T>(scene, true);
-        }
-        
-        private static List<TObj> GetAllComponentsInScene<TObj>(Scene scene, bool includeInactive)
-            where TObj : Component
-        {
-            var results = new List<TObj>();
-            var roots = scene.GetRootGameObjects();
-            foreach (var root in roots)
+            _Targets = new List<T>();
+            foreach (var root in targetGameObjects)
             {
-                results.AddRange(root.GetComponentsInChildren<TObj>(includeInactive)); 
+                _Targets.AddRange(root.GetComponentsInChildren<T>(true)); 
             }
-            return results;
         }
     }
     
@@ -191,5 +183,13 @@ namespace EDIVE.Networking.Utils
     {
         protected override string Label => "Renderers";
         protected override void UpdateTarget(Renderer target, bool prevVisible, bool nextVisible) => target.enabled = nextVisible;
+    }
+    
+        
+    [Serializable, Preserve]
+    public class TerrainObserverUpdaterRule : AComponentObserverUpdaterRule<TerrainObserverUpdaterRule, Terrain>
+    {
+        protected override string Label => "Terrains";
+        protected override void UpdateTarget(Terrain target, bool prevVisible, bool nextVisible) => target.enabled = nextVisible;
     }
 }
