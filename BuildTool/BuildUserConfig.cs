@@ -20,7 +20,7 @@ namespace EDIVE.BuildTool
         [SerializeField]
         private BuildPathResolver _PathResolver;
 
-        [PropertySpace]
+        [PropertySpace(4)] 
         [SerializeField]
         [InlineProperty]
         [HideLabel]

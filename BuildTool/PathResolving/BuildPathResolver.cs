@@ -33,14 +33,12 @@ namespace EDIVE.BuildTool.PathResolving
         [ShowOpenInExplorer]
         [SerializeField]
         private string _RelativeRootPath;
-
-        [PropertySpace]
+        
         [HideReferenceObjectPicker]
         [SerializeReference]
         [ValueDropdown(nameof(GetSegmentsDropdown), DrawDropdownForListElements = false)]
         private List<ABuildPathSegment> _FolderPathSegments = new();
-
-        [PropertySpace]
+        
         [HideReferenceObjectPicker]
         [SerializeReference]
         [ValueDropdown(nameof(GetSegmentsDropdown), DrawDropdownForListElements = false)]
