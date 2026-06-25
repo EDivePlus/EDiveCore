@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using EDIVE.BuildTool.Utils;
+using EDIVE.OdinExtensions.Attributes;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -19,6 +20,7 @@ namespace EDIVE.BuildTool.BuildSetupData
         [SerializeField]
         [JsonProperty("Records")]
         [LabelText("@$property.Parent.NiceName")]
+        [ListDrawerSettings(ShowFoldout = false)]
         private List<PlatformRecord> _Records = new();
 
         public IEnumerable<SerializedBuildSetupData> GetData(NamedBuildTarget namedBuildTarget, BuildTarget target)
@@ -34,11 +36,14 @@ namespace EDIVE.BuildTool.BuildSetupData
         [JsonObject(MemberSerialization.OptIn)]
         private class PlatformRecord
         {
-            [SerializeField]
+            [EnhancedFoldoutGroup("Platforms", true)]
+            [ShowInFoldoutHeader]
+            [HideLabel]
             [JsonProperty("Platforms")]
+            [SerializeField]
             private PlatformType _Platforms;
 
-            [PropertySpace(6)]
+            [EnhancedFoldoutGroup("Platforms")]
             [HideLabel]
             [SerializeField]
             [JsonProperty("Data")]
