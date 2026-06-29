@@ -32,7 +32,7 @@ namespace EDIVE.Replay.Audio
         public override string ComponentLabel => "Voice Chat Audio";
         protected override string TargetID => "VCAudio";
 
-        protected override GameObject TargetGameObject => _AudioOutput.TryGetGameObject(out var go) ? go : null;
+        protected override UnityEngine.Object TargetObject => _AudioOutput.TryGetGameObject(out var go) ? go : null;
         public override Type EditorTargetType => typeof(AudioSource);
 
         protected long _startTimestamp;
@@ -44,7 +44,7 @@ namespace EDIVE.Replay.Audio
             if (_Data == null || !AppCore.Services.TryGet<AudioManager>(out var audioManager))
                 return;
 
-            if (!TargetGameObject.TryGetComponent<NetworkBehaviour>(out var networkBehaviour))
+            if (!_AudioOutput.TryGetComponent<NetworkBehaviour>(out var networkBehaviour))
             {
                 Debug.LogError("VoiceChatReplayAgentComponent requires a NetworkBehaviour attached to the target GameObject!");
                 return;

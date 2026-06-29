@@ -29,9 +29,10 @@ namespace EDIVE.NativeUtils
                 SafeDestroy(component);
                 return true;
             }
+
             return false;
         }
-        
+
         public static void SafeDestroy(this Object go, bool immediate = false)
         {
             if (!Application.isPlaying || immediate)
@@ -44,7 +45,7 @@ namespace EDIVE.NativeUtils
         {
             foreach (var gameObject in gameObjects)
             {
-                if(gameObject)
+                if (gameObject)
                     gameObject.SetActive(active);
             }
         }
@@ -72,15 +73,38 @@ namespace EDIVE.NativeUtils
             gameObject = null;
             return false;
         }
-        
+
         public static bool TryGetComponent<T>(this Object obj, out T component) where T : Component
         {
-            if (obj.TryGetGameObject(out var gameObject)) 
+            if (obj.TryGetGameObject(out var gameObject))
                 return gameObject.TryGetComponent(out component);
-            
+
             component = null;
             return false;
+        }
 
+        public static bool TryGetRootObject(this Object obj, out Object rootObject)
+        {
+            if (obj == null)
+            {
+                rootObject = null;
+                return false;
+            }
+
+            if (obj is GameObject or ScriptableObject )
+            {
+                rootObject = obj;
+                return true;
+            }
+
+            if (obj is Component component)
+            {
+                rootObject = component.gameObject;
+                return true;
+            }
+            
+            rootObject = null;
+            return false;
         }
     }
 }

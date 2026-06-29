@@ -7,6 +7,7 @@ using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using Object = System.Object;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
@@ -25,7 +26,7 @@ namespace EDIVE.Replay.Components
         
         public abstract string ComponentLabel { get; }
         protected abstract string TargetID { get; }
-        protected abstract GameObject TargetGameObject { get; }
+        protected abstract UnityEngine.Object TargetObject { get; }
         public abstract Type EditorTargetType { get; }
         
         public abstract AReplayAgentComponentData GetDataCopy();
@@ -40,7 +41,7 @@ namespace EDIVE.Replay.Components
 #if UNITY_EDITOR
         public string GenerateID(InspectorProperty property)
         {
-            var resultID = $"{TargetGameObject.name}{TargetID}";
+            var resultID = $"{TargetObject.name}{TargetID}";
             if (!property.TryGetParentObject<IEnumerable<AReplayAgentComponent>>(out var parentList))
                 return resultID;
 
@@ -109,7 +110,7 @@ namespace EDIVE.Replay.Components
         protected TTarget _Target;
 
         public TTarget Target => _Target;
-        protected override GameObject TargetGameObject => _Target.TryGetGameObject(out var go) ? go : null;
+        protected override UnityEngine.Object TargetObject => _Target.TryGetRootObject(out var go) ? go : null;
         public override Type EditorTargetType => typeof(TTarget);
 
         protected AReplayAgentComponent() { }
