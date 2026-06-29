@@ -70,7 +70,7 @@ namespace EDIVE.Avatars.Networking
         {
             if (_saveData != null)
             {
-                _saveData.CustomizationChanged -= OnAvatarCustomizationChanged;
+                _saveData.CustomizationChanged -= OnSaveDataCustomizationChanged;
                 _saveData = null;
             }
         }
@@ -89,7 +89,7 @@ namespace EDIVE.Avatars.Networking
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
                 SetAvatar(_saveData.PlayerAvatar);
 
-            _saveData.CustomizationChanged += OnAvatarCustomizationChanged;
+            _saveData.CustomizationChanged += OnSaveDataCustomizationChanged;
         }
 
         private void OnAvatarChanged(AvatarController old, AvatarController value)
