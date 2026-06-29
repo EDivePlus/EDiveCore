@@ -3,9 +3,11 @@
 
 using System;
 using Cysharp.Threading.Tasks;
+using EDIVE.OdinExtensions.Attributes;
 
 namespace EDIVE.ServiceHub.SaveData
 {
+    [EnhancedTypeSelector(true, 1)]
     [Serializable]
     public abstract class ASaveDataStore
     {

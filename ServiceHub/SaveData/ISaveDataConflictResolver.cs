@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using EDIVE.OdinExtensions.Attributes;
 
 namespace EDIVE.ServiceHub.SaveData
 {
@@ -18,6 +19,7 @@ namespace EDIVE.ServiceHub.SaveData
         }
     }
     
+    [EnhancedTypeSelector(true, 1)]
     public interface ISaveDataConflictResolver
     {
         int Resolve(IReadOnlyList<SaveDataCandidate> candidates);

@@ -14,13 +14,21 @@ namespace EDIVE.ServiceHub.SaveData
         [EnhancedBoxGroup("User Domain", Color = "@ColorTools.Orange")]
         [InlineProperty]
         [HideLabel]
-        private SaveDataDomain _User;
+        private SaveDataDomain _User = new("user", new ASaveDataStore[]
+        {
+            new PlayerPrefsSaveDataStore(), 
+            new ServiceHubSaveDataStore()
+        });
         
         [SerializeField]
         [EnhancedBoxGroup("Server Domain", Color = "@ColorTools.Blue")]
         [InlineProperty]
         [HideLabel]
-        private SaveDataDomain _Server;
+        private SaveDataDomain _Server = new("server", new ASaveDataStore[]
+        {
+            new PlayerPrefsSaveDataStore(), 
+            new ServiceHubSaveDataStore()
+        });
         
         public const int MAX_KEY_LENGTH = 256;
         public const int MAX_VALUE_BYTES = 256 * 1024;  // 256 KB

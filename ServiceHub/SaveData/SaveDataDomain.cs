@@ -20,19 +20,28 @@ namespace EDIVE.ServiceHub.SaveData
         public string Key => _Key;
 
         [SerializeReference]
-        private ISaveDataConflictResolver _ConflictResolver;
+        private ISaveDataConflictResolver _ConflictResolver = new NewestWinsConflictResolver();
 
         [SerializeReference]
         [PropertyOrder(10)]
         private List<ASaveDataStore> _Stores = new();
+        
         public List<ASaveDataStore> Stores => _Stores;
         
-        public AuthStorage Auth { get; internal set; }
+        public AuthStorage Auth { get; private set; }
         
         private Dictionary<string, ASaveDataObject> _objectCache;
         private Dictionary<string, ASaveDataObject> ObjectCache => _objectCache ??= new Dictionary<string, ASaveDataObject>(StringComparer.Ordinal);
         
         private ServiceHubSettings _settings;
+
+        public SaveDataDomain() { }
+        public SaveDataDomain(string key, IEnumerable<ASaveDataStore> stores = null, ISaveDataConflictResolver conflictResolver = null)
+        {
+            _Key = key;
+            _Stores = stores != null ? new List<ASaveDataStore>(stores) : new List<ASaveDataStore>();
+            _ConflictResolver = conflictResolver ?? new NewestWinsConflictResolver();
+        }
 
         public void Initialize(SaveDataService saveDataService, AuthStorage auth)
         {
