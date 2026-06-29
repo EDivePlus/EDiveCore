@@ -1,4 +1,4 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 21.07.2025
 
 using System;
@@ -13,37 +13,33 @@ namespace EDIVE.Replay
     [Serializable]
     public partial class ReplayRecord
     {
-        [SerializeField]
-        private string _ID;
-        
+        [MemoryPackInclude]
+        [MemoryPackAllowSerialize]
+        [SerializeReference]
+        private AReplayRecordMeta _Meta;
+
         [MemoryPackInclude]
         [SerializeField]
         private List<ReplayAgentData> _ObjectData;
 
-        [MemoryPackInclude]
-        [SerializeField]
-        private float _Duration;
+        [MemoryPackIgnore]
+        public AReplayRecordMeta Meta => _Meta;
 
         [MemoryPackIgnore]
-        public string ID
-        {
-            get => _ID; 
-            set => _ID = value;
-        }
+        public string ID => _Meta?.ID;
+        
+        [MemoryPackIgnore]
+        public float Duration => _Meta?.Duration ?? 0f;
 
         [MemoryPackIgnore]
         public List<ReplayAgentData> ObjectData => _ObjectData;
-
-        [MemoryPackIgnore]
-        public float Duration => _Duration;
         
         [MemoryPackConstructor]
         public ReplayRecord() { }
-        public ReplayRecord(string id, List<ReplayAgentData> objectData, float duration)
+        public ReplayRecord(AReplayRecordMeta meta, List<ReplayAgentData> objectData)
         {
-            _ID = id;
+            _Meta = meta;
             _ObjectData = objectData ?? new List<ReplayAgentData>();
-            _Duration = duration;
         }
     }
 }

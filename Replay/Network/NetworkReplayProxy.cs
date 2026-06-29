@@ -119,15 +119,15 @@ namespace EDIVE.Replay.Network
         public void SaveCurrentRecord() => _Handler.SaveCurrentRecord();
 
         [ServerRpc(requireOwnership: false)]
-        public void LoadRecord(ReplayRecordInfo info) => _Handler.LoadRecord(info);
+        public void LoadRecord(AReplayRecordMeta meta) => _Handler.LoadRecord(meta);
 
-        private UniTaskCompletionSource<IEnumerable<ReplayRecordInfo>> _recordsRequest;
-        public async UniTask<IEnumerable<ReplayRecordInfo>> GetSavedRecords()
+        private UniTaskCompletionSource<IEnumerable<AReplayRecordMeta>> _recordsRequest;
+        public async UniTask<IEnumerable<AReplayRecordMeta>> GetSavedRecords()
         {
             if (!isClient)
                 return await _Handler.GetSavedRecords();
 
-            _recordsRequest = new UniTaskCompletionSource<IEnumerable<ReplayRecordInfo>>();
+            _recordsRequest = new UniTaskCompletionSource<IEnumerable<AReplayRecordMeta>>();
             ServerGetSavedRecords();
             var result = await _recordsRequest.Task;
             _recordsRequest = null;
@@ -140,13 +140,13 @@ namespace EDIVE.Replay.Network
             var sender = info.sender;
             UniTask.Void(async () =>
             {
-                var records = await _Handler.GetSavedRecords() ?? Enumerable.Empty<ReplayRecordInfo>();
+                var records = await _Handler.GetSavedRecords() ?? Enumerable.Empty<AReplayRecordMeta>();
                 TargetReceiveSavedRecords(sender, records.ToList());
             });
         }
 
         [TargetRpc]
-        private void TargetReceiveSavedRecords(PlayerID target, List<ReplayRecordInfo> records)
+        private void TargetReceiveSavedRecords(PlayerID target, List<AReplayRecordMeta> records)
         {
             _recordsRequest?.TrySetResult(records);
         }

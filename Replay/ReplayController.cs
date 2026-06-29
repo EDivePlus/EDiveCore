@@ -115,9 +115,9 @@ namespace EDIVE.Replay
         public void SetPlaybackTime(float newTime) => CurrentHandler?.SetPlaybackTime(newTime);
         public void UnloadPlayback() => CurrentHandler?.UnloadPlayback();
                 
-        public void SaveCurrentRecord() => CurrentHandler?.SaveCurrentRecord();
-        public void LoadRecord(ReplayRecordInfo info) => CurrentHandler?.LoadRecord(info);
-        public async UniTask<IEnumerable<ReplayRecordInfo>> GetSavedRecords() => CurrentHandler != null ? await CurrentHandler.GetSavedRecords() : Enumerable.Empty<ReplayRecordInfo>();
+        public void SaveCurrentRecord(AReplayRecordMeta meta = null) => CurrentHandler?.SaveCurrentRecord(meta);
+        public void LoadRecord(AReplayRecordMeta meta) => CurrentHandler?.LoadRecord(meta);
+        public async UniTask<IEnumerable<AReplayRecordMeta>> GetSavedRecords() => CurrentHandler != null ? await CurrentHandler.GetSavedRecords() : Enumerable.Empty<AReplayRecordMeta>();
 
 #if UNITY_EDITOR
         [UsedImplicitly]

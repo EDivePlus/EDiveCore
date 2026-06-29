@@ -71,15 +71,18 @@ namespace EDIVE.Replay
 
         private CancellationTokenSource _recordingCancellationTokenSource;
 
-        public ReplayRecord CreateRecord()
+        public ReplayRecord CreateRecord(AReplayRecordMeta meta = null)
         {
             var id = $"{Application.productName}{DateTime.Now:yyyyMMdd-HHmmss}";
+            meta ??= new DefaultReplayRecordMeta();
+            meta.Stamp(id, CurrentDuration, DateTime.Now);
+
             var agentData = CurrentAgents
                 .Select(a => a.GetData())
                 .Where(d => d != null && !string.IsNullOrEmpty(d.ID))
                 .ToList();
 
-            return new ReplayRecord(id, agentData, CurrentDuration);
+            return new ReplayRecord(meta, agentData);
         }
 
         [ButtonGroup("Recording")]
@@ -94,6 +97,8 @@ namespace EDIVE.Replay
         private async UniTask RecordAsync(CancellationToken cancellationToken)
         {
             UnloadPlayback();
+            // Discard any previously saved/played-back snapshot so this recording is saved fresh.
+            ReplayRecord = null;
             if (Scope == null)
                 return;
 
@@ -437,48 +442,49 @@ namespace EDIVE.Replay
         
         public bool IsLoadingRecord { get; private set; }
         
-        public void SaveCurrentRecord()
+        public void SaveCurrentRecord(AReplayRecordMeta meta = null)
         {
-            SaveRecordingToFileAsync().Forget();
+            SaveRecordingToFileAsync(meta).Forget();
         }
 
-        public void LoadRecord(ReplayRecordInfo info)
+        public void LoadRecord(AReplayRecordMeta meta)
         {
             IsLoadingRecord = true;
             StateChanged?.Invoke();
             UniTask.Void(async () =>
             {
-                await LoadRecordingFromFileAsync(ReplayUtils.GetRecordingSaveFileName(info.ID));
+                await LoadRecordingFromFileAsync(ReplayUtils.GetRecordingSaveFileName(meta.ID));
             });
             IsLoadingRecord = false;
             StateChanged?.Invoke();
         }
 
-        public async UniTask<IEnumerable<ReplayRecordInfo>> GetSavedRecords()
+        public async UniTask<IEnumerable<AReplayRecordMeta>> GetSavedRecords()
         {
             var dir = ReplayUtils.RecordingsFolderPath;
             if (!Directory.Exists(dir))
-                return Enumerable.Empty<ReplayRecordInfo>();
+                return Enumerable.Empty<AReplayRecordMeta>();
 
             var files = Directory.GetFiles(dir, "*.dat");
-            var recordInfos = new List<ReplayRecordInfo>();
+            var settings = ReplayUtils.GetMetaJsonSettings();
+            var metas = new List<AReplayRecordMeta>();
 
             foreach (var file in files)
-            { 
-                var fileName = Path.GetFileNameWithoutExtension(file);
-                var metadataPath = $"{fileName}.meta";
-                    
+            {
+                var metadataPath = $"{file}.meta";
+
                 if (!File.Exists(metadataPath))
                 {
                     Debug.LogWarning($"Metadata file not found for file '{file}'");
-                    continue; 
+                    continue;
                 }
-           
+
                 try
                 {
                     var metadataJson = await File.ReadAllTextAsync(metadataPath);
-                    var metadata = JsonConvert.DeserializeObject<ReplayRecordInfo>(metadataJson);
-                    recordInfos.Add(metadata);
+                    var metadata = JsonConvert.DeserializeObject<AReplayRecordMeta>(metadataJson, settings);
+                    if (metadata != null)
+                        metas.Add(metadata);
                 }
                 catch (Exception ex)
                 {
@@ -488,34 +494,33 @@ namespace EDIVE.Replay
             }
 
             await UniTask.CompletedTask;
-            return recordInfos;
+            return metas;
         }
-        
-        private async UniTask<bool> SaveRecordingToFileAsync()
+
+        private async UniTask<bool> SaveRecordingToFileAsync(AReplayRecordMeta meta = null)
         {
             try
             {
                 if (IsRecording)
                     StopRecording();
 
-                ReplayRecord ??= CreateRecord();
+                ReplayRecord ??= CreateRecord(meta);
 
                 if (ReplayRecord == null)
                 {
                     Debug.LogWarning("No recording data available to save.");
                     return false;
                 }
-                
+
                 var sandboxPath = ReplayUtils.GetRecordingSaveFileName(ReplayRecord.ID);
                 var data = await ReplayUtils.SerializeAsync(ReplayRecord);
                 await File.WriteAllBytesAsync(sandboxPath, data);
-                
-                // Save metadata file
+
+                // Save metadata sidecar (the same meta instance the record carries)
                 var metadataPath = $"{sandboxPath}.meta";
-                var metadata = new ReplayRecordInfo(ReplayRecord.ID, ReplayRecord.Duration);
-                var metadataJson = JsonConvert.SerializeObject(metadata);
+                var metadataJson = JsonConvert.SerializeObject(ReplayRecord.Meta, typeof(AReplayRecordMeta), ReplayUtils.GetMetaJsonSettings());
                 await File.WriteAllTextAsync(metadataPath, metadataJson);
-                
+
                 await UniTask.SwitchToMainThread();
                 Debug.Log($"Recording saved to: {sandboxPath}");
                 return true;

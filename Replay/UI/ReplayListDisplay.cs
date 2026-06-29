@@ -22,7 +22,7 @@ namespace EDIVE.Replay.UI
         [SerializeReference] 
         private IActivation _RefreshActivation;
         
-        private readonly List<ReplayRecordInfo> _currentRecords = new();
+        private readonly List<AReplayRecordMeta> _currentRecords = new();
         
         private void OnEnable()
         {
@@ -59,10 +59,10 @@ namespace EDIVE.Replay.UI
             });
         }
         
-        private void OnReplayRecordedSelected(ReplayRecordInfo info)
+        private void OnReplayRecordedSelected(AReplayRecordMeta meta)
         {
             if (AppCore.Services.TryGet<ReplayController>(out var controller))
-                controller.LoadRecord(info);
+                controller.LoadRecord(meta);
         }
 
     }

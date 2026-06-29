@@ -10,6 +10,7 @@ using EDIVE.Replay.Components;
 using EDIVE.Utils.Cysharp;
 using MemoryPack;
 using MemoryPack.Compression;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace EDIVE.Replay
@@ -23,11 +24,20 @@ namespace EDIVE.Replay
         private static void Initialize()
         {
             MemoryPackUtility.RegisterDynamicUnionFormatter<AReplayAgentComponentData>();
+            MemoryPackUtility.RegisterDynamicUnionFormatter<AReplayRecordMeta>();
             AssetTranslationMemoryPackUtils.RegisterTranslator<ReplayAgentDefinition>();
         }
         
         public static string RecordingsFolderPath => PathUtility.GetRootAppDataPath("ReplayRecordings");
         
+        public static JsonSerializerSettings GetMetaJsonSettings()
+        {
+            var baseSettings = JsonConvert.DefaultSettings?.Invoke();
+            var settings = baseSettings != null ? new JsonSerializerSettings(baseSettings) : new JsonSerializerSettings();
+            settings.TypeNameHandling = TypeNameHandling.Auto;
+            return settings;
+        }
+
         public static string GetRecordingSaveFileName(string id, string extension = ".dat")
         {
             var folder = RecordingsFolderPath;

@@ -36,8 +36,8 @@ namespace EDIVE.Replay
         void UnloadPlayback();
 
         bool IsLoadingRecord { get; }
-        void SaveCurrentRecord();
-        void LoadRecord(ReplayRecordInfo info);
-        UniTask<IEnumerable<ReplayRecordInfo>> GetSavedRecords();
+        void SaveCurrentRecord(AReplayRecordMeta meta = null);
+        void LoadRecord(AReplayRecordMeta meta);
+        UniTask<IEnumerable<AReplayRecordMeta>> GetSavedRecords();
     }
 }

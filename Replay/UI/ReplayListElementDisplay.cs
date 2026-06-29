@@ -21,10 +21,10 @@ namespace EDIVE.Replay.UI
         [SerializeField]
         private Button _LoadButton;
 
-        private ReplayRecordInfo _info;
-        private Action<ReplayRecordInfo> _onClicked;
+        private AReplayRecordMeta _info;
+        private Action<AReplayRecordMeta> _onClicked;
 
-        public void SetReplay(ReplayRecordInfo info, Action<ReplayRecordInfo> onClicked)
+        public void SetReplay(AReplayRecordMeta info, Action<AReplayRecordMeta> onClicked)
         {
             _info = info;
             _onClicked = onClicked;
