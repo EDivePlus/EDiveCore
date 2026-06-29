@@ -24,6 +24,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
     {
         public override string PlatformName => "Android";
         
+#pragma warning disable CS0414
         [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
         [SerializeField]
         private AndroidArchitecture _TargetArchitectures = AndroidArchitecture.ARMv7 | AndroidArchitecture.ARM64;
@@ -69,6 +70,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _ForceDisableCloudDiagnostics;
+#pragma warning restore CS0414
 
         private bool ShowForcedSymbolsMessage => CrashReportingSettings.enabled && !_ForceDisableCloudDiagnostics && _SymbolLevel != DebugSymbolLevelCustom.Full;
         
