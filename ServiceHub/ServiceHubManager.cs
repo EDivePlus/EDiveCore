@@ -61,12 +61,15 @@ namespace EDIVE.ServiceHub
         public ProbeService Probe => _Probe;
 
         public bool HasValidSetup => !string.IsNullOrEmpty(Settings.AppSecret);
-        
+
+        private bool _modulesInitialized;
+
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
             foreach (var module in GetAllModules())
                 module.Initialize(_Settings);
-            
+            _modulesInitialized = true;
+
             if (!HasValidSetup)
             {
                 Debug.LogError($"[ServiceHubManager] Invalid setup: AppSecret is not set. Please configure the ServiceHubSettings.");
@@ -78,6 +81,16 @@ namespace EDIVE.ServiceHub
 
             if (AuthStorage.Client.IsValid())
                 await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);
+        }
+
+        // Quest can kill a backgrounded app without calling OnApplicationQuit, so flush pending local and remote writes on pause.
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (!pauseStatus || !_modulesInitialized)
+                return;
+
+            _SaveData.User.FlushAsync().Forget();
+            _SaveData.Server.FlushAsync().Forget();
         }
 
         private IEnumerable<IServiceHubModule> GetAllModules()
