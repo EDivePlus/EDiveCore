@@ -23,7 +23,7 @@ namespace EDIVE.Avatars.Networking
         public AvatarDefinition PlayerAvatar
         {
             get => _PlayerAvatar;
-            set => SetProperty(ref _PlayerAvatar, value);
+            set => SetProperty(ref _PlayerAvatar, value, SaveDataDirtyFlag.OnEndOfFrame);
         }
         
         [SerializeField, JsonProperty("visual_preset")]
@@ -33,7 +33,7 @@ namespace EDIVE.Avatars.Networking
             get => _CustomizationPreset;
             set
             {
-                SetProperty(ref _CustomizationPreset, value);
+                SetProperty(ref _CustomizationPreset, value, SaveDataDirtyFlag.OnBatch);
                 CustomizationChanged?.Invoke(value);
             }
         }

@@ -70,7 +70,7 @@ namespace EDIVE.Avatars.Networking
         {
             if (_saveData != null)
             {
-                _saveData.MarkedAsDirty -= OnSaveDataMarkedAsDirty;
+                _saveData.CustomizationChanged -= OnAvatarCustomizationChanged;
                 _saveData = null;
             }
         }
@@ -82,8 +82,7 @@ namespace EDIVE.Avatars.Networking
             
             var result = await _saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
 
-            _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
-            _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
+            _saveData = result.Value;
 
             _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
             _saveData.CustomizationPreset ??= _saveData.PlayerAvatar.DefaultCustomizations;
@@ -91,15 +90,6 @@ namespace EDIVE.Avatars.Networking
                 SetAvatar(_saveData.PlayerAvatar);
 
             _saveData.CustomizationChanged += OnAvatarCustomizationChanged;
-        }
-
-        private void OnSaveDataMarkedAsDirty()
-        {
-            var data = _saveData;
-            if (_saveDataService == null || data == null)
-                return;
-            
-            _saveDataService.User.SetSaveDataAsync(data, SaveDataDirtyFlag.OnEndOfFrame).Forget();
         }
 
         private void OnAvatarChanged(AvatarController old, AvatarController value)

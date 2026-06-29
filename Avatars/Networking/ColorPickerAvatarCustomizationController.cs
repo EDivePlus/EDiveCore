@@ -35,8 +35,7 @@ namespace EDIVE.Avatars.Networking
         {
             var result = await _saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY);
 
-            _saveData = result.IsSuccess && result.Value != null ? result.Value : new AvatarPlayerSaveData();
-            _saveData.MarkedAsDirty += OnSaveDataMarkedAsDirty;
+            _saveData = result.Value;
 
             if (_saveData.CustomizationPreset != null &&
                 _saveData.CustomizationPreset.TryGetRecord(_ChangedVisualID, out ColorVisualPresetRecord record))
@@ -60,15 +59,6 @@ namespace EDIVE.Avatars.Networking
             var preset = new ColorVisualPresetRecord(_ChangedVisualID, newColor);
             var visualPreset = new VisualPreset(preset);
             _saveData.CustomizationPreset = visualPreset;
-        }
-        
-        private void OnSaveDataMarkedAsDirty()
-        {
-            var data = _saveData;
-            if (_saveDataService == null || data == null)
-                return;
-            
-            _saveDataService.User.SetSaveDataAsync(data, SaveDataDirtyFlag.OnBatch).Forget();
         }
     }
 }

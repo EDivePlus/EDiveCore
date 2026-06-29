@@ -24,7 +24,7 @@ namespace EDIVE.ServiceHub.SaveData
         protected virtual SaveDataDirtyFlag DefaultDirtyFlags => SaveDataDirtyFlag.OnBatch;
         
         public event Action<SaveDataDirtyFlag> DirtyFlagsChanged;
-        public event Action MarkedAsDirty;
+        public event Action<ASaveDataObject> MarkedAsDirty;
         public event Action MarkedAsClean;
 
         protected void SetProperty<T>(ref T field, T value, SaveDataDirtyFlag? dirtyFlag = null)
@@ -43,7 +43,7 @@ namespace EDIVE.ServiceHub.SaveData
             DirtyFlags |= effectiveFlag;
 
             if (notify && wasClean)
-                MarkedAsDirty?.Invoke();
+                MarkedAsDirty?.Invoke(this);
             DirtyFlagsChanged?.Invoke(DirtyFlags);
         }
 

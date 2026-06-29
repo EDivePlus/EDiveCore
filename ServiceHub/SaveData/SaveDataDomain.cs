@@ -63,24 +63,65 @@ namespace EDIVE.ServiceHub.SaveData
 
             var created = JsonConvert.DeserializeObject<T>(json);
             if (created != null)
-                ObjectCache[key] = created;
+                CacheObject(created);
 
             return created;
         }
 
         public void CacheObject(ASaveDataObject saveDataObject)
         {
-            if (saveDataObject != null)
-                ObjectCache[saveDataObject.Key] = saveDataObject;
+            if (saveDataObject == null)
+                return;
+
+            var key = saveDataObject.Key;
+            if (ObjectCache.TryGetValue(key, out var existing) && existing != saveDataObject)
+                Untrack(existing);
+
+            ObjectCache[key] = saveDataObject;
+            Track(saveDataObject);
         }
 
-        public void RemoveCached(string key) => ObjectCache.Remove(key);
-        public void ClearCache() => ObjectCache.Clear();
+        public void RemoveCached(string key)
+        {
+            if (ObjectCache.TryGetValue(key, out var cached))
+                Untrack(cached);
+            ObjectCache.Remove(key);
+        }
+
+        public void ClearCache()
+        {
+            foreach (var cached in ObjectCache.Values)
+                Untrack(cached);
+            ObjectCache.Clear();
+        }
+
+        private void Track(ASaveDataObject saveDataObject)
+        {
+            saveDataObject.MarkedAsDirty -= OnObjectMarkedDirty;
+            saveDataObject.MarkedAsDirty += OnObjectMarkedDirty;
+        }
+
+        private void Untrack(ASaveDataObject saveDataObject)
+        {
+            saveDataObject.MarkedAsDirty -= OnObjectMarkedDirty;
+        }
+
+        private void OnObjectMarkedDirty(ASaveDataObject saveDataObject) => PersistAsync(saveDataObject).Forget();
 
         private static readonly ISaveDataConflictResolver DEFAULT_RESOLVER = new NewestWinsConflictResolver();
         private ISaveDataConflictResolver Resolver => _ConflictResolver ?? DEFAULT_RESOLVER;
 
-        public async UniTask<SaveDataResult<T>> GetSaveDataAsync<T>(string key, CancellationToken ct = default) where T : ASaveDataObject
+        private T GetOrCreateTracked<T>(string key) where T : ASaveDataObject, new()
+        {
+            if (TryGetCached<T>(key, out var cached))
+                return cached;
+
+            var created = new T();
+            CacheObject(created);
+            return created;
+        }
+
+        public async UniTask<SaveDataResult<T>> GetSaveDataAsync<T>(string key, CancellationToken ct = default) where T : ASaveDataObject, new()
         {
             if (TryGetCached<T>(key, out var cached))
                 return SaveDataResult<T>.Success(cached, false);
@@ -112,15 +153,15 @@ namespace EDIVE.ServiceHub.SaveData
             }
 
             if (candidates.Count == 0)
-                return SaveDataResult<T>.Success(null, false);
+                return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
 
             var winnerIndex = Resolver.Resolve(candidates);
             if (winnerIndex < 0 || winnerIndex >= count || _Stores[winnerIndex] == null)
-                return SaveDataResult<T>.Success(null, false);
+                return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
 
             var winnerRead = fullReads[winnerIndex] ?? await _Stores[winnerIndex].GetAsync(key);
             if (!winnerRead.Found)
-                return SaveDataResult<T>.Success(null, false);
+                return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
 
             var value = ResolveCacheFromJson<T>(key, winnerRead.Json);
 
@@ -139,11 +180,8 @@ namespace EDIVE.ServiceHub.SaveData
         private static bool TimestampsEqual(DateTime? a, DateTime? b) =>
             a.HasValue && b.HasValue ? a.Value == b.Value : a.HasValue == b.HasValue;
 
-        public async UniTask SetSaveDataAsync(ASaveDataObject saveDataObject, SaveDataDirtyFlag flag)
+        private async UniTask PersistAsync(ASaveDataObject saveDataObject)
         {
-            saveDataObject.SetDirty(flag, false);
-            CacheObject(saveDataObject);
-
             foreach (var store in _Stores)
             {
                 if (store != null)
