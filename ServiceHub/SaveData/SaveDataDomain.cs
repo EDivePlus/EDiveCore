@@ -141,7 +141,7 @@ namespace EDIVE.ServiceHub.SaveData
 
         public async UniTask SetSaveDataAsync(ASaveDataObject saveDataObject, SaveDataDirtyFlag flag)
         {
-            saveDataObject.SetDirty(flag);
+            saveDataObject.SetDirty(flag, false);
             CacheObject(saveDataObject);
 
             foreach (var store in _Stores)

@@ -35,18 +35,18 @@ namespace EDIVE.ServiceHub.SaveData
             SetDirty(effectiveFlag);
         }
         
-        public void SetDirty(SaveDataDirtyFlag? flag = null)
+        public void SetDirty(SaveDataDirtyFlag? flag = null, bool notify = true)
         {
             var effectiveFlag = flag ?? DefaultDirtyFlags;
 
             var wasClean = DirtyFlags == SaveDataDirtyFlag.None;
             DirtyFlags |= effectiveFlag;
 
-            if (wasClean)
+            if (notify && wasClean)
                 MarkedAsDirty?.Invoke();
             DirtyFlagsChanged?.Invoke(DirtyFlags);
         }
-        
+
         public void ClearDirty()
         {
             if (DirtyFlags == SaveDataDirtyFlag.None) 
