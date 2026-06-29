@@ -90,10 +90,22 @@ namespace EDIVE.Networking.Players
             _localPlayerRequest.Then(r => completionSource.TrySetResult(r));
             return await completionSource.Task;
         }
+        
+        public bool TryGetPlayerController(PlayerID clientID, out NetworkPlayerController playerController)
+        {
+            if (CurrentPlayers.TryGetFirst(c => c.owner.HasValue && c.owner.Value == clientID, out var existingPlayerController))
+            {
+                playerController = existingPlayerController;
+                return true;
+            }
+
+            playerController = null;
+            return false;
+        }
 
         public async UniTask<NetworkPlayerController> AwaitPlayerController(PlayerID clientID)
         {
-            if (CurrentPlayers.TryGetFirst(c => c.owner.HasValue && c.owner.Value == clientID, out var playerController))
+            if (TryGetPlayerController(clientID, out var playerController))
                 return playerController;
 
             var promise = new Promise<NetworkPlayerController>();

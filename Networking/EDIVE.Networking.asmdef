@@ -10,7 +10,6 @@
         "EDIVE.OdinExtensions",
         "EDIVE.AddressableAssets",
         "EDIVE.Utils",
-        "EDIVE.SceneManagement",
         "EDIVE.AssetTranslation",
         "Unity.Addressables",
         "Unity.ResourceManager",
