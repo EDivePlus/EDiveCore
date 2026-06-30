@@ -23,6 +23,16 @@ namespace EDIVE.DataStructures.VariableFields
             get => Data.Value;
             set => Data.Value = value;
         }
+
+        public VariableField() { }
+        public VariableField(T value)
+        {
+            _Data = new RawVariableFieldData<T> { Value = value };
+        }
+        public VariableField(IVariableFieldData<T> data)
+        {
+            _Data = data;
+        }
     }
 
 #if UNITY_EDITOR

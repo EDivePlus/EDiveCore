@@ -47,6 +47,8 @@ namespace EDIVE.Localization
             TableEntryReference = entry;
         }
 
+        public static SafeLocalizedString EmptyWithFallback(string fallback) => new((string) null, null) {_fallbackValue = fallback};
+
         public override string ToString() => this.GetLocalizedStringSafe(_fallbackValue);
         public static implicit operator string(SafeLocalizedString s) => s.ToString();
     }
