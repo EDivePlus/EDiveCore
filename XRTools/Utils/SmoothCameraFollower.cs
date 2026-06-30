@@ -156,6 +156,10 @@ namespace EDIVE.XRTools
         private Vector3 _frameSamplePosition;
         private Quaternion _frameSampleRotation = Quaternion.identity;
 
+        private bool _hasHoldFrame;
+        private Vector3 _holdFramePosition;
+        private Quaternion _holdFrameRotation = Quaternion.identity;
+
         private void OnEnable()
         {
             _RepositionAction?.RegisterActivationListener(Reposition);
@@ -251,6 +255,7 @@ namespace EDIVE.XRTools
         public void SetFollowing(bool following)
         {
             _isFollowing = following;
+            _hasHoldFrame = false;
             if (following)
             {
                 _hasAnchorFrame = false;
@@ -319,6 +324,7 @@ namespace EDIVE.XRTools
             GetLocalTargetPose(cam, out var targetLocalPosition, out var targetLocalRotation, false);
 
             _hasPrevCamLocalPosition = false;
+            _hasHoldFrame = false;
             _repositionTween?.Kill();
 
             if (immediate)
@@ -414,32 +420,28 @@ namespace EDIVE.XRTools
             followTarget.rotation = spaceRotation * _localRotation;
         }
 
-        // not following: hold local pose, frame still carries it
+        // not following: ride along with the reference frame, like a child
         private void HoldInReferenceFrame()
         {
             ResolveSpace(out var spacePosition, out var spaceRotation);
-            var inverseSpaceRotation = Quaternion.Inverse(spaceRotation);
 
-            // reference frame changed: re-capture local pose from the current world pose
             var referenceFrame = _ReferenceFrame?.Value;
-            if (_hasLocalPose && !ReferenceEquals(referenceFrame, _prevReferenceFrame))
-                _hasLocalPose = false;
+            if (!ReferenceEquals(referenceFrame, _prevReferenceFrame))
+                _hasHoldFrame = false;
             _prevReferenceFrame = referenceFrame;
 
             var followTarget = FollowTarget;
 
-            // capture the current world pose as the local pose to hold
-            if (!_hasLocalPose)
+            if (_hasHoldFrame)
             {
-                _localPosition = inverseSpaceRotation * (followTarget.position - spacePosition);
-                _localRotation = inverseSpaceRotation * followTarget.rotation;
-                _positionVelocity = Vector3.zero;
-                _rotationVelocity = Vector3.zero;
-                _hasLocalPose = true;
+                var deltaRotation = spaceRotation * Quaternion.Inverse(_holdFrameRotation);
+                followTarget.position = spacePosition + deltaRotation * (followTarget.position - _holdFramePosition);
+                followTarget.rotation = deltaRotation * followTarget.rotation;
             }
 
-            followTarget.position = spacePosition + spaceRotation * _localPosition;
-            followTarget.rotation = spaceRotation * _localRotation;
+            _holdFramePosition = spacePosition;
+            _holdFrameRotation = spaceRotation;
+            _hasHoldFrame = true;
         }
 
         // target pose in reference-frame local space
