@@ -39,23 +39,44 @@ namespace EDIVE.Utils.Json
         {
             if (string.IsNullOrEmpty(FilePath))
                 return;
-            if (File.Exists(FilePath))
-            {
-                try
-                {
-                    var json = File.ReadAllText(FilePath, Encoding.UTF8);
-                    Data = JsonConvert.DeserializeObject<T>(json, _jsonSerializerSettings) ?? new T();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogException(e);
-                    Data = new T();
-                }
-            }
-            else
+
+            if (!File.Exists(FilePath))
             {
                 Data = new T();
                 SaveData();
+                return;
+            }
+
+            var json = File.ReadAllText(FilePath, Encoding.UTF8);
+            if (TryDeserialize(json, out var data))
+            {
+                Data = data;
+                return;
+            }
+
+            Data = new T();
+            SaveData();
+        }
+
+        private bool TryDeserialize(string json, out T data)
+        {
+            data = null;
+            if (string.IsNullOrWhiteSpace(json))
+                return false;
+
+            var trimmed = json.TrimStart();
+            if (trimmed.Length == 0 || (trimmed[0] != '{' && trimmed[0] != '['))
+                return false;
+
+            try
+            {
+                data = JsonConvert.DeserializeObject<T>(json, _jsonSerializerSettings);
+                return data != null;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return false;
             }
         }
 
