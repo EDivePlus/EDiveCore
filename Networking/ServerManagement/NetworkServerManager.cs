@@ -3,12 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Configuration;
 using EDIVE.Console;
 using EDIVE.Core;
+using EDIVE.NativeUtils;
 using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.WordGenerating;
@@ -45,6 +47,10 @@ namespace EDIVE.Networking.ServerManagement
         [MinValue(1)]
         [Tooltip("How many times to retry the reconnect after resume before giving up (network/DNS can take a few seconds to recover on standalone XR devices).")]
         private int _ResumeReconnectAttempts = 3;
+
+        [SerializeField]
+        [Tooltip("How long auto-connect waits for a discovered server before giving up.")]
+        private float _AutoConnectTimeout = 5f;
         
         public IEnumerable<ServerRecord> ServerList => _serverList;
         public event Action ServerListUpdated;
@@ -186,6 +192,60 @@ namespace EDIVE.Networking.ServerManagement
             }
 
             Debug.LogError($"[NetworkServerManager] Failed to reconnect to '{server.ServerName}' after resume.");
+        }
+
+        // Discovers and joins the first server, preferring one on this machine.
+        public async UniTask<bool> AutoConnectAsync(CancellationToken cancellationToken = default)
+        {
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, destroyCancellationToken);
+            var token = linkedCts.Token;
+
+            ServerRecord target = null;
+            AServerEndpoint endpoint = null;
+            StartSearch();
+            try
+            {
+                using var discoveryCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                discoveryCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _AutoConnectTimeout)));
+                await UniTask.WaitUntil(() => TryPickLocalServer(out target, out endpoint), cancellationToken: discoveryCts.Token);
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                Debug.LogWarning("[NetworkServerManager] AutoConnect found no local server before the discovery timeout.");
+                return false;
+            }
+            finally
+            {
+                StopSearch();
+            }
+
+            Debug.Log($"[NetworkServerManager] AutoConnect joining '{target.ServerName}' via {endpoint}.");
+            return await ConnectToServerAsync(target, endpoint, token);
+        }
+
+        private bool TryPickLocalServer(out ServerRecord server, out AServerEndpoint endpoint)
+        {
+            server = null;
+            endpoint = null;
+            foreach (var record in _serverList)
+            {
+                if (!record.Endpoints.TryGetFirst(IsLocalEndpoint, out endpoint))
+                    continue;
+                server = record;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool IsLocalEndpoint(AServerEndpoint endpoint)
+        {
+            if (endpoint is not AddressServerEndpoint addressEndpoint || string.IsNullOrEmpty(addressEndpoint.Address))
+                return false;
+
+            if (IPAddress.TryParse(addressEndpoint.Address, out var ip) && IPAddress.IsLoopback(ip))
+                return true;
+
+            return addressEndpoint.Address == NetworkUtils.GetLocalIPv4();
         }
 
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
