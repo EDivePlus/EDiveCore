@@ -32,14 +32,20 @@ namespace EDIVE.Conditions
         
         public override void InitializeObserving()
         {
-            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().OfType<ICondition>().Where(c => c != null))
+            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().Where(c => c != null))
+            {
                 condition.StateChanged += OnConditionStateChanged;
+                condition.InitializeObserving();
+            }
         }
 
         public override void TerminateObserving()
         {
-            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().OfType<ICondition>().Where(c => c != null))
+            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().Where(c => c != null))
+            {
                 condition.StateChanged -= OnConditionStateChanged;
+                condition.TerminateObserving();
+            }
         }
         
         private void OnConditionStateChanged() => InvokeStateChanged();
