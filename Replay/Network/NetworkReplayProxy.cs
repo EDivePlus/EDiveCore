@@ -39,8 +39,7 @@ namespace EDIVE.Replay.Network
         {
             if (!asServer) return;
             _Handler.StateChanged -= OnHandlerStateChanged;
-            // NOTE: pre-existing bug preserved from FishNet version — should be `-=`.
-            _Handler.TimeChanged += OnHandlerTimeChanged;
+            _Handler.TimeChanged -= OnHandlerTimeChanged;
         }
 
         private void OnHandlerStateChanged()
