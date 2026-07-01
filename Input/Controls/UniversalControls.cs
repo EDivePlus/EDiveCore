@@ -15,7 +15,7 @@ namespace EDIVE.Input.Controls
         public override Vector3 Position => _CameraController.transform.position - Vector3.up * _defaultHeight;
         public override Quaternion Rotation => GetFloorRotation(_CameraController.transform);
 
-        protected override void Awake()
+        protected void Awake()
         {
             _defaultHeight = _CameraController.transform.localPosition.y;
         }

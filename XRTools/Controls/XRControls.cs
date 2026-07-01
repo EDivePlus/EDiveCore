@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.XRTools.DeviceSimulator;
 using Sirenix.OdinInspector;
 using Unity.XR.CoreUtils;
 using UnityEngine;
@@ -25,9 +26,9 @@ namespace EDIVE.XRTools.Controls
         [EnhancedTableList]
         private List<RigHeightSetting> _HeightModes = new()
         {
+            new RigHeightSetting(RigHeightMode.Automatic, XROrigin.TrackingOriginMode.Floor, 0f),
             new RigHeightSetting(RigHeightMode.Seated, XROrigin.TrackingOriginMode.Device, 1.1f),
-            new RigHeightSetting(RigHeightMode.Standing, XROrigin.TrackingOriginMode.Device, 1.5f),
-            new RigHeightSetting(RigHeightMode.Floor, XROrigin.TrackingOriginMode.Floor, 0f)
+            new RigHeightSetting(RigHeightMode.Standing, XROrigin.TrackingOriginMode.Device, 1.5f)
         };
 
         public override Vector3 Position
@@ -43,21 +44,8 @@ namespace EDIVE.XRTools.Controls
 
         public override Quaternion Rotation => _XROrigin != null && _XROrigin.Camera != null ? GetFloorRotation(_XROrigin.Camera.transform) : transform.rotation;
 
-        [PropertySpace]
-        [ShowInInspector]
-        [EnumToggleButtons]
-        public RigHeightMode HeightMode
-        {
-            get => _heightMode;
-            set => SetHeightMode(value);
-        }
-
+        [ShowInInspector, Sirenix.OdinInspector.ReadOnly]
         private RigHeightMode _heightMode;
-
-        private void Start()
-        {
-            SetHeightMode(ControlsManager.SavedHeightMode);
-        }
 
         public override void RequestTeleport(Vector3 position, Quaternion? rotation = null)
         {
@@ -73,6 +61,12 @@ namespace EDIVE.XRTools.Controls
         {
             if (_XROrigin == null)
                 return;
+
+            if (mode == RigHeightMode.Automatic && XRDeviceSimulatorUtils.SimulatorEnabled)
+            {
+                Debug.Log($"[{nameof(XRControls)}] Simulator has no floor tracking, falling back {RigHeightMode.Automatic} -> {RigHeightMode.Standing}.", this);
+                mode = RigHeightMode.Standing;
+            }
 
             if (!_HeightModes.TryGetFirst(s => s.Mode == mode, out var setting))
                 return;

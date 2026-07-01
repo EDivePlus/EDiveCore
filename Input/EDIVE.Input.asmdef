@@ -11,7 +11,8 @@
         "EDIVE.Core",
         "EDIVE.OdinExtensions",
         "EDIVE.Conditions",
-        "EDIVE.Utils"
+        "EDIVE.Utils",
+        "EDIVE.DataStructures"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -25,8 +25,6 @@ namespace EDIVE.Input.Controls
 
         public virtual void SetHeightMode(RigHeightMode mode) { }
 
-        protected virtual void Awake() { }
-
         protected static Quaternion GetFloorRotation(Transform source)
         {
             var forward = source.forward;
