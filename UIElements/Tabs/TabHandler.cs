@@ -12,6 +12,9 @@ namespace EDIVE.UIElements.Tabs
 
         [SerializeField]
         private AToggleState _Toggle;
+        
+        [SerializeField]
+        private GameObject _Panel;
 
         public event Action<TabHandler> Selected;
 
@@ -32,8 +35,11 @@ namespace EDIVE.UIElements.Tabs
 
         public void SetActive(bool state)
         {
-            if(_Toggle) 
+            if (_Toggle) 
                 _Toggle.SetState(state);
+            
+            if (_Panel)
+                _Panel.SetActive(state);
         }
     }
 }
