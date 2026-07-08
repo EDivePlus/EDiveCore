@@ -17,7 +17,7 @@ namespace EDIVE.XRTools.Utils.Vignette
     public class LocomotionVignetteProvider : AConfiguredVignetteProvider
     {
         [SerializeField]
-        [EnhancedValueDropdown(nameof(GetLocomotionProvidersDropdown), AppendNextDrawer = true, IsUniqueList = true, DrawDropdownForListElements = false)]
+        [EnhancedValueDropdown("GetLocomotionProvidersDropdown", AppendNextDrawer = true, IsUniqueList = true, DrawDropdownForListElements = false)]
         private List<LocomotionProvider> _LocomotionProviders = new();
 
         protected override void OnInitialize()
