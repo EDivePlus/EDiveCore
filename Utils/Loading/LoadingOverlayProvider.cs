@@ -6,6 +6,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using EDIVE.Core.Services;
+using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -14,9 +15,13 @@ namespace EDIVE.Utils.Loading
 {
     public class LoadingOverlayProvider : AServiceBehaviour<LoadingOverlayProvider>
     {
+        [EnhancedBoxGroup("Fade In", "@ColorTools.Lime")]
+        [EnhancedInlineProperty(true)]
         [SerializeField]
         private TweenAnimationField _FadeIn;
         
+        [EnhancedBoxGroup("Fade Out", "@ColorTools.Cyan")]
+        [EnhancedInlineProperty(true)]
         [SerializeField]
         private TweenAnimationField _FadeOut;
         
@@ -55,7 +60,8 @@ namespace EDIVE.Utils.Loading
             }
         }
         
-        [Button]
+        [PropertySpace]
+        [Button(DrawResult = false)]
         private async UniTask Request()
         {
             Debug.Log("Request");
