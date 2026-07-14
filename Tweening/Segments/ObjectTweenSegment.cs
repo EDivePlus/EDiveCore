@@ -22,6 +22,7 @@ namespace EDIVE.Tweening.Segments
         [DontValidate]
         [EnhancedObjectDrawer("IsValidTarget", PreferredTypeGetter = "GetPreferredTargetType")]
         private Object _Target;
+        public Object Target => _Target;
 
         protected override bool TryGetTarget(out Object target)
         {
