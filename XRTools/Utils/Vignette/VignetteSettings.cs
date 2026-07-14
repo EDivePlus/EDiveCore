@@ -9,29 +9,67 @@ namespace EDIVE.XRTools.Utils.Vignette
     [Serializable]
     public class VignetteSettings
     {
-        [SerializeField, Range(0f, 1f)]
+        [Range(-1f, 1f)]
+        [SerializeField] 
         private float _ApertureSize = 1f;
 
-        [SerializeField, Range(0f, 1f)]
+        [Range(0f, 1f)]
+        [SerializeField] 
         private float _Feathering;
 
-        [SerializeField]
-        private Color _Color = Color.black;
+        [Range(0f, 1f)]
+        [SerializeField] 
+        private float _Alpha = 1f;
 
         [SerializeField]
-        private Color _ColorBlend = Color.black;
+        private Color _Color = Color.white;
+
+        [SerializeField]
+        private Gradient _Gradient = CreateDefaultGradient();
 
         [SerializeField]
         private float _VerticalPosition;
 
-        public float ApertureSize { get => _ApertureSize; set => _ApertureSize = value; }
-        public float Feathering { get => _Feathering; set => _Feathering = value; }
-        public Color Color { get => _Color; set => _Color = value; }
-        public Color ColorBlend { get => _ColorBlend; set => _ColorBlend = value; }
-        public float VerticalPosition { get => _VerticalPosition; set => _VerticalPosition = value; }
-        
+        public float ApertureSize
+        {
+            get => _ApertureSize;
+            set => _ApertureSize = value;
+        }
+        public float Feathering
+        {
+            get => _Feathering;
+            set => _Feathering = value;
+        }
+        public float Alpha
+        {
+            get => _Alpha;
+            set => _Alpha = value;
+        }
+        public Color Color
+        {
+            get => _Color;
+            set => _Color = value;
+        }
+        public Gradient Gradient
+        {
+            get => _Gradient;
+            set => _Gradient = value;
+        }
+        public float VerticalPosition
+        {
+            get => _VerticalPosition;
+            set => _VerticalPosition = value;
+        }
+
+        private static Gradient CreateDefaultGradient()
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] {new GradientColorKey(Color.black, 0f)}, new[] {new GradientAlphaKey(1f, 0f)});
+            return gradient;
+        }
+
         public static VignetteSettings None => new();
-        
+
         public static VignetteSettings Default => new()
         {
             ApertureSize = 0.7f,
@@ -42,17 +80,19 @@ namespace EDIVE.XRTools.Utils.Vignette
         {
             _ApertureSize = other._ApertureSize;
             _Feathering = other._Feathering;
+            _Alpha = other._Alpha;
             _Color = other._Color;
-            _ColorBlend = other._ColorBlend;
+            _Gradient = other._Gradient;
             _VerticalPosition = other._VerticalPosition;
         }
-        
+
         public static void Lerp(VignetteSettings a, VignetteSettings b, float t, VignetteSettings result)
         {
             result._ApertureSize = Mathf.Lerp(a._ApertureSize, b._ApertureSize, t);
             result._Feathering = Mathf.Lerp(a._Feathering, b._Feathering, t);
+            result._Alpha = Mathf.Lerp(a._Alpha, b._Alpha, t);
             result._Color = Color.Lerp(a._Color, b._Color, t);
-            result._ColorBlend = Color.Lerp(a._ColorBlend, b._ColorBlend, t);
+            result._Gradient = t < 0.5f ? a._Gradient : b._Gradient;
             result._VerticalPosition = Mathf.Lerp(a._VerticalPosition, b._VerticalPosition, t);
         }
     }

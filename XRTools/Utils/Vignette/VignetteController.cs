@@ -36,14 +36,20 @@ namespace EDIVE.XRTools.Utils.Vignette
         [ShowIf(nameof(_PreviewInEditor))]
         private VignetteSettings _PreviewSettings = VignetteSettings.Default;
 
+        private const int RAMP_WIDTH = 256;
+
         private static readonly int APERTURE_SIZE_ID = Shader.PropertyToID("_ApertureSize");
         private static readonly int FEATHERING_EFFECT_ID = Shader.PropertyToID("_FeatheringEffect");
-        private static readonly int VIGNETTE_COLOR_ID = Shader.PropertyToID("_VignetteColor");
-        private static readonly int VIGNETTE_COLOR_BLEND_ID = Shader.PropertyToID("_VignetteColorBlend");
+        private static readonly int ALPHA_ID = Shader.PropertyToID("_Alpha");
+        private static readonly int COLOR_ID = Shader.PropertyToID("_Color");
+        private static readonly int GRADIENT_ID = Shader.PropertyToID("_Gradient");
+        private static readonly int VERTICAL_OFFSET_ID = Shader.PropertyToID("_VerticalOffset");
 
         private MeshRenderer _meshRenderer;
         private MeshFilter _meshFilter;
         private MaterialPropertyBlock _propertyBlock;
+        private Texture2D _rampTexture;
+        private Gradient _rampSource;
 
         private readonly List<VignetteHandle> _requests = new();
         private VignetteHandle _winner;
@@ -91,6 +97,7 @@ namespace EDIVE.XRTools.Utils.Vignette
             _tween = null;
             _target = null;
             _transitioning = false;
+            DestroyRamp();
         }
 
         private void Update()
@@ -114,8 +121,21 @@ namespace EDIVE.XRTools.Utils.Vignette
 
         private void OnValidate()
         {
-            if (!Application.isPlaying && gameObject.activeInHierarchy)
-                ApplyToMaterial(_PreviewInEditor ? _PreviewSettings : _none);
+            if (Application.isPlaying || !gameObject.activeInHierarchy)
+                return;
+
+            if (_PreviewInEditor)
+                ApplyToMaterial(_PreviewSettings);
+            else
+                ReleasePropertyBlock();
+        }
+        
+        private void ReleasePropertyBlock()
+        {
+            if (_meshRenderer == null)
+                _meshRenderer = GetComponent<MeshRenderer>();
+            if (_meshRenderer != null)
+                _meshRenderer.SetPropertyBlock(null);
         }
 
         private VignetteHandle SelectWinner()
@@ -221,17 +241,11 @@ namespace EDIVE.XRTools.Utils.Vignette
             _meshRenderer.GetPropertyBlock(_propertyBlock);
             _propertyBlock.SetFloat(APERTURE_SIZE_ID, settings.ApertureSize);
             _propertyBlock.SetFloat(FEATHERING_EFFECT_ID, settings.Feathering);
-            _propertyBlock.SetColor(VIGNETTE_COLOR_ID, settings.Color);
-            _propertyBlock.SetColor(VIGNETTE_COLOR_BLEND_ID, settings.ColorBlend);
+            _propertyBlock.SetFloat(ALPHA_ID, settings.Alpha);
+            _propertyBlock.SetColor(COLOR_ID, settings.Color);
+            _propertyBlock.SetFloat(VERTICAL_OFFSET_ID, settings.VerticalPosition);
+            _propertyBlock.SetTexture(GRADIENT_ID, GetRampTexture(settings.Gradient));
             _meshRenderer.SetPropertyBlock(_propertyBlock);
-
-            var thisTransform = transform;
-            var localPosition = thisTransform.localPosition;
-            if (!Mathf.Approximately(localPosition.y, settings.VerticalPosition))
-            {
-                localPosition.y = settings.VerticalPosition;
-                thisTransform.localPosition = localPosition;
-            }
         }
 
         private bool TrySetUpMaterial()
@@ -272,6 +286,60 @@ namespace EDIVE.XRTools.Utils.Vignette
             }
 
             return true;
+        }
+
+        private Texture2D GetRampTexture(Gradient gradient)
+        {
+            // A single-color gradient only needs one texel; a varying one gets the full ramp.
+            var width = IsConstant(gradient) ? 1 : RAMP_WIDTH;
+
+            if (_rampTexture != null && _rampTexture.width != width)
+                DestroyRamp();
+
+            if (_rampTexture == null)
+            {
+                _rampTexture = new Texture2D(width, 1, TextureFormat.RGBA32, false)
+                {
+                    name = "VignetteRamp",
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+                _rampSource = null;
+            }
+
+            // Rebake when the source gradient changes, and always in edit mode (in-place edits keep the same reference).
+            if (!ReferenceEquals(_rampSource, gradient) || !Application.isPlaying)
+            {
+                for (var x = 0; x < width; x++)
+                    _rampTexture.SetPixel(x, 0, gradient.Evaluate(width == 1 ? 0f : x / (width - 1f)));
+                _rampTexture.Apply(false);
+                _rampSource = gradient;
+            }
+
+            return _rampTexture;
+        }
+
+        private static bool IsConstant(Gradient gradient)
+        {
+            var color = gradient.Evaluate(0f);
+            return Approximately(gradient.Evaluate(0.5f), color) && Approximately(gradient.Evaluate(1f), color);
+        }
+
+        private static bool Approximately(Color a, Color b) =>
+            Mathf.Approximately(a.r, b.r) && Mathf.Approximately(a.g, b.g) &&
+            Mathf.Approximately(a.b, b.b) && Mathf.Approximately(a.a, b.a);
+
+        private void DestroyRamp()
+        {
+            if (_rampTexture == null)
+                return;
+
+            if (Application.isPlaying)
+                Destroy(_rampTexture);
+            else
+                DestroyImmediate(_rampTexture);
+            _rampTexture = null;
+            _rampSource = null;
         }
 
         private void WarnOnce(string message)
