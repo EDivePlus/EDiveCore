@@ -25,7 +25,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public override string PlatformName => "Android";
         
 #pragma warning disable CS0414
-        [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
+        [EnhancedBoxGroup("Backend")]
         [SerializeField]
         private AndroidArchitecture _TargetArchitectures = AndroidArchitecture.ARMv7 | AndroidArchitecture.ARM64;
 

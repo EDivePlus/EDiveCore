@@ -23,7 +23,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public virtual int Priority => -100;
         public string CallbackName => $"Build Target {PlatformName}";
 
-        [EnhancedBoxGroup("Backend")]
+        [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
         [SerializeField]
         protected ScriptingImplementation _ScriptingImplementation = ScriptingImplementation.IL2CPP;
         public ScriptingImplementation ScriptingImplementation => _ScriptingImplementation;

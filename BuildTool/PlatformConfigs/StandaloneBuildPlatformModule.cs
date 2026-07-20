@@ -12,7 +12,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
     {
         public override string PlatformName => "Standalone";
         
-        [EnhancedBoxGroup("Backend", "@ColorTools.Purple", Order = -1, SpaceAfter = 4)]
+        [EnhancedBoxGroup("Backend")]
         [SerializeField]
         private StandalonePlatform _Platform;
 
