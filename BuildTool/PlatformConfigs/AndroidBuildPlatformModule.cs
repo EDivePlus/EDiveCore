@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections;
+using EDIVE.BuildTool.Signing;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -70,8 +71,13 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _ForceDisableCloudDiagnostics;
+        
+        [EnhancedBoxGroup("Signing", "@ColorTools.Green", SpaceBefore = 4)]
+        [LabelText("Keystore")]
+        [SerializeField]
+        private AndroidKeystoreDefinition _Keystore;
 #pragma warning restore CS0414
-
+        
         private bool ShowForcedSymbolsMessage => CrashReportingSettings.enabled && !_ForceDisableCloudDiagnostics && _SymbolLevel != DebugSymbolLevelCustom.Full;
         
 #if UNITY_ANDROID
@@ -84,7 +90,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public DebugSymbolLevel SymbolLevel => (DebugSymbolLevel) _SymbolLevel;
         public bool ForceDisableCloudDiagnostics => _ForceDisableCloudDiagnostics;
         public DebugSymbolFormat SymbolFormat => (DebugSymbolFormat)((int) _SymbolOutputFormat | (int) _SymbolFileExtension);
-
 #endif
 
         public override NamedBuildTarget NamedBuildTarget => NamedBuildTarget.Android;
@@ -123,6 +128,26 @@ namespace EDIVE.BuildTool.PlatformConfigs
             
             data._PrevEnableCloudDiagnostics = CrashReportingSettings.enabled;
             if (_ForceDisableCloudDiagnostics) CrashReportingSettings.enabled = false;
+
+            data._PrevUseCustomKeystore = PlayerSettings.Android.useCustomKeystore;
+            data._PrevKeystoreName = PlayerSettings.Android.keystoreName;
+            data._PrevKeyaliasName = PlayerSettings.Android.keyaliasName;
+
+            if (_Keystore != null)
+            {
+                if (_Keystore.TryResolve(out var credentials))
+                {
+                    PlayerSettings.Android.useCustomKeystore = true;
+                    PlayerSettings.Android.keystoreName = credentials.StoreFilePath;
+                    PlayerSettings.Android.keystorePass = credentials.StorePassword;
+                    PlayerSettings.Android.keyaliasName = credentials.KeyAlias;
+                    PlayerSettings.Android.keyaliasPass = credentials.KeyPassword;
+                }
+                else
+                {
+                    Debug.LogError($"[Android] Keystore '{_Keystore.name}' is assigned but could not be resolved on this machine. Configure it in its asset inspector or provide the CI environment variables.");
+                }
+            }
 #endif
             yield break;
         }
@@ -149,6 +174,14 @@ namespace EDIVE.BuildTool.PlatformConfigs
             UserBuildSettings.DebugSymbols.format = data._PrevSymbolFormat;
             
             CrashReportingSettings.enabled = data._PrevEnableCloudDiagnostics;
+
+            PlayerSettings.Android.useCustomKeystore = data._PrevUseCustomKeystore;
+            PlayerSettings.Android.keystoreName = data._PrevKeystoreName;
+            PlayerSettings.Android.keyaliasName = data._PrevKeyaliasName;
+            PlayerSettings.Android.keystorePass = string.Empty;
+            PlayerSettings.Android.keyaliasPass = string.Empty;
+            if (_Keystore != null)
+                AssetDatabase.SaveAssets();
 #endif
             yield break;
         }
@@ -192,6 +225,15 @@ namespace EDIVE.BuildTool.PlatformConfigs
             
             [SerializeField]
             public bool _PrevEnableCloudDiagnostics;
+
+            [SerializeField]
+            public bool _PrevUseCustomKeystore;
+
+            [SerializeField]
+            public string _PrevKeystoreName;
+
+            [SerializeField]
+            public string _PrevKeyaliasName;
         }
 #endif
     }
