@@ -7,6 +7,6 @@ namespace EDIVE.OdinExtensions.Attributes
     [Conditional("UNITY_EDITOR")]
     public class PasswordFieldAttribute : Attribute
     {
-        
+        public bool Delayed;
     }
 }
