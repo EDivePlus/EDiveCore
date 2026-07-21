@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using EDIVE.BuildTool.ApplicationConfigs;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
@@ -15,6 +16,7 @@ namespace EDIVE.BuildTool
     public class CommandLineBuild
     {
         private const string CMD_USER_CONFIG = "-userConfig";
+        private const string CMD_APP_CONFIG = "-appConfig";
         private const string CMD_PLATFORM_CONFIG = "-platformConfig";
 
         private const string CMD_VERSION_MAJOR = "-vMaj";
@@ -48,15 +50,24 @@ namespace EDIVE.BuildTool
                 return;
             }
             
-            var user = BuildGlobalSettings.Instance.DefaultUser;
+            var userConfig = BuildGlobalSettings.Instance.DefaultUser;
             if (arguments.TryGetValue(CMD_USER_CONFIG, out var userName))
             {
                 if (EditorAssetUtils.FindAllAssetsOfType<BuildUserConfig>().TryGetFirst(c => c.name == userName, out var foundUser))
-                    user = foundUser;
+                    userConfig = foundUser;
                 else
                     TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] User config '{userName}' not found, using default.");
             }
-
+            
+            ApplicationConfig appConfig = null;
+            if (arguments.TryGetValue(CMD_APP_CONFIG, out var appConfigName))
+            {
+                if (EditorAssetUtils.FindAllAssetsOfType<ApplicationConfig>().TryGetFirst(c => c.name == appConfigName, out var foundApp))
+                    appConfig = foundApp;
+                else
+                    TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] Application config '{appConfigName}' not found, using default.");
+            }
+            
             var versionDef = BuildGlobalSettings.Instance.VersionDefinition;
             var version = versionDef.CurrentVersion;
             if (arguments.TryGetValue(CMD_VERSION_MAJOR, out var vMajStr) && int.TryParse(vMajStr, out var vMaj))
@@ -69,7 +80,7 @@ namespace EDIVE.BuildTool
                 version.Build = vBuild;
             versionDef.CurrentVersion = version;
 
-            var preset = new BuildPreset(user, platformConfig);
+            var preset = new BuildPreset(userConfig, appConfig, platformConfig);
         
             TeamCityServiceMessages.MessageLog($"[CMDBuild] Preset created: {preset}");
             preset.Build(BuildOptions.None);

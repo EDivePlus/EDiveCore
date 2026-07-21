@@ -107,10 +107,19 @@ namespace EDIVE.BuildTool
         {
             [ShowInInspector]
             [InlineIconButton(FontAwesomeEditorIconType.RotateLeftSolid, nameof(ResetUserToDefault), "Reset to Default User")]
+            [OnValueChanged(nameof(RefreshPresets))]
             public BuildUserConfig CurrentUser
             {
                 get => BuildGlobalSettings.Instance.CurrentUser;
                 set => BuildGlobalSettings.Instance.CurrentUser = value;
+            }
+            
+            [ShowInInspector]
+            [OnValueChanged(nameof(RefreshPresets))]
+            public ApplicationConfig CurrentApp
+            {
+                get => BuildGlobalSettings.Instance.CurrentApp;
+                set => BuildGlobalSettings.Instance.CurrentApp = value;
             }
 
             [PropertyOrder(10)]
@@ -127,7 +136,7 @@ namespace EDIVE.BuildTool
             private void RefreshPresets()
             {
                 _Presets = EditorAssetUtils.FindAllAssetsOfType<BuildPlatformConfig>()
-                    .Select(c => new BuildPreset(BuildGlobalSettings.Instance.CurrentUser, c)).ToList();
+                    .Select(c => new BuildPreset(CurrentUser, CurrentApp, c)).ToList();
             }
 
             [PropertyOrder(-1)]

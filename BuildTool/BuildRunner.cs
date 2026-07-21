@@ -170,6 +170,13 @@ namespace EDIVE.BuildTool
 
             Context.ResultPath = UserConfig.PathResolver.ResolvePath(Preset);
             Context.Defines = Preset.GetBuildDefines(Context).ToList();
+            Context.Scenes = Preset.GetBuildScenes(Context).ToList();
+            if (Context.Scenes == null || Context.Scenes.Count == 0)
+            {
+                Debug.LogWarning("[BuildRunner] No resolved scenes for build, falling back to EditorBuildSettings.scenes");
+                Context.Scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToList();
+            }
+            
             PlayerSettings.GetScriptingDefineSymbols(PlatformConfig.NamedBuildTarget, out _PrevDefines);
             
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
@@ -178,10 +185,6 @@ namespace EDIVE.BuildTool
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
             
             TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.VersionString);
-            
-            Context.Scenes = PlatformConfig.OverrideSceneList != null && PlatformConfig.OverrideSceneList.Scenes.Count > 0 
-                ? PlatformConfig.OverrideSceneList.Scenes 
-                : EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToList();
             
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             yield return ExecuteBuildCallback<IStateCaptureBuildCallback>(Preset.GetBuildCallbacks(Context), c => c.OnStateCapture(_Context));

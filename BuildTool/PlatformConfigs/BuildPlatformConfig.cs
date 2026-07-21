@@ -31,12 +31,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
         [SerializeReference]
         internal List<APlatformModule> _AdditionalModules = new();
         
-        [EnhancedBoxGroup("Data", "@ColorTools.Lime", SpaceBefore = 6)]
-        [Tooltip("Override the scenes defined in the EditorBuildSettings with this Scene List")]
-        [ShowCreateNew]
-        [SerializeField]
-        protected SceneListDefinition _OverrideSceneList;
-
         [EnhancedBoxGroup("Data")]
         [PropertySpace(4)]
         [HideLabel]
@@ -53,8 +47,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         
         public bool IsValid => _BuildTargetModule != null;
         public SerializedBuildSetupData BuildSetupData => _BuildSetupData;
-        public SceneListDefinition OverrideSceneList => _OverrideSceneList;
-        
+
         public IEnumerable<IPlatformModule> GetModules()
         {
             if(_BuildTargetModule != null)
@@ -84,6 +77,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         
         public IEnumerable<string> GetBuildDefines(BuildContext context) => BuildSetupData.Defines;
+        public IEnumerable<string> GetBuildScenes(BuildContext context) => BuildSetupData.Scenes;
         public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context) => GetModules().Cast<IBuildCallback>().Concat(BuildSetupData.Actions);
         
         private IEnumerable<APlatformModule> GetAvailableModules()

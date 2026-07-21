@@ -7,7 +7,10 @@ using System.Linq;
 using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
+using Sirenix.Utilities.Editor;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
 
@@ -18,18 +21,23 @@ namespace EDIVE.BuildTool.ApplicationConfigs
     public class ApplicationConfig : ScriptableObject, IBuildDataProvider
     {
         [SerializeReference]
-        [ListDrawerSettings(ShowFoldout = false)]
+        [HideReferenceObjectPicker]
+        [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = nameof(OnComponentsListTitleBarGUI))]
         [ValueDropdown(nameof(GetComponentsDropdown), IsUniqueList = true, DrawDropdownForListElements = false)]
         private List<AApplicationConfigComponent> _Components = new();
         
         [SerializeField]
-        [InlineProperty]
-        [HideLabel]
+        [EnhancedInlineProperty(true, 0)]
         private MultiPlatformBuildSetupData _BuildSetupData;
 
         public IEnumerable<string> GetBuildDefines(BuildContext context)
         {
             return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Defines);
+        }
+        
+        public IEnumerable<string> GetBuildScenes(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Scenes);
         }
 
         public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context)
@@ -88,8 +96,6 @@ namespace EDIVE.BuildTool.ApplicationConfigs
                 .Select(c => new ValueDropdownItem<AApplicationConfigComponent>(c.Label, c));
         }
         
-        [Button]
-        [HorizontalGroup("Controls")]
         public void LoadAllCurrent()
         {
             if (EditorUtility.DisplayDialog("Load from current settings?", "Are you sure you want to overwrite this config from current project settings?", "Ok", "Cancel"))
@@ -103,8 +109,6 @@ namespace EDIVE.BuildTool.ApplicationConfigs
             EditorUtility.ClearProgressBar();
         }
         
-        [Button]
-        [HorizontalGroup("Controls")]
         public void ApplyAll()
         {
             if (EditorUtility.DisplayDialog(
@@ -122,6 +126,18 @@ namespace EDIVE.BuildTool.ApplicationConfigs
             EditorUtility.DisplayProgressBar("Application Config", "Applying...", 0);
             yield return Apply();
             EditorUtility.ClearProgressBar();
+        }
+        
+        private void OnComponentsListTitleBarGUI()
+        {
+            if (SirenixEditorGUI.ToolbarButton(FontAwesomeEditorIcons.DownloadSolid))
+            {
+                LoadAllCurrent();
+            }
+            if (SirenixEditorGUI.ToolbarButton(FontAwesomeEditorIcons.UploadSolid))
+            {
+                ApplyAll();
+            }
         }
     }
 }

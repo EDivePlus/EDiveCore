@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.Actions;
+using EDIVE.DataStructures;
 using EDIVE.DataStructures.ToggleableValues;
 using EDIVE.EditorUtils;
 using Sirenix.OdinInspector;
@@ -21,6 +22,10 @@ namespace EDIVE.BuildTool.BuildSetupData
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false)]
         private List<ToggleableField<string>> _Defines = new();
+        
+        [SerializeField]
+        [ListDrawerSettings(ShowFoldout = false)]
+        private List<ToggleableField<SceneField>> _Scenes = new();
 
         [SerializeReference]
         [HideReferenceObjectPicker]
@@ -30,6 +35,7 @@ namespace EDIVE.BuildTool.BuildSetupData
         private List<ABuildAction> _Actions = new();
 
         public IEnumerable<string> Defines => _Defines.ToValueList();
+        public IEnumerable<string> Scenes => _Scenes.ToValueList().Select(s => s.Path);
         public IEnumerable<ABuildAction> Actions => _Actions;
         
         private IEnumerable GetAvailableBuildActions() => TypeCacheUtils.GetDerivedClassesOfType<ABuildAction>().Select(a => new ValueDropdownItem<ABuildAction>(a.CallbackName, a));

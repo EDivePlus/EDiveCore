@@ -3,9 +3,12 @@
 
 using System;
 using System.Collections;
+using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector;
+using Sirenix.Utilities.Editor;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
+using UnityEngine;
 
 namespace EDIVE.BuildTool.ApplicationConfigs
 {
@@ -19,18 +22,12 @@ namespace EDIVE.BuildTool.ApplicationConfigs
         public virtual string Label => ObjectNames.NicifyVariableName(GetType().Name);
         public virtual int Priority => 0;
         
-        [PropertyOrder(-10)]
-        [Button("Load current")]
-        [HorizontalGroup("Controls")]
         private void LoadFromCurrentSettingsInEditor()
         {
             if (EditorUtility.DisplayDialog("Load from current settings?", "Are you sure you want to overwrite this preset from current project settings?", "Ok", "Cancel"))
                 EditorCoroutineUtility.StartCoroutine(FromCurrentSettingsCoroutine(), this);
         }
         
-        [PropertyOrder(-10)]
-        [Button("Apply")]
-        [HorizontalGroup("Controls")]
         private void ApplyInEditor()
         {
             if (EditorUtility.DisplayDialog("Apply preset?", "Are you sure you want to overwrite current project settings with this preset?", "Ok", "Cancel"))
@@ -45,6 +42,26 @@ namespace EDIVE.BuildTool.ApplicationConfigs
             yield return LoadCurrent();
             Selection.objects = previousSelection;
             ActiveEditorTracker.sharedTracker.isLocked = wasLocked;
+        }
+
+        [PropertyOrder(-100)]
+        [OnInspectorGUI]
+        private void DrawTitle()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Label, EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            if (SirenixEditorGUI.IconButton(FontAwesomeEditorIcons.DownloadSolid))
+            {
+                LoadFromCurrentSettingsInEditor();
+            }
+            GUILayout.Space(4);
+            if (SirenixEditorGUI.IconButton(FontAwesomeEditorIcons.UploadSolid))
+            {
+                ApplyInEditor();
+            }
+            GUILayout.Space(2);
+            GUILayout.EndHorizontal();
         }
     }
 }

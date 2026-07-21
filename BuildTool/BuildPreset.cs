@@ -4,8 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.BuildTool.ApplicationConfigs;
 using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Utils;
+using EDIVE.DataStructures;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
@@ -20,19 +22,25 @@ namespace EDIVE.BuildTool
         [SerializeField]
         private BuildUserConfig _UserConfig;
         
+        [HideInInspector]
+        [SerializeField]
+        private ApplicationConfig _AppConfig;
+        
         [SerializeField]
         private BuildPlatformConfig _PlatformConfig;
 
         public BuildUserConfig UserConfig => _UserConfig;
         public BuildPlatformConfig PlatformConfig => _PlatformConfig;
-
+        public ApplicationConfig AppConfig => _AppConfig;
+        
         public BuildPreset() { }
-        public BuildPreset(BuildUserConfig userConfig, BuildPlatformConfig platformConfig)
+        public BuildPreset(BuildUserConfig userConfig,  ApplicationConfig appConfig, BuildPlatformConfig platformConfig)
         {
             _UserConfig = userConfig;
+            _AppConfig = appConfig;
             _PlatformConfig = platformConfig;
         }
-
+        
         public void Build(BuildOptions options)
         {
             var buildRunner = new BuildRunner(this, options);
@@ -59,17 +67,23 @@ namespace EDIVE.BuildTool
         }
 
         public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context) => 
-            GetBuildCallbacks(context, BuildGlobalSettings.Instance, PlatformConfig, UserConfig);
+            GetBuildCallbacks(context, BuildGlobalSettings.Instance, PlatformConfig, AppConfig, UserConfig);
 
         public IEnumerable<string> GetBuildDefines(BuildContext context) => 
-            GetBuildDefines(context, BuildGlobalSettings.Instance, PlatformConfig, UserConfig);
+            GetBuildDefines(context, BuildGlobalSettings.Instance, PlatformConfig, AppConfig, UserConfig);
+        
+        public IEnumerable<string> GetBuildScenes(BuildContext context) => 
+            GetBuildScenes(context, BuildGlobalSettings.Instance, PlatformConfig, AppConfig, UserConfig);
 
         protected IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context, params IBuildDataProvider[] providers) => 
             providers.Where(p => p != null).SelectMany(p => p.GetBuildCallbacks(context));
 
+        protected IEnumerable<string> GetBuildScenes(BuildContext context, params IBuildDataProvider[] providers) => 
+            providers.Where(p => p != null).SelectMany(p => p.GetBuildScenes(context));
+        
         protected IEnumerable<string> GetBuildDefines(BuildContext context, params IBuildDataProvider[] providers) => 
             providers.Where(p => p != null).SelectMany(p => p.GetBuildDefines(context));
-
+        
         public override string ToString()
         {
             return $"User: '{(UserConfig != null ? UserConfig.name : "null")}' Platform: '{(PlatformConfig != null ? PlatformConfig.name : "null")}'";

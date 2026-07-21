@@ -6,8 +6,6 @@ using System.Linq;
 using EDIVE.BuildTool.BuildSetupData;
 using EDIVE.BuildTool.PathResolving;
 using Sirenix.OdinInspector;
-using UnityEditor;
-using UnityEditor.Build;
 using UnityEngine;
 
 namespace EDIVE.BuildTool
@@ -34,6 +32,12 @@ namespace EDIVE.BuildTool
                 .SelectMany(d => d.Defines);
         }
 
+        public IEnumerable<string> GetBuildScenes(BuildContext context)
+        {
+            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget)
+                .SelectMany(d => d.Scenes);
+        }
+        
         public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context)
         {
             return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget)
