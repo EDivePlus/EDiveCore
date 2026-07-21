@@ -11,9 +11,11 @@ namespace EDIVE.OdinExtensions.Attributes
         public bool PushContentRight;
         public int ContentIndent = 1;
         
-        public EnhancedInlinePropertyAttribute(bool hideLabel = false)
+        public EnhancedInlinePropertyAttribute() {}
+        public EnhancedInlinePropertyAttribute(bool hideLabel, int contentIndent = 1)
         {
             HideLabel = hideLabel;
+            ContentIndent = contentIndent;
         }
     }
 }
