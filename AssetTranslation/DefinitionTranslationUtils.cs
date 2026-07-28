@@ -2,8 +2,11 @@
 // Created: 14.04.2025
 
 using System.Text;
-using PurrNet.Packing;
 using UnityEngine;
+
+#if PURRNET
+using PurrNet.Packing;
+#endif
 
 namespace EDIVE.AssetTranslation
 {
@@ -31,6 +34,7 @@ namespace EDIVE.AssetTranslation
         }
         
         
+#if PURRNET
         public static void CustomWriteTranslatedDefinition<TDefinition>(this BitPacker packer, TDefinition value) where TDefinition : ScriptableObject, IUniqueDefinition
         {
 #if UNITY_EDITOR || ASSET_TRANSLATION_LOGS
@@ -63,5 +67,6 @@ namespace EDIVE.AssetTranslation
 
             return translator.TryGet(uniqueId, out var definition) && definition is TDefinition tDefinition ? tDefinition : null;
         }
+#endif
     }
 }

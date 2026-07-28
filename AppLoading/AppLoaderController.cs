@@ -8,16 +8,21 @@ using EDIVE.Core;
 using EDIVE.Core.Services;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+
+#if ADDRESSABLES
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using UnityEngine.SceneManagement;
+#endif
 
 namespace EDIVE.AppLoading
 {
     public class AppLoaderController : MonoBehaviour, IService
     {
+#if ADDRESSABLES
         [SerializeField]
         private AssetReferenceT<LoadSetupDefinition> _SetupReference;
+#endif
         
         [SerializeField]
         private LoadSetupDefinition _Setup;
@@ -26,8 +31,11 @@ namespace EDIVE.AppLoading
 
         private float _currentLoadCompletedWeight;
         private readonly List<LoadItemDefinition> _currentLoadingItems = new();
+        
+#if ADDRESSABLES
         private AsyncOperationHandle<LoadSetupDefinition> _setupHandle;
-
+#endif
+        
         protected float? LoadTime { get; private set; }
         public LoadSetupDefinition Setup => _Setup;
 
@@ -42,12 +50,14 @@ namespace EDIVE.AppLoading
         [UsedImplicitly]
         private async UniTaskVoid Start()
         {
+#if ADDRESSABLES
             if (_Setup == null && _SetupReference.IsValid())
             {
                 _setupHandle = _SetupReference.LoadAssetAsync();
                 _Setup = await _setupHandle;
             }
-
+#endif
+            
             IsLoading = true;
             LoadStartedSignal?.Invoke();
 
@@ -100,8 +110,11 @@ namespace EDIVE.AppLoading
             AppCore.SetLoadCompleted();
 
             AppCore.Services.Unregister<AppLoaderController>();
-            if (_setupHandle.IsValid())
+            
+#if ADDRESSABLES
+              if (_setupHandle.IsValid())
                 _setupHandle.Release();
+#endif
             GC.Collect();
             DebugLite.Log("[AppLoader] Load completed");
 

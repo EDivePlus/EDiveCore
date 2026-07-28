@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 29.09.2021
 
+#if GEO_JSON
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -81,3 +82,5 @@ namespace EDIVE.GeoToolkit.Maps
         }
     }
 }
+
+#endif

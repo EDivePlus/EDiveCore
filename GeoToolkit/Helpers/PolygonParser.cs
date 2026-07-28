@@ -1,3 +1,4 @@
+#if GEO_JSON
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -359,3 +360,5 @@ namespace EDIVE.GeoToolkit.Maps
         }
     }
 }
+
+#endif

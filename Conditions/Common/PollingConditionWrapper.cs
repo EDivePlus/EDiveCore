@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 27.05.2026
 
+#if R3
 using System;
 using EDIVE.Utils.Cysharp;
 using R3;
@@ -36,3 +37,4 @@ namespace EDIVE.Conditions
         }
     }
 }
+#endif

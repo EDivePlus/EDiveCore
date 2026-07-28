@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
-using EDIVE.AddressableAssets;
 using EDIVE.AppLoading.Dependencies;
 using EDIVE.AppLoading.Utils;
 using EDIVE.AssetTranslation;
@@ -19,6 +18,10 @@ using UnityEngine;
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
+#endif
+
+#if ADDRESSABLES
+using EDIVE.AddressableAssets;
 #endif
 
 namespace EDIVE.AppLoading.LoadItems

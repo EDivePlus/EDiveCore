@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 14.04.2026
 
+#if PURRNET
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -173,3 +174,4 @@ namespace EDIVE.Forms.Networking
         }
     }
 }
+#endif

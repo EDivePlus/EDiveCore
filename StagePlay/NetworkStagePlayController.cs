@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 19.02.2026
 
+#if PURRNET
 using PurrNet;
 using UnityEngine;
 
@@ -96,3 +97,4 @@ namespace EDIVE.StagePlay
         }
     }
 }
+#endif

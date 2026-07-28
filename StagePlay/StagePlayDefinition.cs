@@ -8,7 +8,6 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AssetTranslation;
 
 using JetBrains.Annotations;
-using PurrNet.Packing;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -16,6 +15,10 @@ using UnityEngine;
 #if UNITY_EDITOR && CSV_HELPER
 using CsvHelper;
 using CsvHelper.Configuration;
+#endif
+
+#if PURRNET
+using PurrNet.Packing;
 #endif
 
 namespace EDIVE.StagePlay
@@ -114,11 +117,13 @@ namespace EDIVE.StagePlay
 #endif
     }
     
+#if PURRNET
     [UsedImplicitly]
     public static class StagePlayDefinitionNetworkExtensions
     {
         public static void Write(this BitPacker packer, StagePlayDefinition value) => packer.CustomWriteTranslatedDefinition(value);
         public static void Read(this BitPacker packer, ref StagePlayDefinition value) => value = packer.CustomReadTranslatedDefinition<StagePlayDefinition>();
     }
+#endif
     
 }

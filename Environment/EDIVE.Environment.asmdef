@@ -28,6 +28,7 @@
   "overrideReferences": false,
   "autoReferenced": true,
   "defineConstraints": [
+    "PURRNET",
     "XR_INTERACTION_TOOLKIT"
   ],
   "versionDefines": [

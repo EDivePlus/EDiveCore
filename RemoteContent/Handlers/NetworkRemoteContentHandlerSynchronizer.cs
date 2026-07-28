@@ -1,6 +1,7 @@
 // Author: Michal Petr
 // Created: 06.05.2026
 
+#if PURRNET
 using PurrNet;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -63,3 +64,4 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         }
     }
 }
+#endif
