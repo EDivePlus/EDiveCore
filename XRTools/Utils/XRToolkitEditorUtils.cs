@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 13.03.2026
 
+/*
 #if UNITY_EDITOR
 using EDIVE.External.DomainReloadHelper;
 #if XR_HANDS
@@ -37,3 +38,4 @@ namespace EDIVE.XRTools.Editor
     }
 }
 #endif
+*/
