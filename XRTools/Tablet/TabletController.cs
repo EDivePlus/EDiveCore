@@ -32,6 +32,9 @@ namespace EDIVE.XRTools.Tablet
         private float _MaxDistance = 1f;
 
         [SerializeField]
+        private float _InitialScale = 1;
+        
+        [SerializeField]
         private float _TweenDuration = 0.3f;
 
         [ShowInInspector]
@@ -45,6 +48,7 @@ namespace EDIVE.XRTools.Tablet
         }
 
         private bool _isOpen;
+        private float _openScale;
         private Tween _animTween;
 
         protected override void OnEnable()
@@ -63,6 +67,8 @@ namespace EDIVE.XRTools.Tablet
         private void Awake()
         {
             _isOpen = true;
+            _openScale = _InitialScale;
+            transform.localScale = Vector3.one * _InitialScale;
         }
 
         [Button]
@@ -90,13 +96,17 @@ namespace EDIVE.XRTools.Tablet
 
         public void SetOpen(bool open, bool immediate = false)
         {
+            // Cache open scale
+            if (_isOpen && !_animTween.IsActive()) 
+                _openScale = transform.localScale.x;
+            
             _animTween?.Kill();
             _isOpen = open;
             
             if (_CameraFollower != null)
                 _CameraFollower.Reposition(immediate);
-            
-            var newScale = open ? Vector3.one : Vector3.zero;
+
+            var newScale = open ? _openScale * Vector3.one : Vector3.zero;
 
             if (immediate)
                 transform.localScale = newScale;
