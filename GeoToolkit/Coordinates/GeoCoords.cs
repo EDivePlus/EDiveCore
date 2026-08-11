@@ -3,6 +3,9 @@
 
 using System;
 using CoordinateSharp;
+using EDIVE.OdinExtensions;
+using EDIVE.OdinExtensions.Attributes;
+using JetBrains.Annotations;
 using ProjNet.CoordinateSystems.Transformations;
 using Unity.Mathematics;
 using UnityEngine;
@@ -13,6 +16,7 @@ namespace EDIVE.GeoToolkit.Coordinates
     public struct GeoCoords
     {
         [SerializeField]
+        [InlineIconButton(FontAwesomeEditorIconType.CopySolid, "CopyCoords", "Copy coordinates", GUIAlwaysEnabled = true)]
         private double2 _Position;
         
         [SerializeField]
@@ -74,5 +78,10 @@ namespace EDIVE.GeoToolkit.Coordinates
             var dist = new Distance(coordA, coordB, alg.ToCoordinateSharpShape());
             return dist.Meters;
         }
+
+#if UNITY_EDITOR
+        [UsedImplicitly]
+        private void CopyCoords(Rect fieldRect) => CoordinatesClipboardUtility.ShowCopyDropdown(this, fieldRect);
+#endif
     }
 }

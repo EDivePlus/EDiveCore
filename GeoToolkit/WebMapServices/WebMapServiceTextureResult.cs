@@ -1,9 +1,11 @@
 ﻿// Author: František Holubec
 // Created: 01.06.2026
 
+using System;
 using EDIVE.GeoToolkit.Utils;
 using Unity.Mathematics;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace EDIVE.GeoToolkit.WebMapServices
 {
@@ -31,14 +33,30 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 for (var y = 0; y < yLen; y++)
                 {
                     var partData = _parts[x, y];
-                    var partTexture = new Texture2D(0, 0);
-                    partTexture.LoadImage(partData.Data);
-                    if (partTexture.width != partData.Dimensions.x || partTexture.height != partData.Dimensions.y)
-                        partTexture.Reinitialize(partData.Dimensions.x, partData.Dimensions.y);
-                    var pixels = partTexture.GetPixels(0, 0, partData.Dimensions.x, partData.Dimensions.y);
-                    resultTexture.SetPixels(_sizeLimit.x * x, _sizeLimit.y * y, partData.Dimensions.x, partData.Dimensions.y, pixels);
+                    var partTexture = new Texture2D(2, 2);
+                    try
+                    {
+                        // LoadImage handles PNG and JPEG only - a TIFF request has to go through GetGrayScale2DArray instead.
+                        if (!partTexture.LoadImage(partData.Data))
+                            throw new InvalidOperationException($"Could not decode image part [{x},{y}] ({partData.Data?.Length ?? 0} bytes) as PNG or JPEG.");
+
+                        if (partTexture.width != partData.Dimensions.x || partTexture.height != partData.Dimensions.y)
+                            throw new InvalidOperationException($"Image part [{x},{y}] is {partTexture.width}x{partTexture.height}, expected {partData.Dimensions.x}x{partData.Dimensions.y}.");
+
+                        var pixels = partTexture.GetPixels(0, 0, partData.Dimensions.x, partData.Dimensions.y);
+                        resultTexture.SetPixels(_sizeLimit.x * x, _sizeLimit.y * y, partData.Dimensions.x, partData.Dimensions.y, pixels);
+                    }
+                    finally
+                    {
+                        if (Application.isPlaying)
+                            Object.Destroy(partTexture);
+                        else
+                            Object.DestroyImmediate(partTexture);
+                    }
                 }
             }
+
+            resultTexture.Apply();
             return resultTexture;
         }
 

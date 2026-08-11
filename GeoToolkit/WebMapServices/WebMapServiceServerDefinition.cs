@@ -6,11 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using Cysharp.Threading.Tasks;
 using EDIVE.GeoToolkit.Area;
+using EDIVE.GeoToolkit.Coordinates;
 using EDIVE.Utils.SerializableDictionary;
 using Sirenix.OdinInspector;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.Serialization;
 
 namespace EDIVE.GeoToolkit.WebMapServices
@@ -19,6 +22,7 @@ namespace EDIVE.GeoToolkit.WebMapServices
     public class WebMapServiceServerDefinition : ScriptableObject
     {
         private const string WMS_NAMESPACE = "{http://www.opengis.net/wms}";
+        private const int CAPABILITIES_TIMEOUT_SECONDS = 30;
         
         [InfoBox("$_StatusMessage", VisibleIf = nameof(_IsValid))]
         [InfoBox("$_StatusMessage", InfoMessageType.Error, VisibleIf = "@!_IsValid && !string.IsNullOrEmpty(_StatusMessage)")]
@@ -84,17 +88,29 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 return null;
             }
 
+            if (!CoordinateSystemTypeUtility.TryParse(coordinateSystem, out var requestedSystem))
+            {
+                Debug.LogError($"[{name}] Cannot generate URL: '{coordinateSystem}' is not a supported coordinate system.", this);
+                return null;
+            }
+
+            if (bbox.CoordinateSystem != requestedSystem)
+            {
+                Debug.LogError($"[{name}] Cannot generate URL: the area is in {bbox.CoordinateSystem.ToName()} but the request asks for {coordinateSystem}.", this);
+                return null;
+            }
+
             var builder = new StringBuilder()
                 .Append($"{ServerLink}")
                 .Append(_ServerLink[^1] == '?' ? "" : "?")
                 .Append("request=GetMap")
                 .Append("&service=WMS")
                 .Append("&version=1.3.0")
-                .Append($"&CRS={coordinateSystem}")
-                .Append($"&format={imageFormat}")
+                .Append($"&CRS={Uri.EscapeDataString(coordinateSystem)}")
+                .Append($"&format={Uri.EscapeDataString(imageFormat)}")
                 .Append("&styles=")
-                .Append($"&Layers={layer}")
-                .Append($"&BBOX={bbox.ToCommaSeparatedString()}")
+                .Append($"&Layers={Uri.EscapeDataString(layer)}")
+                .Append($"&BBOX={bbox.ToCommaSeparatedString(requestedSystem.IsNorthFirstAxisOrder())}")
                 .Append($"&WIDTH={textureSize.x}&HEIGHT={textureSize.y}");
             return builder.ToString();
         }
@@ -104,17 +120,25 @@ namespace EDIVE.GeoToolkit.WebMapServices
         [Button]
         private void UpdateData()
         {
+            UniTask.Void(UpdateDataAsync);
+        }
+
+        private async UniTaskVoid UpdateDataAsync()
+        {
             if (string.IsNullOrWhiteSpace(_CapabilitiesXMLLink))
             {
                 SetInvalid("No capabilities XML link provided.");
                 return;
             }
 
-            // XDocument.Load throws on unreachable URLs, IO errors and malformed XML - never let it bubble up.
+            // Unreachable hosts, HTTP errors and malformed XML all surface here - never let them bubble up.
             XDocument document;
             try
             {
-                document = XDocument.Load(_CapabilitiesXMLLink);
+                using var webRequest = UnityWebRequest.Get(_CapabilitiesXMLLink);
+                webRequest.timeout = CAPABILITIES_TIMEOUT_SECONDS;
+                await webRequest.SendWebRequest();
+                document = XDocument.Parse(webRequest.downloadHandler.text);
             }
             catch (Exception e)
             {
@@ -174,20 +198,24 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 return;
             }
 
-            // Build the layer map manually so duplicate / missing titles are skipped instead of throwing in ToDictionary.
+            // A layer is requestable when it has a Name - 'queryable' only advertises GetFeatureInfo support.
             var layers = new SerializableDictionary<string, string>();
-            foreach (var layerElement in capability.Descendants($"{WMS_NAMESPACE}Layer").Where(e => e.Attribute("queryable") != null))
+            foreach (var layerElement in capability.Descendants($"{WMS_NAMESPACE}Layer"))
             {
-                var title = layerElement.Element($"{WMS_NAMESPACE}Title")?.Value;
                 var layerName = layerElement.Element($"{WMS_NAMESPACE}Name")?.Value;
-                if (string.IsNullOrWhiteSpace(title) || layers.ContainsKey(title))
+                if (string.IsNullOrWhiteSpace(layerName))
                     continue;
-                layers.Add(title, layerName);
+
+                var title = layerElement.Element($"{WMS_NAMESPACE}Title")?.Value;
+                var key = string.IsNullOrWhiteSpace(title) ? layerName : title;
+                if (layers.ContainsKey(key))
+                    continue;
+                layers.Add(key, layerName);
             }
 
             if (layers.Count == 0)
             {
-                SetInvalid("No queryable layers found in the capabilities document.");
+                SetInvalid("No named layers found in the capabilities document.");
                 return;
             }
 

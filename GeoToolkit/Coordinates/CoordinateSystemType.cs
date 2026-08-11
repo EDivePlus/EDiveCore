@@ -25,6 +25,19 @@ namespace EDIVE.GeoToolkit.Coordinates
 
     public static class CoordinateSystemTypeUtility
     {
+        // EPSG-registered axis order, which WMS 1.3.0 honours - these list latitude/northing before longitude/easting.
+        private static readonly HashSet<CoordinateSystemType> NORTH_FIRST_AXIS_ORDER = new()
+        {
+            CoordinateSystemType.EPSG_4326,
+            CoordinateSystemType.EPSG_4258,
+            CoordinateSystemType.EPSG_3034,
+            CoordinateSystemType.EPSG_3035,
+            CoordinateSystemType.EPSG_3045,
+            CoordinateSystemType.EPSG_3046,
+            CoordinateSystemType.EPSG_3835,
+            CoordinateSystemType.EPSG_3836,
+        };
+
         // Some WKT dont work well with Proj.NET, so we use their predefined coordinate systems
         private static readonly Dictionary<CoordinateSystemType, CoordinateSystem> COORDINATE_SYSTEMS = new()
         {
@@ -65,6 +78,21 @@ namespace EDIVE.GeoToolkit.Coordinates
             coordinateSystem = csFact.CreateFromWkt(wkt);
             COORDINATE_SYSTEMS.Add(coordsSystemType, coordinateSystem);
             return coordinateSystem;
+        }
+
+        public static string ToName(this CoordinateSystemType coordsSystemType)
+        {
+            return coordsSystemType.ToString().Replace('_', ':');
+        }
+
+        public static bool IsGeographic(this CoordinateSystemType coordsSystemType)
+        {
+            return coordsSystemType.GetCoordinateSystem() is GeographicCoordinateSystem;
+        }
+
+        public static bool IsNorthFirstAxisOrder(this CoordinateSystemType coordsSystemType)
+        {
+            return NORTH_FIRST_AXIS_ORDER.Contains(coordsSystemType);
         }
 
         public static CoordinateSystemType Parse(string name)

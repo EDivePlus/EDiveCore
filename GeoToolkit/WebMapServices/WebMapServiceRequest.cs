@@ -30,19 +30,19 @@ namespace EDIVE.GeoToolkit.WebMapServices
         [FormerlySerializedAs("imageFormat")]
         [PropertySpace]
         [SerializeField]
-        [ValidateInput("IsImageFormatInvalid")]
+        [ValidateInput("IsImageFormatValid", "The server does not offer this image format.")]
         [ValueDropdown(nameof(AvailableImageFormats), FlattenTreeView = true)]
         private string _ImageFormat;
 
         [FormerlySerializedAs("coordinateSystem")]
         [SerializeField]
-        [ValidateInput("IsCoordinateSystemInvalid")]
+        [ValidateInput("IsCoordinateSystemValid", "The server does not offer this coordinate system.")]
         [ValueDropdown(nameof(AvailableCoordinateSystems), FlattenTreeView = true)]
         private string _CoordinateSystem;
 
         [FormerlySerializedAs("layer")]
         [SerializeField]
-        [ValidateInput("IsLayerInvalid")]
+        [ValidateInput("IsLayerValid", "The server does not offer this layer.")]
         [ValueDropdown(nameof(AvailableLayers), FlattenTreeView = true)]
         private string _Layer;
 
@@ -118,6 +118,12 @@ namespace EDIVE.GeoToolkit.WebMapServices
 
             using var webRequest = UnityWebRequest.Get(url);
             await webRequest.SendWebRequest().ToUniTask(progress, cancellationToken: cancellationToken);
+
+            // WMS reports GetMap failures as a ServiceExceptionReport with HTTP 200, which would otherwise be decoded as pixels.
+            var contentType = webRequest.GetResponseHeader("Content-Type");
+            if (contentType != null && !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"WMS returned '{contentType}' instead of an image.\n{webRequest.downloadHandler.text}\nURL: {url}");
+
             return webRequest.downloadHandler.data;
         }
 
@@ -191,13 +197,13 @@ namespace EDIVE.GeoToolkit.WebMapServices
         }
 
         [UsedImplicitly]
-        private bool IsLayerInvalid => AvailableLayers.Contains(_Layer);
+        private bool IsLayerValid => AvailableLayers.Contains(_Layer);
 
         [UsedImplicitly]
-        private bool IsCoordinateSystemInvalid => AvailableCoordinateSystems.Contains(_CoordinateSystem);
+        private bool IsCoordinateSystemValid => AvailableCoordinateSystems.Contains(_CoordinateSystem);
 
         [UsedImplicitly]
-        private bool IsImageFormatInvalid => AvailableImageFormats.Contains(_ImageFormat);
+        private bool IsImageFormatValid => AvailableImageFormats.Contains(_ImageFormat);
 
 #endif
     }
