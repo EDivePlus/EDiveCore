@@ -41,8 +41,10 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
             get => GetValue();
             set => SetValue(value);
         }
-
+        
+        public T DefaultValue => _DefaultValue;
         public bool IsReadOnly => _IsReadOnly;
+        
         public override Type GenericType => typeof(T);
 
         public T GetValue()
@@ -113,5 +115,17 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
         {
             return Value.ToString();
         }
+
+#if UNITY_EDITOR
+        public void SetDefaultValue(T value)
+        {
+            _DefaultValue = value;
+        }
+        
+        public void SetReadOnly(bool readOnly)
+        {
+            _IsReadOnly = readOnly;
+        }
+#endif
     }
 }
