@@ -53,6 +53,11 @@
     ],
     "versionDefines": [
         {
+            "name": "dev.purrnet.purrnet",
+            "expression": "",
+            "define": "PURRNET"
+        },
+        {
             "name": "com.unity.addressables",
             "expression": "",
             "define": "ADDRESSABLES"

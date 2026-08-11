@@ -36,6 +36,11 @@
       "name": "com.unity.xr.interaction.toolkit",
       "expression": "",
       "define": "XR_INTERACTION_TOOLKIT"
+    },
+    {
+      "name": "dev.purrnet.purrnet",
+      "expression": "",
+      "define": "PURRNET"
     }
   ],
   "noEngineReferences": false

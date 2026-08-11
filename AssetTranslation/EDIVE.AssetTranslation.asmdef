@@ -21,6 +21,11 @@
             "name": "com.cysharp.memorypack",
             "expression": "",
             "define": "MEMORY_PACK"
+        },
+        {
+            "name": "dev.purrnet.purrnet",
+            "expression": "",
+            "define": "PURRNET"
         }
     ],
     "noEngineReferences": false
