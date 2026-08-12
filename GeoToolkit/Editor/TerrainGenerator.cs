@@ -146,6 +146,8 @@ namespace EDIVE.GeoToolkit.TerrainTools
         private Serializable2DArray<GeoAreaRect> areaBBoxGrid;
         private float2 tileSize;
 
+        private HeightMapCache heightMapCache;
+
         private float terrainMin;
         private float terrainMax;
 
@@ -169,23 +171,6 @@ namespace EDIVE.GeoToolkit.TerrainTools
         private const int DownloadHeightMapsWeight = 5;
         private const int GenerateTerrainsWeight = 1;
 
-        private HeightMapAsset HeightMapAsset
-        {
-            get
-            {
-                var heightMapAssetPath = $"{TerrainDataFolder}/HeightMap.asset";
-
-                var heightMapAsset = (HeightMapAsset) AssetDatabase.LoadAssetAtPath(heightMapAssetPath, typeof(HeightMapAsset));
-                if (heightMapAsset == null)
-                {
-                    heightMapAsset = ScriptableObject.CreateInstance<HeightMapAsset>();
-                    AssetDatabase.CreateAsset(heightMapAsset, heightMapAssetPath);
-                }
-
-                return heightMapAsset;
-            }
-        }
-
         [EnhancedBoxGroup("Generator")]
         [Button("Generate")]
         public void GenerateTerrain()
@@ -208,10 +193,10 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 tileSize = resultTerrainSize / tileGridSize;
                 areaBBoxGrid = new Serializable2DArray<GeoAreaRect>(_Area.Value.Split(tileGridSize));
 
-                var heightMapAsset = HeightMapAsset;
+                heightMapCache = HeightMapCache.Load(TerrainDataFolder);
                 if (downloadHeightMaps)
                 {
-                    heightMapAsset.Data = new Serializable2DArray<Serializable2DArray<float>>(new Vector2Int(tileGridSize.x, tileGridSize.y));
+                    heightMapCache.Data = new Serializable2DArray<Serializable2DArray<float>>(new Vector2Int(tileGridSize.x, tileGridSize.y));
                 }
 
                 if (generateTerrains)
@@ -224,7 +209,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                     terrainMin = float.MaxValue;
                     terrainMax = float.MinValue;
 
-                    if (!downloadHeightMaps && !TryGetCachedHeightRange(heightMapAsset, out terrainMin, out terrainMax))
+                    if (!downloadHeightMaps && !TryGetCachedHeightRange(heightMapCache, out terrainMin, out terrainMax))
                         return;
                 }
 
@@ -389,7 +374,6 @@ namespace EDIVE.GeoToolkit.TerrainTools
             progressRange ??= new float2(0, 1);
             var progressPart = 1f / (tileGridSize.x * tileGridSize.y);
 
-            var heightMapAsset = HeightMapAsset;
             for (var x = 0; x < tileGridSize.x; x++)
             {
                 for (var y = 0; y < tileGridSize.y; y++)
@@ -423,13 +407,12 @@ namespace EDIVE.GeoToolkit.TerrainTools
                         continue;
                     }
 
-                    heightMapAsset.Data[x, y] = new Serializable2DArray<float>(heightMap);
+                    heightMapCache.Data[x, y] = new Serializable2DArray<float>(heightMap);
                     await UniTask.Yield(cancellationToken);
                 }
             }
 
-            EditorUtility.SetDirty(heightMapAsset);
-            AssetDatabase.SaveAssets();
+            heightMapCache.Save(TerrainDataFolder);
         }
         
         private async UniTask GenerateMeshTerrains(float2? progressRange = null, CancellationToken cancellationToken = default)
@@ -437,14 +420,13 @@ namespace EDIVE.GeoToolkit.TerrainTools
             progressRange ??= new float2(0, 1);
             var progressPart = 1f / (tileGridSize.x * tileGridSize.y);
 
-            var heightMapAsset = HeightMapAsset;
-            heightMapAsset.FixTerrainHeightGaps();
+            heightMapCache.FixTerrainHeightGaps();
 
             for (var x = 0; x < tileGridSize.x; x++)
             {
                 for (var y = 0; y < tileGridSize.y; y++)
                 {
-                    var heightMapFlat = heightMapAsset.Data[x, y].GetArray();
+                    var heightMapFlat = heightMapCache.Data[x, y].GetArray();
                     var nonZeroValues = heightMapFlat.Where(i => i != 0).ToArray();
                     if (nonZeroValues.Length == 0)
                         throw new InvalidOperationException($"Height map tile [{x};{y}] contains no data. Re-download the height maps.");
@@ -480,7 +462,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                     
                     var areaYMultiplier = math.max(AreaSizeMultiplier.x, AreaSizeMultiplier.y);
                     var terrainHeight = areaYMultiplier * (terrainMax - terrainMin) * terrainYScale;
-                    var heightMap = heightMapAsset.Data[x, y]?.Get2DArray() ?? new float[0, 0];
+                    var heightMap = heightMapCache.Data[x, y]?.Get2DArray() ?? new float[0, 0];
 
                     heightMap.Remap(terrainMin, terrainMax, 0, 1);
                     heightMap.Clamp(0, 1);
@@ -559,14 +541,13 @@ namespace EDIVE.GeoToolkit.TerrainTools
             progressRange ??= new float2(0, 1);
             var progressPart = 1f / (tileGridSize.x * tileGridSize.y);
 
-            var heightMapAsset = HeightMapAsset;
-            heightMapAsset.FixTerrainHeightGaps();
+            heightMapCache.FixTerrainHeightGaps();
 
             for (var x = 0; x < tileGridSize.x; x++)
             {
                 for (var y = 0; y < tileGridSize.y; y++)
                 {
-                    var heightMapFlat = heightMapAsset.Data[x, y].GetArray();
+                    var heightMapFlat = heightMapCache.Data[x, y].GetArray();
                     var nonZeroValues = heightMapFlat.Where(i => i != 0).ToArray();
                     if (nonZeroValues.Length == 0)
                         throw new InvalidOperationException($"Height map tile [{x};{y}] contains no data. Re-download the height maps.");
@@ -599,7 +580,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                         size = new Vector3(tileSize.x, terrainHeight, tileSize.y)
                     };
 
-                    var heightMap = heightMapAsset.Data[x, y]?.Get2DArray() ?? new float[0, 0];
+                    var heightMap = heightMapCache.Data[x, y]?.Get2DArray() ?? new float[0, 0];
 
                     if (drawHoles)
                     {
@@ -706,18 +687,18 @@ namespace EDIVE.GeoToolkit.TerrainTools
         }
 
         // A run resets Data to an empty grid before filling it, so a cancelled run leaves the right shape with no values in it.
-        private bool TryGetCachedHeightRange(HeightMapAsset heightMapAsset, out float min, out float max)
+        private bool TryGetCachedHeightRange(HeightMapCache cache, out float min, out float max)
         {
             min = float.MaxValue;
             max = float.MinValue;
 
-            if (heightMapAsset.Data == null || heightMapAsset.Data.Size != new Vector2Int(tileGridSize.x, tileGridSize.y))
+            if (cache.Data == null || cache.Data.Size != new Vector2Int(tileGridSize.x, tileGridSize.y))
             {
                 Debug.LogError($"The cached height map does not cover a {tileGridSize.x}x{tileGridSize.y} tile grid. Enable 'Download Height Maps' and run again.", this);
                 return false;
             }
 
-            foreach (var tile in heightMapAsset.Data.GetArray())
+            foreach (var tile in cache.Data.GetArray())
             {
                 var values = tile?.GetArray();
                 if (values == null || values.Length == 0)
@@ -732,7 +713,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
             return true;
         }
 
-        // DownloadHeightMaps already saves the height map asset, saving it again here just rewrites it.
+        // DownloadHeightMaps writes the height map cache itself, it is not part of the asset database.
         private void FinishCreateProcess()
         {
             EditorUtility.ClearProgressBar();
