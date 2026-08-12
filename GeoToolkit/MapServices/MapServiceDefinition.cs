@@ -88,7 +88,9 @@ namespace EDIVE.GeoToolkit.MapServices
             _SizeLimit = sizeLimit;
             _IsValid = true;
             _StatusMessage = $"Valid: {layers.Count} layer(s), {imageFormats.Count} image format(s), {coordinateSystems.Count} coordinate system(s).";
-            SetDirty();
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
         }
 
         protected void SetInvalid(string message)
@@ -97,7 +99,9 @@ namespace EDIVE.GeoToolkit.MapServices
             ClearData();
             _IsValid = false;
             _StatusMessage = message;
-            SetDirty();
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
         }
 
         private void ClearData()
@@ -107,13 +111,6 @@ namespace EDIVE.GeoToolkit.MapServices
             _CoordinateSystems?.Clear();
             _Layers?.Clear();
             _SizeLimit = int2.zero;
-        }
-
-        private void SetDirty()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorUtility.SetDirty(this);
-#endif
         }
 
 #if UNITY_EDITOR
