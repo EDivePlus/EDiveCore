@@ -34,7 +34,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                     var current = _Data[x, y];
                     if (current == null) continue;
 
-                    if (TryGetTile(x + 1, y, out var top))
+                    if (TryGetTile(x, y + 1, out var top))
                     {
                         var col = top.GetCol(0);
                         current.SetCol(current.Width - 1, col);
