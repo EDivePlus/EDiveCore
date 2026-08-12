@@ -2,7 +2,6 @@
 // Created: 24.10.2021
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -16,14 +15,13 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Serialization;
 
-namespace EDIVE.GeoToolkit.WebMapServices
+namespace EDIVE.GeoToolkit.MapServices
 {
-    [CreateAssetMenu(fileName = "NewWMSServerCapabilities", menuName = "WMS/WMS Server Capabilities")]
-    public class WebMapServiceServerDefinition : ScriptableObject
+    public class WmsMapServiceDefinition : MapServiceDefinition
     {
         private const string WMS_NAMESPACE = "{http://www.opengis.net/wms}";
         private const int CAPABILITIES_TIMEOUT_SECONDS = 30;
-        
+
         [InfoBox("$_StatusMessage", VisibleIf = nameof(_IsValid))]
         [InfoBox("$_StatusMessage", InfoMessageType.Error, VisibleIf = "@!_IsValid && !string.IsNullOrEmpty(_StatusMessage)")]
         [FormerlySerializedAs("capabilitiesXMLLink")]
@@ -31,62 +29,11 @@ namespace EDIVE.GeoToolkit.WebMapServices
         [TextArea(1, 5)]
         [PropertyOrder(-1)]
         private string _CapabilitiesXMLLink;
-        
-        [FormerlySerializedAs("serverLink")]
-        [PropertySpace]
-        [SerializeField] 
-        [TextArea(1, 5)]
-        private string _ServerLink;
-        
-        [FormerlySerializedAs("imageFormats")]
-        [PropertySpace]
-        [SerializeField]
-        private List<string> _ImageFormats;
-        
-        [FormerlySerializedAs("coordinateSystems")]
-        [SerializeField]
-        private List<string> _CoordinateSystems;
-        
-        [FormerlySerializedAs("layers")]
-        [SerializeField]
-        private SerializableDictionary<string, string> _Layers;
-        
-        [FormerlySerializedAs("sizeLimit")]
-        [SerializeField]
-        private int2 _SizeLimit;
 
-        [SerializeField]
-        [HideInInspector]
-        private bool _IsValid;
-
-        [SerializeField]
-        [HideInInspector]
-        private string _StatusMessage;
-
-        public string ServerLink => _ServerLink;
-        public IEnumerable<string> ImageFormats => _ImageFormats;
-        public IEnumerable<string> CoordinateSystems => _CoordinateSystems;
-        public IEnumerable<string> Layers => _Layers != null ? _Layers.Keys : new List<string>();
-        public int2 SizeLimit => _SizeLimit;
-
-        /// <summary>
-        /// Whether the last <see cref="UpdateData"/> call produced a complete, usable definition.
-        /// </summary>
-        public bool IsValid => _IsValid;
-        
-        public string GenerateURL(string coordinateSystem, string imageFormat, string layerTitle, GeoAreaRect bbox, int2 textureSize)
+        public override string GenerateURL(string coordinateSystem, string imageFormat, string layerTitle, GeoAreaRect bbox, int2 textureSize)
         {
-            if (!_IsValid || string.IsNullOrEmpty(_ServerLink))
-            {
-                Debug.LogError($"[{name}] Cannot generate URL: the server definition is not valid. Run 'Update Data' first.", this);
+            if (!TryBeginRequest(layerTitle, out var layer))
                 return null;
-            }
-
-            if (_Layers == null || !_Layers.TryGetValue(layerTitle, out var layer))
-            {
-                Debug.LogError($"[{name}] Cannot generate URL: unknown layer '{layerTitle}'.", this);
-                return null;
-            }
 
             if (!CoordinateSystemTypeUtility.TryParse(coordinateSystem, out var requestedSystem))
             {
@@ -94,6 +41,7 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 return null;
             }
 
+            // WMS has no way to reproject, so the area has to already be in the requested CRS.
             if (bbox.CoordinateSystem != requestedSystem)
             {
                 Debug.LogError($"[{name}] Cannot generate URL: the area is in {bbox.CoordinateSystem.ToName()} but the request asks for {coordinateSystem}.", this);
@@ -101,8 +49,7 @@ namespace EDIVE.GeoToolkit.WebMapServices
             }
 
             var builder = new StringBuilder()
-                .Append($"{ServerLink}")
-                .Append(_ServerLink[^1] == '?' ? "" : "?")
+                .Append(RequestLinkWithQuery)
                 .Append("request=GetMap")
                 .Append("&service=WMS")
                 .Append("&version=1.3.0")
@@ -116,14 +63,7 @@ namespace EDIVE.GeoToolkit.WebMapServices
         }
 
 #if UNITY_EDITOR
-        [PropertyOrder(-1)]
-        [Button]
-        private void UpdateData()
-        {
-            UniTask.Void(UpdateDataAsync);
-        }
-
-        private async UniTaskVoid UpdateDataAsync()
+        protected override async UniTaskVoid UpdateDataAsync()
         {
             if (string.IsNullOrWhiteSpace(_CapabilitiesXMLLink))
             {
@@ -160,19 +100,19 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 ?.Element($"{WMS_NAMESPACE}Request")
                 ?.Element($"{WMS_NAMESPACE}GetMap");
 
-            var newServerLink = getMapRequest
+            var newRequestLink = getMapRequest
                 ?.Descendants($"{WMS_NAMESPACE}OnlineResource")
                 .FirstOrDefault(e => e.Parent?.Name == $"{WMS_NAMESPACE}Get")
                 ?.Attribute("{http://www.w3.org/1999/xlink}href")
                 ?.Value;
 
-            if (string.IsNullOrWhiteSpace(newServerLink))
+            if (string.IsNullOrWhiteSpace(newRequestLink))
             {
                 SetInvalid("Could not find a GetMap server link in the capabilities document.");
                 return;
             }
 
-            // getMapRequest is guaranteed non-null here - newServerLink was resolved from it above.
+            // getMapRequest is guaranteed non-null here - newRequestLink was resolved from it above.
             var imageFormats = getMapRequest
                 .Elements($"{WMS_NAMESPACE}Format")
                 .Select(e => e.Value)
@@ -219,18 +159,9 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 return;
             }
 
-            // Everything parsed successfully - commit the new values.
-            if (_ServerLink != newServerLink)
-                ClearData();
-
-            _ServerLink = newServerLink;
-            _ImageFormats = imageFormats;
-            _CoordinateSystems = coordinateSystems;
-            _Layers = layers;
-
             var maxWidthElement = service?.Element($"{WMS_NAMESPACE}MaxWidth");
             var maxHeightElement = service?.Element($"{WMS_NAMESPACE}MaxHeight");
-            _SizeLimit =
+            var sizeLimit =
                 maxWidthElement != null &&
                 maxHeightElement != null &&
                 int.TryParse(maxWidthElement.Value, out var maxWidth) &&
@@ -238,27 +169,7 @@ namespace EDIVE.GeoToolkit.WebMapServices
                     ? new int2(maxWidth, maxHeight)
                     : int2.zero;
 
-            _IsValid = true;
-            _StatusMessage = $"Valid: {layers.Count} layer(s), {imageFormats.Count} image format(s), {coordinateSystems.Count} coordinate system(s).";
-            UnityEditor.EditorUtility.SetDirty(this);
-        }
-
-        private void SetInvalid(string message)
-        {
-            Debug.LogError($"[{name}] WMS update failed - {message}", this);
-            ClearData();
-            _IsValid = false;
-            _StatusMessage = message;
-            UnityEditor.EditorUtility.SetDirty(this);
-        }
-
-        private void ClearData()
-        {
-            _ServerLink = null;
-            _ImageFormats?.Clear();
-            _CoordinateSystems?.Clear();
-            _Layers?.Clear();
-            _SizeLimit = int2.zero;
+            SetCapabilities(newRequestLink, imageFormats, coordinateSystems, layers, sizeLimit);
         }
 #endif
     }

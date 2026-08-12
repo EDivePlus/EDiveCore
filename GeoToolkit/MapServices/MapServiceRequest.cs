@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.GeoToolkit.Area;
@@ -16,16 +17,17 @@ using UnityEngine.Networking;
 using UnityEngine.Serialization;
 using Progress = Cysharp.Threading.Tasks.Progress;
 
-namespace EDIVE.GeoToolkit.WebMapServices
+namespace EDIVE.GeoToolkit.MapServices
 {
     [Serializable]
-    public class WebMapServiceRequest
+    public class MapServiceRequest
     {
         [FormerlySerializedAs("serverDefinition")]
+        [FormerlySerializedAs("_ServerDefinition")]
         [SerializeField]
         [ShowCreateNew]
         [EnhancedInlineEditor]
-        private WebMapServiceServerDefinition _ServerDefinition;
+        private MapServiceDefinition _ServiceDefinition;
 
         [FormerlySerializedAs("imageFormat")]
         [PropertySpace]
@@ -46,14 +48,14 @@ namespace EDIVE.GeoToolkit.WebMapServices
         [ValueDropdown(nameof(AvailableLayers), FlattenTreeView = true)]
         private string _Layer;
 
-        private IEnumerable<string> AvailableImageFormats => _ServerDefinition ? _ServerDefinition.ImageFormats : new List<string>();
-        private IEnumerable<string> AvailableCoordinateSystems => _ServerDefinition ? _ServerDefinition.CoordinateSystems : new List<string>();
-        private IEnumerable<string> AvailableLayers => _ServerDefinition ? _ServerDefinition.Layers : new List<string>();
+        private IEnumerable<string> AvailableImageFormats => _ServiceDefinition ? _ServiceDefinition.ImageFormats : new List<string>();
+        private IEnumerable<string> AvailableCoordinateSystems => _ServiceDefinition ? _ServiceDefinition.CoordinateSystems : new List<string>();
+        private IEnumerable<string> AvailableLayers => _ServiceDefinition ? _ServiceDefinition.Layers : new List<string>();
 
         public bool IsSizeLimited => SizeLimit.x != 0 && SizeLimit.y != 0;
-        public int2 SizeLimit => _ServerDefinition ? _ServerDefinition.SizeLimit : int2.zero;
+        public int2 SizeLimit => _ServiceDefinition ? _ServiceDefinition.SizeLimit : int2.zero;
 
-        public async UniTask<WebMapServiceTextureResult> DownloadAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress = null, CancellationToken cancellationToken = default)
+        public async UniTask<MapServiceTextureResult> DownloadAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress = null, CancellationToken cancellationToken = default)
         {
             if (IsSizeLimited && (size.x > SizeLimit.x || size.y > SizeLimit.y))
                 return await DownloadPartWiseAsync(geoArea, size, progress, cancellationToken);
@@ -63,16 +65,16 @@ namespace EDIVE.GeoToolkit.WebMapServices
 
         private string GenerateURL(GeoAreaRect geoArea, int2 textureSize)
         {
-            return _ServerDefinition.GenerateURL(_CoordinateSystem, _ImageFormat, _Layer, geoArea, textureSize);
+            return _ServiceDefinition.GenerateURL(_CoordinateSystem, _ImageFormat, _Layer, geoArea, textureSize);
         }
 
-        private async UniTask<WebMapServiceTextureResult> DownloadPartWiseAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress, CancellationToken cancellationToken)
+        private async UniTask<MapServiceTextureResult> DownloadPartWiseAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress, CancellationToken cancellationToken)
         {
             var subAreas = geoArea.Split(size, SizeLimit);
             var subAreasDimensions = new int2(subAreas.GetLength(0), subAreas.GetLength(1));
             var partsCount = subAreasDimensions.x * subAreasDimensions.y;
 
-            var parts = new WebMapServiceTextureResult.Part[subAreasDimensions.x, subAreasDimensions.y];
+            var parts = new MapServiceTextureResult.Part[subAreasDimensions.x, subAreasDimensions.y];
 
             for (var x = 0; x < subAreasDimensions.x; x++)
             {
@@ -93,22 +95,22 @@ namespace EDIVE.GeoToolkit.WebMapServices
                         : Progress.Create<float>(p => progress.Report((partIndex + p) / partsCount));
 
                     var data = await DownloadAsync(url, partProgress, cancellationToken);
-                    parts[x, y] = new WebMapServiceTextureResult.Part(data, dimensions);
+                    parts[x, y] = new MapServiceTextureResult.Part(data, dimensions);
                 }
             }
 
             progress?.Report(1f);
-            return new WebMapServiceTextureResult(parts, size, SizeLimit);
+            return new MapServiceTextureResult(parts, size, SizeLimit);
         }
 
-        private async UniTask<WebMapServiceTextureResult> DownloadAsOneAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress, CancellationToken cancellationToken)
+        private async UniTask<MapServiceTextureResult> DownloadAsOneAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress, CancellationToken cancellationToken)
         {
             var url = GenerateURL(geoArea, size);
             var data = await DownloadAsync(url, progress, cancellationToken);
 
-            var parts = new WebMapServiceTextureResult.Part[1, 1];
-            parts[0, 0] = new WebMapServiceTextureResult.Part(data, size);
-            return new WebMapServiceTextureResult(parts, size, SizeLimit);
+            var parts = new MapServiceTextureResult.Part[1, 1];
+            parts[0, 0] = new MapServiceTextureResult.Part(data, size);
+            return new MapServiceTextureResult(parts, size, SizeLimit);
         }
 
         private static async UniTask<byte[]> DownloadAsync(string url, IProgress<float> progress = null, CancellationToken cancellationToken = default)
@@ -117,15 +119,44 @@ namespace EDIVE.GeoToolkit.WebMapServices
                 throw new ArgumentException("No URL provided.", nameof(url));
 
             using var webRequest = UnityWebRequest.Get(url);
-            await webRequest.SendWebRequest().ToUniTask(progress, cancellationToken: cancellationToken);
+            try
+            {
+                await webRequest.SendWebRequest().ToUniTask(progress, cancellationToken: cancellationToken);
+            }
+            catch (UnityWebRequestException e)
+            {
+                throw new MapServiceException(url, webRequest.responseCode, DescribeFailure(webRequest.downloadHandler?.text), e);
+            }
 
-            // WMS reports GetMap failures as a ServiceExceptionReport with HTTP 200, which would otherwise be decoded as pixels.
-            var contentType = webRequest.GetResponseHeader("Content-Type");
-            if (contentType != null && !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException($"WMS returned '{contentType}' instead of an image.\n{webRequest.downloadHandler.text}\nURL: {url}");
+            // Both WMS and ArcGIS report failures in the body with HTTP 200, and ArcGIS still labels them image/tiff,
+            // so trust the magic bytes rather than the header.
+            var data = webRequest.downloadHandler.data;
+            var imageFormat = data.GetImageFormat();
+            if (imageFormat is null or "xml")
+                throw new MapServiceException(url, webRequest.responseCode, DescribeFailure(webRequest.downloadHandler.text));
 
-            return webRequest.downloadHandler.data;
+            return data;
         }
+
+        private static string DescribeFailure(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+
+            // WMS answers with a ServiceExceptionReport, ArcGIS with JSON or an HTML error page.
+            var serviceException = Regex.Match(body, "<ServiceException[^>]*>(.*?)</ServiceException>", RegexOptions.Singleline);
+            if (serviceException.Success)
+                return Tidy(serviceException.Groups[1].Value);
+
+            var jsonMessage = Regex.Match(body, "\"message\"\\s*:\\s*\"(.*?)\"");
+            if (jsonMessage.Success)
+                return Tidy(jsonMessage.Groups[1].Value);
+
+            var text = Tidy(Regex.Replace(body, "<[^>]+>", " "));
+            return text.Length > 300 ? text[..300] + "..." : text;
+        }
+
+        private static string Tidy(string value) => Regex.Replace(value, @"\s+", " ").Trim();
 
 
 #if UNITY_EDITOR

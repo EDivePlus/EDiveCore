@@ -1,4 +1,4 @@
-﻿// Author: František Holubec
+// Author: František Holubec
 // Created: 01.06.2026
 
 using System;
@@ -7,15 +7,15 @@ using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace EDIVE.GeoToolkit.WebMapServices
+namespace EDIVE.GeoToolkit.MapServices
 {
-    public class WebMapServiceTextureResult
+    public class MapServiceTextureResult
     {
         private readonly Part[,] _parts;
         private readonly int2 _size;
         private readonly int2 _sizeLimit;
 
-        internal WebMapServiceTextureResult(Part[,] parts, int2 size, int2 sizeLimit)
+        internal MapServiceTextureResult(Part[,] parts, int2 size, int2 sizeLimit)
         {
             _parts = parts;
             _size = size;

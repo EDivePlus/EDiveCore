@@ -95,6 +95,16 @@ namespace EDIVE.GeoToolkit.Coordinates
             return NORTH_FIRST_AXIS_ORDER.Contains(coordsSystemType);
         }
 
+        public static int ToEpsgCode(this CoordinateSystemType coordsSystemType)
+        {
+            return coordsSystemType switch
+            {
+                CoordinateSystemType.Unknown => 0,
+                CoordinateSystemType.CRS_84 => 4326,
+                _ => int.TryParse(coordsSystemType.ToString()[5..], out var code) ? code : 0
+            };
+        }
+
         public static CoordinateSystemType Parse(string name)
         {
             return name switch
