@@ -83,6 +83,30 @@ namespace EDIVE.NativeUtils
             return false;
         }
 
+        public static bool TryGetComponentInParent<T>(this GameObject gameObj, out T result, bool includeInactive = false) where T : Component
+        {
+            result = gameObj ? gameObj.GetComponentInParent<T>(includeInactive) : null;
+            return result != null;
+        }
+        
+        public static bool TryGetComponentInParent<T>(this Component component, out T result, bool includeInactive = false) where T : Component
+        {
+            result = component ? component.GetComponentInParent<T>(includeInactive) : null;
+            return result != null;
+        }
+        
+        public static bool TryGetComponentInChildren<T>(this GameObject gameObj, out T result, bool includeInactive = false) where T : Component
+        {
+            result = gameObj ? gameObj.GetComponentInChildren<T>(includeInactive) : null;
+            return result != null;
+        }
+        
+        public static bool TryGetComponentInChildren<T>(this Component component, out T result, bool includeInactive = false) where T : Component
+        {
+            result = component ? component.GetComponentInChildren<T>(includeInactive) : null;
+            return result != null;
+        }
+
         public static bool TryGetRootObject(this Object obj, out Object rootObject)
         {
             if (obj == null)
