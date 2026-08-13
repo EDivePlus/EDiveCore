@@ -1,0 +1,17 @@
+{
+  "name": "EDIVE.ScriptableArchitecture.StateHandling",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.ScriptableArchitecture",
+    "EDIVE.StateHandling"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
