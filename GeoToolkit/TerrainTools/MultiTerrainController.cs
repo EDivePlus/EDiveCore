@@ -288,6 +288,93 @@ namespace EDIVE.GeoToolkit.TerrainTools
             }
         }
 
+        [PropertySpace]
+        [Button]
+        [PropertyTooltip("Averages heightmap edges of adjacent terrains and connects them as neighbors.")]
+        private void FixSeams()
+        {
+            for (var z = 0; z < terrains.Height; z++)
+            {
+                for (var x = 0; x < terrains.Width - 1; x++)
+                {
+                    StitchSeamX(terrains[x, z], terrains[x + 1, z]);
+                }
+            }
+
+            for (var x = 0; x < terrains.Width; x++)
+            {
+                for (var z = 0; z < terrains.Height - 1; z++)
+                {
+                    StitchSeamZ(terrains[x, z], terrains[x, z + 1]);
+                }
+            }
+
+            for (var x = 0; x < terrains.Width; x++)
+            {
+                for (var z = 0; z < terrains.Height; z++)
+                {
+                    var terrain = terrains[x, z];
+                    if (terrain == null) continue;
+                    terrain.SetNeighbors(GetTerrainOrNull(x - 1, z), GetTerrainOrNull(x, z + 1), GetTerrainOrNull(x + 1, z), GetTerrainOrNull(x, z - 1));
+                    terrain.Flush();
+                }
+            }
+        }
+
+        private Terrain GetTerrainOrNull(int x, int z) => terrains.TryGetElement(x, z, out var terrain) ? terrain : null;
+
+        private static void StitchSeamX(Terrain left, Terrain right)
+        {
+            if (left == null || right == null) return;
+
+            var leftData = left.terrainData;
+            var rightData = right.terrainData;
+            var resolution = leftData.heightmapResolution;
+            if (resolution != rightData.heightmapResolution)
+            {
+                Debug.LogWarning($"Cannot stitch seam between '{left.name}' and '{right.name}', heightmap resolutions differ!");
+                return;
+            }
+
+            var leftEdge = leftData.GetHeights(resolution - 1, 0, 1, resolution);
+            var rightEdge = rightData.GetHeights(0, 0, 1, resolution);
+            for (var i = 0; i < resolution; i++)
+            {
+                var height = (leftEdge[i, 0] + rightEdge[i, 0]) * 0.5f;
+                leftEdge[i, 0] = height;
+                rightEdge[i, 0] = height;
+            }
+
+            leftData.SetHeights(resolution - 1, 0, leftEdge);
+            rightData.SetHeights(0, 0, rightEdge);
+        }
+
+        private static void StitchSeamZ(Terrain bottom, Terrain top)
+        {
+            if (bottom == null || top == null) return;
+
+            var bottomData = bottom.terrainData;
+            var topData = top.terrainData;
+            var resolution = bottomData.heightmapResolution;
+            if (resolution != topData.heightmapResolution)
+            {
+                Debug.LogWarning($"Cannot stitch seam between '{bottom.name}' and '{top.name}', heightmap resolutions differ!");
+                return;
+            }
+
+            var bottomEdge = bottomData.GetHeights(0, resolution - 1, resolution, 1);
+            var topEdge = topData.GetHeights(0, 0, resolution, 1);
+            for (var i = 0; i < resolution; i++)
+            {
+                var height = (bottomEdge[0, i] + topEdge[0, i]) * 0.5f;
+                bottomEdge[0, i] = height;
+                topEdge[0, i] = height;
+            }
+
+            bottomData.SetHeights(0, resolution - 1, bottomEdge);
+            topData.SetHeights(0, 0, topEdge);
+        }
+
         private static void ResizeHeightmap(Terrain terrain, int newResolution)
         {
             var oldRT = RenderTexture.active;
