@@ -30,7 +30,7 @@ namespace EDIVE.Utils.Activations
             if (_InputAction != null)
             {
                 _InputAction.action.performed -= OnInputActionPerformed;
-                _InputAction.action.Disable();
+                //_InputAction.action.Disable();
             }
         }
 
