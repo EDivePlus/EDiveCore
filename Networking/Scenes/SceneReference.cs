@@ -86,7 +86,9 @@ namespace EDIVE.Networking.Scenes
 
 #if UNITY_EDITOR
         public SceneAsset EditorDirectSceneAsset => _DirectScene.EditorSceneAsset;
-        public SceneAsset EditorAddressableSceneAsset => _AddressableScene.editorAsset;
+#if ADDRESSABLES
+        public SceneAsset EditorAddressableSceneAsset => _AddressableScene?.editorAsset;
+#endif
 
         public static SceneReference FromSceneAsset(SceneAsset asset)
         {
@@ -145,17 +147,24 @@ namespace EDIVE.Networking.Scenes
 
         private void OnKindChanged(InspectorProperty property)
         {
+#if ADDRESSABLES
             switch (_Kind)
             {
                 case SceneKind.Direct:
-                    _DirectScene = new SceneField(_AddressableScene.editorAsset);
+                    if (EditorAddressableSceneAsset)
+                        _DirectScene = new SceneField(EditorAddressableSceneAsset);
                     break;
-                case SceneKind.Addressable: 
-                    _AddressableScene.SetEditorAsset(_DirectScene.EditorSceneAsset);
+                case SceneKind.Addressable:
+                    if (_DirectScene.EditorSceneAsset)
+                    {
+                        _AddressableScene ??= new SceneAssetReference();
+                        _AddressableScene.SetEditorAsset(_DirectScene.EditorSceneAsset);
+                    }
                     break;
                 default: throw new ArgumentOutOfRangeException();
             }
             property.MarkSerializationRootDirty();
+#endif
         }
 #endif
     }

@@ -38,7 +38,7 @@ namespace EDIVE.AddressableAssets
 #if UNITY_EDITOR
         // Type-specific override of parent editorAsset.  Used by the editor to represent the asset referenced.
         // ReSharper disable once InconsistentNaming
-        public new UnityEditor.SceneAsset editorAsset => (UnityEditor.SceneAsset) base.editorAsset;
+        public new UnityEditor.SceneAsset editorAsset => base.editorAsset as UnityEditor.SceneAsset;
 #endif
     }
 
