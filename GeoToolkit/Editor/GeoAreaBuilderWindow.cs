@@ -59,14 +59,7 @@ namespace EDIVE.GeoToolkit.Area
         
         [ShowInInspector]
         [ListDrawerSettings(IsReadOnly = true, DefaultExpandedState = true, ShowFoldout = false)]
-        private List<string> Preview => _Systems.Select(system =>
-        {
-            var area = BuildArea(system);
-            return $"{_AssetName}-{system}\n" +
-                   $"  Min  {area.Min.x:F4}, {area.Min.y:F4}\n" +
-                   $"  Max  {area.Max.x:F4}, {area.Max.y:F4}\n" +
-                   $"  Ground  {area.GeoSize.x:F4} x {area.GeoSize.y:F4} m";
-        }).ToList();
+        private List<string> Preview => _Systems.Select(system => $"{_AssetName}-{system}").ToList();
 
         private GeoAreaRect BuildArea(CoordinateSystemType system) => FromAnchor(_Anchor, _AnchorType, _GroundSize, system);
 
@@ -86,6 +79,9 @@ namespace EDIVE.GeoToolkit.Area
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
+
+        [Button("Show Area In Map")]
+        private void ShowAreaInMap() => GeoJsonPreviewUtility.OpenAreas(_Systems.Select(BuildArea));
 
         private static void Write(string folder, string assetName, GeoAreaRect area, bool readOnly = true)
         {

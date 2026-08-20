@@ -16,6 +16,7 @@ namespace EDIVE.GeoToolkit.Coordinates
     public struct GeoCoords
     {
         [SerializeField]
+        [InlineIconButton(FontAwesomeEditorIconType.LocationCrosshairsSolid, "OpenInMaps", "Open in maps", GUIAlwaysEnabled = true)]
         [InlineIconButton(FontAwesomeEditorIconType.CopySolid, "CopyCoords", "Copy coordinates", GUIAlwaysEnabled = true)]
         private double2 _Position;
         
@@ -53,11 +54,18 @@ namespace EDIVE.GeoToolkit.Coordinates
         {
             if (sourceSystemType == targetSystemType)
                 return pos;
-            
-            var ctFact = new CoordinateTransformationFactory();
-            var transformation = ctFact.CreateFromCoordinateSystems(sourceSystemType.GetCoordinateSystem(), targetSystemType.GetCoordinateSystem());
-            var result = transformation.MathTransform.Transform(new []{ pos.x, pos.y });
-            return new double2(result[0], result[1]);
+
+            try
+            {
+                var ctFact = new CoordinateTransformationFactory();
+                var transformation = ctFact.CreateFromCoordinateSystems(sourceSystemType.GetCoordinateSystem(), targetSystemType.GetCoordinateSystem());
+                var result = transformation.MathTransform.Transform(new[] {pos.x, pos.y});
+                return new double2(result[0], result[1]);
+            }
+            catch (Exception e)
+            {
+                return pos;
+            }
         }
         
         public static double Distance(double2 posA, double2 posB, CoordinateSystemType targetSystem, DistanceMeasureAlgorithm alg)
@@ -72,16 +80,27 @@ namespace EDIVE.GeoToolkit.Coordinates
                 posA = Convert(posA, targetSystem, CoordinateSystemType.EPSG_4326);
                 posB = Convert(posB, targetSystem, CoordinateSystemType.EPSG_4326);
             }
-            var eagerLoad = new EagerLoad(false);
-            var coordA = new Coordinate(posA.y, posA.x, eagerLoad);
-            var coordB = new Coordinate(posB.y, posB.x, eagerLoad);
-            var dist = new Distance(coordA, coordB, alg.ToCoordinateSharpShape());
-            return dist.Meters;
+
+            try
+            {
+                var eagerLoad = new EagerLoad(false);
+                var coordA = new Coordinate(posA.y, posA.x, eagerLoad);
+                var coordB = new Coordinate(posB.y, posB.x, eagerLoad);
+                var dist = new Distance(coordA, coordB, alg.ToCoordinateSharpShape());
+                return dist.Meters;   
+            }
+            catch (Exception e)
+            {
+                return -1d;
+            }
         }
 
 #if UNITY_EDITOR
         [UsedImplicitly]
         private void CopyCoords(Rect fieldRect) => CoordinatesClipboardUtility.ShowCopyDropdown(this, fieldRect);
+
+        [UsedImplicitly]
+        private void OpenInMaps() => GeoJsonPreviewUtility.OpenPoint(this);
 #endif
     }
 }

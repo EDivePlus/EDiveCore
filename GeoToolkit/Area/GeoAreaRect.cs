@@ -21,10 +21,12 @@ namespace EDIVE.GeoToolkit.Area
         private CoordinateSystemType _CoordinateSystem;
 
         [SerializeField]
+        [InlineIconButton(FontAwesomeEditorIconType.LocationCrosshairsSolid, "OpenInMaps", "Open in maps", GUIAlwaysEnabled = true)]
         [InlineIconButton(FontAwesomeEditorIconType.CopySolid, "CopyCoords", "Copy coordinates", GUIAlwaysEnabled = true)]
         private double2 _Min;
 
         [SerializeField]
+        [InlineIconButton(FontAwesomeEditorIconType.LocationCrosshairsSolid, "OpenInMaps", "Open in maps", GUIAlwaysEnabled = true)]
         [InlineIconButton(FontAwesomeEditorIconType.CopySolid, "CopyCoords", "Copy coordinates", GUIAlwaysEnabled = true)]
         private double2 _Max;
 
@@ -106,6 +108,12 @@ namespace EDIVE.GeoToolkit.Area
         [UsedImplicitly]
         private void CopyCoords(double2 value, Rect fieldRect) => CoordinatesClipboardUtility.ShowCopyDropdown(new GeoCoords(value, CoordinateSystem), fieldRect);
         
+        [UsedImplicitly]
+        private void OpenInMaps(double2 value) => GeoJsonPreviewUtility.OpenPoint(new GeoCoords(value, CoordinateSystem));
+
+        [UsedImplicitly]
+        [Button("Show Area In Map")]
+        private void OpenAreaInMaps() => GeoJsonPreviewUtility.OpenArea(this);
 #endif
     }
 }
