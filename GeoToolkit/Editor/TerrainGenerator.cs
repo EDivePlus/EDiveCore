@@ -50,10 +50,17 @@ namespace EDIVE.GeoToolkit.TerrainTools
         [SerializeField]
         [PropertyOrder(-10)]
         private float terrainYScale = 1f;
+
+        [SerializeField]
+        [PropertyOrder(-10)]
+        [Tooltip("Keep heights in real meters even when the terrain is smaller than the geo area.")]
+        private bool ignoreYMultiplier;
         
         [ShowInInspector]
         [PropertyOrder(-10)]
         private float2 AreaSizeMultiplier => resultTerrainSize / (float2) (_Area?.Value.GeoSize ?? double2.zero);
+
+        private float AreaYMultiplier => ignoreYMultiplier ? 1f : math.max(AreaSizeMultiplier.x, AreaSizeMultiplier.y);
 
         [ShowInInspector]
         [PropertyOrder(-10)]
@@ -432,8 +439,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                     var meshRenderer = terrain.AddComponent<MeshRenderer>();
                     var meshCollider = terrain.AddComponent<MeshCollider>();
                     
-                    var areaYMultiplier = math.max(AreaSizeMultiplier.x, AreaSizeMultiplier.y);
-                    var terrainHeight = areaYMultiplier * (terrainMax - terrainMin) * terrainYScale;
+                    var terrainHeight = AreaYMultiplier * (terrainMax - terrainMin) * terrainYScale;
                     var heightMap = heightMaps[x, y] ?? new float[0, 0];
 
                     heightMap.Remap(terrainMin, terrainMax, 0, 1);
@@ -532,8 +538,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                         throw new OperationCanceledException();
                     }
 
-                    var areaYMultiplier = math.max(AreaSizeMultiplier.x, AreaSizeMultiplier.y);
-                    var terrainHeight = areaYMultiplier * (terrainMax - terrainMin) * terrainYScale;
+                    var terrainHeight = AreaYMultiplier * (terrainMax - terrainMin) * terrainYScale;
                     var heightmapResolution = HeightMapResolution;
                     var terrainData = new TerrainData
                     {
