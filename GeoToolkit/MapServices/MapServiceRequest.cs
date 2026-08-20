@@ -71,23 +71,18 @@ namespace EDIVE.GeoToolkit.MapServices
         private async UniTask<MapServiceTextureResult> DownloadPartWiseAsync(GeoAreaRect geoArea, int2 size, IProgress<float> progress, CancellationToken cancellationToken)
         {
             var subAreas = geoArea.Split(size, SizeLimit);
-            var subAreasDimensions = new int2(subAreas.GetLength(0), subAreas.GetLength(1));
-            var partsCount = subAreasDimensions.x * subAreasDimensions.y;
+            var partGrid = MapServiceTextureResult.GetPartGrid(size, SizeLimit);
+            var partGridDimensions = new int2(partGrid.GetLength(0), partGrid.GetLength(1));
+            var partsCount = partGridDimensions.x * partGridDimensions.y;
 
-            var parts = new MapServiceTextureResult.Part[subAreasDimensions.x, subAreasDimensions.y];
+            var parts = new MapServiceTextureResult.Part[partGridDimensions.x, partGridDimensions.y];
 
-            for (var x = 0; x < subAreasDimensions.x; x++)
+            for (var x = 0; x < partGridDimensions.x; x++)
             {
-                var xDim = x < subAreasDimensions.x - 1 ? SizeLimit.x : size.x % SizeLimit.x;
-                if (xDim == 0) xDim = SizeLimit.x;
-
-                for (var y = 0; y < subAreasDimensions.y; y++)
+                for (var y = 0; y < partGridDimensions.y; y++)
                 {
-                    var yDim = y < subAreasDimensions.y - 1 ? SizeLimit.y : size.y % SizeLimit.y;
-                    if (yDim == 0) yDim = SizeLimit.y;
-
-                    var dimensions = new int2(xDim, yDim);
-                    var partIndex = x * subAreasDimensions.y + y;
+                    var dimensions = partGrid[x, y];
+                    var partIndex = x * partGridDimensions.y + y;
                     var url = GenerateURL(subAreas[x, y], dimensions);
 
                     var partProgress = progress == null
