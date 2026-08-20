@@ -23,6 +23,9 @@ namespace EDIVE.GeoToolkit.Maps
         [ListDrawerSettings(OnTitleBarGUI = "OnTerrainsTitleBarGUI")]
         private List<Terrain> _Terrains = new();
 
+        [SerializeField]
+        private Quaternion _Rotation = Quaternion.identity;
+
         public bool IsValid => _Terrains.Count > 0 && _Terrains.All(t => t != null && t.terrainData != null);
 
         public void PopulateFromChildren(Transform root)
@@ -32,25 +35,35 @@ namespace EDIVE.GeoToolkit.Maps
 
         public MapTransformData CalculateTransformData(Transform mapTransform)
         {
-            // Terrains in unity cannot be rotated so we can just compute world min and max.
-            var mapMin = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-            var mapMax = new float3(float.MinValue, float.MinValue, float.MinValue);
+            // Terrains cannot be rotated, so each one is an axis-aligned box in world space.
+            // Bounds are accumulated in the frame of _Rotation so the resulting box is aligned to it.
+            var rotation = (quaternion) _Rotation;
+            var inverseRotation = math.inverse(rotation);
+
+            var localMin = new float3(float.MaxValue);
+            var localMax = new float3(float.MinValue);
 
             foreach (var terrain in _Terrains)
             {
-                var terrainMin = (float3) terrain.transform.position;
-                var terrainMax = terrainMin + (float3) terrain.terrainData.size;
+                var worldMin = (float3) terrain.transform.position;
+                var worldMax = worldMin + (float3) terrain.terrainData.size;
 
-                mapMin = math.min(mapMin, terrainMin);
-                mapMax = math.max(mapMax, terrainMax);
+                for (var i = 0; i < 8; i++)
+                {
+                    var corner = math.select(worldMin, worldMax, new bool3((i & 1) != 0, (i & 2) != 0, (i & 4) != 0));
+                    var localCorner = math.mul(inverseRotation, corner);
+                    localMin = math.min(localMin, localCorner);
+                    localMax = math.max(localMax, localCorner);
+                }
             }
 
-            var mapOrigin = mapMin;
-            var axisX = new float3(mapMax.x - mapMin.x, 0, 0);
-            var axisY = new float3(0, mapMax.y - mapMin.y, 0);
-            var axisZ = new float3(0, 0, mapMax.z - mapMin.z);
+            var localSize = localMax - localMin;
+            var origin = math.mul(rotation, localMin);
+            var axisX = math.mul(rotation, new float3(localSize.x, 0, 0));
+            var axisY = math.mul(rotation, new float3(0, localSize.y, 0));
+            var axisZ = math.mul(rotation, new float3(0, 0, localSize.z));
 
-            return new MapTransformData(mapOrigin, axisX, axisY, axisZ);
+            return new MapTransformData(origin, axisX, axisY, axisZ);
         }
 
 #if UNITY_EDITOR
