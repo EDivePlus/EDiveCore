@@ -681,10 +681,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 for (var y = 0; y < tileGridSize.y; y++)
                 {
                     var result = MapServiceTextureResult.Load(folder, $"HeightMap{x}{y}", new int2(resolution, resolution), heightMapRasterData.Request.SizeLimit);
-                    var heightMap = result.GetGrayScale2DArray()
-                        .ToFloat()
-                        .Apply((texture, i, j) => texture[i, j].Approximately(255) ? 0 : texture[i, j]);
-
+                    var heightMap = result.GetGrayScale2DArray().ToFloat();
                     heightMaps[x, y] = heightMap;
                 }
             }
