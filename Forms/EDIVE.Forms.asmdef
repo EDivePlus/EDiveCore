@@ -32,6 +32,11 @@
             "name": "com.joshclose.csvhelper",
             "expression": "",
             "define": "CSV_HELPER"
+        },
+        {
+            "name": "dev.purrnet.purrnet",
+            "expression": "",
+            "define": "PURRNET"
         }
     ],
     "noEngineReferences": false
