@@ -30,6 +30,8 @@ namespace EDIVE.XRTools.DeviceSimulator
     {
         private const string RUNTIME_ENABLED_PREF_KEY = "XRSimulator_RuntimeEnabled";
 
+        private static GameObject _SimulatorInstance;
+
         public static bool SimulatorEnabled => RuntimeSimulatorEnabled ||
                                                (XRDeviceSimulatorSettings.Instance.automaticallyInstantiateSimulatorPrefab &&
                                                 (!XRDeviceSimulatorSettings.Instance.automaticallyInstantiateInEditorOnly || Application.isEditor));
@@ -43,7 +45,7 @@ namespace EDIVE.XRTools.DeviceSimulator
                 if (value)
                     EnsureSimulatorInstance();
                 else
-                    DestroySimulatorInstance();
+                    DisableSimulatorInstance();
             }
         }
 
@@ -59,25 +61,43 @@ namespace EDIVE.XRTools.DeviceSimulator
 
         private static void EnsureSimulatorInstance()
         {
-            if (XRInteractionSimulator.instance || XRDeviceSimulator.instance)
+            if (_SimulatorInstance == null)
+                _SimulatorInstance = ResolveExistingInstance();
+
+            if (_SimulatorInstance != null)
+            {
+                if (!_SimulatorInstance.activeSelf)
+                    _SimulatorInstance.SetActive(true);
                 return;
+            }
 
             var simulatorPrefab = XRDeviceSimulatorSettings.Instance.simulatorPrefab;
             if (!simulatorPrefab)
                 return;
 
-            var simulatorInstance = Object.Instantiate(simulatorPrefab);
-            simulatorInstance.name = simulatorPrefab.name;
-            Object.DontDestroyOnLoad(simulatorInstance);
+            _SimulatorInstance = Object.Instantiate(simulatorPrefab);
+            _SimulatorInstance.name = simulatorPrefab.name;
+            Object.DontDestroyOnLoad(_SimulatorInstance);
         }
 
-        private static void DestroySimulatorInstance()
+        private static void DisableSimulatorInstance()
+        {
+            if (_SimulatorInstance == null)
+                _SimulatorInstance = ResolveExistingInstance();
+
+            if (_SimulatorInstance != null && _SimulatorInstance.activeSelf)
+                _SimulatorInstance.SetActive(false);
+        }
+
+        private static GameObject ResolveExistingInstance()
         {
             if (XRInteractionSimulator.instance)
-                Object.Destroy(XRInteractionSimulator.instance.gameObject);
+                return XRInteractionSimulator.instance.gameObject;
 
             if (XRDeviceSimulator.instance)
-                Object.Destroy(XRDeviceSimulator.instance.gameObject);
+                return XRDeviceSimulator.instance.gameObject;
+
+            return null;
         }
 
 #if UNITY_EDITOR
