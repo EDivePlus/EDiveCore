@@ -8,18 +8,42 @@ namespace EDIVE.XRTools.Utils.Vignette
     public sealed class VignetteHandle : IDisposable
     {
         private VignetteController _controller;
-        
-        public VignetteSettings Settings { get; set; }
+        private VignetteSettings _settings;
+        private int _priority;
+
+        public VignetteSettings Settings
+        {
+            get => _settings;
+            set
+            {
+                if (_settings == value)
+                    return;
+                _settings = value;
+                _controller?.ReevaluateWinner();
+            }
+        }
+
+        public int Priority
+        {
+            get => _priority;
+            set
+            {
+                if (_priority == value)
+                    return;
+                _priority = value;
+                _controller?.ReevaluateWinner();
+            }
+        }
+
         public VignetteTransition Transition { get; }
-        
+
         internal int Order { get; }
-        public int Priority { get; set; }
 
         internal VignetteHandle(VignetteController controller, VignetteSettings settings, int priority, VignetteTransition transition, int order)
         {
             _controller = controller;
-            Settings = settings;
-            Priority = priority;
+            _settings = settings;
+            _priority = priority;
             Transition = transition;
             Order = order;
         }

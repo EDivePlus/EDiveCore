@@ -12,7 +12,7 @@ namespace EDIVE.XRTools.Utils.Vignette
     [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter))]
     public class VignetteController : MonoBehaviour
     {
-        private const string DEFAULT_SHADER = "VR/TunnelingVignette";
+        private const string DEFAULT_SHADER = "URP/Vignette";
 
         [SerializeField]
         [EnhancedInlineProperty]
@@ -27,7 +27,7 @@ namespace EDIVE.XRTools.Utils.Vignette
 
         [SerializeReference]
         private List<AVignetteProvider> _Providers = new();
-        
+
         [SerializeField]
         private bool _PreviewInEditor;
 
@@ -48,17 +48,19 @@ namespace EDIVE.XRTools.Utils.Vignette
         private MeshRenderer _meshRenderer;
         private MeshFilter _meshFilter;
         private MaterialPropertyBlock _propertyBlock;
+        private Material _generatedMaterial;
         private Texture2D _rampTexture;
         private Gradient _rampSource;
 
         private readonly List<VignetteHandle> _requests = new();
         private VignetteHandle _winner;
-        private VignetteHandle _target;
+        private VignetteHandle _fadeTarget;
         private readonly VignetteSettings _displayed = new();
         private readonly VignetteSettings _from = new();
-        private readonly VignetteSettings _none = new();
+        private readonly VignetteSettings _off = new();
         private float _progress;
         private bool _transitioning;
+        private bool _running;
         private Tween _tween;
         private int _orderCounter;
         private bool _setupWarned;
@@ -73,10 +75,33 @@ namespace EDIVE.XRTools.Utils.Vignette
         {
             var handle = new VignetteHandle(this, settings, priority, transition, _orderCounter++);
             _requests.Add(handle);
+            ReevaluateWinner();
             return handle;
         }
 
-        internal void Release(VignetteHandle handle) => _requests.Remove(handle);
+        internal void Release(VignetteHandle handle)
+        {
+            if (_requests.Remove(handle))
+                ReevaluateWinner();
+        }
+
+        // Runs on every change that can pick a different winner: a request, a release, a priority or settings edit.
+        internal void ReevaluateWinner()
+        {
+            if (!_running || IsUninterruptibleShowRunning())
+                return;
+
+            var winner = SelectWinner();
+            if (winner == _winner)
+                return;
+
+            BeginTransition(winner);
+            _winner = winner;
+        }
+
+        // Nothing may interrupt such a show, so the pending change waits for FinishTransition to reevaluate.
+        private bool IsUninterruptibleShowRunning() =>
+            _transitioning && _winner != null && _fadeTarget == _winner && _winner.Transition.UninterruptibleShow;
 
         private void OnEnable()
         {
@@ -84,20 +109,34 @@ namespace EDIVE.XRTools.Utils.Vignette
                 provider?.Initialize(this);
 
             _winner = SelectWinner();
-            _displayed.CopyFrom(_winner == null ? _none : ResolveSettings(_winner));
+            _displayed.CopyFrom(_winner == null ? GetOffState(_DefaultSettings) : ResolveSettings(_winner));
             ApplyToMaterial(_displayed);
+            _running = true;
         }
 
         private void OnDisable()
         {
+            _running = false;
             foreach (var provider in _Providers)
                 provider?.Deinitialize();
 
             _tween?.Kill();
             _tween = null;
-            _target = null;
+            _fadeTarget = null;
             _transitioning = false;
             DestroyRamp();
+        }
+
+        private void OnDestroy()
+        {
+            if (_generatedMaterial == null)
+                return;
+
+            if (Application.isPlaying)
+                Destroy(_generatedMaterial);
+            else
+                DestroyImmediate(_generatedMaterial);
+            _generatedMaterial = null;
         }
 
         private void Update()
@@ -105,18 +144,15 @@ namespace EDIVE.XRTools.Utils.Vignette
             foreach (var provider in _Providers)
                 provider?.Tick();
 
-            var winner = SelectWinner();
-            if (winner != _winner)
-            {
-                BeginTransition(winner);
-                _winner = winner;
-            }
-            
-            if (!_transitioning && _winner != null)
-            {
-                _displayed.CopyFrom(ResolveSettings(_winner));
-                ApplyToMaterial(_displayed);
-            }
+            if (_transitioning || _winner == null)
+                return;
+
+            var settings = ResolveSettings(_winner);
+            if (_displayed.Matches(settings))
+                return;
+
+            _displayed.CopyFrom(settings);
+            ApplyToMaterial(_displayed);
         }
 
         private void OnValidate()
@@ -129,7 +165,7 @@ namespace EDIVE.XRTools.Utils.Vignette
             else
                 ReleasePropertyBlock();
         }
-        
+
         private void ReleasePropertyBlock()
         {
             if (_meshRenderer == null)
@@ -172,64 +208,63 @@ namespace EDIVE.XRTools.Utils.Vignette
             if (newWinner != null)
             {
                 var transition = newWinner.Transition;
-                AppendLeg(sequence, newWinner, transition.ShowDuration, transition.ShowEase);
+                // Marks the show as running before the fade callback does, so it cannot be interrupted within this frame.
+                _fadeTarget = newWinner;
+                AppendFadeTo(sequence, newWinner, transition.ShowDuration, transition.ShowEase);
             }
             else
             {
                 var transition = _winner?.Transition ?? _DefaultTransition;
 
-                if (transition.CompleteShowBeforeHide && _winner != null && !Settled(_winner))
-                    AppendLeg(sequence, _winner, transition.ShowDuration * RemainingShowFraction(_winner), transition.ShowEase);
-
                 if (transition.HideDelay > 0f)
                     sequence.AppendInterval(transition.HideDelay);
 
-                AppendLeg(sequence, null, transition.HideDuration, transition.HideEase);
+                AppendFadeTo(sequence, null, transition.HideDuration, transition.HideEase);
             }
 
-            sequence.OnUpdate(ApplyTransitionFrame);
-            sequence.OnComplete(() =>
-            {
-                _transitioning = false;
-                ApplyTransitionFrame();
-            });
+            sequence.OnComplete(FinishTransition);
             _tween = sequence;
         }
+
+        private void FinishTransition()
+        {
+            _transitioning = false;
+            _tween = null;
+            ReevaluateWinner();
+        }
         
-        private void AppendLeg(Sequence sequence, VignetteHandle target, float duration, Ease ease)
+        private void AppendFadeTo(Sequence sequence, VignetteHandle target, float duration, Ease ease)
         {
             sequence.AppendCallback(() =>
             {
                 _from.CopyFrom(_displayed);
-                _target = target;
+                _fadeTarget = target;
                 _progress = 0f;
             });
 
             if (duration > 0f)
-                sequence.Append(DOTween.To(() => _progress, x => _progress = x, 1f, duration).SetEase(ease));
+                sequence.Append(DOTween.To(() => _progress, SetFadeProgress, 1f, duration).SetEase(ease));
             else
-                sequence.AppendCallback(() => _progress = 1f);
+                sequence.AppendCallback(() => SetFadeProgress(1f));
         }
 
-        private void ApplyTransitionFrame()
+        private void SetFadeProgress(float progress)
         {
-            var target = _target == null ? _none : ResolveSettings(_target);
-            VignetteSettings.Lerp(_from, target, _progress, _displayed);
+            _progress = progress;
+            var target = _fadeTarget == null ? GetOffState(_from) : ResolveSettings(_fadeTarget);
+            VignetteSettings.Lerp(_from, target, progress, _displayed);
             ApplyToMaterial(_displayed);
         }
 
         private VignetteSettings ResolveSettings(VignetteHandle handle) => handle.Settings ?? _DefaultSettings;
 
-        private bool Settled(VignetteHandle handle) =>
-            Mathf.Approximately(_displayed.ApertureSize, ResolveSettings(handle).ApertureSize);
-
-        private float RemainingShowFraction(VignetteHandle handle)
+        // Fading out only opens the aperture and drops the alpha, so color, gradient and feathering never shift.
+        private VignetteSettings GetOffState(VignetteSettings source)
         {
-            var apertureSize = ResolveSettings(handle).ApertureSize;
-            var full = 1f - apertureSize;
-            if (full <= 0.0001f)
-                return 0f;
-            return Mathf.Clamp01((_displayed.ApertureSize - apertureSize) / full);
+            _off.CopyFrom(source);
+            _off.ApertureSize = 1f;
+            _off.Alpha = 0f;
+            return _off;
         }
 
         private void ApplyToMaterial(VignetteSettings settings)
@@ -238,7 +273,6 @@ namespace EDIVE.XRTools.Utils.Vignette
                 return;
 
             _propertyBlock ??= new MaterialPropertyBlock();
-            _meshRenderer.GetPropertyBlock(_propertyBlock);
             _propertyBlock.SetFloat(APERTURE_SIZE_ID, settings.ApertureSize);
             _propertyBlock.SetFloat(FEATHERING_EFFECT_ID, settings.Feathering);
             _propertyBlock.SetFloat(ALPHA_ID, settings.Alpha);
@@ -279,42 +313,47 @@ namespace EDIVE.XRTools.Utils.Vignette
                     return false;
                 }
 
-                _meshRenderer.sharedMaterial = new Material(shader)
+                _generatedMaterial = new Material(shader)
                 {
-                    name = "TunnelingVignette"
+                    name = "Vignette"
                 };
+                _meshRenderer.sharedMaterial = _generatedMaterial;
             }
 
+            // Warn again if the setup breaks after it once worked.
+            _setupWarned = false;
             return true;
         }
 
         private Texture2D GetRampTexture(Gradient gradient)
         {
+            // Rebake when the source gradient changes, and always in edit mode (in-place edits keep the same reference).
+            if (_rampTexture != null && ReferenceEquals(_rampSource, gradient) && Application.isPlaying)
+                return _rampTexture;
+
             // A single-color gradient only needs one texel; a varying one gets the full ramp.
             var width = IsConstant(gradient) ? 1 : RAMP_WIDTH;
-
-            if (_rampTexture != null && _rampTexture.width != width)
-                DestroyRamp();
 
             if (_rampTexture == null)
             {
                 _rampTexture = new Texture2D(width, 1, TextureFormat.RGBA32, false)
                 {
                     name = "VignetteRamp",
+                    hideFlags = HideFlags.HideAndDontSave,
                     wrapMode = TextureWrapMode.Clamp,
                     filterMode = FilterMode.Bilinear
                 };
-                _rampSource = null;
+            }
+            else if (_rampTexture.width != width)
+            {
+                // Resized in place, destroying it here would be called from OnValidate.
+                _rampTexture.Reinitialize(width, 1);
             }
 
-            // Rebake when the source gradient changes, and always in edit mode (in-place edits keep the same reference).
-            if (!ReferenceEquals(_rampSource, gradient) || !Application.isPlaying)
-            {
-                for (var x = 0; x < width; x++)
-                    _rampTexture.SetPixel(x, 0, gradient.Evaluate(width == 1 ? 0f : x / (width - 1f)));
-                _rampTexture.Apply(false);
-                _rampSource = gradient;
-            }
+            for (var x = 0; x < width; x++)
+                _rampTexture.SetPixel(x, 0, gradient.Evaluate(width == 1 ? 0f : x / (width - 1f)));
+            _rampTexture.Apply(false);
+            _rampSource = gradient;
 
             return _rampTexture;
         }

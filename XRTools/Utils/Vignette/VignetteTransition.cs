@@ -4,6 +4,7 @@
 using System;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.XRTools.Utils.Vignette
 {
@@ -23,8 +24,9 @@ namespace EDIVE.XRTools.Utils.Vignette
         private Ease _HideEase;
 
         [SerializeField]
-        [Tooltip("When a source is released mid-show, finish easing in before easing out.")]
-        private bool _CompleteShowBeforeHide;
+        [FormerlySerializedAs("_CompleteShowBeforeHide")]
+        [Tooltip("The show always plays out in full. Anything that changes while it runs is applied once it finishes.")]
+        private bool _UninterruptibleShow;
 
         [SerializeField, Min(0f)]
         [Tooltip("Hold the shown vignette this long before easing out.")]
@@ -34,7 +36,7 @@ namespace EDIVE.XRTools.Utils.Vignette
         public Ease ShowEase { get => _ShowEase; set => _ShowEase = value; }
         public float HideDuration { get => _HideDuration; set => _HideDuration = value; }
         public Ease HideEase { get => _HideEase; set => _HideEase = value; }
-        public bool CompleteShowBeforeHide { get => _CompleteShowBeforeHide; set => _CompleteShowBeforeHide = value; }
+        public bool UninterruptibleShow { get => _UninterruptibleShow; set => _UninterruptibleShow = value; }
         public float HideDelay { get => _HideDelay; set => _HideDelay = value; }
 
         public static VignetteTransition Default => new VignetteTransition
@@ -43,7 +45,7 @@ namespace EDIVE.XRTools.Utils.Vignette
             ShowEase = Ease.OutCubic,
             HideDuration = 0.3f,
             HideEase = Ease.InCubic,
-            CompleteShowBeforeHide = false,
+            UninterruptibleShow = false,
             HideDelay = 0f,
         };
 
@@ -53,7 +55,7 @@ namespace EDIVE.XRTools.Utils.Vignette
             HideEase = Ease.Linear,
         };
     }
-    
+
     public enum VignetteTiebreak
     {
         [Tooltip("Smallest aperture")] StrongestEffect,

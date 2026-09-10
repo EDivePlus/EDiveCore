@@ -10,15 +10,15 @@ namespace EDIVE.XRTools.Utils.Vignette
     public class VignetteSettings
     {
         [Range(-1f, 1f)]
-        [SerializeField] 
+        [SerializeField]
         private float _ApertureSize = 1f;
 
         [Range(0f, 1f)]
-        [SerializeField] 
+        [SerializeField]
         private float _Feathering;
 
         [Range(0f, 1f)]
-        [SerializeField] 
+        [SerializeField]
         private float _Alpha = 1f;
 
         [SerializeField]
@@ -52,7 +52,7 @@ namespace EDIVE.XRTools.Utils.Vignette
         }
         public Gradient Gradient
         {
-            get => _Gradient;
+            get => _Gradient ??= CreateDefaultGradient();
             set => _Gradient = value;
         }
         public float VerticalPosition
@@ -84,6 +84,18 @@ namespace EDIVE.XRTools.Utils.Vignette
             _Color = other._Color;
             _Gradient = other._Gradient;
             _VerticalPosition = other._VerticalPosition;
+        }
+
+        // Gradients are compared by reference, like the ramp cache does.
+        public bool Matches(VignetteSettings other)
+        {
+            return other != null &&
+                   Mathf.Approximately(_ApertureSize, other._ApertureSize) &&
+                   Mathf.Approximately(_Feathering, other._Feathering) &&
+                   Mathf.Approximately(_Alpha, other._Alpha) &&
+                   Mathf.Approximately(_VerticalPosition, other._VerticalPosition) &&
+                   _Color == other._Color &&
+                   ReferenceEquals(_Gradient, other._Gradient);
         }
 
         public static void Lerp(VignetteSettings a, VignetteSettings b, float t, VignetteSettings result)
