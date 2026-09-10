@@ -141,7 +141,7 @@ namespace EDIVE.ServiceHub.Auth
                 AuthStorage.Client.SetLastEmail(email);
         }
 
-        private static string GetOrCreateAnonymousToken()
+        public static string GetOrCreateAnonymousToken()
         {
             var existing = PlayerPrefs.GetString(K_ANONYMOUS_TOKEN, "");
             if (!string.IsNullOrEmpty(existing))

@@ -1,0 +1,19 @@
+﻿{
+  "name": "EDIVE.Networking.ServiceHub",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.Networking",
+    "EDIVE.ServiceHub",
+    "PurrNet.Runtime",
+    "EDIVE.NativeUtils"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
