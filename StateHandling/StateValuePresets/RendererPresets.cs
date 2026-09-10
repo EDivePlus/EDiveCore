@@ -117,7 +117,7 @@ namespace EDIVE.StateHandling.StateValuePresets
         public abstract TValue CaptureFrom(Material targetMaterial);
     }
 
-    [Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public class RendererMaterialAlphaPreset : ARendererMaterialPreset<Renderer, float>
     {
         public override string Title => "Alpha";
@@ -125,7 +125,7 @@ namespace EDIVE.StateHandling.StateValuePresets
         public override float CaptureFrom(Material targetMaterial) => Value = targetMaterial.color.a;
     }
 
-    [Preserve]
+    [Serializable, JsonObject(MemberSerialization.OptIn)]
     public class RendererMaterialColorPreset : ARendererMaterialPreset<Renderer, Color>
     {
         public override string Title => "Color";
