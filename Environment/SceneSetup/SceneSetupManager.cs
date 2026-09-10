@@ -103,9 +103,9 @@ namespace EDIVE.Environment.SceneSetup
             {
                 if (AppCore.Services.TryGet(out overlay))
                     await overlay.RequestOverlayAndWait(this);
-
+                await UniTask.Yield();
+                
                 var loadedScenes = await SwitchScenes(definition);
-
                 foreach (var sceneController in _sceneControllers)
                 {
                     if (sceneController != null)
@@ -113,6 +113,7 @@ namespace EDIVE.Environment.SceneSetup
                 }
 
                 TeleportToSpawn(definition, loadedScenes);
+                await UniTask.Yield();
 
                 CurrentSetup = definition;
                 CurrentContextChanged?.Invoke(CurrentSetup);
@@ -123,6 +124,7 @@ namespace EDIVE.Environment.SceneSetup
             }
             finally
             {
+                await UniTask.Yield();
                 if (overlay != null)
                     overlay.ReleaseOverlay(this);
                 _switchInProgress = false;
