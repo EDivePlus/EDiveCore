@@ -124,7 +124,7 @@ namespace EDIVE.Environment.SceneSetup
             }
             finally
             {
-                await UniTask.Yield();
+                await UniTask.DelayFrame(2); // Wait 2 frames to ensure everything has run initialization and fade will not lag
                 if (overlay != null)
                     overlay.ReleaseOverlay(this);
                 _switchInProgress = false;
