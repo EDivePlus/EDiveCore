@@ -1,5 +1,4 @@
-// URP Lit with the UVs replaced by a triplanar projection of world or object space.
-// Property names match Universal Render Pipeline/Lit so the URP material GUI drives it.
+// URP Lit with triplanar UVs. Same properties as URP Lit.
 Shader "EDIVE/TriPlanar Projection Lit"
 {
     Properties
@@ -9,6 +8,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
 
         [MainTexture] [NoScaleOffset] _BaseMap("Albedo", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
+        _BaseMapStrength("Base Map Strength", Range(0.0, 1.0)) = 1.0
 
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
@@ -36,7 +36,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         [HDR] _EmissionColor("Color", Color) = (0, 0, 0)
         [NoScaleOffset] _EmissionMap("Emission", 2D) = "white" {}
 
-        // Detail inputs. Same projection origin as the base maps, own tiling.
+        // Detail, own tiling
         [NoScaleOffset] _DetailMask("Detail Mask", 2D) = "white" {}
         _DetailAlbedoMapScale("Scale", Range(0.0, 2.0)) = 1.0
         [NoScaleOffset] _DetailAlbedoMap("Detail Albedo x2", 2D) = "linearGrey" {}
@@ -51,7 +51,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         _ProjectionOffset("Offset", Vector) = (0, 0, 0, 0)
         _BlendSharpness("Blend Sharpness", Range(1.0, 64.0)) = 8.0
 
-        // Blending state, driven by the material GUI
+        // Set by material GUI
         _Surface("__surface", Float) = 0.0
         _Blend("__blend", Float) = 0.0
         _Cull("__cull", Float) = 2.0
@@ -84,7 +84,12 @@ Shader "EDIVE/TriPlanar Projection Lit"
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DBuffer.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ParallaxMapping.hlsl"
+
+        #if defined(LOD_FADE_CROSSFADE)
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
+        #endif
 
         #if defined(_DETAIL_MULX2) || defined(_DETAIL_SCALED)
         #define _TRIPLANAR_DETAIL
@@ -114,6 +119,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             half _DetailAlbedoMapScale;
             half _DetailNormalMapScale;
             half _Parallax;
+            half _BaseMapStrength;
             float _BlendSharpness;
             float _Surface;
         CBUFFER_END
@@ -126,7 +132,6 @@ Shader "EDIVE/TriPlanar Projection Lit"
             half3 weights;
         };
 
-        // Position and normal in the space the projection runs in.
         void GetProjectionSpace(float3 positionWS, float3 normalWS, out float3 position, out float3 normal)
         {
         #if defined(_PROJECTIONSPACE_OBJECT)
@@ -168,8 +173,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             return uv;
         }
 
-        // Detail shares the base blend weights, so only the UVs are recomputed.
-        // Its offset is relative to the shared projection origin.
+        // Shares base weights
         TriplanarUV GetDetailUV(float3 position, TriplanarUV baseUV)
         {
             float3 p = (position - _ProjectionOffset.xyz - _DetailOffset.xyz) * _DetailTiling.xyz;
@@ -190,12 +194,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
 
         half4 SampleBaseMap(TriplanarUV uv)
         {
-            return SampleTriplanar(TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap), uv) * _BaseColor;
+            return lerp(half4(1, 1, 1, 1), SampleTriplanar(TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap), uv), _BaseMapStrength) * _BaseColor;
         }
 
-        // One-step parallax, per projection plane. Each plane has an implicit tangent frame
-        // given by how its UVs are swizzled: X uses p.zy (T=+Z, B=+Y), Y uses p.xz, Z uses p.xy,
-        // with the plane normal pointing along the axis, signed by which side we are looking at.
+        // One-step parallax per plane
         void ApplyTriplanarParallax(float3 viewDirWS, float3 normal, inout TriplanarUV uv, inout TriplanarUV detailUV)
         {
         #if defined(_PARALLAXMAP)
@@ -210,7 +212,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             uv.y += offsetY;
             uv.z += offsetZ;
 
-            // The same displacement is a different UV step at the detail frequency.
+            // Scale offset to detail tiling
             float3 baseTiling = _Tiling.xyz;
             baseTiling = abs(baseTiling) < 1e-6 ? float3(1, 1, 1) : baseTiling;
             float3 ratio = _DetailTiling.xyz / baseTiling;
@@ -220,7 +222,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         #endif
         }
 
-        // Sampled at the base tiling, like URP Lit - the mask marks regions, not detail.
+        // Base tiling, like URP Lit
         half SampleDetailMask(TriplanarUV uv)
         {
         #if defined(_TRIPLANAR_DETAIL)
@@ -255,7 +257,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         #endif
         }
 
-        // Whiteout blend of the base and detail normals, returned in projection space.
+        // Whiteout blend, projection space
         half3 SampleTriplanarNormal(TriplanarUV uv, float3 normal, TriplanarUV detailUV, half detailMask)
         {
         #if defined(_NORMALMAP) || defined(_TRIPLANAR_DETAIL)
@@ -380,6 +382,8 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
             #pragma shader_feature_local_fragment _SURFACE_TYPE_TRANSPARENT
 
+            #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
+
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ EVALUATE_SH_MIXED EVALUATE_SH_VERTEX
@@ -406,6 +410,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
             #pragma multi_compile_instancing
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma instancing_options renderinglayer
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -481,6 +486,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+            #ifdef LOD_FADE_CROSSFADE
+                LODFadeCrossFade(input.positionCS);
+            #endif
 
                 float3 position, normal;
                 GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
@@ -526,6 +534,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 inputData.shadowMask = SAMPLE_SHADOWMASK(input.staticLightmapUV);
             #endif
 
+            #if defined(_DBUFFER)
+                ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
+            #endif
+
                 half4 color = UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
                 color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
@@ -559,6 +571,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
             #pragma multi_compile_instancing
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
@@ -615,6 +628,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
                 Alpha(SampleBaseMap(GetTriplanarUV(position, normal, _Tiling.xyz)).a, half4(1, 1, 1, 1), _Cutoff);
             #endif
+            #ifdef LOD_FADE_CROSSFADE
+                LODFadeCrossFade(input.positionCS);
+            #endif
                 return 0;
             }
             ENDHLSL
@@ -640,6 +656,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
             #pragma multi_compile_instancing
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
 
             struct Attributes
             {
@@ -681,6 +698,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
                 Alpha(SampleBaseMap(GetTriplanarUV(position, normal, _Tiling.xyz)).a, half4(1, 1, 1, 1), _Cutoff);
             #endif
+            #ifdef LOD_FADE_CROSSFADE
+                LODFadeCrossFade(input.positionCS);
+            #endif
                 return input.positionCS.z;
             }
             ENDHLSL
@@ -709,6 +729,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
 
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
             #pragma multi_compile_instancing
+            #pragma multi_compile _ LOD_FADE_CROSSFADE
 
             struct Attributes
             {
@@ -749,6 +770,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+            #ifdef LOD_FADE_CROSSFADE
+                LODFadeCrossFade(input.positionCS);
+            #endif
 
                 float3 position, normal;
                 GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
@@ -770,8 +794,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             ENDHLSL
         }
 
-        // Lightmap baking only. Triplanar UVs are unavailable in lightmap space,
-        // so mesh UV0 approximates the albedo for bounced light.
+        // Lightmap bake, uses UV0
         Pass
         {
             Name "Meta"
@@ -814,7 +837,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             half4 MetaPassFragment(Varyings input) : SV_Target
             {
                 MetaInput meta = (MetaInput)0;
-                meta.Albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb * _BaseColor.rgb;
+                meta.Albedo = lerp(1.0, SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb, _BaseMapStrength) * _BaseColor.rgb;
                 meta.Emission = SampleEmission(input.uv, _EmissionColor.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap));
                 return UnityMetaFragment(meta);
             }

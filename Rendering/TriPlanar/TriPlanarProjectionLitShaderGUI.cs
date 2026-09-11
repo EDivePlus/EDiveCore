@@ -10,6 +10,7 @@ namespace EDIVE.Rendering.TriPlanar
     // URP Lit inspector with triplanar projection instead of UV tiling, plus a Detail Inputs foldout.
     public class TriPlanarProjectionLitShaderGUI : BaseShaderGUI
     {
+        private static readonly GUIContent BASE_MAP_STRENGTH = EditorGUIUtility.TrTextContent("Base Map Strength", "0 = color only.");
         private static readonly GUIContent PROJECTION_HEADER = EditorGUIUtility.TrTextContent("Triplanar Projection");
         private static readonly GUIContent SPACE = EditorGUIUtility.TrTextContent("Space", "World space, or local space so the texture follows the object.");
         private static readonly GUIContent TILING = EditorGUIUtility.TrTextContent("Tiling", "Repeats per unit, per axis.");
@@ -22,6 +23,7 @@ namespace EDIVE.Rendering.TriPlanar
         private static readonly GUIContent DETAIL_TILING = EditorGUIUtility.TrTextContent("Tiling", "Repeats per unit. Avoid whole multiples of the base tiling.");
         private static readonly GUIContent DETAIL_OFFSET = EditorGUIUtility.TrTextContent("Offset", "Shifts the detail layer.");
 
+        private const string BASE_MAP_STRENGTH_PROP = "_BaseMapStrength";
         private const string PROJECTION_SPACE_PROP = "_ProjectionSpace";
         private const string TILING_PROP = "_Tiling";
         private const string PROJECTION_OFFSET_PROP = "_ProjectionOffset";
@@ -43,6 +45,7 @@ namespace EDIVE.Rendering.TriPlanar
 
         private LitGUI.LitProperties _litProperties;
 
+        private MaterialProperty _baseMapStrength;
         private MaterialProperty _projectionSpace;
         private MaterialProperty _tiling;
         private MaterialProperty _projectionOffset;
@@ -61,6 +64,7 @@ namespace EDIVE.Rendering.TriPlanar
             base.FindProperties(properties);
             _litProperties = new LitGUI.LitProperties(properties);
 
+            _baseMapStrength = FindProperty(BASE_MAP_STRENGTH_PROP, properties, false);
             _projectionSpace = FindProperty(PROJECTION_SPACE_PROP, properties, false);
             _tiling = FindProperty(TILING_PROP, properties, false);
             _projectionOffset = FindProperty(PROJECTION_OFFSET_PROP, properties, false);
@@ -101,6 +105,7 @@ namespace EDIVE.Rendering.TriPlanar
         {
             base.DrawSurfaceInputs(material);
             LitGUI.Inputs(_litProperties, materialEditor, material);
+            Draw(_baseMapStrength, BASE_MAP_STRENGTH);
             DrawEmissionProperties(material, true);
             DrawProjection();
         }
