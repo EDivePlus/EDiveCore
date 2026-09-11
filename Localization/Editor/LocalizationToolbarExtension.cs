@@ -29,7 +29,7 @@ namespace EDIVE.Localization.Editor
     public static class LocalizationToolbarExtension
     {
 #if UNITY_6_TOOLBAR
-        [MainToolbarElement("EDive/Locale Selector", defaultDockPosition = MainToolbarDockPosition.Right)]
+        [MainToolbarElement("EDive/Locale Selector", defaultDockPosition = MainToolbarDockPosition.Right, defaultDockIndex = 100)]
         public static MainToolbarElement CreatePlayRootSceneButton()
         {
             return MainToolbarUtility.CreateElement(() =>

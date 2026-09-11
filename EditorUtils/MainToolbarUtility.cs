@@ -14,7 +14,10 @@ namespace EDIVE.EditorUtils
     public static class MainToolbarUtility
     {
         private const string ROOT_ELEMENT_PATH = "EDive";
-        private const string ENABLED_FLAG_PREFIX = "EDIVE.MainToolbarElements.Initialized";
+        private const string VERSION_PREFIX = "EDIVE.MainToolbarElements.Version";
+
+        // Bump to re-enable all EDive elements for everyone
+        private const int ELEMENTS_VERSION = 2;
 
         private static readonly ConstructorInfo CTOR;
         private static readonly MethodInfo METHOD_SET_DISPLAYED_ALL;
@@ -41,8 +44,8 @@ namespace EDIVE.EditorUtils
         [InitializeOnLoadMethod]
         private static void EnableEDiveElementsOnFirstRun()
         {
-            var flagKey = $"{ENABLED_FLAG_PREFIX}.{PlayerSettings.productGUID}";
-            if (EditorPrefs.GetBool(flagKey, false) || METHOD_SET_DISPLAYED_ALL == null) 
+            var versionKey = $"{VERSION_PREFIX}.{PlayerSettings.productGUID}";
+            if (EditorPrefs.GetInt(versionKey, 0) >= ELEMENTS_VERSION || METHOD_SET_DISPLAYED_ALL == null)
                 return;
             
             EditorApplication.delayCall += () =>
@@ -55,7 +58,7 @@ namespace EDIVE.EditorUtils
                     
                     // Enable all EDive elements
                     SetDisplayAll(ROOT_ELEMENT_PATH, true);
-                    EditorPrefs.SetBool(flagKey, true);
+                    EditorPrefs.SetInt(versionKey, ELEMENTS_VERSION);
                 }
                 catch (Exception e)
                 {

@@ -10,16 +10,10 @@ using UnityEngine.Scripting;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using EDIVE.OdinExtensions;
 
-#if UNITY_EDITOR
-#if UNITY_6_TOOLBAR
-using EDIVE.EditorUtils;
-using UnityEditor.Toolbars;
-using UnityEngine.UIElements;
-#else
+#if UNITY_EDITOR && !UNITY_6_TOOLBAR
 using UnityEditor;
 using Sirenix.Utilities.Editor;
 using EDIVE.External.ToolbarExtensions;
-#endif
 #endif
 
 
@@ -47,6 +41,12 @@ namespace EDIVE.XRTools.DeviceSimulator
                 else
                     DisableSimulatorInstance();
             }
+        }
+
+        public static bool AutoInstantiateSimulator
+        {
+            get => XRDeviceSimulatorSettings.Instance.automaticallyInstantiateSimulatorPrefab;
+            set => XRDeviceSimulatorSettings.Instance.automaticallyInstantiateSimulatorPrefab = value;
         }
 
         // This method is used to fix the issue with the XRDeviceSimulator not being instantiated
@@ -100,42 +100,7 @@ namespace EDIVE.XRTools.DeviceSimulator
             return null;
         }
 
-#if UNITY_EDITOR
-#if UNITY_6_TOOLBAR
-        [MainToolbarElement("EDive/XRDeviceSimulator Toggle", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = 15)]
-        public static MainToolbarElement CreateToolbarButton()
-        {
-            return MainToolbarUtility.CreateElement(() =>
-            {
-                var toggle = new EditorToolbarToggle();
-                toggle.AddToClassList("unity-editor-toolbar-element");
-
-                void UpdateVisual(bool value)
-                {
-                    toggle.icon = value
-                        ? FontAwesomeEditorIcons.CheckToSlotSolid.Raw
-                        : FontAwesomeEditorIcons.XmarkToSlotSolid.Raw;
-
-                    toggle.tooltip = value
-                        ? "Disable Device Simulator"
-                        : "Enable Device Simulator";
-                }
-
-                var settings = XRDeviceSimulatorSettings.Instance;
-
-                toggle.SetValueWithoutNotify(settings.automaticallyInstantiateSimulatorPrefab);
-                UpdateVisual(toggle.value);
-
-                toggle.RegisterValueChangedCallback(evt =>
-                {
-                    settings.automaticallyInstantiateSimulatorPrefab = evt.newValue;
-                    UpdateVisual(evt.newValue);
-                });
-
-                return toggle;
-            });
-        }
-#else
+#if UNITY_EDITOR && !UNITY_6_TOOLBAR
         [InitializeOnLoadMethod]
         private static void InitializeToolbar()
         {
@@ -156,7 +121,6 @@ namespace EDIVE.XRTools.DeviceSimulator
             }
             GUILayout.Space(2);
         }
-#endif
 #endif
 
     }

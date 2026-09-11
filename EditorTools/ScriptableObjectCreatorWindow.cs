@@ -36,7 +36,7 @@ namespace EDIVE.EditorTools
 
         
 #if UNITY_6_TOOLBAR
-        [MainToolbarElement("EDive/Scriptable Object Creator", defaultDockPosition = MainToolbarDockPosition.Left)]
+        [MainToolbarElement("EDive/Scriptable Object Creator", defaultDockPosition = MainToolbarDockPosition.Left, defaultDockIndex = -100)]
         public static MainToolbarElement CreateToolbarButton()
         {
             return new MainToolbarButton(new MainToolbarContent(MainIcon.Raw, "Create Scriptable Object"), OpenWindow);

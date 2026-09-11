@@ -7,7 +7,8 @@
         "EDIVE.EditorUtils",
         "Unity.XR.Management",
         "Unity.XR.Management.Editor",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.XRTools"
     ],
     "includePlatforms": [
         "Editor"
@@ -25,6 +26,11 @@
             "name": "com.unity.xr.openxr",
             "expression": "",
             "define": "UNITY_OPEN_XR"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "",
+            "define": "XR_INTERACTION_TOOLKIT"
         }
     ],
     "noEngineReferences": false

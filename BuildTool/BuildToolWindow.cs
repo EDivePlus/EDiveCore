@@ -38,7 +38,7 @@ namespace EDIVE.BuildTool
         private static EditorIcon BuildToolIcon => FontAwesomeEditorIcons.HammerSolid;
         
 #if UNITY_6_TOOLBAR
-        [MainToolbarElement("EDive/Build Tool", defaultDockPosition = MainToolbarDockPosition.Left)]
+        [MainToolbarElement("EDive/Build Tool", defaultDockPosition = MainToolbarDockPosition.Left, defaultDockIndex = -90)]
         public static MainToolbarElement CreateBuildToolButton()
         {
             return new MainToolbarButton(new MainToolbarContent(BuildToolIcon.Raw, "Build Tool"), OpenWindow);
