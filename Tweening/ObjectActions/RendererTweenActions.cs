@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Tweening.Segments;
@@ -23,36 +24,7 @@ namespace EDIVE.Tweening.ObjectActions
             if (!property.TryGetParentObject<ObjectTweenSegment>(out var segment) || segment.Target is not Renderer renderer)
                 return null;
 
-            var materials = renderer.sharedMaterials;
-            if (materials.Length == 0)
-                return null;
-
-            var names = new List<string>();
-            var seen = new HashSet<string>();
-            for (var m = 0; m < materials.Length; m++)
-            {
-                if (materialIndex >= 0 && m != materialIndex)
-                    continue;
-
-                var material = materials[m];
-                if (material == null || material.shader == null)
-                    continue;
-
-                var shader = material.shader;
-                var count = shader.GetPropertyCount();
-                for (var i = 0; i < count; i++)
-                {
-                    if ((shader.GetPropertyFlags(i) & ShaderPropertyFlags.HideInInspector) != 0)
-                        continue;
-                    if (Array.IndexOf(propertyTypes, shader.GetPropertyType(i)) < 0)
-                        continue;
-
-                    var name = shader.GetPropertyName(i);
-                    if (seen.Add(name))
-                        names.Add(name);
-                }
-            }
-            return names;
+            return renderer.GetShaderPropertyNames(materialIndex, propertyTypes);
         }
         
         public static void ClearPropertyBlock(InspectorProperty property, int materialIndex)
