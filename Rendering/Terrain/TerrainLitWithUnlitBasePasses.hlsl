@@ -39,16 +39,6 @@ void SplatmapFragmentUnlitBase(
     SplatmapMix(IN.uvMainAndLM, IN.uvSplat01, IN.uvSplat23, splatControl, weight, mixedDiffuse, defaultSmoothness, normalTS);
     half3 albedo = mixedDiffuse.rgb;
 
-#ifdef _TERRAIN_UNLIT_BASE
-    // Layer 0 is the base. Take it out of the lit mix.
-    half baseWeight = splatControl.r;
-    half litWeight = max(1.0h - baseWeight, HALF_MIN);
-    half3 splat0 = SAMPLE_TEXTURE2D(_Splat0, sampler_Splat0, IN.uvSplat01.xy).rgb * _DiffuseRemapScale0.rgb;
-    albedo = saturate((albedo - splat0 * baseWeight) / litWeight);
-    splatControl.r = 0.0h;
-    splatControl /= litWeight;
-#endif
-
     half4 defaultMetallic = half4(_Metallic0, _Metallic1, _Metallic2, _Metallic3);
     half4 defaultOcclusion = half4(_MaskMapRemapScale0.g, _MaskMapRemapScale1.g, _MaskMapRemapScale2.g, _MaskMapRemapScale3.g) +
                             half4(_MaskMapRemapOffset0.g, _MaskMapRemapOffset1.g, _MaskMapRemapOffset2.g, _MaskMapRemapOffset3.g);
@@ -64,6 +54,17 @@ void SplatmapFragmentUnlitBase(
     half4 maskOcclusion = half4(masks[0].g, masks[1].g, masks[2].g, masks[3].g);
     defaultOcclusion = lerp(defaultOcclusion, maskOcclusion, hasMask);
     half occlusion = dot(splatControl, defaultOcclusion);
+
+#ifdef _TERRAIN_UNLIT_BASE
+    // Layer 0 is the base. Take it out of the lit mix.
+    half baseWeight = splatControl.r;
+    half litWeight = max(1.0h - baseWeight, HALF_MIN);
+    half3 splat0 = SAMPLE_TEXTURE2D(_Splat0, sampler_Splat0, IN.uvSplat01.xy).rgb * _DiffuseRemapScale0.rgb;
+    albedo = saturate((albedo - splat0 * baseWeight) / litWeight);
+    smoothness = saturate((smoothness - defaultSmoothness.r * baseWeight) / litWeight);
+    metallic = saturate((metallic - defaultMetallic.r * baseWeight) / litWeight);
+    occlusion = saturate((occlusion - defaultOcclusion.r * baseWeight) / litWeight);
+#endif
 
     InputData inputData;
     InitializeInputData(IN, normalTS, inputData);
