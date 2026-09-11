@@ -14,58 +14,35 @@ namespace EDIVE.Rendering.UVDecals
     [ExecuteAlways]
     public class UVDecalPainter : MonoBehaviour
     {
-        // Must match MAX_UV_DECALS in LitUVDecalsInput.hlsl.
-        private const int MAX_DECALS = 2;
+        // Same as slots in UVDecals.hlsl.
+        public const int MAX_DECALS = 4;
 
         [SerializeField]
         [Required]
-        [Tooltip("Renderer whose material uses the 'EDIVE/Lit UV Decals' shader.")]
+        [Tooltip("Uses EDIVE/Lit UV Decals.")]
         private Renderer _Renderer;
 
         [SerializeField]
         [Min(0)]
-        [Tooltip("Material / submesh index on that renderer.")]
+        [Tooltip("Submesh.")]
         private int _MaterialIndex;
-
+        
         [SerializeField]
-        [EnhancedInlineEditor]
-        [Tooltip("Optional. When set, its decals are used and the list below is ignored.")]
-        private UVDecalPreset _Preset;
-
-        [SerializeField]
-        [HideIf(nameof(_Preset))]
         [ListDrawerSettings(ShowFoldout = false)]
         private List<UVDecal> _Decals = new();
 
-        [SerializeField]
-        [Tooltip("Resolution each decal texture is resampled to for the texture array.")]
-        private int _Resolution = 512;
+        private static readonly int[] TEX_IDS = CreateIds("Tex");
+        private static readonly int[] RECT_IDS = CreateIds("Rect");
+        private static readonly int[] PARAMS_IDS = CreateIds("Params");
+        private static readonly int[] TINT_IDS = CreateIds("Tint");
 
-        private static readonly int DECALS_ID = Shader.PropertyToID("_UVDecals");
-        private static readonly int RECT_ID = Shader.PropertyToID("_UVDecalRect");
-        private static readonly int ROT_ID = Shader.PropertyToID("_UVDecalRot");
-        private static readonly int TINT_ID = Shader.PropertyToID("_UVDecalTint");
-        private static readonly int COUNT_ID = Shader.PropertyToID("_UVDecalCount");
+        private Material _sourceMaterial;
+        private Material _instance;
 
-        private MaterialPropertyBlock _block;
-        private Texture2DArray _array;
-        private int[] _textureKeys;
-
-        private readonly Vector4[] _rect = new Vector4[MAX_DECALS];
-        private readonly Vector4[] _rot = new Vector4[MAX_DECALS];
-        private readonly Vector4[] _tint = new Vector4[MAX_DECALS];
-        
-        public IReadOnlyList<UVDecal> ActiveDecals => _Preset != null ? _Preset.Decals : _Decals;
-        
-        public void ApplyPreset(UVDecalPreset preset)
-        {
-            _Preset = preset;
-            Rebuild();
-        }
+        public IReadOnlyList<UVDecal> ActiveDecals => _Decals;
         
         public void SetDecals(IEnumerable<UVDecal> decals)
         {
-            GoLocal();
             _Decals.Clear();
             _Decals.AddRange(decals);
             Rebuild();
@@ -73,169 +50,135 @@ namespace EDIVE.Rendering.UVDecals
 
         public void AddDecal(UVDecal decal)
         {
-            GoLocal();
             _Decals.Add(decal);
             Rebuild();
         }
 
         public void RemoveDecalAt(int index)
         {
-            GoLocal();
             if (index < 0 || index >= _Decals.Count) return;
             _Decals.RemoveAt(index);
             Rebuild();
         }
-        
+
         public void Clear()
         {
-            _Preset = null;
             _Decals.Clear();
             Rebuild();
         }
-
-        private void GoLocal()
-        {
-            if (_Preset == null) return;
-            _Decals.Clear();
-            _Decals.AddRange(_Preset.Decals);
-            _Preset = null;
-        }
-
+        
         private void OnEnable()
         {
             Rebuild();
-#if UNITY_EDITOR
-            UVDecalPreset.Changed += OnPresetChanged;
-#endif
         }
 
         private void OnDisable()
         {
 #if UNITY_EDITOR
-            UVDecalPreset.Changed -= OnPresetChanged;
+            ClearPreview();
 #endif
-            if (_Renderer != null)
-                _Renderer.SetPropertyBlock(null, _MaterialIndex);
+            RestoreSourceMaterial();
         }
 
-        private void OnDestroy() => DestroyArray();
-
-#if UNITY_EDITOR
-        private void OnPresetChanged(UVDecalPreset preset)
+        private void OnDestroy()
         {
-            if (preset == _Preset) Rebuild();
+            SafeDestroy(_instance);
+            _instance = null;
         }
-#endif
 
         [Button("Rebuild")]
         public void Rebuild()
         {
-            if (_Renderer == null) return;
-            if (_MaterialIndex >= Mathf.Max(1, _Renderer.sharedMaterials.Length)) return;
-
-            _block ??= new MaterialPropertyBlock();
+            if (_Renderer == null || !isActiveAndEnabled) return;
 
             var decals = ActiveDecals;
-            var count = Mathf.Min(decals.Count, MAX_DECALS);
             if (decals.Count > MAX_DECALS)
                 Debug.LogWarning($"{name}: {decals.Count} UV decals set, only the first {MAX_DECALS} are used.", this);
 
-            if (count == 0)
-                DestroyArray();
-            else
-                EnsureTextureArray(decals, count);
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                WritePreview(decals);
+                return;
+            }
+            ClearPreview();
+#endif
+
+            var material = GetInstance();
+            if (material == null) return;
 
             for (var i = 0; i < MAX_DECALS; i++)
             {
-                if (i < count)
-                {
-                    var d = decals[i];
-                    var rad = -d._Rotation * Mathf.Deg2Rad;
-                    _rect[i] = new Vector4(d._Center.x, d._Center.y, Mathf.Max(0f, d._Size.x), Mathf.Max(0f, d._Size.y));
-                    _rot[i] = new Vector4(Mathf.Cos(rad), Mathf.Sin(rad), i, (float) d._Channel);
-                    _tint[i] = d._Tint;
-                }
-                else
-                {
-                    _rect[i] = Vector4.zero;
-                    _rot[i] = new Vector4(1f, 0f, 0f, 0f);
-                    _tint[i] = Vector4.zero;
-                }
+                GetSlot(decals, i, out var texture, out var rect, out var parameters, out var tint);
+                material.SetTexture(TEX_IDS[i], texture);
+                material.SetVector(RECT_IDS[i], rect);
+                material.SetVector(PARAMS_IDS[i], parameters);
+                material.SetColor(TINT_IDS[i], tint);
             }
-
-            _Renderer.GetPropertyBlock(_block, _MaterialIndex);
-            if (_array != null)
-                _block.SetTexture(DECALS_ID, _array);
-            _block.SetVectorArray(RECT_ID, _rect);
-            _block.SetVectorArray(ROT_ID, _rot);
-            _block.SetVectorArray(TINT_ID, _tint);
-            _block.SetFloat(COUNT_ID, count);
-            _Renderer.SetPropertyBlock(_block, _MaterialIndex);
         }
 
-        private void EnsureTextureArray(IReadOnlyList<UVDecal> decals, int count)
+        private Material GetInstance()
         {
-            var keys = new int[count];
-            for (var i = 0; i < count; i++)
+            var materials = _Renderer.sharedMaterials;
+            if (_MaterialIndex >= materials.Length) return null;
+
+            var current = materials[_MaterialIndex];
+            if (current == null) return null;
+
+            if (_instance == null || (current != _instance && current != _sourceMaterial))
             {
-                var tex = decals[i]._Texture;
-                keys[i] = tex != null ? tex.GetInstanceID() : 0;
+                SafeDestroy(_instance);
+                _sourceMaterial = current;
+                _instance = new Material(current) { name = $"{current.name} (UV Decals)" };
             }
 
-            if (_array != null && _array.depth == count && _array.width == _Resolution &&
-                _textureKeys != null && ArraysEqual(_textureKeys, keys))
+            if (current != _instance)
+            {
+                materials[_MaterialIndex] = _instance;
+                _Renderer.sharedMaterials = materials;
+            }
+            return _instance;
+        }
+
+        private void RestoreSourceMaterial()
+        {
+            if (_Renderer == null || _instance == null || _sourceMaterial == null) return;
+
+            var materials = _Renderer.sharedMaterials;
+            if (_MaterialIndex >= materials.Length || materials[_MaterialIndex] != _instance) return;
+
+            materials[_MaterialIndex] = _sourceMaterial;
+            _Renderer.sharedMaterials = materials;
+        }
+
+        private static void GetSlot(IReadOnlyList<UVDecal> decals, int index, out Texture texture, out Vector4 rect, out Vector4 parameters, out Color tint)
+        {
+            if (index >= decals.Count || decals[index]._Texture == null)
+            {
+                texture = Texture2D.blackTexture;
+                rect = Vector4.zero;
+                parameters = new Vector4(1f, 0f, 0f, -1f);
+                tint = Color.clear;
                 return;
-
-            DestroyArray();
-
-            _array = new Texture2DArray(_Resolution, _Resolution, count, TextureFormat.RGBA32, true, false)
-            {
-                name = $"{name}_UVDecals",
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear,
-                anisoLevel = 1,
-                hideFlags = HideFlags.HideAndDontSave,
-            };
-
-            var rt = RenderTexture.GetTemporary(_Resolution, _Resolution, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-            var readback = new Texture2D(_Resolution, _Resolution, TextureFormat.RGBA32, true, false);
-            var prev = RenderTexture.active;
-
-            for (var i = 0; i < count; i++)
-            {
-                var src = decals[i]._Texture != null ? (Texture) decals[i]._Texture : Texture2D.blackTexture;
-                Graphics.Blit(src, rt);
-                RenderTexture.active = rt;
-                readback.ReadPixels(new Rect(0, 0, _Resolution, _Resolution), 0, 0, false);
-                readback.Apply(true, false);
-                Graphics.CopyTexture(readback, 0, _array, i);
             }
 
-            RenderTexture.active = prev;
-            RenderTexture.ReleaseTemporary(rt);
-            SafeDestroy(readback);
-
-            _array.Apply(false, true);
-            _textureKeys = keys;
+            var decal = decals[index];
+            var rad = -decal._Rotation * Mathf.Deg2Rad;
+            texture = decal._Texture;
+            rect = new Vector4(decal._Center.x, decal._Center.y, Mathf.Max(0f, decal._Size.x), Mathf.Max(0f, decal._Size.y));
+            parameters = new Vector4(Mathf.Cos(rad), Mathf.Sin(rad), (float) decal._Channel, decal._OverrideSmoothness ? decal._Smoothness : -1f);
+            tint = decal._Tint;
         }
 
-        private void DestroyArray()
+        private static int[] CreateIds(string suffix)
         {
-            if (_array == null) return;
-            SafeDestroy(_array);
-            _array = null;
-            _textureKeys = null;
+            var ids = new int[MAX_DECALS];
+            for (var i = 0; i < MAX_DECALS; i++)
+                ids[i] = Shader.PropertyToID($"_UVDecal{i}{suffix}");
+            return ids;
         }
 
-        private static bool ArraysEqual(int[] a, int[] b)
-        {
-            if (a.Length != b.Length) return false;
-            for (var i = 0; i < a.Length; i++)
-                if (a[i] != b[i]) return false;
-            return true;
-        }
-
-        private static void SafeDestroy(UnityEngine.Object o)
+        private static void SafeDestroy(Object o)
         {
             if (o == null) return;
             if (Application.isPlaying) Destroy(o);
@@ -243,10 +186,34 @@ namespace EDIVE.Rendering.UVDecals
         }
 
 #if UNITY_EDITOR
+        private MaterialPropertyBlock _previewBlock;
+
+        // Preview without dirtying the scene
+        private void WritePreview(IReadOnlyList<UVDecal> decals)
+        {
+            if (_MaterialIndex >= _Renderer.sharedMaterials.Length) return;
+
+            _previewBlock ??= new MaterialPropertyBlock();
+            _Renderer.GetPropertyBlock(_previewBlock, _MaterialIndex);
+            for (var i = 0; i < MAX_DECALS; i++)
+            {
+                GetSlot(decals, i, out var texture, out var rect, out var parameters, out var tint);
+                _previewBlock.SetTexture(TEX_IDS[i], texture);
+                _previewBlock.SetVector(RECT_IDS[i], rect);
+                _previewBlock.SetVector(PARAMS_IDS[i], parameters);
+                _previewBlock.SetColor(TINT_IDS[i], tint);
+            }
+            _Renderer.SetPropertyBlock(_previewBlock, _MaterialIndex);
+        }
+
+        private void ClearPreview()
+        {
+            if (_Renderer != null && _MaterialIndex < _Renderer.sharedMaterials.Length)
+                _Renderer.SetPropertyBlock(null, _MaterialIndex);
+        }
 
         private void OnValidate()
         {
-            _Resolution = Mathf.Clamp(Mathf.ClosestPowerOfTwo(_Resolution), 16, 2048);
             _MaterialIndex = Mathf.Max(0, _MaterialIndex);
             if (!isActiveAndEnabled) return;
             EditorApplication.delayCall += () =>
