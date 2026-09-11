@@ -11,6 +11,11 @@ Shader "EDIVE/Skybox/Cubemap Extended"
         [Gamma] _Tint("Tint Color", Color) = (0.5, 0.5, 0.5, 1)
         _MainTexVerticalOffset("Cubemap Vertical Offset", Float) = 0
 
+        [Header(Blend Settings)][Space]
+        [Toggle(_BLEND_ON)] _EnableBlend("Enable Blend", Float) = 0
+        [NoScaleOffset] _BlendTex("Cubemap Blend (HDR)", Cube) = "black" {}
+        _BlendFactor("Cubemap Transition", Range(0, 1)) = 0
+
         [Header(Rotation Settings)][Space]
         [Toggle(_ENABLEROTATION_ON)] _EnableRotation("Enable Rotation", Float) = 0
         _RotationDegrees("Rotation Degrees", Range(0, 360)) = 0
@@ -24,147 +29,125 @@ Shader "EDIVE/Skybox/Cubemap Extended"
         _FogFill("Fog Fill", Range(0, 1)) = 0.5
         _FogVerticalOffset("Fog Vertical Offset", Float) = 0
 
-        // Internal decode params for HDR cubemap sampling (hidden)
         [HideInInspector] _MainTex_HDR("DecodeInstructions", Vector) = (0, 0, 0, 0)
+        [HideInInspector] _BlendTex_HDR("DecodeInstructions", Vector) = (0, 0, 0, 0)
     }
 
     SubShader
     {
-        Tags { "RenderType"="Background" "Queue"="Background" "PreviewType"="Skybox" }
-        LOD 0
+        Tags
+        {
+            "RenderType" = "Background"
+            "Queue" = "Background"
+            "PreviewType" = "Skybox"
+            "RenderPipeline" = "UniversalPipeline"
+        }
 
-        CGINCLUDE
-        #pragma target 2.0
-        ENDCG
-
-        Blend Off
-        AlphaToMask Off
         Cull Off
-        ColorMask RGBA
         ZWrite Off
-        ZTest LEqual
 
         Pass
         {
             Name "Unlit"
 
-            CGPROGRAM
-
-            #ifndef UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX
-            #define UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input)
-            #endif
-
+            HLSLPROGRAM
+            #pragma target 2.0
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_instancing
-            #include "UnityCG.cginc"
-            #include "UnityShaderVariables.cginc"
-            #pragma shader_feature_local _ENABLEFOG_ON
+            #pragma shader_feature_local_fragment _BLEND_ON
             #pragma shader_feature_local _ENABLEROTATION_ON
+            #pragma shader_feature_local_fragment _ENABLEFOG_ON
 
-            struct appdata
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
+
+            // unity_ColorSpaceDouble
+            #ifdef UNITY_COLORSPACE_GAMMA
+                #define COLOR_SPACE_DOUBLE half4(2.0, 2.0, 2.0, 2.0)
+            #else
+                #define COLOR_SPACE_DOUBLE half4(4.59479380, 4.59479380, 4.59479380, 2.0)
+            #endif
+
+            struct Attributes
             {
-                float4 vertex : POSITION;
-                float4 color  : COLOR;
+                float4 positionOS : POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            struct v2f
+            struct Varyings
             {
-                float4 vertex : SV_POSITION;
-                float3 dirWS  : TEXCOORD0;
-                float4 posOS  : TEXCOORD1;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
+                float4 positionCS : SV_POSITION;
+                float3 direction : TEXCOORD0;
+                float heightOS : TEXCOORD1;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            // Textures & decode
-            samplerCUBE _MainTex;
-            half4 _MainTex_HDR;   // HDR decode parameters
+            TEXTURECUBE(_MainTex);  SAMPLER(sampler_MainTex);
+            TEXTURECUBE(_BlendTex); SAMPLER(sampler_BlendTex);
 
-            // Color/exposure
-            half4 _Tint;
-            half  _Exposure;
+            CBUFFER_START(UnityPerMaterial)
+                half4 _MainTex_HDR;
+                half4 _BlendTex_HDR;
+                half4 _Tint;
+                half _Exposure;
+                float _MainTexVerticalOffset;
+                half _BlendFactor;
+                float _RotationDegrees;
+                float _RotationSpeed;
+                half _FogIntensity;
+                half _FogHeight;
+                half _FogSmoothness;
+                half _FogFill;
+                float _FogVerticalOffset;
+            CBUFFER_END
 
-            // Placement
-            float _MainTexVerticalOffset;
-
-            // Rotation
-            half  _RotationDegrees;
-            half  _RotationSpeed;
-
-            // Fog
-            half  _FogIntensity;
-            half  _FogHeight;
-            half  _FogSmoothness;
-            half  _FogFill;
-            float _FogVerticalOffset;
-
-            inline half3 DecodeHDR_Cubemap(float4 data)
+            Varyings vert(Attributes input)
             {
-                return DecodeHDR(data, _MainTex_HDR);
-            }
-
-            v2f vert(appdata v)
-            {
-                v2f o;
-                UNITY_SETUP_INSTANCE_ID(v);
-                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-                UNITY_TRANSFER_INSTANCE_ID(v, o);
+                Varyings output = (Varyings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
                 // Aspect correction for ortho
-                float orthoAspect = lerp(1.0, (unity_OrthoParams.y / unity_OrthoParams.x), unity_OrthoParams.w);
-                float3 pos = float3(v.vertex.xyz.x, v.vertex.xyz.y * orthoAspect, v.vertex.xyz.z);
+                float orthoAspect = lerp(1.0, unity_OrthoParams.y / unity_OrthoParams.x, unity_OrthoParams.w);
+                float3 direction = float3(input.positionOS.x, input.positionOS.y * orthoAspect, input.positionOS.z);
 
-                // Vertical offset
-                float3 skyOffset = float3(0.0, -_MainTexVerticalOffset, 0.0);
+            #ifdef _ENABLEROTATION_ON
+                float s, c;
+                sincos(radians(_RotationDegrees + _Time.y * _RotationSpeed), s, c);
+                direction.xz = float2(direction.x * c + direction.z * s, direction.z * c - direction.x * s);
+            #endif
 
-                // Rotation around Y
-                float angleRad = radians(_RotationDegrees + (_Time.y * _RotationSpeed));
-                float3 axisY = float3(0, 1, 0);
-                float3 axisPart = float3(pos.x, 0.0, pos.z);
-                float3 yPart    = float3(0.0, pos.y, 0.0);
+                direction.y -= _MainTexVerticalOffset;
 
-                #ifdef _ENABLEROTATION_ON
-                    float c = cos(angleRad);
-                    float s = sin(angleRad);
-                    float3 rotated = yPart + axisPart * c + cross(axisY, axisPart) * s;
-                    o.dirWS = rotated + skyOffset;
-                #else
-                    o.dirWS = pos + skyOffset;
-                #endif
-
-                o.posOS = v.vertex;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                return o;
+                output.direction = direction;
+                output.heightOS = input.positionOS.y;
+                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                return output;
             }
 
-            fixed4 frag(v2f i) : SV_Target
+            half4 frag(Varyings input) : SV_Target
             {
-                UNITY_SETUP_INSTANCE_ID(i);
-                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-                // Sample and decode HDR cubemap
-                half4 cubeSample = texCUBE(_MainTex, i.dirWS);
-                half3 cubeRGB    = DecodeHDR_Cubemap(cubeSample);
-                half4 skyRGBA    = float4(cubeRGB, 0.0) * unity_ColorSpaceDouble * _Tint * _Exposure;
+                half3 color = DecodeHDREnvironment(SAMPLE_TEXTURECUBE(_MainTex, sampler_MainTex, input.direction), _MainTex_HDR);
+            #ifdef _BLEND_ON
+                half3 blend = DecodeHDREnvironment(SAMPLE_TEXTURECUBE(_BlendTex, sampler_BlendTex, input.direction), _BlendTex_HDR);
+                color = lerp(color, blend, _BlendFactor);
+            #endif
+                half4 sky = half4(color, 0.0) * COLOR_SPACE_DOUBLE * _Tint * _Exposure;
 
+            #ifdef _ENABLEFOG_ON
                 // Height-based fog mask
-                float y = i.posOS.y - _FogVerticalOffset;
-                float h = max(_FogHeight, 1e-6);
-                float t = saturate(pow(abs(y) / h, (1.0 - _FogSmoothness)));
-                float fogMask = lerp(t, 0.0, _FogFill);
-                fogMask = lerp(1.0, fogMask, _FogIntensity);
-
-                // Blend with fog color if enabled
-                float4 colorWithFog = lerp(unity_FogColor, skyRGBA, fogMask);
-                #ifdef _ENABLEFOG_ON
-                    return colorWithFog;
-                #else
-                    return skyRGBA;
-                #endif
+                float height = input.heightOS - _FogVerticalOffset;
+                float t = saturate(pow(abs(height) / max(_FogHeight, 1e-6), 1.0 - _FogSmoothness));
+                float fogMask = lerp(1.0, lerp(t, 0.0, _FogFill), _FogIntensity);
+                return lerp(unity_FogColor, sky, fogMask);
+            #else
+                return sky;
+            #endif
             }
-            ENDCG
+            ENDHLSL
         }
     }
 
