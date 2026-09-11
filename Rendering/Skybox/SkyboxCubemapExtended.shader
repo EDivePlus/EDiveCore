@@ -1,7 +1,7 @@
 // Based on https://assetstore.unity.com/packages/vfx/shaders/free-skybox-extended-shader-107400
 // Slightly modified and cleaned up
 
-Shader "Skybox/Cubemap Extended"
+Shader "EDIVE/Skybox/Cubemap Extended"
 {
     Properties
     {

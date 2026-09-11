@@ -1,4 +1,4 @@
-Shader "URP/Vignette"
+Shader "EDIVE/Vignette"
 {
     Properties
     {

@@ -1,4 +1,4 @@
-Shader "URP/PristineGridAdditive"
+Shader "EDIVE/Grids/Pristine Grid Additive"
 {
     Properties
     {
@@ -13,7 +13,7 @@ Shader "URP/PristineGridAdditive"
     {
         Tags
         {
-            "RenderType" = "Transparent" "Queue" = "Transparent"
+            "RenderType" = "Transparent" "Queue" = "Transparent" "RenderPipeline" = "UniversalPipeline"
         }
         LOD 100
 
@@ -32,7 +32,8 @@ Shader "URP/PristineGridAdditive"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #pragma multi_compile _ _UVMODE_MESHUV _UVMODE_WORLDX _UVMODE_WORLDZ
+            #pragma shader_feature_local _UVMODE_MESHUV _UVMODE_WORLDX _UVMODE_WORLDY _UVMODE_WORLDZ
+            #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
@@ -40,22 +41,29 @@ Shader "URP/PristineGridAdditive"
             {
                 float4 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            float _GridScale;
-            float _LineWidthX;
-            float _LineWidthY;
-            half4 _Color;
+            CBUFFER_START(UnityPerMaterial)
+                float _GridScale;
+                float _LineWidthX;
+                float _LineWidthY;
+                half4 _Color;
+            CBUFFER_END
 
             Varyings vert(Attributes input)
             {
-                Varyings output;
+                Varyings output = (Varyings)0;
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+
                 float3 worldPos = TransformObjectToWorld(input.positionOS.xyz);
                 output.positionHCS = TransformObjectToHClip(input.positionOS.xyz);
 
@@ -97,6 +105,7 @@ Shader "URP/PristineGridAdditive"
 
             half4 frag(Varyings i) : SV_Target
             {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float grid = PristineGrid(i.uv, float2(_LineWidthX, _LineWidthY));
                 half3 color = _Color.rgb * grid * _Color.a;
                 return half4(color, 0); // alpha = 0, additive

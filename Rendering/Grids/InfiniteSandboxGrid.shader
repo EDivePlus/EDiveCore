@@ -1,4 +1,4 @@
-﻿Shader "URP/InfiniteSandboxGrid"
+﻿Shader "EDIVE/Grids/Infinite Sandbox Grid"
 {
     Properties
     {
@@ -18,7 +18,7 @@
 
     SubShader
     {
-        Tags { "Queue"="Transparent" "RenderType"="Transparent" }
+        Tags { "Queue"="Transparent" "RenderType"="Transparent" "RenderPipeline"="UniversalPipeline" }
 
         Pass
         {
@@ -44,15 +44,17 @@
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            float _SmallGridScale;
-            float _SmallWidth;
-            float4 _SmallColor;
+            CBUFFER_START(UnityPerMaterial)
+                float _SmallGridScale;
+                float _SmallWidth;
+                float4 _SmallColor;
 
-            float _BigGridScale;
-            float _BigWidth;
-            float4 _BigColor;
+                float _BigGridScale;
+                float _BigWidth;
+                float4 _BigColor;
 
-            float4 _BGColor;
+                float4 _BGColor;
+            CBUFFER_END
 
             Varyings vert (Attributes v)
             {

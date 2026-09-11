@@ -1,4 +1,4 @@
-Shader "Custom/Always Visible Simple Unlit"
+Shader "EDIVE/Always Visible Unlit"
 {
     Properties
     {

@@ -1,6 +1,6 @@
 // URP Lit with the UVs replaced by a triplanar projection of world or object space.
 // Property names match Universal Render Pipeline/Lit so the URP material GUI drives it.
-Shader "Custom/TriPlanarProjectionLit"
+Shader "EDIVE/TriPlanar Projection Lit"
 {
     Properties
     {
@@ -823,5 +823,5 @@ Shader "Custom/TriPlanarProjectionLit"
     }
 
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
-    CustomEditor "VillaStiassni.Editor.TriPlanarProjectionLitShaderGUI"
+    CustomEditor "EDIVE.Rendering.TriPlanar.TriPlanarProjectionLitShaderGUI"
 }

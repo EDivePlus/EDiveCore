@@ -1,5 +1,5 @@
-#ifndef BPH_LIT_UV_DECALS_FORWARD_PASS_INCLUDED
-#define BPH_LIT_UV_DECALS_FORWARD_PASS_INCLUDED
+#ifndef EDIVE_LIT_UV_DECALS_FORWARD_PASS_INCLUDED
+#define EDIVE_LIT_UV_DECALS_FORWARD_PASS_INCLUDED
 
 // Mirror of URP 17.3 Shaders/LitForwardPass.hlsl, reduced for dynamic (non-lightmapped)
 // meshes: no baked-lightmap plumbing (SH / APV only). After the standard Lit surface
@@ -190,4 +190,4 @@ void LitUVDecalsFragment(
 #endif
 }
 
-#endif // BPH_LIT_UV_DECALS_FORWARD_PASS_INCLUDED
+#endif // EDIVE_LIT_UV_DECALS_FORWARD_PASS_INCLUDED

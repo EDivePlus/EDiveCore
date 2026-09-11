@@ -1,4 +1,4 @@
-Shader "BioPharmaHub/Lit UV Decals"
+Shader "EDIVE/Lit UV Decals"
 {
     // URP Lit with a small set of 2D decals stamped into the albedo in the mesh's
     // own UV0 space. Per-decal placement (centre / size / rotation / texture / tint)

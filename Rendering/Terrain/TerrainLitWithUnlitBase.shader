@@ -1,6 +1,6 @@
 // Fork of URP "Terrain/Lit": the ForwardLit pass draws terrain layer 0 as an unlit
 // base map; painted layers (1+) stay lit and blend on top.
-Shader "Paraglide/Terrain/Lit With Unlit Base"
+Shader "EDIVE/Terrain/Lit With Unlit Base"
 {
     Properties
     {

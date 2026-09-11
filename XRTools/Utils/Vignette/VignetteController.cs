@@ -12,7 +12,7 @@ namespace EDIVE.XRTools.Utils.Vignette
     [RequireComponent(typeof(MeshRenderer), typeof(MeshFilter))]
     public class VignetteController : MonoBehaviour
     {
-        private const string DEFAULT_SHADER = "URP/Vignette";
+        private const string DEFAULT_SHADER = "EDIVE/Vignette";
 
         [SerializeField]
         [EnhancedInlineProperty]

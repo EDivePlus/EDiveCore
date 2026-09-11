@@ -1,5 +1,5 @@
-#ifndef PARAGLIDE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
-#define PARAGLIDE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
+#ifndef EDIVE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
+#define EDIVE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
 
 // Included after URP's TerrainLitInput/TerrainLitPasses; reuses their helpers and the
 // already-declared _BaseMap/sampler_BaseMap (re-declaring would be a redefinition error).
@@ -98,4 +98,4 @@ void SplatmapFragmentUnlitBase(
 #endif
 }
 
-#endif // PARAGLIDE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
+#endif // EDIVE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED

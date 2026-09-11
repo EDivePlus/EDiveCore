@@ -1,5 +1,5 @@
 ﻿// Shader targeted for low end devices. Single Pass Forward Rendering.
-Shader "Custom/Always Visible Simple Lit"
+Shader "EDIVE/Always Visible Simple Lit"
 {
     // Keep properties of StandardSpecular shader for upgrade reasons.
     Properties

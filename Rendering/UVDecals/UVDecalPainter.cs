@@ -4,8 +4,10 @@
 using System.Collections.Generic;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
-using UnityEditor;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace EDIVE.Rendering.UVDecals
 {
@@ -17,7 +19,7 @@ namespace EDIVE.Rendering.UVDecals
 
         [SerializeField]
         [Required]
-        [Tooltip("Renderer whose material uses the 'BioPharmaHub/Lit UV Decals' shader.")]
+        [Tooltip("Renderer whose material uses the 'EDIVE/Lit UV Decals' shader.")]
         private Renderer _Renderer;
 
         [SerializeField]
