@@ -67,17 +67,7 @@
                 return o;
             }
 
-            // world thickness grid
-            float gridWS(float2 uv, float worldThickness, float scale)
-            {
-                float widthUV = worldThickness * scale;
-
-                float2 cell = abs(frac(uv - 0.5) - 0.5);
-                float d = min(cell.x, cell.y);
-
-                float aa = fwidth(d) * 0.5;
-                return 1.0 - smoothstep(widthUV - aa, widthUV + aa, d);
-            }
+            #include "PristineGrid.hlsl"
 
             // fade when grid becomes subpixel
             float pixelFade(float2 uv)
@@ -94,8 +84,9 @@
                 float2 smallUV = i.worldPos.xz * _SmallGridScale;
                 float2 bigUV   = i.worldPos.xz * _BigGridScale;
 
-                float small = gridWS(smallUV, _SmallWidth, _SmallGridScale);
-                float big   = gridWS(bigUV,   _BigWidth,   _BigGridScale);
+                // Thickness is half width.
+                float small = PristineGrid(smallUV, 2.0 * _SmallWidth * _SmallGridScale);
+                float big   = PristineGrid(bigUV,   2.0 * _BigWidth * _BigGridScale);
 
                 // automatic fade by pixel density
                 float smallFade = pixelFade(smallUV * 1.5); // fade earlier
