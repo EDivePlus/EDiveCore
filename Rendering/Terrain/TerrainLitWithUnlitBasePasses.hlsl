@@ -1,10 +1,9 @@
 #ifndef EDIVE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
 #define EDIVE_TERRAIN_LIT_WITH_UNLIT_BASE_PASSES_INCLUDED
 
-// Included after URP's TerrainLitInput/TerrainLitPasses; reuses their helpers and the
-// already-declared _BaseMap/sampler_BaseMap (re-declaring would be a redefinition error).
+// Include after URP TerrainLitInput and TerrainLitPasses.
 
-// Mirrors URP's SplatmapFragment (forward path).
+// URP SplatmapFragment with unlit base.
 void SplatmapFragmentUnlitBase(
     Varyings IN
     , out half4 outColor : SV_Target0
@@ -41,11 +40,13 @@ void SplatmapFragmentUnlitBase(
     half3 albedo = mixedDiffuse.rgb;
 
 #ifdef _TERRAIN_UNLIT_BASE
-    // Layer 0 is the base. An untextured layer 0 samples the default checkerboard, which
-    // leaks in at layer edges; swap its splat albedo for the base map so only the base shows.
-    half3 unlitBase = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uvMainAndLM.xy).rgb;
+    // Layer 0 is the base. Take it out of the lit mix.
+    half baseWeight = splatControl.r;
+    half litWeight = max(1.0h - baseWeight, HALF_MIN);
     half3 splat0 = SAMPLE_TEXTURE2D(_Splat0, sampler_Splat0, IN.uvSplat01.xy).rgb * _DiffuseRemapScale0.rgb;
-    albedo += (unlitBase - splat0) * splatControl.r;
+    albedo = saturate((albedo - splat0 * baseWeight) / litWeight);
+    splatControl.r = 0.0h;
+    splatControl /= litWeight;
 #endif
 
     half4 defaultMetallic = half4(_Metallic0, _Metallic1, _Metallic2, _Metallic3);
@@ -84,9 +85,12 @@ void SplatmapFragmentUnlitBase(
     half4 color = UniversalFragmentPBR(inputData, albedo, metallic, /* specular */ half3(0.0h, 0.0h, 0.0h), smoothness, occlusion, /* emission */ half3(0, 0, 0), alpha);
 
 #ifdef _TERRAIN_UNLIT_BASE
-    // Base is drawn unlit (its lighting is baked into the photo): fade the lit result back
-    // to the raw base map over layer 0's weight. Before SplatmapFinalColor so it still fogs.
-    color.rgb = lerp(color.rgb, unlitBase, splatControl.r);
+    half3 unlitBase = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uvMainAndLM.xy).rgb;
+    #if defined(_DBUFFER)
+    ApplyDecalToBaseColor(IN.clipPos, unlitBase);
+    #endif
+    // Unlit base by its weight, before fog
+    color.rgb = lerp(color.rgb, unlitBase, baseWeight);
 #endif
 
     SplatmapFinalColor(color, inputData.fogCoord);

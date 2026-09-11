@@ -1,5 +1,4 @@
-// Fork of URP "Terrain/Lit": the ForwardLit pass draws terrain layer 0 as an unlit
-// base map; painted layers (1+) stay lit and blend on top.
+// URP Terrain/Lit. Layer 0 draws the base map unlit.
 Shader "EDIVE/Terrain/Lit With Unlit Base"
 {
     Properties
@@ -9,7 +8,7 @@ Shader "EDIVE/Terrain/Lit With Unlit Base"
 
         [HideInInspector] [ToggleUI] _EnableHeightBlend("EnableHeightBlend", Float) = 0.0
         _HeightTransition("Height Transition", Range(0, 1.0)) = 0.0
-        // Disables height-blend past 4 layers, where multipass breaks normalization.
+        // Height blend off above 4 layers
         [HideInInspector] [PerRendererData] _NumLayersCount ("Total Layer Count", Float) = 1.0
 
         // set by terrain engine
@@ -302,10 +301,8 @@ Shader "EDIVE/Terrain/Lit With Unlit Base"
         UsePass "Hidden/Nature/Terrain/Utilities/PICKING"
     }
     Dependency "AddPassShader" = "Hidden/Universal Render Pipeline/Terrain/Lit (Add Pass)"
-    // BaseMapShader/BaseMapGenShader omitted on purpose: their distant prebaked basemap is
-    // built from the layers (lit, ignoring the unlit base) and bakes white with no layer-0 texture.
-
-    // Default inspector kept (not TerrainLitShaderGUI) so the base map/toggle stay visible.
+    // No BaseMapShader, its prebake ignores the unlit base.
+    // Default inspector, so base map shows.
 
     Fallback "Hidden/Universal Render Pipeline/FallbackError"
 }
