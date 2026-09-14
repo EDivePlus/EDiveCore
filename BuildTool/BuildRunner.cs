@@ -165,8 +165,8 @@ namespace EDIVE.BuildTool
 
             Context.VersionDefinition = BuildGlobalSettings.Instance.VersionDefinition;
             if (!Application.isBatchMode)
-                Context.VersionDefinition.IncrementCurrentVersion();
-            Context.VersionDefinition.ApplyCurrentVersion();
+                Context.VersionDefinition.TryIncrementCurrentVersion();
+            Context.VersionDefinition.ApplyToSettings();
 
             Context.ResultPath = UserConfig.PathResolver.ResolvePath(Preset);
             Context.Defines = Preset.GetBuildDefines(Context).ToList();
@@ -182,9 +182,9 @@ namespace EDIVE.BuildTool
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
-            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.VersionString);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.DisplayVersionString);
             
-            TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.VersionString);
+            TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.DisplayVersionString);
             
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             yield return ExecuteBuildCallback<IStateCaptureBuildCallback>(Preset.GetBuildCallbacks(Context), c => c.OnStateCapture(_Context));

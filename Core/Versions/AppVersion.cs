@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Text;
+using System.Globalization;
 using Newtonsoft.Json;
-using Sirenix.OdinInspector;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 #endif
 
@@ -15,38 +16,19 @@ namespace EDIVE.Core.Versions
     public struct AppVersion : IComparable<AppVersion>, IEquatable<AppVersion>
     {
         public static readonly AppVersion ZERO = new(0);
-        
-        [Wrap(0, 999)]
-        [HorizontalGroup("Version")]
-        [SuffixLabel("Major", true)]
-        [HideLabel]
+
         [SerializeField]
         [JsonProperty("Major")]
         private int _Major;
-        
-        [Wrap(0, 999)]
-        [HorizontalGroup("Version")]
-        [SuffixLabel("Minor", true)]
-        [LabelWidth(8)]
-        [LabelText(".")]
+
         [SerializeField]
         [JsonProperty("Minor")]
         private int _Minor;
-        
-        [Wrap(0, 999)]
-        [HorizontalGroup("Version")]
-        [SuffixLabel("Patch", true)]
-        [LabelWidth(8)]
-        [LabelText(".")]
+
         [SerializeField]
         [JsonProperty("Patch")]
         private int _Patch;
-        
-        [Wrap(0, 999)]
-        [HorizontalGroup("Version")]
-        [SuffixLabel("Build", true)]
-        [LabelWidth(8)]
-        [LabelText(".")]
+
         [SerializeField]
         [JsonProperty("Build")]
         private int _Build;
@@ -54,47 +36,32 @@ namespace EDIVE.Core.Versions
         public int Major
         {
             get => _Major;
-            set => _Major = value;
+            set => _Major = AppVersionSignificanceUtils.ClampSegment(value);
         }
         public int Minor
         {
             get => _Minor;
-            set => _Minor = value;
+            set => _Minor = AppVersionSignificanceUtils.ClampSegment(value);
         }
         public int Patch
         {
             get => _Patch;
-            set => _Patch = value;
+            set => _Patch = AppVersionSignificanceUtils.ClampSegment(value);
         }
         public int Build
         {
             get => _Build;
-            set => _Build = value;
+            set => _Build = AppVersionSignificanceUtils.ClampSegment(value);
         }
 
         public AppVersion(int major = 0, int minor = 0, int patch = 0, int build = 0)
         {
-            _Major = major;
-            _Minor = minor;
-            _Patch = patch;
-            _Build = build;
+            _Major = AppVersionSignificanceUtils.ClampSegment(major);
+            _Minor = AppVersionSignificanceUtils.ClampSegment(minor);
+            _Patch = AppVersionSignificanceUtils.ClampSegment(patch);
+            _Build = AppVersionSignificanceUtils.ClampSegment(build);
         }
 
-        public AppVersion(AppVersion other)
-        {
-            _Major = other.Major;
-            _Minor = other.Minor;
-            _Patch = other.Patch;
-            _Build = other.Build;
-        }
-
-        public AppVersion GetCopy() => new(this);
-
-        public AppVersion WithMajor(int major) => new(major, Minor, Patch, Build);
-        public AppVersion WithMinor(int minor) => new(Major, minor, Patch, Build);
-        public AppVersion WithPatch(int patch) => new(Major, Minor, patch, Build);
-        public AppVersion WithBuild(int build) => new(Major, Minor, Patch, build);
-        
         public int GetSegment(AppVersionSignificance significance)
         {
             return significance switch
@@ -111,7 +78,7 @@ namespace EDIVE.Core.Versions
         {
             switch (significance)
             {
-                case AppVersionSignificance.Major: 
+                case AppVersionSignificance.Major:
                     Major = value;
                     break;
                 case AppVersionSignificance.Minor:
@@ -128,75 +95,51 @@ namespace EDIVE.Core.Versions
             }
         }
 
-        public int CompareTo(AppVersion other)
+        public AppVersion Incremented(AppVersionSignificance significance)
         {
-            var majorComparison = Major.CompareTo(other.Major);
-            if (majorComparison != 0) return majorComparison;
-            var minorComparison = Minor.CompareTo(other.Minor);
-            if (minorComparison != 0) return minorComparison;
-            var revisionComparison = Patch.CompareTo(other.Patch);
-            if (revisionComparison != 0) return revisionComparison;
-            return Build.CompareTo(other.Build);
+            var result = this;
+            result.SetSegment(significance, result.GetSegment(significance) + 1);
+            for (var i = (int) significance + 1; i < AppVersionSignificanceUtils.SEGMENT_COUNT; i++)
+                result.SetSegment(AppVersionSignificanceUtils.ALL[i], 0);
+            return result;
         }
 
-        public string GetFormatedString(AppVersionFormat format)
+        public static bool TryParse(string versionString, out AppVersion version)
         {
-            var stringBuilder = new StringBuilder(20);
+            version = ZERO;
 
-            if (!string.IsNullOrEmpty(format.Prefix))
-                stringBuilder.Append(format.Prefix);
-            
-            foreach (var significance in format.GetSignificances())
+            var remaining = versionString.AsSpan();
+            while (!remaining.IsEmpty && !char.IsDigit(remaining[0]))
+                remaining = remaining[1..];
+
+            var parsed = new AppVersion();
+            foreach (var significance in AppVersionSignificanceUtils.ALL)
             {
-                if (significance > AppVersionSignificance.Major) stringBuilder.Append('.');
-                var leadingZeros = format.GetZerosAt(significance);
-                var segmentValue = GetSegment(significance).ToString($"D{leadingZeros}");
-                stringBuilder.Append(segmentValue);
+                var dotIndex = remaining.IndexOf('.');
+                var segment = dotIndex < 0 ? remaining : remaining[..dotIndex];
+
+                if (!int.TryParse(segment, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+                    return false;
+
+                parsed.SetSegment(significance, value);
+
+                if (dotIndex < 0)
+                {
+                    version = parsed;
+                    return true;
+                }
+
+                remaining = remaining[(dotIndex + 1)..];
             }
-            return stringBuilder.ToString();
-        }
-        
-        public static AppVersion FromBaseString(string versionString)
-        {
-            var parts = versionString.Split('.');
-            var version = new AppVersion();
-            if (parts.Length > 0) version.Major = int.Parse(parts[0]);
-            if (parts.Length > 1) version.Minor = int.Parse(parts[1]);
-            if (parts.Length > 2) version.Patch = int.Parse(parts[2]);
-            if (parts.Length > 3) version.Build = int.Parse(parts[3]);
-            return version;
-        }
-        
-        public string ToBaseString()
-        {
-            return string.Join(".", _Major.ToString(), _Minor.ToString(), _Patch.ToString(), _Build.ToString());
-        }
-        
-        public int GetBundleCode(BundleCodeFormat bundleFormat)
-        {
-            return Major * (int) Math.Pow(10, bundleFormat.MinorDigits + bundleFormat.PatchDigits) + Minor * (int) Math.Pow(10, bundleFormat.PatchDigits) + Patch;
-        }
-        
-        public AppVersion FromBundleCode(int code, BundleCodeFormat bundleFormat)
-        {
-            var minorPatchFactor = (int) Math.Pow(10, bundleFormat.PatchDigits);
-            var majorFactor = (int) Math.Pow(10, bundleFormat.MinorDigits + bundleFormat.PatchDigits);
 
-            var major = code / majorFactor;
-            var remainder = code % majorFactor;
-            var minor = remainder / minorPatchFactor;
-            var patch = remainder % minorPatchFactor;
-            return new AppVersion(major, minor, patch);
+            return false;
         }
 
-        public static bool operator <(AppVersion a, AppVersion b) { return a.CompareTo(b) < 0; }
-        public static bool operator >(AppVersion a, AppVersion b) { return a.CompareTo(b) > 0; }
+        public override string ToString() => string.Join(".", _Major, _Minor, _Patch, _Build);
 
-        public static bool operator <=(AppVersion a, AppVersion b) { return a.CompareTo(b) <= 0; }
-        public static bool operator >=(AppVersion a, AppVersion b) { return a.CompareTo(b) >= 0; }
-        
-        public static bool operator ==(AppVersion a, AppVersion b) { return a.Equals(b); }
-        public static bool operator !=(AppVersion a, AppVersion b) { return !a.Equals(b); }
+        public string ToStoreString() => string.Join(".", _Major, _Minor, _Patch);
+
+        public int CompareTo(AppVersion other) => CompareTo(other, AppVersionSignificance.Build);
 
         public int CompareTo(AppVersion other, AppVersionSignificance mostSpecificVersionSignificance)
         {
@@ -204,10 +147,19 @@ namespace EDIVE.Core.Versions
             if (mostSpecificVersionSignificance == AppVersionSignificance.Major || majorComparison != 0) return majorComparison;
             var minorComparison = Minor.CompareTo(other.Minor);
             if (mostSpecificVersionSignificance == AppVersionSignificance.Minor || minorComparison != 0) return minorComparison;
-            var revisionComparison = Patch.CompareTo(other.Patch);
-            if (mostSpecificVersionSignificance == AppVersionSignificance.Patch || revisionComparison != 0) return revisionComparison;
+            var patchComparison = Patch.CompareTo(other.Patch);
+            if (mostSpecificVersionSignificance == AppVersionSignificance.Patch || patchComparison != 0) return patchComparison;
             return Build.CompareTo(other.Build);
         }
+
+        public static bool operator <(AppVersion a, AppVersion b) { return a.CompareTo(b) < 0; }
+        public static bool operator >(AppVersion a, AppVersion b) { return a.CompareTo(b) > 0; }
+
+        public static bool operator <=(AppVersion a, AppVersion b) { return a.CompareTo(b) <= 0; }
+        public static bool operator >=(AppVersion a, AppVersion b) { return a.CompareTo(b) >= 0; }
+
+        public static bool operator ==(AppVersion a, AppVersion b) { return a.Equals(b); }
+        public static bool operator !=(AppVersion a, AppVersion b) { return !a.Equals(b); }
 
         public bool Equals(AppVersion other)
         {
@@ -223,14 +175,40 @@ namespace EDIVE.Core.Versions
         {
             return HashCode.Combine(_Major, _Minor, _Patch, _Build);
         }
-        
-#if UNITY_EDITOR
-        public void Apply(AppVersionFormat format, BundleCodeFormat bundleFormat)
-        {
-            PlayerSettings.bundleVersion = GetFormatedString(format);
-            PlayerSettings.Android.bundleVersionCode = GetBundleCode(bundleFormat);
-            PlayerSettings.iOS.buildNumber = Mathf.Max(0, Build).ToString();
-        }
-#endif
     }
+
+#if UNITY_EDITOR
+    public class AppVersionDrawer : OdinValueDrawer<AppVersion>
+    {
+        private const float SEPARATOR_WIDTH = 6;
+        private const float SUFFIX_MIN_WIDTH = 42;
+
+        protected override void DrawPropertyLayout(GUIContent label)
+        {
+            SirenixEditorGUI.BeginHorizontalPropertyLayout(label);
+            var version = ValueEntry.SmartValue;
+            for (var i = 0; i < AppVersionSignificanceUtils.ALL.Length; i++)
+            {
+                if (i > 0) 
+                    GUILayout.Label(".", SirenixGUIStyles.LabelCentered, GUILayout.Width(SEPARATOR_WIDTH));
+
+                var significance = AppVersionSignificanceUtils.ALL[i];
+
+                EditorGUI.BeginChangeCheck();
+                var value = SirenixEditorFields.IntField(version.GetSegment(significance));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    version.SetSegment(significance, value);
+                    ValueEntry.SmartValue = version;
+                }
+
+                var fieldRect = GUILayoutUtility.GetLastRect();
+                if (fieldRect.width >= SUFFIX_MIN_WIDTH)
+                    GUI.Label(fieldRect, AppVersionSignificanceUtils.GetLabel(significance), SirenixGUIStyles.RightAlignedGreyMiniLabel);
+            }
+
+            SirenixEditorGUI.EndHorizontalPropertyLayout();
+        }
+    }
+#endif
 }

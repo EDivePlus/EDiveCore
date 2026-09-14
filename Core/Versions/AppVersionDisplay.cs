@@ -23,7 +23,7 @@ namespace EDIVE.Core.Versions
 
         private void Awake()
         {
-            _VersionText.text = _OverrideFormat ? _VersionDefinition.CurrentVersion.GetFormatedString(_Format) : _VersionDefinition.VersionString;
+            _VersionText.text = _OverrideFormat ? _Format.Format(_VersionDefinition.CurrentVersion) : _VersionDefinition.DisplayVersionString;
         }
     }
 }

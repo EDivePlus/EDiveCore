@@ -24,7 +24,7 @@ namespace EDIVE.BuildTool.PathResolving
         public override string GetValue(BuildPreset preset)
         {
             var version = BuildGlobalSettings.Instance.VersionDefinition;
-            return _OverrideFormat ? version.CurrentVersion.GetFormatedString(_Format) : version.VersionString;
+            return _OverrideFormat ? _Format.Format(version.CurrentVersion) : version.DisplayVersionString;
         }
     }
 }

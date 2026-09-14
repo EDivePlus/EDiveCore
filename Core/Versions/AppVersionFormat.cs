@@ -1,7 +1,7 @@
 using System;
-using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using EDIVE.OdinExtensions.Attributes;
-using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -10,78 +10,74 @@ namespace EDIVE.Core.Versions
 {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
-    public class AppVersionFormat
+    [EnhancedInlineProperty]
+    public class AppVersionFormat : ADigitVersionFormat
     {
-        public static readonly AppVersionFormat DEFAULT = new();
-
-        [LabelWidth(60)]
-        [HorizontalGroup]
-        [Range(1, 4)]
-        [SerializeField]
-        [JsonProperty("Major")]
-        private int _Depth = 4;
-
-        [LabelWidth(60)]
-        [HorizontalGroup]
+        public static AppVersionFormat Default => new();
+        
+        [PropertyOrder(0)]
         [SerializeField]
         [JsonProperty("Prefix")]
         private string _Prefix = "v.";
-        
-        [LabelWidth(120)]
-        [PropertyTooltip("Each number defines minimum amount of digits generated for respective version segment")]
-        [InlineList(ElementSuffixGetter = "$GetLeadingZeroSuffix")]
-        [RequiredListLength(4)]
-        [SerializeField]
-        [JsonProperty("LeadingZeros")]
-        private int[] _LeadingZeros = {0, 2, 2, 3};
-
-        public int Depth { get => _Depth; set => _Depth = value; }
 
         public string Prefix { get => _Prefix; set => _Prefix = value; }
 
-        public int[] LeadingZeros { get => _LeadingZeros; set => _LeadingZeros = value; }
-
         public AppVersionFormat() { }
-        public AppVersionFormat(int depth, string prefix, int[] leadingZeros)
+        public AppVersionFormat(string prefix, int[] digits) : base(digits)
         {
-            _Depth = depth;
             _Prefix = prefix;
-            _LeadingZeros = leadingZeros;
-        }
-        
-        public IEnumerable<AppVersionSignificance> GetSignificances()
-        {
-            yield return AppVersionSignificance.Major;
-            if (Depth >= 2) yield return AppVersionSignificance.Minor;
-            if (Depth >= 3) yield return AppVersionSignificance.Patch;
-            if (Depth >= 4) yield return AppVersionSignificance.Build;
         }
 
-        public int GetZerosAt(AppVersionSignificance significance)
+        public string Format(AppVersion version)
         {
-            var index = (int) significance;
-            if (LeadingZeros != null && LeadingZeros.Length > index)
+            var stringBuilder = new StringBuilder(20);
+
+            if (!string.IsNullOrEmpty(_Prefix))
+                stringBuilder.Append(_Prefix);
+
+            var isFirstSegment = true;
+            foreach (var significance in AppVersionSignificanceUtils.ALL)
             {
-                return Mathf.Clamp(LeadingZeros[index], 0, 3);
-            }
+                var digits = GetDigitsAt(significance);
+                if (digits <= 0)
+                    continue;
 
-            return 0;
+                if (!isFirstSegment)
+                    stringBuilder.Append('.');
+
+                stringBuilder.Append(version.GetSegment(significance).ToString($"D{digits}", CultureInfo.InvariantCulture));
+                isFirstSegment = false;
+            }
+            return stringBuilder.ToString();
         }
 
 #if UNITY_EDITOR
-        [UsedImplicitly]
-        private string GetLeadingZeroSuffix(int index)
+        protected override void ValidateDigits(int[] value, SelfValidationResult result)
         {
-            return index switch
+            base.ValidateDigits(value, result);
+            
+            var hiddenIndex = -1;
+            var shownCount = 0;
+            for (var i = 0; i < AppVersionSignificanceUtils.SEGMENT_COUNT; i++)
             {
-                0 => "Major",
-                1 => "Minor",
-                2 => "Patch",
-                3 => "Build",
-                _ => ""
-            };
+                if (GetDigitsAt(AppVersionSignificanceUtils.ALL[i]) == 0)
+                {
+                    if (hiddenIndex < 0)
+                        hiddenIndex = i;
+                    continue;
+                }
+
+                shownCount++;
+                if (hiddenIndex >= 0)
+                {
+                    result.AddWarning($"{AppVersionSignificanceUtils.GetLabel(i)} is shown while {AppVersionSignificanceUtils.GetLabel(hiddenIndex)} before it is hidden");
+                    hiddenIndex = -1;
+                }
+            }
+
+            if (shownCount == 0)
+                result.AddError("All segments are hidden, the version string would be empty");
         }
 #endif
-        
     }
 }

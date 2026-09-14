@@ -60,7 +60,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
         private static ServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
         {
-            if (AppVersion.FromBaseString(response.Version) != AppCore.CurrentVersion)
+            if (!AppVersion.TryParse(response.Version, out var version) || version.CompareTo(AppCore.CurrentVersion, AppVersionSignificance.Patch) != 0)
                 return null;
             
             var endpoints = new List<AServerEndpoint>();
@@ -83,7 +83,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 CurrentPlayers = response.CurrentPlayers,
                 Endpoints = endpoints,
                 JoinCode = response.JoinCode,
-                Version = AppVersion.FromBaseString(response.Version),
+                Version = version,
             };
         }
     }

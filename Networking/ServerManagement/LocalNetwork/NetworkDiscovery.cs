@@ -35,7 +35,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
                 MaxPlayers = _Config.MaxPlayers,
                 CurrentPlayers = nm != null ? nm.playerCount : 0,
                 JoinCode = serverManager.JoinCode,
-                Version = AppCore.CurrentVersion.ToBaseString()
+                Version = AppCore.CurrentVersion.ToString()
             };
         }
 

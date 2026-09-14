@@ -1,4 +1,4 @@
-// Author: Michal Petr
+﻿// Author: Michal Petr
 // Created: 12.05.2026
 
 using System;
@@ -185,7 +185,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             {
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
                 var response = await Lobby.QueryServersAsync(
-                    new QueryServersRequest { Count = _QueryCount, Skip = 0, Version = AppCore.CurrentVersion.ToBaseString(), VersionSegments = 3},
+                    new QueryServersRequest { Count = _QueryCount, Skip = 0, Version = AppCore.CurrentVersion.ToString(), VersionSegments = 3},
                     cancellationToken);
                 var records = response.IsSuccess && response.Result != null
                     ? BuildRecords(response.Result)
@@ -213,6 +213,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 var data = ServiceHubServerData.TryParse(lobby.Data);
                 if (data == null || string.IsNullOrEmpty(data.InstanceID))
                     continue;
+
+                if (!AppVersion.TryParse(lobby.Version, out var version))
+                    continue;
                 
                 if (!string.IsNullOrEmpty(data.PurrRelayRoom))
                 {
@@ -231,7 +234,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     MaxPlayers = lobby.MaxPlayers,
                     Endpoints = endpoints,
                     JoinCode = lobby.JoinCode,
-                    Version = AppVersion.FromBaseString(lobby.Version)
+                    Version = version
                 };
             }
         }
@@ -254,7 +257,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             var response = await Lobby.RegisterServerAsync(new RegisterServerRequest
             {
                 Name = _serverConfig.ServerName,
-                Version = AppCore.CurrentVersion.ToBaseString(),
+                Version = AppCore.CurrentVersion.ToString(),
                 PublicAddress = _serverConfig.PublicAddress,
                 PublicPort = serverManager.ResolvedPort,
                 MaxPlayers = _serverConfig.MaxPlayers,
