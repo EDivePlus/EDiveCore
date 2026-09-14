@@ -15,7 +15,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool.ApplicationConfigs.Components
 {
     [Serializable]
-    public class PlayerSettingsSnapshot : AApplicationConfigComponent
+    public class PlayerSettingsComponent : AApplicationConfigComponent
     {
         [Required]
         [SerializeField]
@@ -30,6 +30,8 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
         [EnhancedPreviewField]
         private Texture2D _DefaultIcon;
 
+        public override string Label => "Player Settings";
+        
         public string ProductName => _ProductName;
         public string PackageName => _PackageName;
 

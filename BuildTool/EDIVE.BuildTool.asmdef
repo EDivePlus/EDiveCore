@@ -10,7 +10,8 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.EditorUtils",
         "EDIVE.EditorTools",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "EDIVE.CredentialStore"
     ],
     "includePlatforms": [
         "Editor"

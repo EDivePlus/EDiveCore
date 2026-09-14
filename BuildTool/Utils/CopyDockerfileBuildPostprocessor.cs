@@ -9,7 +9,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace EDIVE.BuildTool.Docker
+namespace EDIVE.BuildTool.Utils
 {
     public class CopyDockerfilePostBuild : IPostprocessBuildWithReport
     {

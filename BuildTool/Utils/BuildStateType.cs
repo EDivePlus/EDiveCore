@@ -13,7 +13,7 @@ namespace EDIVE.BuildTool.Utils
         PipelineInProgress,     // Pipeline is running
         PipelineFinalization,   // Pipeline completed and finalizing
         Postprocess,            // Build target and defines are still in build state
-        BuildTargetRevert,      // Reverting to the original build target, skipped in batch mode
+        BuildTargetRestore,     // Restoring to the original build target, skipped in batch mode
         StateRestore,           // Restoring editor to the original state, skipped in batch mode
         Completed,              // Build completed
     }

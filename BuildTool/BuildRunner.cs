@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -113,12 +113,18 @@ namespace EDIVE.BuildTool
             if (Context.State < BuildStateType.StateCapture)
             {
                 EditorUtility.DisplayProgressBar("Build", "Editor state capture", 0.1f);
-                yield return ExecuteBuildSegment(CaptureAndChangeEditorState);
+                yield return ExecuteBuildSegment(CaptureEditorState);
+            }
+            
+            if (Context.State < BuildStateType.BuildTargetSwitch)
+            {
+                EditorUtility.DisplayProgressBar("Build", "Build target switch", 0.13f);
+                yield return ExecuteBuildSegment(SwitchBuildTarget);
             }
                 
             if (Context.State <  BuildStateType.Preprocess)
             {
-                EditorUtility.DisplayProgressBar("Build", "Pre processing build", 0.1f);
+                EditorUtility.DisplayProgressBar("Build", "Pre processing build", 0.16f);
                 yield return ExecuteBuildSegment(PreprocessBuild);
             }
 
@@ -131,13 +137,19 @@ namespace EDIVE.BuildTool
             if (Context.State < BuildStateType.Postprocess)
             {
                 EditorUtility.DisplayProgressBar("Build", "Post processing build", 0.9f);
-                yield return ExecuteBuildSegment(PostProcessAndChangeEditor);
+                yield return ExecuteBuildSegment(PostProcessBuild);
+            }
+            
+            if (Context.State < BuildStateType.BuildTargetRestore)
+            {
+                EditorUtility.DisplayProgressBar("Build", "Build target restore", 0.93f);
+                yield return ExecuteBuildSegment(RestoreBuildTarget, false);
             }
         
             if (Context.State < BuildStateType.StateRestore)
             {
-                EditorUtility.DisplayProgressBar("Build", "Editor state restoring", 0.9f);
-                yield return ExecuteBuildSegment(RestoreEditorState);
+                EditorUtility.DisplayProgressBar("Build", "Editor state restoring", 0.96f);
+                yield return ExecuteBuildSegment(RestoreEditorState, false);
             }
 
             EditorUtility.ClearProgressBar();
@@ -146,8 +158,11 @@ namespace EDIVE.BuildTool
                 EditorApplication.Exit(_Context.Result == BuildResult.Succeeded ? 0 : 1);
         }
 
-        private IEnumerator ExecuteBuildSegment(Func<IEnumerator> segmentFunction)
+        private IEnumerator ExecuteBuildSegment(Func<IEnumerator> segmentFunction, bool skipIfFailed = true)
         {
+            if (skipIfFailed && Context.Result == BuildResult.Failed)
+                yield break;
+
             EditorApplication.LockReloadAssemblies();
             yield return segmentFunction();
             DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
@@ -156,7 +171,7 @@ namespace EDIVE.BuildTool
             DomainReloadUtility.ClearSurvivor(DOMAIN_RELOAD_SURVIVOR_ID);
         }
         
-        private IEnumerator CaptureAndChangeEditorState()
+        private IEnumerator CaptureEditorState()
         {
             SetContextState(BuildStateType.StateCapture);
 
@@ -189,18 +204,19 @@ namespace EDIVE.BuildTool
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             yield return ExecuteBuildCallback<IStateCaptureBuildCallback>(Preset.GetBuildCallbacks(Context), c => c.OnStateCapture(_Context));
             DebugLite.Log("[BuildRunner] StateCapture Actions completed");
-
-            DebugLite.Log("[BuildRunner] Applying settings");
-            SetDefineSymbols(PlatformConfig.NamedBuildTarget, _Context.Defines);
-
+        }
+        
+        private IEnumerator SwitchBuildTarget()
+        {
             SetContextState(BuildStateType.BuildTargetSwitch);
             _PrevBuildTarget = EditorUserBuildSettings.activeBuildTarget;
             _PrevNamedBuildTargetName = BuildUtils.CurrentNamedBuildTarget.TargetName;
             EditorUserBuildSettings.SwitchActiveBuildTarget(PlatformConfig.NamedBuildTarget, PlatformConfig.BuildTarget);
 
             CompilationPipeline.RequestScriptCompilation();
+            yield return null;
         }
-
+        
         private IEnumerator PreprocessBuild()
         {
             SetContextState(BuildStateType.Preprocess);
@@ -238,21 +254,24 @@ namespace EDIVE.BuildTool
             DebugLite.Log($"[BuildRunner] Build Completed with result: {_Context.Result}");
         }
 
-        private IEnumerator PostProcessAndChangeEditor()
+        private IEnumerator PostProcessBuild()
         {
             SetContextState(BuildStateType.Postprocess);
 
             DebugLite.Log("[BuildRunner] Postprocess Actions executing");
             yield return ExecuteBuildCallback<IPostprocessBuildCallback>(Preset.GetBuildCallbacks(Context), buildAction => buildAction.OnPostprocess(_Context));
             DebugLite.Log("[BuildRunner] Postprocess Actions completed");
-
+        }
+        
+        private IEnumerator RestoreBuildTarget()
+        {
             if (Application.isBatchMode)
             {
                 DebugLite.Log("[BuildRunner] Target switch is ignored in batch mode");
                 yield break;
             }
             
-            SetContextState(BuildStateType.BuildTargetRevert);
+            SetContextState(BuildStateType.BuildTargetRestore);
             
             DebugLite.Log("[BuildRunner] Restoring settings");
             SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
@@ -282,7 +301,7 @@ namespace EDIVE.BuildTool
                 if (_Context.Result == BuildResult.Succeeded)
                     DebugLite.Log($"[BuildRunner] {PlatformConfig.NamedBuildTarget} Build completed");
                 else
-                    Debug.LogError($"[BuildRunner] {PlatformConfig.NamedBuildTarget} Build result: '{_Context.Report.summary.result}'");
+                    Debug.LogError($"[BuildRunner] {PlatformConfig.NamedBuildTarget} Build result: '{_Context.Result}'");
             }
         }
 

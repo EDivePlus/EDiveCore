@@ -5,6 +5,7 @@ using EDIVE.BuildTool.PlatformConfigs;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
 using EDIVE.NativeUtils;
+using EDIVE.NativeUtils.TeamCity;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -60,6 +61,13 @@ namespace EDIVE.BuildTool
         public BuildUserConfig UserConfig { get => _UserConfig; set => _UserConfig = value; }
         public BuildPlatformConfig PlatformConfig { get => _PlatformConfig; set => _PlatformConfig = value; }
         public List<string> Scenes { get => _Scenes; set => _Scenes = value; }
+        
+        public void Fail(string reason)
+        {
+            _Result = BuildResult.Failed;
+            Debug.LogError($"[Build] {reason}");
+            TeamCityServiceMessages.MessageBuildProblem($"[Build] {reason}");
+        }
 
         public BuildContext(BuildOptions options = BuildOptions.None)
         {

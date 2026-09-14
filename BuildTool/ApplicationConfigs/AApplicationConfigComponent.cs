@@ -13,7 +13,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool.ApplicationConfigs
 {
     [Serializable]
-    public abstract class AApplicationConfigComponent
+    public abstract class AApplicationConfigComponent : IBuildCallback
     {
         public abstract IEnumerator Apply();
         public abstract IEnumerator LoadCurrent();
@@ -21,7 +21,8 @@ namespace EDIVE.BuildTool.ApplicationConfigs
 
         public virtual string Label => ObjectNames.NicifyVariableName(GetType().Name);
         public virtual int Priority => 0;
-        
+        public virtual string CallbackName => Label;
+
         private void LoadFromCurrentSettingsInEditor()
         {
             if (EditorUtility.DisplayDialog("Load from current settings?", "Are you sure you want to overwrite this preset from current project settings?", "Ok", "Cancel"))

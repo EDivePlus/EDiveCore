@@ -19,13 +19,10 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public override string BuildExtension => "";
         
         [EnhancedBoxGroup("Signing", "@ColorTools.Green", SpaceBefore = 4)]
+        [Tooltip("The developer team comes from the application config.")]
         [SerializeField]
         internal bool _AutoSign;
-        
-        [EnhancedBoxGroup("Signing")]
-        [SerializeField]
-        internal string _DeveloperTeamID;
-        
+
         [EnhancedBoxGroup("Build")]
         [SerializeField]
         private bool _SymlinkLibraries = true;
@@ -48,9 +45,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
             
             data._PrevAutoSign = PlayerSettings.iOS.appleEnableAutomaticSigning;
             PlayerSettings.iOS.appleEnableAutomaticSigning = _AutoSign;
-
-            data._PrevTeamID = PlayerSettings.iOS.appleDeveloperTeamID;
-            PlayerSettings.iOS.appleDeveloperTeamID = _DeveloperTeamID;
         }
 
         public override IEnumerator OnStateRestore(BuildContext context)
@@ -62,7 +56,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
             EditorUserBuildSettings.iOSXcodeBuildConfig = data._PrevXCodeConfig;
             EditorUserBuildSettings.symlinkSources = data._PrevSymlinkLibraries;
 
-            PlayerSettings.iOS.appleDeveloperTeamID = data._PrevTeamID;
             PlayerSettings.iOS.appleEnableAutomaticSigning = data._PrevAutoSign;
         }
         
@@ -77,9 +70,6 @@ namespace EDIVE.BuildTool.PlatformConfigs
             
             [SerializeField]
             public bool _PrevAutoSign;
-            
-            [SerializeField]
-            public string _PrevTeamID;
         }
     }
 }

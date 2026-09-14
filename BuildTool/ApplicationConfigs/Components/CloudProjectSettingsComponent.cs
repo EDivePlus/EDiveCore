@@ -11,7 +11,7 @@ using UnityEngine;
 namespace EDIVE.BuildTool.ApplicationConfigs.Components
 {
     [Serializable]
-    public class CloudProjectSettingsSnapshot : AApplicationConfigComponent
+    public class CloudProjectSettingsComponent : AApplicationConfigComponent
     {
         [Required]
         [SerializeField]
@@ -24,6 +24,8 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
         [Required]
         [SerializeField]
         private string _OrganizationId;
+        
+        public override string Label => "Cloud Project Settings";
 
         private const string PROJECT_SETTINGS_ASSET_PATH = "ProjectSettings/ProjectSettings.asset";
         

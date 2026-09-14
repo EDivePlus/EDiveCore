@@ -42,7 +42,9 @@ namespace EDIVE.BuildTool.ApplicationConfigs
 
         public IEnumerable<IBuildCallback> GetBuildCallbacks(BuildContext context)
         {
-            return _BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget).SelectMany(d => d.Actions);
+            return (_Components?.OfType<IBuildCallback>() ?? Enumerable.Empty<IBuildCallback>())
+                .Concat(_BuildSetupData.GetData(context.PlatformConfig.NamedBuildTarget, context.PlatformConfig.BuildTarget)
+                .SelectMany(d => d.Actions));
         }
         
         public IEnumerator Apply()
