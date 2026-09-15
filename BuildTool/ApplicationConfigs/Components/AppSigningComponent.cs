@@ -61,7 +61,7 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
             {
                 PlayerSettings.Android.useCustomKeystore = android.UseCustomKeystore;
                 if (android.UseCustomKeystore)
-                    ApplyAndroidSigning(context);
+                    yield return ApplyAndroidSigning(context);
             }
 
             if (context.PlatformConfig.TryGetModule<IosBuildPlatformModule>(out _))
@@ -86,23 +86,27 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
             yield break;
         }
 
-        private void ApplyAndroidSigning(BuildContext context)
+        private IEnumerator ApplyAndroidSigning(BuildContext context)
         {
-            if (_Android.TryResolve(out var data, out var error) && data.TryVerify(out error))
+            var resolved = _Android.TryResolve(out var data, out var error);
+            if (!resolved && !Application.isBatchMode)
             {
+                EditorUtility.ClearProgressBar();
+                yield return AndroidKeystoreDialog.Show(error, _Android);
+                resolved = _Android.TryResolve(out data, out error);
+            }
+
+            if (resolved)
                 data.Apply();
-                return;
-            }
-
-            if (!Application.isBatchMode && AndroidKeystoreDialog.TryPrompt(error, _Android, out var prompted))
-            {
-                prompted.Apply();
-                return;
-            }
-
-            context.Fail($"Android signing failed. {error}");
+            else
+                context.Fail($"Android signing failed. {error}");
         }
-        
+
+        [Button]
+        public void test()
+        {
+            AndroidKeystoreDialog.Show("test", _Android);
+        }
         [Serializable]
         private class Data : ABuildContextData
         {

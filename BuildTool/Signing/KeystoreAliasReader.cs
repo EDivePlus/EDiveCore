@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Text;
 using UnityEngine;
 
-namespace EDIVE.BuildTool.Utils
+namespace EDIVE.BuildTool.Signing
 {
     public static class KeystoreAliasReader
     {
