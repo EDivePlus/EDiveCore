@@ -67,9 +67,11 @@ namespace EDIVE.CredentialStore
                 Property.Tree.DelayActionUntilRepaint(Save);
 
             EditorGUI.BeginChangeCheck();
+            GUIHelper.PushGUIEnabled(GUI.enabled && IsTargetValid);
             GUIHelper.PushColor(HasTyped ? Color.yellow : GUI.color);
             var edited = EditorGUI.PasswordField(fieldRect, _typed ?? string.Empty);
             GUIHelper.PopColor();
+            GUIHelper.PopGUIEnabled();
 
             if (EditorGUI.EndChangeCheck())
             {
