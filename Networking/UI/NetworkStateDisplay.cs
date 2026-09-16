@@ -14,7 +14,7 @@ namespace EDIVE.Networking.UI
     public class NetworkStateDisplay : MonoBehaviour
     {
         [SerializeField]
-        [ValidateMultiState(typeof(ConnectionState))]
+        [ValidateMultiState(typeof(ConnectionDisplayState))]
         private AMultiState _ConnectionState;
 
         [SerializeField]
@@ -30,6 +30,9 @@ namespace EDIVE.Networking.UI
 
         [SerializeField]
         private TMP_Text _CurrentServerNameText;
+
+        [SerializeField]
+        private TMP_Text _ReconnectCountdownText;
         
         private MasterNetworkManager _networkManager;
         private NetworkServerManager _serverManager;
@@ -39,7 +42,7 @@ namespace EDIVE.Networking.UI
             if (!AppCore.Services.IsRegistered<MasterNetworkManager>())
             {
                 if (_ConnectionState)
-                    _ConnectionState.SetState(ConnectionState.Disconnected);
+                    _ConnectionState.SetState(ConnectionDisplayState.Disconnected);
 
                 if (_RuntimeModeState)
                     _RuntimeModeState.SetState(NetworkRuntimeMode.None);
@@ -53,6 +56,7 @@ namespace EDIVE.Networking.UI
             _networkManager.ConnectionStateChanged += OnClientConnectionStateChanged;
             _networkManager.RuntimeModeChanged += OnRuntimeModeChanged;
             _serverManager = serverManager;
+            _serverManager.ReconnectAttemptFailed += OnReconnectAttemptFailed;
             RefreshState();
         }
 
@@ -63,15 +67,24 @@ namespace EDIVE.Networking.UI
                 _networkManager.ConnectionStateChanged -= OnClientConnectionStateChanged;
                 _networkManager.RuntimeModeChanged -= OnRuntimeModeChanged;
             }
+            if (_serverManager)
+                _serverManager.ReconnectAttemptFailed -= OnReconnectAttemptFailed;
+        }
+
+        private void Update()
+        {
+            if (_ReconnectCountdownText && _serverManager && _serverManager.IsReconnectPending)
+                _ReconnectCountdownText.text = Mathf.CeilToInt(_serverManager.ReconnectCountdown).ToString();
         }
 
         private void OnRuntimeModeChanged(NetworkRuntimeMode networkRuntimeMode) => RefreshState();
         private void OnClientConnectionStateChanged(ConnectionState state) => RefreshState();
+        private void OnReconnectAttemptFailed() => RefreshState();
 
         private void RefreshState()
         {
             if (_ConnectionState)
-                _ConnectionState.SetState(_networkManager.ConnectionState);
+                _ConnectionState.SetState(ResolveDisplayState());
 
             if (_RuntimeModeState)
                 _RuntimeModeState.SetState(_networkManager.RuntimeMode);
@@ -89,10 +102,36 @@ namespace EDIVE.Networking.UI
                 _CurrentServerNameText.text = _serverManager.CurrentServer?.ServerName ?? "None";
         }
 
+        private ConnectionDisplayState ResolveDisplayState()
+        {
+            return _networkManager.ConnectionState switch
+            {
+                ConnectionState.Connecting => ConnectionDisplayState.Connecting,
+                ConnectionState.Connected => ConnectionDisplayState.Connected,
+                ConnectionState.Disconnecting => ConnectionDisplayState.Disconnecting,
+                _ => !_networkManager.ConnectionLost ? ConnectionDisplayState.Disconnected : ResolveLostDisplayState()
+            };
+        }
+
+        private ConnectionDisplayState ResolveLostDisplayState()
+        {
+            return _serverManager.ReconnectFailed ? ConnectionDisplayState.ReconnectFailed : ConnectionDisplayState.Reconnecting;
+        }
+
         private void UpdateSessionLinkState()
         {
             if (AppCore.Services.TryGet<TransportController>(out var transports))
                 _SessionLinkState.SetState(transports.GetSessionLinkMode());
         }
+    }
+    
+    public enum ConnectionDisplayState
+    {
+        Connecting,
+        Connected,
+        Disconnected,
+        Disconnecting,
+        Reconnecting,
+        ReconnectFailed
     }
 }

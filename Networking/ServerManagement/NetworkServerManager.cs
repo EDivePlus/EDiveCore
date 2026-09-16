@@ -51,6 +51,15 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         [Tooltip("How long auto-connect waits for a discovered server before giving up.")]
         private float _AutoConnectTimeout = 5f;
+
+        [SerializeField]
+        [Tooltip("When the connection to the joined server is lost, automatically try to reconnect after a countdown.")]
+        private bool _AutoReconnectOnConnectionLost = true;
+
+        [SerializeField]
+        [MinValue(0)]
+        [Tooltip("Seconds to wait before the automatic reconnect attempt.")]
+        private float _AutoReconnectDelay = 5f;
         
         public IEnumerable<ServerRecord> ServerList => _serverList;
         public event Action ServerListUpdated;
@@ -78,16 +87,25 @@ namespace EDIVE.Networking.ServerManagement
         
         public ServerRecord HostServer { get; private set; }
         public ServerRecord JoinedServer { get; private set; }
+        public ServerRecord LastJoinedServer { get; private set; }
         public ServerRecord CurrentServer =>  HostServer ?? JoinedServer;
         public AServerEndpoint ConnectedEndpoint { get; private set; }
         
         public event Action<AServerEndpoint> ConnectedEndpointChanged;
+
+        public bool IsReconnectPending => _reconnectAt.HasValue;
+        public bool ReconnectFailed { get; private set; }
+        public event Action ReconnectAttemptFailed;
+        public float ReconnectCountdown => _reconnectAt.HasValue ? Mathf.Max(0f, _reconnectAt.Value - UnityEngine.Time.unscaledTime) : 0f;
 
         private bool _serverRunning;
         private bool _connecting;
         private MasterNetworkManager _masterNetworkManager;
         
         private ServerRecord _resumeReconnectTarget;
+        private CancellationTokenSource _autoReconnectCts;
+        private float? _reconnectAt;
+        private bool _autoReconnecting;
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -116,6 +134,8 @@ namespace EDIVE.Networking.ServerManagement
             nm.onPlayerJoined += OnPlayerJoined;
             nm.onPlayerLeft += OnPlayerLeft;
             _masterNetworkManager.RegisterServerPrepareHandler(OnServerPrepareHandlers);
+            _masterNetworkManager.ClientDisconnected += OnClientConnectionLost;
+            _masterNetworkManager.ConnectionStateChanged += OnMasterConnectionStateChanged;
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
@@ -138,7 +158,82 @@ namespace EDIVE.Networking.ServerManagement
                 NetworkManager.main.onPlayerLeft -= OnPlayerLeft;
             }
             if (_masterNetworkManager != null)
+            {
                 _masterNetworkManager.UnregisterServerPrepareHandler(OnServerPrepareHandlers);
+                _masterNetworkManager.ClientDisconnected -= OnClientConnectionLost;
+                _masterNetworkManager.ConnectionStateChanged -= OnMasterConnectionStateChanged;
+            }
+            CancelAutoReconnect();
+        }
+
+        private void OnClientConnectionLost()
+        {
+            if (!_AutoReconnectOnConnectionLost || LastJoinedServer == null)
+                return;
+
+            CancelAutoReconnect();
+            _autoReconnectCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            AutoReconnectAsync(_autoReconnectCts.Token).Forget();
+        }
+
+        private void OnMasterConnectionStateChanged(ConnectionState state)
+        {
+            if (state == ConnectionState.Disconnected && !_masterNetworkManager.ConnectionLost)
+                CancelAutoReconnect();
+        }
+
+        private async UniTaskVoid AutoReconnectAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                _reconnectAt = UnityEngine.Time.unscaledTime + _AutoReconnectDelay;
+                await UniTask.Delay(TimeSpan.FromSeconds(_AutoReconnectDelay), true, cancellationToken: cancellationToken);
+                _reconnectAt = null;
+                await TryReconnectAsync(true, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                _reconnectAt = null;
+            }
+        }
+
+        private async UniTask<bool> TryReconnectAsync(bool automatic, CancellationToken cancellationToken)
+        {
+            var server = LastJoinedServer;
+            ReconnectFailed = false;
+            _autoReconnecting = automatic;
+            bool success;
+            try
+            {
+                success = await ConnectToServerAsync(server, null, cancellationToken);
+            }
+            finally
+            {
+                _autoReconnecting = false;
+            }
+
+            if (!success)
+            {
+                Debug.LogWarning($"[NetworkServerManager] Reconnect to '{server?.ServerName}' failed.");
+                ReconnectFailed = true;
+                ReconnectAttemptFailed?.Invoke();
+            }
+            return success;
+        }
+
+        public void CancelAutoReconnect()
+        {
+            if (_autoReconnectCts == null)
+                return;
+
+            _autoReconnectCts.Cancel();
+            _autoReconnectCts.Dispose();
+            _autoReconnectCts = null;
+            _reconnectAt = null;
+            ReconnectFailed = false;
         }
 
         private void OnApplicationPause(bool paused)
@@ -165,6 +260,8 @@ namespace EDIVE.Networking.ServerManagement
         {
             if (_masterNetworkManager.RuntimeMode == NetworkRuntimeMode.Client && ConnectedEndpoint != null)
                 return;
+
+            CancelAutoReconnect();
 
             var attempts = Mathf.Max(1, _ResumeReconnectAttempts);
             for (var attempt = 0; attempt < attempts; attempt++)
@@ -286,10 +383,19 @@ namespace EDIVE.Networking.ServerManagement
             Debug.LogWarning($"[NetworkServerManager] No adapter could handle join request of type {joinRequest.GetType().Name}.");
         }
 
+        public UniTask<bool> ReconnectAsync(CancellationToken cancellationToken = default)
+        {
+            CancelAutoReconnect();
+            return TryReconnectAsync(false, cancellationToken);
+        }
+
         public async UniTask<bool> ConnectToServerAsync(ServerRecord server, AServerEndpoint endpoint = null, CancellationToken cancellationToken = default)
         {
             if (server == null)
                 return false;
+
+            if (!_autoReconnecting)
+                CancelAutoReconnect();
 
             if (_connecting)
             {
@@ -308,6 +414,7 @@ namespace EDIVE.Networking.ServerManagement
             }
 
             JoinedServer = server;
+            LastJoinedServer = server;
             _connecting = true;
             try
             {
@@ -361,8 +468,7 @@ namespace EDIVE.Networking.ServerManagement
                 return true;
 
             // Tear down whatever is lingering from the previous session (host, server, or client).
-            nm.StopClient();
-            nm.StopServer();
+            _masterNetworkManager.StopRuntime();
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));

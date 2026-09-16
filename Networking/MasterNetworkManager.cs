@@ -28,6 +28,8 @@ namespace EDIVE.Networking
 
         public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
         public event Action<ConnectionState> ConnectionStateChanged;
+        public event Action ClientDisconnected;
+        public bool ConnectionLost { get; private set; }
 
         public NetworkRuntimeMode RuntimeMode { get; private set; } = NetworkRuntimeMode.None;
         public event Action<NetworkRuntimeMode> RuntimeModeChanged;
@@ -37,6 +39,8 @@ namespace EDIVE.Networking
 
         private bool _serverStartRequested;
         private bool _clientStartRequested;
+        private bool _clientWasConnected;
+        private bool _clientStopRequested;
 
         public event Action BeforeHostStarted;
         public event Action BeforeServerStarted;
@@ -106,8 +110,11 @@ namespace EDIVE.Networking
         private void OnClientConnectionStateChanged(ConnectionState state)
         {
             _clientConnectionState = state;
+            var lost = TrackClientDisconnect(state);
             RefreshRuntimeMode();
             RefreshConnectionState();
+            if (lost)
+                ClientDisconnected?.Invoke();
 
             if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
             {
@@ -120,6 +127,25 @@ namespace EDIVE.Networking
                     serviceHub.ClientAuth.OnLoggedOut -= StopRuntime;
                     serviceHub.SaveData.User.FlushAsync().Forget();
                 }
+            }
+        }
+
+        private bool TrackClientDisconnect(ConnectionState state)
+        {
+            switch (state)
+            {
+                case ConnectionState.Connected:
+                    _clientWasConnected = true;
+                    ConnectionLost = false;
+                    return false;
+                case ConnectionState.Disconnected:
+                    var lost = _clientWasConnected && !_clientStopRequested;
+                    _clientWasConnected = false;
+                    _clientStopRequested = false;
+                    ConnectionLost |= lost;
+                    return lost;
+                default:
+                    return false;
             }
         }
 
@@ -314,11 +340,18 @@ namespace EDIVE.Networking
         {
             _serverStartRequested = false;
             _clientStartRequested = false;
+            _clientStopRequested = _clientWasConnected;
             var nm = NetworkManager.main;
             if (nm != null)
             {
                 nm.StopServer();
                 nm.StopClient();
+            }
+
+            if (ConnectionLost)
+            {
+                ConnectionLost = false;
+                ConnectionStateChanged?.Invoke(ConnectionState);
             }
         }
 
