@@ -468,7 +468,7 @@ namespace EDIVE.Networking.ServerManagement
                 return true;
 
             // Tear down whatever is lingering from the previous session (host, server, or client).
-            _masterNetworkManager.StopRuntime();
+            _masterNetworkManager.StopConnections();
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));

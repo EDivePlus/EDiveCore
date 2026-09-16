@@ -338,6 +338,17 @@ namespace EDIVE.Networking
 
         public void StopRuntime()
         {
+            StopConnections();
+
+            if (ConnectionLost)
+            {
+                ConnectionLost = false;
+                ConnectionStateChanged?.Invoke(ConnectionState);
+            }
+        }
+
+        public void StopConnections()
+        {
             _serverStartRequested = false;
             _clientStartRequested = false;
             _clientStopRequested = _clientWasConnected;
@@ -346,12 +357,6 @@ namespace EDIVE.Networking
             {
                 nm.StopServer();
                 nm.StopClient();
-            }
-
-            if (ConnectionLost)
-            {
-                ConnectionLost = false;
-                ConnectionStateChanged?.Invoke(ConnectionState);
             }
         }
 
