@@ -15,6 +15,9 @@ namespace EDIVE.Input.Controls
 
         public AControls CurrentControls { get; private set; }
 
+        private Vector3 _startPosition;
+        private Quaternion _startRotation;
+
         private IEnumerable<AControls> AllControls => _Controls;
 
         private const string HEIGHT_MODE_PREF_KEY = "Controls_HeightMode";
@@ -33,6 +36,8 @@ namespace EDIVE.Input.Controls
 
         protected void Awake()
         {
+            _startPosition = transform.position;
+            _startRotation = transform.rotation;
             CurrentControls = SelectControls();
             AllControls.Where(c => c != null).ForEach(c => c.SetActive(false));
             if (CurrentControls != null)
@@ -51,6 +56,11 @@ namespace EDIVE.Input.Controls
         {
             if (CurrentControls) 
                 CurrentControls.RequestTeleport(position, rotation);
+        }
+
+        public void TeleportToStart()
+        {
+            RequestTeleport(_startPosition, _startRotation);
         }
 
         public void SetHeightMode(RigHeightMode mode)

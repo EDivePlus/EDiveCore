@@ -12,7 +12,9 @@ using EDIVE.Input.Controls;
 using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
 using EDIVE.Utils.Loading;
+using EDIVE.XRTools.Tablet;
 using PurrNet;
+using PurrNet.Transports;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -29,12 +31,15 @@ namespace EDIVE.Environment.SceneSetup
         public event Action<SceneSetupDefinition> CurrentContextChanged;
         
         private bool _switchInProgress;
+        private MasterNetworkManager _networkManager;
         private readonly List<ASceneSpawnPlace> _spawnPlaces = new();
         private readonly List<SceneSetupController> _sceneControllers = new();
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
             NetworkManager.main.onLocalPlayerReceivedID += OnClientAuthenticated;
+            _networkManager = AppCore.Services.Get<MasterNetworkManager>();
+            _networkManager.ConnectionStateChanged += OnConnectionStateChanged;
             return UniTask.CompletedTask;
         }
         
@@ -46,6 +51,8 @@ namespace EDIVE.Environment.SceneSetup
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            if (_networkManager != null)
+                _networkManager.ConnectionStateChanged -= OnConnectionStateChanged;
             if (NetworkManager.main == null) return;
             NetworkManager.main.onLocalPlayerReceivedID -= OnClientAuthenticated;
         }
@@ -75,6 +82,27 @@ namespace EDIVE.Environment.SceneSetup
         private void OnClientAuthenticated(PlayerID player)
         {
             SetCurrentContextAsync(_DefaultSetup).Forget();
+        }
+
+        private void OnConnectionStateChanged(ConnectionState state)
+        {
+            if (state != ConnectionState.Disconnected || CurrentSetup == null)
+                return;
+
+            CurrentSetup = null;
+            CurrentContextChanged?.Invoke(null);
+
+            if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
+                controlsManager.TeleportToStart();
+
+            RepositionTabletAsync().Forget();
+        }
+
+        private async UniTaskVoid RepositionTabletAsync()
+        {
+            await UniTask.DelayFrame(2, cancellationToken: destroyCancellationToken);
+            if (AppCore.Services.TryGet<TabletController>(out var tablet))
+                tablet.RepositionTablet();
         }
 
         [Button]
