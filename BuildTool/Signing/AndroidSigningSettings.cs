@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using EDIVE.BuildTool.UserConfigs;
 using EDIVE.CredentialStore;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
@@ -61,9 +62,26 @@ namespace EDIVE.BuildTool.Signing
         {
             var fromEnvironment = Environment.GetEnvironmentVariable(PATH_VARIABLE);
             if (!string.IsNullOrEmpty(fromEnvironment))
-                return fromEnvironment;
+                return ResolvePath(fromEnvironment);
 
-            return user != null && user.TryGetPreference<AppSigningPreference>(out var preference) ? preference.KeystorePath : null;
+            return user != null && user.TryGetPreference<AppSigningPreference>(out var preference) ? ResolvePath(preference.KeystorePath) : null;
+        }
+
+        // Relative path is relative to project folder.
+        public static string ResolvePath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return path;
+
+            try
+            {
+                return Path.GetFullPath(PathUtility.GetAbsolutePath(path));
+            }
+            catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                // Half typed path in inspector, keep as is.
+                return path;
+            }
         }
 
         public bool TryResolve(out AndroidSigningData data, out string error) => TryResolve(CurrentUser, out data, out error);

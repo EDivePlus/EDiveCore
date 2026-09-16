@@ -39,7 +39,7 @@ namespace EDIVE.BuildTool.Signing
         
         private string ValidateStorePassword(string password)
         {
-            return KeystoreAliasReader.TryReadAliases(KeystorePath, password, out _, out var error) ? null : error;
+            return KeystoreAliasReader.TryReadAliases(AndroidSigningSettings.ResolvePath(KeystorePath), password, out _, out var error) ? null : error;
         }
     }
 }
