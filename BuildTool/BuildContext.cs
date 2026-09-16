@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using EDIVE.BuildTool.PathResolving;
 using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.UserConfigs;
 using EDIVE.BuildTool.Utils;
 using EDIVE.Core.Versions;
 using EDIVE.NativeUtils;

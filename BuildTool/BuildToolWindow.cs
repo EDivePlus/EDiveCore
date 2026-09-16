@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.ApplicationConfigs;
 using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.UserConfigs;
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.UserConfigs;
 using EDIVE.BuildTool.Utils;
 using EDIVE.EditorTools.DomainReload;
 using EDIVE.NativeUtils;

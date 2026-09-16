@@ -1,17 +1,16 @@
-// Author: František Holubec
+﻿// Author: František Holubec
 // Created: 15.09.2026
 
 using System;
 using System.Collections;
+using EDIVE.BuildTool.ApplicationConfigs;
 using EDIVE.BuildTool.PlatformConfigs;
-using EDIVE.BuildTool.Signing;
-using EDIVE.BuildTool.Utils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEngine;
 
-namespace EDIVE.BuildTool.ApplicationConfigs.Components
+namespace EDIVE.BuildTool.Signing
 {
     [Serializable]
     public class AppSigningComponent : AApplicationConfigComponent, IStateCaptureBuildCallback, IStateRestoreBuildCallback
@@ -66,8 +65,6 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
 
             if (context.PlatformConfig.TryGetModule<IosBuildPlatformModule>(out _))
                 _Ios.Apply();
-
-            yield break;
         }
 
         public IEnumerator OnStateRestore(BuildContext context)
@@ -88,12 +85,12 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
 
         private IEnumerator ApplyAndroidSigning(BuildContext context)
         {
-            var resolved = _Android.TryResolve(out var data, out var error);
+            var resolved = _Android.TryResolve(context.UserConfig, out var data, out var error);
             if (!resolved && !Application.isBatchMode)
             {
                 EditorUtility.ClearProgressBar();
-                yield return AndroidKeystoreDialog.Show(error, _Android);
-                resolved = _Android.TryResolve(out data, out error);
+                yield return AndroidKeystoreDialog.Show(error, _Android, context.UserConfig);
+                resolved = _Android.TryResolve(context.UserConfig, out data, out error);
             }
 
             if (resolved)
@@ -101,12 +98,7 @@ namespace EDIVE.BuildTool.ApplicationConfigs.Components
             else
                 context.Fail($"Android signing failed. {error}");
         }
-
-        [Button]
-        public void test()
-        {
-            AndroidKeystoreDialog.Show("test", _Android);
-        }
+        
         [Serializable]
         private class Data : ABuildContextData
         {

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.ApplicationConfigs;
 using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.UserConfigs;
 using EDIVE.BuildTool.Utils;
 using EDIVE.DataStructures;
 using EDIVE.OdinExtensions.Attributes;
@@ -83,6 +84,13 @@ namespace EDIVE.BuildTool
         
         protected IEnumerable<string> GetBuildDefines(BuildContext context, params IBuildDataProvider[] providers) => 
             providers.Where(p => p != null).SelectMany(p => p.GetBuildDefines(context));
+        
+        
+        public bool TryGetUserPreference<T>(out T preference) where T : AUserPreference
+        {
+            preference = null;
+            return _UserConfig != null && _UserConfig.TryGetPreference(out preference);
+        }
         
         public override string ToString()
         {

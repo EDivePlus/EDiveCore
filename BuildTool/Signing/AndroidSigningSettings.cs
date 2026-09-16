@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using EDIVE.BuildTool.Utils;
+using EDIVE.BuildTool.UserConfigs;
 using EDIVE.CredentialStore;
+using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
+using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,38 +23,30 @@ namespace EDIVE.BuildTool.Signing
         public const string STORE_PASSWORD_VARIABLE = "KEYSTORE_STOREPASS";
         public const string KEY_PASSWORD_VARIABLE = "KEYSTORE_KEYPASS";
 
-        private const string STORE_PASSWORD_ACCOUNT = "storepass";
-        private const string KEY_PASSWORD_PREFIX = "keypass:";
-
-        [PropertyOrder(0)]
-        [Sirenix.OdinInspector.FilePath(Extensions = "keystore,jks,ks", AbsolutePath = true)]
-        [SerializeField]
-        private string _KeystorePath;
+        public const string STORE_PASSWORD_ACCOUNT = "storepass";
+        public const string KEY_PASSWORD_PREFIX = "keypass:";
         
-        [PropertyOrder(2)]
+        [EnhancedInfoBox("Listed from keystore stored on current user", ButtonAction = nameof(OpenUser), ButtonLabel = "Open User", ButtonIcon = FontAwesomeEditorIconType.UserGearSolid)]
+        [PropertyOrder(3)]
         [EnhancedValueDropdown(nameof(ReadAliases), AppendNextDrawer = true, DontReloadOnInit = true)]
         [SerializeField]
         private string _KeyAlias;
 
-        [PropertyOrder(1)]
-        [CredentialField("$CredentialKey", STORE_PASSWORD_ACCOUNT, ValidationMethod = nameof(ValidateStorePassword))]
-        [ShowInInspector]
-        [NonSerialized]
-        private string _storePassword;
-        
-        [PropertyOrder(3)]
+        [PropertyOrder(4)]
         [CredentialField("$CredentialKey", "$KeyPasswordAccount", ValidationMethod = nameof(ValidateKeyPassword))]
         [ShowInInspector]
         [NonSerialized]
         private string _keyPassword;
 
-        public string KeystorePath => FromEnvironment(PATH_VARIABLE, _KeystorePath);
+        public string KeystorePath => GetKeystorePath(CurrentUser);
         public string KeyAlias => FromEnvironment(ALIAS_VARIABLE, _KeyAlias);
-        public string CredentialKey => CredentialUtils.SanitizeService(Path.GetFileNameWithoutExtension(KeystorePath));
 
-        private bool IsConfigured => !string.IsNullOrEmpty(_KeystorePath) || !string.IsNullOrEmpty(_KeyAlias);
-        private bool HasKeystoreFile => File.Exists(KeystorePath);
-        private bool HasAlias => HasKeystoreFile && !string.IsNullOrEmpty(KeyAlias);
+        private static BuildUserConfig CurrentUser => BuildGlobalSettings.Instance != null ? BuildGlobalSettings.Instance.CurrentUser : null;
+
+        public string CredentialKey => GetCredentialKey(CurrentUser);
+
+        private bool IsConfigured => !string.IsNullOrEmpty(_KeyAlias);
+        private bool HasAlias => !string.IsNullOrEmpty(KeyAlias);
 
         private string KeyPasswordAccount
         {
@@ -62,15 +56,27 @@ namespace EDIVE.BuildTool.Signing
                 return alias == null ? null : KEY_PASSWORD_PREFIX + alias;
             }
         }
+        
+        public string GetKeystorePath(BuildUserConfig user)
+        {
+            var fromEnvironment = Environment.GetEnvironmentVariable(PATH_VARIABLE);
+            if (!string.IsNullOrEmpty(fromEnvironment))
+                return fromEnvironment;
 
-        public bool TryResolve(out AndroidSigningData data, out string error)
+            return user != null && user.TryGetPreference<AppSigningPreference>(out var preference) ? preference.KeystorePath : null;
+        }
+
+        public bool TryResolve(out AndroidSigningData data, out string error) => TryResolve(CurrentUser, out data, out error);
+
+        public bool TryResolve(BuildUserConfig user, out AndroidSigningData data, out string error)
         {
             data = default;
-            if (!HasKeystoreFile)
+            var keystorePath = GetKeystorePath(user);
+            if (!File.Exists(keystorePath))
             {
-                error = string.IsNullOrEmpty(KeystorePath)
-                    ? "No keystore is set."
-                    : $"Keystore '{KeystorePath}' does not exist.";
+                error = string.IsNullOrEmpty(keystorePath)
+                    ? $"No keystore is set for user '{(user != null ? user.name : "none")}'."
+                    : $"Keystore '{keystorePath}' does not exist.";
                 return false;
             }
 
@@ -80,11 +86,11 @@ namespace EDIVE.BuildTool.Signing
                 return false;
             }
 
-            if (!TryGetStorePassword(out var storePassword, out error)
-                || !TryGetSecret(KEY_PASSWORD_VARIABLE, KeyPasswordAccount, $"Key password for '{KeyAlias}'", out var keyPassword, out error))
+            if (!TryGetStorePassword(user, out var storePassword, out error)
+                || !TryGetSecret(user, KEY_PASSWORD_VARIABLE, KeyPasswordAccount, $"Key password for '{KeyAlias}'", out var keyPassword, out error))
                 return false;
 
-            data = new AndroidSigningData(KeystorePath, KeyAlias, storePassword, keyPassword);
+            data = new AndroidSigningData(keystorePath, KeyAlias, storePassword, keyPassword);
             return data.TryVerify(out error);
         }
 
@@ -96,16 +102,25 @@ namespace EDIVE.BuildTool.Signing
 
         public void LoadCurrent()
         {
-            _KeystorePath = PlayerSettings.Android.keystoreName;
             _KeyAlias = PlayerSettings.Android.keyaliasName;
+
+            // The path is machine specific, it belongs to the current user, not to this config.
+            var user = CurrentUser;
+            if (user == null)
+                return;
+
+            user.GetOrCreatePreference<AppSigningPreference>().KeystorePath = PlayerSettings.Android.keystoreName;
+            EditorUtility.SetDirty(user);
         }
 
         public bool Validate() => !IsConfigured || HasAlias;
 
-        private bool TryGetStorePassword(out string password, out string error) =>
-            TryGetSecret(STORE_PASSWORD_VARIABLE, STORE_PASSWORD_ACCOUNT, "Store password", out password, out error);
+        private string GetCredentialKey(BuildUserConfig user) => CredentialUtils.SanitizeService(Path.GetFileNameWithoutExtension(GetKeystorePath(user)));
 
-        private bool TryGetSecret(string variable, string account, string label, out string secret, out string error)
+        private bool TryGetStorePassword(BuildUserConfig user, out string password, out string error) =>
+            TryGetSecret(user, STORE_PASSWORD_VARIABLE, STORE_PASSWORD_ACCOUNT, "Store password", out password, out error);
+
+        private bool TryGetSecret(BuildUserConfig user, string variable, string account, string label, out string secret, out string error)
         {
             error = null;
             secret = Environment.GetEnvironmentVariable(variable);
@@ -113,7 +128,7 @@ namespace EDIVE.BuildTool.Signing
                 return true;
 
             var missing = $"{label} is not set.";
-            var service = CredentialKey;
+            var service = GetCredentialKey(user);
             if (string.IsNullOrEmpty(service) || string.IsNullOrEmpty(account))
             {
                 error = missing;
@@ -137,16 +152,25 @@ namespace EDIVE.BuildTool.Signing
 
         private string ValidateKeyPassword(string password)
         {
-            if (!TryGetStorePassword(out var storePassword, out var error))
+            if (!TryGetStorePassword(CurrentUser, out var storePassword, out var error))
                 return error;
 
             return KeystoreAliasReader.VerifyKeyPassword(KeystorePath, storePassword, KeyAlias, password, out error) ? null : error;
         }
 
+        private void OpenUser()
+        {
+            if (CurrentUser == null)
+                return;
+
+            OdinEditorWindow.InspectObject(CurrentUser);
+        }
+
         private List<string> ReadAliases()
         {
-            return HasKeystoreFile && TryGetStorePassword(out var storePassword, out _)
-                ? KeystoreAliasReader.ReadAliasesOrEmpty(KeystorePath, storePassword)
+            var keystorePath = KeystorePath;
+            return File.Exists(keystorePath) && TryGetStorePassword(CurrentUser, out var storePassword, out _)
+                ? KeystoreAliasReader.ReadAliasesOrEmpty(keystorePath, storePassword)
                 : new List<string>();
         }
 
@@ -155,6 +179,5 @@ namespace EDIVE.BuildTool.Signing
             var value = Environment.GetEnvironmentVariable(variable);
             return string.IsNullOrEmpty(value) ? fallback : value;
         }
-        
     }
 }

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using EDIVE.BuildTool.ApplicationConfigs;
 using EDIVE.BuildTool.PlatformConfigs;
+using EDIVE.BuildTool.UserConfigs;
 using EDIVE.EditorUtils;
 using EDIVE.NativeUtils;
 using EDIVE.NativeUtils.TeamCity;
