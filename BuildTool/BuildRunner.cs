@@ -198,9 +198,9 @@ namespace EDIVE.BuildTool
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFolderPath", Context.ResultPath.FolderPath);
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFileName", Context.ResultPath.FileName);
             TeamCityServiceMessages.SetParameter("UnityBuild.ResultFullPath", Context.ResultPath.FullPath);
-            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.DisplayVersionString);
+            TeamCityServiceMessages.SetParameter("UnityBuild.ResultVersion", Context.VersionDefinition.StoreVersionString);
             
-            TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.DisplayVersionString);
+            TeamCityServiceMessages.SetBuildNumber(Context.VersionDefinition.StoreVersionString);
             
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             yield return ExecuteBuildCallback<IStateCaptureBuildCallback>(Preset.GetBuildCallbacks(Context), c => c.OnStateCapture(_Context));
