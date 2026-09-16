@@ -11,21 +11,20 @@ namespace EDIVE.Core.Versions
     [JsonObject(MemberSerialization.OptIn)]
     public abstract class ADigitVersionFormat
     {
-        protected static readonly int[] DEFAULT_DIGITS = {1, 2, 2, 3};
+        protected static readonly byte[] DEFAULT_DIGITS = {1, 2, 3, 3};
 
         [PropertyOrder(10)]
         [MinValue(0)]
         [MaxValue(AppVersionSignificanceUtils.MAX_SEGMENT_DIGITS)]
         [PropertyTooltip("Digits per segment, 0 hides it.")]
         [InlineList(ElementSuffixGetter = "$GetDigitsSuffix")]
-        [RequiredListLength(AppVersionSignificanceUtils.SEGMENT_COUNT)]
         [EnhancedValidate("ValidateDigits")]
         [SerializeField]
         [JsonProperty("Digits")]
-        protected int[] _Digits = {1, 2, 2, 3};
+        protected byte[] _Digits = {1, 2, 3, 3};
 
         protected ADigitVersionFormat() { }
-        protected ADigitVersionFormat(int[] digits)
+        protected ADigitVersionFormat(byte[] digits)
         {
             _Digits = digits;
         }
@@ -44,12 +43,12 @@ namespace EDIVE.Core.Versions
 
 #if UNITY_EDITOR
         [UsedImplicitly]
-        protected virtual void ValidateDigits(int[] value, SelfValidationResult result)
+        protected virtual void ValidateDigits(byte[] value, SelfValidationResult result)
         {
             if (value == null || value.Length != AppVersionSignificanceUtils.SEGMENT_COUNT)
             {
                 result.AddError($"Digits must define exactly {AppVersionSignificanceUtils.SEGMENT_COUNT} values")
-                    .WithFix(() => _Digits = (int[]) DEFAULT_DIGITS.Clone());
+                    .WithFix(() => _Digits = (byte[]) DEFAULT_DIGITS.Clone());
             }
         }
         

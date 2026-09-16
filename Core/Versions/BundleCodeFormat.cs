@@ -37,7 +37,7 @@ namespace EDIVE.Core.Versions
         }
 
         public BundleCodeFormat() { }
-        public BundleCodeFormat(int[] digits) : base(digits) { }
+        public BundleCodeFormat(byte[] digits) : base(digits) { }
 
         public int GetMaxValueAt(AppVersionSignificance significance) => Pow10(GetDigitsAt(significance)) - 1;
 
@@ -65,7 +65,7 @@ namespace EDIVE.Core.Versions
         }
 
 #if UNITY_EDITOR
-        protected override void ValidateDigits(int[] value, SelfValidationResult result)
+        protected override void ValidateDigits(byte[] value, SelfValidationResult result)
         {
             base.ValidateDigits(value, result);
             

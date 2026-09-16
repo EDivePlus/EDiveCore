@@ -23,7 +23,7 @@ namespace EDIVE.Core.Versions
         public string Prefix { get => _Prefix; set => _Prefix = value; }
 
         public AppVersionFormat() { }
-        public AppVersionFormat(string prefix, int[] digits) : base(digits)
+        public AppVersionFormat(string prefix, byte[] digits) : base(digits)
         {
             _Prefix = prefix;
         }
@@ -52,7 +52,7 @@ namespace EDIVE.Core.Versions
         }
 
 #if UNITY_EDITOR
-        protected override void ValidateDigits(int[] value, SelfValidationResult result)
+        protected override void ValidateDigits(byte[] value, SelfValidationResult result)
         {
             base.ValidateDigits(value, result);
             
