@@ -33,7 +33,7 @@ namespace EDIVE.Rendering.UVDecals
         [Tooltip("UV 0-1.")]
         public Vector2 _Center;
         
-        [Tooltip("UV units. 0 is off.")]
+        [Tooltip("UV units. 0 is off, negative mirrors.")]
         [CustomValueDrawer("DrawSize")]
         public Vector2 _Size;
 
@@ -89,7 +89,9 @@ namespace EDIVE.Rendering.UVDecals
 
             var ratio = (float) _Texture.width / _Texture.height;
             var yEdited = !Mathf.Approximately(size.y, value.y) && Mathf.Approximately(size.x, value.x);
-            return yEdited ? new Vector2(size.y * ratio, size.y) : new Vector2(size.x, size.x / ratio);
+            return yEdited
+                ? new Vector2(Mathf.Abs(size.y) * ratio * Mathf.Sign(size.x), size.y)
+                : new Vector2(size.x, Mathf.Abs(size.x) / ratio * Mathf.Sign(size.y));
         }
 #endif
     }

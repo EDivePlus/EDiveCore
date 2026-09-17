@@ -10,12 +10,12 @@ TEXTURE2D(_UVDecal1Tex);
 TEXTURE2D(_UVDecal2Tex);
 TEXTURE2D(_UVDecal3Tex);
 
-// rect: center, size. parameters: cos, sin, uv set, smoothness (<0 keeps).
+// rect: center, size (negative mirrors). parameters: cos, sin, uv set, smoothness (<0 keeps).
 void ApplyUVDecal(TEXTURE2D_PARAM(decalTex, decalSampler), float4 rect, float4 parameters, half4 tint,
                   float2 uv0, float2 uv1, float4 deriv0, float4 deriv1, inout SurfaceData surfaceData)
 {
     UNITY_BRANCH
-    if (rect.z <= 0.0 || rect.w <= 0.0)
+    if (abs(rect.z) <= 0.0 || abs(rect.w) <= 0.0)
         return;
 
     bool secondary = parameters.z > 0.5;

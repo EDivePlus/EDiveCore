@@ -165,7 +165,7 @@ namespace EDIVE.Rendering.UVDecals
             var decal = decals[index];
             var rad = -decal._Rotation * Mathf.Deg2Rad;
             texture = decal._Texture;
-            rect = new Vector4(decal._Center.x, decal._Center.y, Mathf.Max(0f, decal._Size.x), Mathf.Max(0f, decal._Size.y));
+            rect = new Vector4(decal._Center.x, decal._Center.y, decal._Size.x, decal._Size.y);
             parameters = new Vector4(Mathf.Cos(rad), Mathf.Sin(rad), (float) decal._Channel, decal._OverrideSmoothness ? decal._Smoothness : -1f);
             tint = decal._Tint;
         }
