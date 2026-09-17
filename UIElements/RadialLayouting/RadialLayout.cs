@@ -171,7 +171,7 @@ namespace EDIVE.UIElements.Layout
 
                 _slices.Add(new Slice(center, width, rotation));
 
-                if (element != null) element.ApplyLayout(new RadialSliceInfo(center, width, _Radius));
+                if (element != null) element.ApplyLayout(new RadialSliceInfo(center, width, _Radius, _RotateElements));
             }
         }
 

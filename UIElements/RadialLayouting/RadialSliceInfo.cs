@@ -8,12 +8,14 @@ namespace EDIVE.UIElements.Layout
         public readonly float CenterAngle;
         public readonly float Width;
         public readonly float Radius;
+        public readonly bool RotateElements;
 
-        public RadialSliceInfo(float centerAngle, float width, float radius)
+        public RadialSliceInfo(float centerAngle, float width, float radius, bool rotateElements)
         {
             CenterAngle = centerAngle;
             Width = width;
             Radius = radius;
+            RotateElements = rotateElements;
         }
     }
 }
