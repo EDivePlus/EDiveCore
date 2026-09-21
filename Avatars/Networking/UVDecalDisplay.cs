@@ -24,6 +24,9 @@ namespace EDIVE.Avatars.Networking
         [SerializeField]
         private RawImage _Preview;
 
+        [SerializeField]
+        private AspectRatioFitter _PreviewAspectFitter;
+
         private bool _isSelected;
 
         public UVDecalDefinition Definition { get; private set; }
@@ -72,6 +75,9 @@ namespace EDIVE.Avatars.Networking
             var texture = Definition != null ? Definition.Preview : null;
             _Preview.texture = texture;
             _Preview.enabled = texture != null;
+
+            if (_PreviewAspectFitter != null && texture != null)
+                _PreviewAspectFitter.aspectRatio = (float) texture.width / texture.height;
         }
     }
 }
