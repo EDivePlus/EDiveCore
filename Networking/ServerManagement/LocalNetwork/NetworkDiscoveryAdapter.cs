@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Cysharp.Threading.Tasks;
-using EDIVE.Core;
 using EDIVE.Core.Versions;
 using EDIVE.Networking.Utils;
 using PurrNet;
@@ -60,9 +59,9 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
 
         private static ServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
         {
-            if (!AppVersion.TryParse(response.Version, out var version) || version.CompareTo(AppCore.CurrentVersion, AppVersionSignificance.Patch) != 0)
-                return null;
-            
+            if (!AppVersion.TryParse(response.Version, out var version))
+                version = AppVersion.ZERO;
+
             var endpoints = new List<AServerEndpoint>();
             var address = endPoint.Address.ToString();
             if (!string.IsNullOrEmpty(address) && response.Port > 0)

@@ -14,11 +14,15 @@ namespace EDIVE.Networking.ServerManagement
     {
         public Dictionary<string, ServerRecord> Servers { get; } = new();
         public event Action ServerListUpdated;
-
+        
         [HideReferenceObjectPicker]
         [ShowInInspector]   
         [EnableGUI]
         private readonly List<ServerRecord> _serverList = new();
+        
+        [SerializeReference]
+        private List<IServerListFilter> _Filters = new();
+        protected List<IServerListFilter> Filters => _Filters;
         
         protected ServerRecord _currentServerRecord;
         protected ServerConfig _serverConfig;
@@ -54,7 +58,10 @@ namespace EDIVE.Networking.ServerManagement
 
         protected void SetServers(IEnumerable<ServerRecord> records)
         {
-            var newRecords = records.Where(r => r != null && !string.IsNullOrEmpty(r.InstanceID)).ToList();
+            var newRecords = records
+                .Where(r => r != null && !string.IsNullOrEmpty(r.InstanceID))
+                .Where(PassesFilters)
+                .ToList();
             
             if (!HasMeaningfulChange(newRecords))
                 return;
@@ -70,6 +77,16 @@ namespace EDIVE.Networking.ServerManagement
                 Servers[record.InstanceID] = record;
             }
             ServerListUpdated?.Invoke();
+        }
+
+        private bool PassesFilters(ServerRecord record)
+        {
+            foreach (var filter in _Filters)
+            {
+                if (filter != null && !filter.Matches(record))
+                    return false;
+            }
+            return true;
         }
 
         private bool HasMeaningfulChange(List<ServerRecord> newRecords)

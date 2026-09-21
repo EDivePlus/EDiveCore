@@ -185,7 +185,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             {
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
                 var response = await Lobby.QueryServersAsync(
-                    new QueryServersRequest { Count = _QueryCount, Skip = 0, Version = AppCore.CurrentVersion.ToString(), VersionSegments = 3},
+                    new QueryServersRequest { Count = _QueryCount, Skip = 0 },
                     cancellationToken);
                 var records = response.IsSuccess && response.Result != null
                     ? BuildRecords(response.Result)
@@ -215,7 +215,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     continue;
 
                 if (!AppVersion.TryParse(lobby.Version, out var version))
-                    continue;
+                    version = AppVersion.ZERO;
                 
                 if (!string.IsNullOrEmpty(data.PurrRelayRoom))
                 {
