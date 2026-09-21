@@ -234,8 +234,10 @@ namespace EDIVE.Rendering.Mirrors
             {
                 reflectionCamera.worldToCameraMatrix = renderCamera.GetStereoViewMatrix(eye);
                 reflectionCamera.projectionMatrix = renderCamera.GetStereoProjectionMatrix(eye);
+                // The view matrix is mirrored, so Matrix4x4.rotation returns garbage. Build it from the axes.
                 var view = reflectionCamera.worldToCameraMatrix.inverse;
-                reflectionCamera.transform.SetPositionAndRotation(view.GetColumn(3), view.rotation);
+                var rotation = Quaternion.LookRotation(-(Vector3) view.GetColumn(2), (Vector3) view.GetColumn(1));
+                reflectionCamera.transform.SetPositionAndRotation(view.GetColumn(3), rotation);
             }
             else
             {

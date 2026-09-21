@@ -88,9 +88,10 @@ namespace EDIVE.Rendering.Mirrors
 
                 var newEyePos = reflection.MultiplyPoint(eyePosition);
                 var newForward = Vector3.Reflect(reflectionCamera.transform.forward, mirrorNormal);
+                var newUp = Vector3.Reflect(reflectionCamera.transform.up, mirrorNormal);
 
                 // Camera is scratch space for the next level.
-                reflectionCamera.transform.SetPositionAndRotation(newEyePos, Quaternion.LookRotation(newForward));
+                reflectionCamera.transform.SetPositionAndRotation(newEyePos, Quaternion.LookRotation(newForward, newUp));
 
                 var newWorldToCamera = worldToCamera * reflection;
                 reflectionCamera.worldToCameraMatrix = newWorldToCamera;
