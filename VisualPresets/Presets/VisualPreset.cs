@@ -80,6 +80,15 @@ namespace EDIVE.VisualPresets.Presets
         {
             return other == null ? this : new VisualPreset(_Records.Concat(other._Records));
         }
+
+        public VisualPreset WithRecord(AVisualPresetRecord record)
+        {
+            if (record == null)
+                return this;
+
+            var kept = _Records.Where(r => r != null && r.BaseVisualID != record.BaseVisualID);
+            return new VisualPreset(kept.Append(record));
+        }
         
         public static VisualPreset Combine(params VisualPreset[] presets)
         {

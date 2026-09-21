@@ -1,0 +1,28 @@
+{
+    "name": "EDIVE.VisualPresets.UVDecals",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.VisualPresets",
+        "EDIVE.Rendering.UVDecals",
+        "EDIVE.OdinExtensions",
+        "EDIVE.NativeUtils",
+        "EDIVE.AssetTranslation",
+        "EDIVE.Utils.Json",
+        "PurrNet.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "dev.purrnet.purrnet",
+            "expression": "",
+            "define": "PURRNET"
+        }
+    ],
+    "noEngineReferences": false
+}
