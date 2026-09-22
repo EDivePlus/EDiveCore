@@ -2,6 +2,7 @@
 // Created: 18.02.2026
 
 using System;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using EDIVE.Conditions;
 using EDIVE.DataStructures.VariableFields;
@@ -201,7 +202,7 @@ namespace EDIVE.XRTools
             _started = true;
 
             if (_RepositionOnAwake)
-                Reposition(true);
+                RepositionWhenTrackedAsync().Forget();
 
             switch (_FollowMode)
             {
@@ -213,6 +214,13 @@ namespace EDIVE.XRTools
                     OnAutoFollowConditionChanged();
                     break;
             }
+        }
+
+        private async UniTaskVoid RepositionWhenTrackedAsync()
+        {
+            await UniTask.WaitUntil(XRUtils.IsHeadTracked, cancellationToken: destroyCancellationToken);
+            await UniTask.NextFrame(cancellationToken: destroyCancellationToken);
+            Reposition(true);
         }
 
         private void OnAutoFollowConditionChanged()

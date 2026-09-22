@@ -3,6 +3,8 @@
 
 using EDIVE.XRTools.DeviceSimulator;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals;
@@ -12,6 +14,15 @@ namespace EDIVE.XRTools
     public static class XRUtils
     {
         public static bool XREnabled => XRSettings.enabled || XRDeviceSimulatorUtils.SimulatorEnabled;
+
+        public static bool IsHeadTracked()
+        {
+            if (!XREnabled)
+                return true;
+
+            var hmd = InputSystem.GetDevice<XRHMD>();
+            return hmd != null && hmd.isTracked.isPressed;
+        }
 
         public static bool IsTargetInView(Transform source, Transform target, float maxDistance = 2f, float frontThreshold = 0.5f, float facingThreshold = 0.5f)
         {
