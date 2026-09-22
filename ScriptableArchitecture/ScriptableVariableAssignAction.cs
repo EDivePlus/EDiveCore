@@ -3,10 +3,11 @@
 
 using System;
 using System.Collections;
-using EDIVE.DataStructures;
+using Cysharp.Threading.Tasks;
 using EDIVE.DataStructures.VariableFields;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
+using EDIVE.Utils.Actions;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -25,7 +26,11 @@ namespace EDIVE.ScriptableArchitecture
         [EnhancedValueDropdown("GetAssignmentDataDropdown")]
         private AssignmentData _Data;
 
-        public void Execute() => _Data?.Apply();
+        public UniTask Execute()
+        {
+            _Data?.Apply();
+            return UniTask.CompletedTask;
+        }
 
         [Serializable]
         private abstract class AssignmentData
