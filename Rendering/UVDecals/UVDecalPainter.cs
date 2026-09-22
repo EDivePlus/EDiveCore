@@ -2,7 +2,6 @@
 // Created: 02.09.2026
 
 using System.Collections.Generic;
-using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -31,6 +30,14 @@ namespace EDIVE.Rendering.UVDecals
         [ListDrawerSettings(ShowFoldout = false)]
         private List<UVDecal> _Decals = new();
 
+#if UNITY_EDITOR
+        [ShowInInspector]
+        [ReadOnly]
+        [ListDrawerSettings(ShowFoldout = false)]
+        [Tooltip("Decals fed in externally, e.g. by a UVDecalPlacer. Not serialized.")]
+        private List<UVDecal> DynamicDecals => _extraDecals;
+#endif
+
         private static readonly int[] TEX_IDS = CreateIds("Tex");
         private static readonly int[] RECT_IDS = CreateIds("Rect");
         private static readonly int[] PARAMS_IDS = CreateIds("Params");
@@ -39,8 +46,22 @@ namespace EDIVE.Rendering.UVDecals
         private Material _sourceMaterial;
         private Material _instance;
 
-        public IReadOnlyList<UVDecal> ActiveDecals => _Decals;
-        
+        private readonly List<UVDecal> _extraDecals = new();
+        private readonly List<UVDecal> _activeDecals = new();
+        private bool _extraExclusive;
+
+        public IReadOnlyList<UVDecal> ActiveDecals => _activeDecals;
+
+        // exclusive: extras replace _Decals instead of adding to them.
+        public void SetExtraDecals(IEnumerable<UVDecal> decals, bool exclusive = false)
+        {
+            _extraDecals.Clear();
+            if (decals != null)
+                _extraDecals.AddRange(decals);
+            _extraExclusive = exclusive;
+            Rebuild();
+        }
+
         public void SetDecals(IEnumerable<UVDecal> decals)
         {
             _Decals.Clear();
@@ -90,6 +111,11 @@ namespace EDIVE.Rendering.UVDecals
         public void Rebuild()
         {
             if (_Renderer == null || !isActiveAndEnabled) return;
+
+            _activeDecals.Clear();
+            if (!_extraExclusive)
+                _activeDecals.AddRange(_Decals);
+            _activeDecals.AddRange(_extraDecals);
 
             var decals = ActiveDecals;
             if (decals.Count > MAX_DECALS)

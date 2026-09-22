@@ -2,10 +2,10 @@
 // Created: 21.09.2026
 
 using System.Collections.Generic;
-using System.Linq;
-using EDIVE.AssetTranslation;
 using EDIVE.NativeUtils;
+using EDIVE.Rendering.UVDecals;
 using EDIVE.VisualPresets.UVDecals;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.Avatars.Networking
@@ -20,6 +20,10 @@ namespace EDIVE.Avatars.Networking
 
         [SerializeField]
         private bool _IncludeNone = true;
+
+        [SerializeField]
+        [ListDrawerSettings(ShowFoldout = false, ListElementLabelName = nameof(UVDecalPreset.EditorLabel))]
+        private List<UVDecalPreset> _Decals = new();
 
         private readonly List<UVDecalDisplay> _displays = new();
 
@@ -40,7 +44,7 @@ namespace EDIVE.Avatars.Networking
         {
             var decal = current?.Decal;
             foreach (var display in _displays)
-                display.SetSelected(display.Definition == decal, false);
+                display.SetSelected(Equals(display.Preset, decal), false);
         }
 
         private void Populate()
@@ -51,18 +55,15 @@ namespace EDIVE.Avatars.Networking
             if (_IncludeNone)
                 Spawn(null);
 
-            if (!AssetTranslationConfig.Instance.TryGetTranslator<UVDecalDefinitionTranslator>(out var translator))
-                return;
-
-            foreach (var definition in translator.BaseDefinitions.OfType<UVDecalDefinition>().OrderBy(d => d.UniqueID))
-                Spawn(definition);
+            foreach (var preset in _Decals)
+                Spawn(preset);
         }
 
-        private void Spawn(UVDecalDefinition definition)
+        private void Spawn(UVDecalPreset preset)
         {
             var display = Instantiate(_DisplayPrefab, _Container, false);
-            display.name = _DisplayPrefab.name + "_" + (definition != null ? definition.UniqueID : "None");
-            display.SetDefinition(definition);
+            display.name = _DisplayPrefab.name + "_" + (preset?._Texture != null ? preset._Texture.name : "None");
+            display.SetPreset(preset);
             display.Selected += OnDisplaySelected;
             _displays.Add(display);
         }
@@ -75,7 +76,7 @@ namespace EDIVE.Avatars.Networking
                     other.SetSelected(false, false);
             }
 
-            SetRecord(new UVDecalVisualPresetRecord(ChangedVisualID, display.Definition));
+            SetRecord(new UVDecalVisualPresetRecord(ChangedVisualID, display.Preset));
         }
     }
 }

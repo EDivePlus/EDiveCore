@@ -16,12 +16,12 @@ namespace EDIVE.VisualPresets.UVDecals
     {
         [VerticalGroup("Value")]
         [SerializeField]
-        private UVDecalPainter _Painter;
+        private UVDecalPlacer _Placer;
 
         public override string EditorLabel => "UV Decals";
         public override Type EditorIconTargetType => typeof(Texture);
 
-        public UVDecalPainter Painter => _Painter;
+        public UVDecalPlacer Placer => _Placer;
     }
 
     [Preserve]
@@ -29,15 +29,11 @@ namespace EDIVE.VisualPresets.UVDecals
     {
         protected override IDisposable Apply(UVDecalVisualPresetRecord presetRecord, UVDecalVisualSwitcherRecord switcherRecord)
         {
-            var painter = switcherRecord.Painter;
-            if (painter == null)
+            var placer = switcherRecord.Placer;
+            if (placer == null)
                 return DisposableUtils.Empty;
 
-            if (presetRecord.Decal == null)
-                painter.Clear();
-            else
-                painter.SetDecals(presetRecord.Decal.Decals);
-
+            placer.SetDecal(presetRecord.Decal);
             return DisposableUtils.Empty;
         }
     }

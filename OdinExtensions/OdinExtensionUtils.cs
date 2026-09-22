@@ -252,6 +252,60 @@ namespace EDIVE.OdinExtensions
             return false;
         }
 
+        // SirenixEditorFields.Vector2Field splits the rect into 3 instead of 2, leaving a third of it blank. Fixed here.
+        public static Vector2 Vector2Field(GUIContent label, Vector2 value, params GUILayoutOption[] options)
+        {
+            var rect = EditorGUILayout.GetControlRect(label != null, EditorGUIUtility.singleLineHeight, EditorStyles.numberField, options);
+            return Vector2Field(rect, label, value);
+        }
+
+        public static Vector2 Vector2Field(Rect rect, GUIContent label, Vector2 value)
+        {
+            value = (Vector2) SirenixEditorFields.VectorPrefixLabel(ref rect, label, (Vector4) value);
+
+            var showLabels = !(SirenixEditorFields.ResponsiveVectorComponentFields && rect.width < 185);
+
+            GUIHelper.PushLabelWidth(SirenixEditorFields.SingleLetterStructLabelWidth);
+            GUIHelper.PushIndentLevel(0);
+            value.x = SirenixEditorFields.FloatField(rect.Split(0, 2).HorizontalPadding(0, 2), showLabels ? "X" : null, value.x);
+            value.y = SirenixEditorFields.FloatField(rect.Split(1, 2).HorizontalPadding(0, 2), showLabels ? "Y" : null, value.y);
+            GUIHelper.PopIndentLevel();
+            GUIHelper.PopLabelWidth();
+
+            return value;
+        }
+
+        // Vector2 field with a toggleable lock button that keeps the given ratio (x/y) fixed while editing.
+        public static Vector2 LockableVector2Field(GUIContent label, Vector2 value, float ratio, InspectorProperty property, ref bool lockRatio)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUI.BeginChangeCheck();
+            var size = Vector2Field(label, value);
+            var sizeChanged = EditorGUI.EndChangeCheck();
+
+            GUILayout.Space(2);
+            var lockIcon = lockRatio ? FontAwesomeEditorIcons.LinkSimpleSolid : FontAwesomeEditorIcons.LinkSimpleSlashSolid;
+            var lockTooltip = lockRatio ? "Unlock ratio" : "Lock ratio";
+            var rect = GUILayoutUtility.GetRect(18, 18, GUIStyle.none, GUILayoutOptions.ExpandWidth(false).Width(18));
+            var lockClicked = SirenixEditorGUI.IconButton(rect, lockIcon, lockTooltip);
+            GUILayout.Space(2);
+            EditorGUILayout.EndHorizontal();
+
+            if (lockClicked)
+            {
+                lockRatio = !lockRatio;
+                property.MarkSerializationRootDirty();
+            }
+
+            if (!lockRatio || !(sizeChanged || lockClicked) || ratio <= 0f)
+                return size;
+
+            var yEdited = !Mathf.Approximately(size.y, value.y) && Mathf.Approximately(size.x, value.x);
+            return yEdited
+                ? new Vector2(Mathf.Abs(size.y) * ratio * Mathf.Sign(size.x), size.y)
+                : new Vector2(size.x, Mathf.Abs(size.x) / ratio * Mathf.Sign(size.y));
+        }
+
         public static bool ToolbarIconButton(EditorIcon icon, string tooltip = null, bool ignoreGUIEnabled = false)
         {
             Rect rect = GUILayoutUtility.GetRect(SirenixEditorGUI.currentDrawingToolbarHeight, 0.0f, (GUILayoutOption[]) GUILayoutOptions.ExpandWidth(false).ExpandHeight());

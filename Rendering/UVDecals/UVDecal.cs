@@ -4,13 +4,10 @@
 using System;
 using EDIVE.OdinExtensions;
 using Sirenix.OdinInspector;
-using Sirenix.Utilities;
 using UnityEngine;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
-using Sirenix.Utilities.Editor;
-using UnityEditor;
 #endif
 
 namespace EDIVE.Rendering.UVDecals
@@ -55,43 +52,10 @@ namespace EDIVE.Rendering.UVDecals
         public float _Smoothness;
 
 #if UNITY_EDITOR
-        private Vector2 DrawSize(Vector2 value, GUIContent label, Func<GUIContent, bool> callNextDrawer, InspectorProperty property)
+        private Vector2 DrawSize(Vector2 value, GUIContent label, InspectorProperty property)
         {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUI.BeginChangeCheck();
-            callNextDrawer(label);
-            var sizeChanged = EditorGUI.EndChangeCheck();
-            
-            GUILayout.Space(2);
-            var lockIcon = _LockRatio ? FontAwesomeEditorIcons.LinkSimpleSolid : FontAwesomeEditorIcons.LinkSimpleSlashSolid;
-            var lockTooltip = _LockRatio ? "Unlock texture ratio" : "Lock texture ratio";
-            var rect = GUILayoutUtility.GetRect(18, 18, GUIStyle.none, GUILayoutOptions.ExpandWidth(false).Width(18));
-            var lockClicked = SirenixEditorGUI.IconButton(rect, lockIcon, lockTooltip);
-            GUILayout.Space(2);
-            EditorGUILayout.EndHorizontal();
-
-            var locked = _LockRatio;
-            if (lockClicked)
-            {
-                locked = !locked;
-                _LockRatio = locked;
-                property.MarkSerializationRootDirty();
-            }
-
-            var size = (Vector2) property.ValueEntry.WeakSmartValue;
-            var typedX = (float) property.Children[0].ValueEntry.WeakSmartValue;
-            var typedY = (float) property.Children[1].ValueEntry.WeakSmartValue;
-            if (!Mathf.Approximately(typedX, value.x)) size.x = typedX;
-            if (!Mathf.Approximately(typedY, value.y)) size.y = typedY;
-
-            if (!locked || !(sizeChanged || lockClicked) || _Texture == null || _Texture.height == 0)
-                return size;
-
-            var ratio = (float) _Texture.width / _Texture.height;
-            var yEdited = !Mathf.Approximately(size.y, value.y) && Mathf.Approximately(size.x, value.x);
-            return yEdited
-                ? new Vector2(Mathf.Abs(size.y) * ratio * Mathf.Sign(size.x), size.y)
-                : new Vector2(size.x, Mathf.Abs(size.x) / ratio * Mathf.Sign(size.y));
+            var ratio = _Texture != null && _Texture.height > 0 ? (float) _Texture.width / _Texture.height : 0f;
+            return OdinExtensionUtils.LockableVector2Field(label, value, ratio, property, ref _LockRatio);
         }
 #endif
     }

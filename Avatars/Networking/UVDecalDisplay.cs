@@ -2,9 +2,9 @@
 // Created: 21.09.2026
 
 using System;
+using EDIVE.Rendering.UVDecals;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Activations;
-using EDIVE.VisualPresets.UVDecals;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,7 +29,7 @@ namespace EDIVE.Avatars.Networking
 
         private bool _isSelected;
 
-        public UVDecalDefinition Definition { get; private set; }
+        public UVDecalPreset Preset { get; private set; }
         public bool IsSelected => _isSelected;
 
         public event Action<UVDecalDisplay> Selected;
@@ -44,10 +44,10 @@ namespace EDIVE.Avatars.Networking
             _Activation?.UnregisterActivationListener(OnActivated);
         }
 
-        public void SetDefinition(UVDecalDefinition definition)
+        public void SetPreset(UVDecalPreset preset)
         {
-            Definition = definition;
-            _IsNullState.SetState(definition == null);
+            Preset = preset;
+            _IsNullState.SetState(preset == null);
             RefreshDisplay();
         }
 
@@ -72,7 +72,7 @@ namespace EDIVE.Avatars.Networking
             if (_Preview == null)
                 return;
 
-            var texture = Definition != null ? Definition.Preview : null;
+            var texture = Preset?._Texture;
             _Preview.texture = texture;
             _Preview.enabled = texture != null;
 

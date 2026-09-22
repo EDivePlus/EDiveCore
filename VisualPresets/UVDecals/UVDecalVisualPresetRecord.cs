@@ -2,6 +2,7 @@
 // Created: 21.09.2026
 
 using System;
+using EDIVE.Rendering.UVDecals;
 using EDIVE.Utils.Json.TypeNames;
 using EDIVE.VisualPresets.Presets;
 using Newtonsoft.Json;
@@ -10,6 +11,7 @@ using UnityEngine;
 
 namespace EDIVE.VisualPresets.UVDecals
 {
+
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     [JsonTypeName("VisualPreset.UVDecal")]
@@ -17,16 +19,16 @@ namespace EDIVE.VisualPresets.UVDecals
     {
         [VerticalGroup("Value")]
         [SerializeField]
-        [JsonProperty("Decal")]
-        private UVDecalDefinition _Decal;
+        [HideLabel]
+        private UVDecalPreset _Decal;
 
-        public UVDecalDefinition Decal => _Decal;
+        public UVDecalPreset Decal => _Decal;
 
         public override string EditorLabel => "UV Decal";
 
         [JsonConstructor]
         public UVDecalVisualPresetRecord() { }
-        public UVDecalVisualPresetRecord(UVDecalVisualID visualID, UVDecalDefinition decal) : base(visualID) { _Decal = decal; }
+        public UVDecalVisualPresetRecord(UVDecalVisualID visualID, UVDecalPreset decal) : base(visualID) { _Decal = decal; }
 
         public override bool EqualsInternal(AVisualPresetRecord other)
         {
@@ -35,7 +37,7 @@ namespace EDIVE.VisualPresets.UVDecals
 
         public override int GetHashCodeInternal()
         {
-            return Decal != null ? Decal.GetHashCode() : 0;
+            return Decal?.GetHashCode() ?? 0;
         }
     }
 }

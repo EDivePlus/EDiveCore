@@ -6,9 +6,9 @@
         "EDIVE.Rendering.UVDecals",
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
-        "EDIVE.AssetTranslation",
         "EDIVE.Utils.Json",
-        "PurrNet.Runtime"
+        "PurrNet.Runtime",
+        "EDIVE.AssetTranslation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
