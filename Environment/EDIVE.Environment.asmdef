@@ -20,7 +20,8 @@
     "UniTask.Addressables",
     "EDIVE.AddressableAssets",
     "EDIVE.Input",
-    "EDIVE.AppLoading"
+    "EDIVE.AppLoading",
+    "EDIVE.Utils.Activations"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

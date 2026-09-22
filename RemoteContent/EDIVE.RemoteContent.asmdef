@@ -16,7 +16,8 @@
     "EDIVE.NativeUtils",
     "UnityGLTFScripts",
     "Unity.XR.Interaction.Toolkit",
-    "EDIVE.Procedural"
+    "EDIVE.Procedural",
+    "EDIVE.Utils.Activations"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

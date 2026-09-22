@@ -18,7 +18,8 @@
         "EDIVE.AddressableAssets",
         "EDIVE.UIElements",
         "EDIVE.DataStructures",
-        "EDIVE.Time"
+        "EDIVE.Time",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

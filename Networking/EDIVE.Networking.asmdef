@@ -40,7 +40,8 @@
         "Unity.Mathematics",
         "EDIVE.UIElements",
         "EDIVE.UIElements.RecyclableScroller",
-        "EDIVE.Conditions"
+        "EDIVE.Conditions",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

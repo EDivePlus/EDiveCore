@@ -1,16 +1,10 @@
 {
-    "name": "EDIVE.Utils.BugReporting",
+    "name": "EDIVE.Utils.Activations",
     "rootNamespace": "",
     "references": [
-        "EDIVE.Core",
-        "DOTween.Modules",
-        "EDIVE.External.Discord",
-        "EDIVE.Utils",
+        "Unity.InputSystem",
         "EDIVE.NativeUtils",
-        "EDIVE.StateHandling",
-        "StompyRobot.SRDebugger",
-        "Unity.TextMeshPro",
-        "EDIVE.Utils.Activations"
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -19,6 +13,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "",
+            "define": "INPUT_SYSTEM"
+        }
+    ],
     "noEngineReferences": false
 }

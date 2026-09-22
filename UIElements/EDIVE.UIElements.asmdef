@@ -10,7 +10,8 @@
         "EDIVE.VisualPresets",
         "EDIVE.DataStructures",
         "EDIVE.Utils",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

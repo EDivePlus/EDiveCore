@@ -4,10 +4,12 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace EDIVE.Utils.Activations
 {
     [Serializable]
+    [MovedFrom(true, "EDIVE.Utils.Activations", "EDIVE.Utils")]
     public class CompoundActivation : IActivation
     {
         [SerializeReference]

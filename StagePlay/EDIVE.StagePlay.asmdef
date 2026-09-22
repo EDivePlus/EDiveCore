@@ -17,7 +17,8 @@
         "EDIVE.StateHandling",
         "EDIVE.AssetTranslation",
         "PurrNet.Runtime",
-        "EDIVE.UIElements.RecyclableScroller"
+        "EDIVE.UIElements.RecyclableScroller",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

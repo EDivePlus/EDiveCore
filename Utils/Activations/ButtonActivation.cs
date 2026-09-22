@@ -4,6 +4,7 @@
 using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.UI;
 
 #if UNITY_EDITOR
@@ -13,6 +14,7 @@ using Sirenix.OdinInspector.Editor;
 namespace EDIVE.Utils.Activations
 {
     [Serializable]
+    [MovedFrom(true, "EDIVE.Utils.Activations", "EDIVE.Utils")]
     public class ButtonActivation : AWrapperActivation
     {
         [SerializeField]

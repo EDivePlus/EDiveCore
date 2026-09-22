@@ -18,7 +18,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Replay",
         "EDIVE.Utils.Cysharp",
-        "EDIVE.External.Promises"
+        "EDIVE.External.Promises",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

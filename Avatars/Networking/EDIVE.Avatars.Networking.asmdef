@@ -20,7 +20,8 @@
     "EDIVE.VisualPresets.UVDecals",
     "EDIVE.StateHandling",
     "EDIVE.UIElements",
-    "EDIVE.Rendering.UVDecals"
+    "EDIVE.Rendering.UVDecals",
+    "EDIVE.Utils.Activations"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

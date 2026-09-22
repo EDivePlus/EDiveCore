@@ -26,7 +26,8 @@
         "EDIVE.External.DomainReloadHelper",
         "Unity.XR.Hands.Samples.Gestures",
         "EDIVE.View",
-        "EDIVE.Input"
+        "EDIVE.Input",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

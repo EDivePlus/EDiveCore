@@ -16,7 +16,8 @@
         "EDIVE.DataStructures",
         "EDIVE.Utils.Cysharp",
         "EDIVE.Core",
-        "EDIVE.UIElements.RecyclableScroller"
+        "EDIVE.UIElements.RecyclableScroller",
+        "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

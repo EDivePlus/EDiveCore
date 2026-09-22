@@ -5,10 +5,12 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace EDIVE.Utils.Activations
 {
     [Serializable]
+    [MovedFrom(true, "EDIVE.Utils.Activations", "EDIVE.Utils")]
     public class InputActionActivation : AWrapperActivation
     {
         [SerializeField]

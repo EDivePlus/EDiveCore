@@ -6,7 +6,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.NativeUtils",
         "EDIVE.DataStructures",
-        "EDIVE.Conditions"
+        "EDIVE.Conditions",
+        "EDIVE.Utils.Actions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
