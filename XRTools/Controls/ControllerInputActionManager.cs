@@ -2,15 +2,17 @@ using System;
 using System.Collections.Generic;
 using EDIVE.XRTools.Interactions;
 using Unity.XR.CoreUtils.Bindings;
+using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using UnityEngine.XR.Interaction.Toolkit.Attachment;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 
-namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
+namespace EDIVE.XRTools.Controls
 {
     /// <summary>
     /// Use this class to mediate the interactors for a controller under different interaction states
@@ -27,7 +29,6 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
     /// The interaction group ensures that the Direct and Ray Interactors cannot interact at the same time,
     /// with the Direct Interactor taking priority over the Ray Interactor.
     /// </remarks>
-    [AddComponentMenu("XR/Controller Input Action Manager")]
     public class ControllerInputActionManager : MonoBehaviour
     {
         [Space]
@@ -94,6 +95,13 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
         [SerializeField]
         [Tooltip("If true, UI scrolling will be enabled. Locomotion will be disabled when pointing at UI to allow it to be scrolled.")]
         bool m_UIScrollingEnabled = true;
+
+        [Space]
+        [Header("Thumbstick Control")]
+
+        [SerializeField]
+        [Tooltip("Thumbstick of this controller. After control is released, locomotion stays disabled until the stick is centered.")]
+        private InputActionReference _Thumbstick;
 
         [Space]
         [Header("Mediation Events")]
@@ -181,8 +189,13 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
         bool m_PostponedDeactivateTeleport;
         bool m_PostponedNearRegionLocomotion;
         bool m_HoveringScrollableUI;
+        bool m_ThumbstickReserved;
+
+        // 75% of default 0.5 press threshold
+        const float k_SqrStickReleaseThreshold = 0.375f * 0.375f;
 
         readonly HashSet<InputAction> m_LocomotionUsers = new HashSet<InputAction>();
+        readonly HashSet<object> m_ThumbstickRequesters = new HashSet<object>();
         readonly BindingsGroup m_BindingsGroup = new BindingsGroup();
 
         void SetupInteractorEvents()
@@ -325,6 +338,27 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
                 m_NearFarInteractor.gameObject.SetActive(true);
 
             m_RayInteractorChanged?.Invoke(m_RayInteractor);
+        }
+
+        /// <summary>
+        /// Disables locomotion and UI scroll of this controller while at least one requester holds the thumbstick.
+        /// </summary>
+        public void RequestThumbstickControl(object requester)
+        {
+            if (!m_ThumbstickRequesters.Add(requester))
+                return;
+
+            m_ThumbstickReserved = true;
+            DisableAllLocomotionActions();
+            UpdateUIActions();
+        }
+
+        /// <summary>
+        /// Releases a previous request. Locomotion is restored once no requesters remain and the stick is centered.
+        /// </summary>
+        public void ReleaseThumbstickControl(object requester)
+        {
+            m_ThumbstickRequesters.Remove(requester);
         }
 
         void OnStartLocomotion(InputAction.CallbackContext context)
@@ -509,10 +543,25 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
                         DisableTeleportActions();
                 }
             }
+
+            // Keep locomotion disabled after the last requester releases the thumbstick until it is centered,
+            // otherwise the held direction would immediately trigger a snap turn or teleport.
+            if (m_ThumbstickReserved && m_ThumbstickRequesters.Count == 0 && !HasThumbstickInput())
+            {
+                m_ThumbstickReserved = false;
+                UpdateLocomotionActions();
+                UpdateUIActions();
+            }
         }
 
         void UpdateLocomotionActions()
         {
+            if (m_ThumbstickReserved)
+            {
+                DisableAllLocomotionActions();
+                return;
+            }
+
             // Disable/enable Teleport and Turn when Move is enabled/disabled.
             SetEnabled(m_Move, m_SmoothMotionEnabled);
             SetEnabled(m_TeleportMode, !m_SmoothMotionEnabled);
@@ -544,16 +593,19 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
 
         void UpdateUIActions()
         {
-            SetEnabled(m_UIScroll, m_UIScrollingEnabled && m_HoveringScrollableUI && m_LocomotionUsers.Count == 0);
+            SetEnabled(m_UIScroll, m_UIScrollingEnabled && m_HoveringScrollableUI && m_LocomotionUsers.Count == 0 && !m_ThumbstickReserved);
+        }
+
+        bool HasThumbstickInput()
+        {
+            var thumbstickAction = GetInputAction(_Thumbstick);
+            return thumbstickAction != null && thumbstickAction.ReadValue<Vector2>().sqrMagnitude > k_SqrStickReleaseThreshold;
         }
 
         static bool HasStickInput(InteractionAttachController attachController)
         {
-            // 75% of default 0.5 press threshold
-            const float sqrStickReleaseThreshold = 0.375f * 0.375f;
-
             return attachController.manipulationInput.TryReadValue(out var stickInput) &&
-                stickInput.sqrMagnitude > sqrStickReleaseThreshold;
+                stickInput.sqrMagnitude > k_SqrStickReleaseThreshold;
         }
 
         static void SetEnabled(InputActionReference actionReference, bool enabled)
