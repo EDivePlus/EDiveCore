@@ -19,6 +19,9 @@ CBUFFER_START(UnityPerMaterial)
     float _MirrorEye;
     float _MirrorFlipY;
     float _MirrorBlend;
+    // View projection the reflection was drawn with.
+    float4x4 _MirrorVpLeft;
+    float4x4 _MirrorVpRight;
     float _Blur;
     float _Refraction;
     float _BumpScale;
@@ -48,8 +51,7 @@ static const half kMirrorBlurEdge   = 0.118318h;
 static const half kMirrorBlurCorner = 0.0947416h;
 
 // _MirrorEye: 0 left, 1 right, negative means work it out.
-// Only single pass stereo leaves it negative, and that is the only
-// case where unity_StereoEyeIndex means anything.
+// Only single pass stereo leaves it negative, and only there is unity_StereoEyeIndex meaningful.
 bool MirrorIsLeftEye()
 {
     uint eye = (uint) max(_MirrorEye, 0);
@@ -62,11 +64,28 @@ bool MirrorIsLeftEye()
     return eye == 0;
 }
 
+// Real screen position. The probe wants this, the mirror does not.
 float2 MirrorScreenUV(float4 positionCS)
 {
     float y = (_ProjectionParams.x < 0) ? (_ScaledScreenParams.y - positionCS.y) : positionCS.y;
     float2 uv = float2(positionCS.x, y) / _ScaledScreenParams.xy;
     uv.y = 1.0 - uv.y;
+    return uv;
+}
+
+// The reflection may have been drawn for another view, so find the texel by world position.
+float2 MirrorReprojectUV(float3 positionWS)
+{
+    float4x4 vp = MirrorIsLeftEye() ? _MirrorVpLeft : _MirrorVpRight;
+    float4 clip = mul(vp, float4(positionWS, 1.0));
+    float w = (abs(clip.w) < 1e-6) ? 1e-6 : clip.w;
+    // Off screen fragments would land outside and the wrap mode would repeat the room.
+    return saturate(clip.xy / w * 0.5 + 0.5);
+}
+
+float2 MirrorSampleUV(float3 positionWS)
+{
+    float2 uv = MirrorReprojectUV(positionWS);
     if (_MirrorFlipY > 0.5)
         uv.y = 1.0 - uv.y;
     return uv;
@@ -190,9 +209,12 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
     s.albedo = albedo.rgb * _BaseColor.rgb;
     s.alpha = albedo.a * _BaseColor.a * _Alpha;
 
-    // Screen offset. X scaled to stay round at any aspect.
+    // Refraction offset. X scaled to stay round at any aspect.
+    float2 mirrorUV = MirrorSampleUV(positionWS);
+    mirrorUV += normalTS.xy * _Refraction * float2(_ScaledScreenParams.y / _ScaledScreenParams.x, 1.0);
+
+    // Probe wants a real screen position.
     float2 screenUV = MirrorScreenUV(positionCS);
-    screenUV += normalTS.xy * _Refraction * float2(_ScaledScreenParams.y / _ScaledScreenParams.x, 1.0);
 
     // Blur is for the live reflection. A mask keeps polished spots sharp.
     half blurScale = 1.0h;
@@ -202,7 +224,7 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
     half fresnel = pow(1.0h - saturate(dot(s.normalWS, viewDirWS)), _FresnelPower);
 
     // FROM CAMERA. Reflectivity is head on. Fresnel takes it to 1 at grazing.
-    s.cameraReflection = SampleMirror(screenUV, blurScale).rgb * _ReflectionTint.rgb;
+    s.cameraReflection = SampleMirror(mirrorUV, blurScale).rgb * _ReflectionTint.rgb;
     s.cameraAmount = saturate(lerp(_Reflectivity, 1.0h, fresnel) * mask.r);
 
     // FALLBACK. Still PBR. The environment is a colour or a probe.

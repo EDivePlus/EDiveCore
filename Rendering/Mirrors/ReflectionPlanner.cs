@@ -3,19 +3,21 @@ using UnityEngine;
 
 namespace EDIVE.Rendering.Mirrors
 {
-    // One mirror to draw, at one depth.
     public struct ReflectionStep
     {
         public MirrorSurface Surface { get; set; }
         public Matrix4x4 ProjectionMatrix { get; set; }
         public Matrix4x4 WorldToCameraMatrix { get; set; }
         public Matrix4x4 CullingMatrix { get; set; }
+
+        // Unity convention, not GPU. GetGPUProjectionMatrix flips Y for the target and a UV must not.
+        public Matrix4x4 ViewProjection { get; set; }
+
         public Vector3 CameraPosition { get; set; }
         public int Depth { get; set; }
         public float Distance { get; set; }
         public bool InvertCulling { get; set; }
 
-        // Too far. Just blend it out.
         public bool BeyondRange { get; set; }
     }
 
@@ -30,14 +32,14 @@ namespace EDIVE.Rendering.Mirrors
             Camera reflectionCamera,
             IReadOnlyList<MirrorSurface> surfaces,
             MirrorProfile profile,
-            Camera.StereoscopicEye eye,
-            bool stereoActive)
+            Camera.MonoOrStereoscopicEye cullEye,
+            float viewMargin)
         {
             _steps.Clear();
             if (surfaces == null || surfaces.Count == 0 || profile == null)
                 return;
 
-            Walk(renderCamera, reflectionCamera, surfaces, profile, eye, stereoActive, 1, null);
+            Walk(renderCamera, reflectionCamera, surfaces, profile, cullEye, viewMargin, 1, null);
         }
 
         private void Walk(
@@ -45,8 +47,8 @@ namespace EDIVE.Rendering.Mirrors
             Camera reflectionCamera,
             IReadOnlyList<MirrorSurface> surfaces,
             MirrorProfile profile,
-            Camera.StereoscopicEye eye,
-            bool stereoActive,
+            Camera.MonoOrStereoscopicEye cullEye,
+            float viewMargin,
             int depth,
             MirrorSurface parentSurface)
         {
@@ -73,16 +75,11 @@ namespace EDIVE.Rendering.Mirrors
                 // Recursive darkening goes past the distance limit on purpose.
                 if (distance > surface.RenderDistance && !surface.UseDepthFalloff)
                 {
-                    _steps.Add(new ReflectionStep
-                    {
-                        Surface = surface,
-                        Depth = profile.Recursions + 1,
-                        Distance = distance,
-                        BeyondRange = true
-                    });
+                    _steps.Add(BuildFallbackStep(surface, profile, distance));
                     continue;
                 }
 
+                // Offset moves the virtual eye too, sliding the mirror's own edges out of the reflection.
                 var planeDistance = -Vector3.Dot(mirrorNormal, mirrorPos) - surface.ClippingPlaneOffset;
                 var reflection = CalculateReflectionMatrix(new Vector4(mirrorNormal.x, mirrorNormal.y, mirrorNormal.z, planeDistance));
 
@@ -96,44 +93,64 @@ namespace EDIVE.Rendering.Mirrors
                 var newWorldToCamera = worldToCamera * reflection;
                 reflectionCamera.worldToCameraMatrix = newWorldToCamera;
 
-                // Projection does not depend on the view. The entry value stays good.
-                var cullingMatrix = projection * newWorldToCamera;
+                // Frustum that just covers the mirror. Culling only.
+                var tightView = Matrix4x4.identity;
+                var tightProjection = Matrix4x4.identity;
+                var hasTight = !renderCamera.orthographic
+                               && surface.TryGetCullingMatrices(reflectionCamera, profile, cullEye, viewMargin,
+                                   out tightView, out tightProjection);
 
-                if (profile.TightFrustumCulling && !renderCamera.orthographic)
-                {
-                    var monoEye = stereoActive ? (Camera.MonoOrStereoscopicEye) eye : Camera.MonoOrStereoscopicEye.Mono;
-                    // Nothing to cull to. Keep the wide frustum.
-                    if (surface.TryGetCullingMatrix(reflectionCamera, profile, monoEye, out var tight))
-                        cullingMatrix = tight;
-                }
-
-                // Clip everything behind the mirror plane.
+                // Clip behind the mirror. Children walk from this pair, so the winding rule holds.
                 var clipPlane = CameraSpacePlane(newWorldToCamera, mirrorPos, mirrorNormal, surface.ClippingPlaneOffset);
+                reflectionCamera.projectionMatrix = projection;
                 var obliqueProjection = reflectionCamera.CalculateObliqueMatrix(clipPlane);
                 reflectionCamera.projectionMatrix = obliqueProjection;
 
-                if (profile.TightFrustumCulling && renderCamera.orthographic)
-                    cullingMatrix = obliqueProjection * newWorldToCamera;
+                // Never the oblique one. Its near plane sits on the glass and swallows CullingNearOffset.
+                var cullingMatrix = renderCamera.orthographic
+                    ? obliqueProjection * newWorldToCamera
+                    : hasTight ? tightProjection * tightView : projection * newWorldToCamera;
 
-                _steps.Add(new ReflectionStep
+                var step = new ReflectionStep
                 {
                     Surface = surface,
                     ProjectionMatrix = obliqueProjection,
                     WorldToCameraMatrix = newWorldToCamera,
                     CullingMatrix = cullingMatrix,
+                    ViewProjection = obliqueProjection * newWorldToCamera,
                     CameraPosition = newEyePos,
                     Depth = depth,
                     Distance = distance,
+                    // View is mirrored, so the winding flips on every odd bounce.
                     InvertCulling = depth % 2 != 0
-                });
+                };
 
-                Walk(renderCamera, reflectionCamera, surfaces, profile, eye, stereoActive, depth + 1, surface);
+                Walk(renderCamera, reflectionCamera, surfaces, profile, cullEye, viewMargin, depth + 1, surface);
 
-                // Put the scratch state back.
-                reflectionCamera.transform.SetPositionAndRotation(eyePosition, eyeRotation);
-                reflectionCamera.worldToCameraMatrix = worldToCamera;
-                reflectionCamera.projectionMatrix = projection;
+                RestoreScratch(reflectionCamera, eyePosition, eyeRotation, worldToCamera, projection);
+
+                // After the children. Deepest draws first, shallowest wins the material.
+                _steps.Add(step);
             }
+        }
+
+        private static ReflectionStep BuildFallbackStep(MirrorSurface surface, MirrorProfile profile, float distance)
+        {
+            return new ReflectionStep
+            {
+                Surface = surface,
+                Depth = profile.Recursions + 1,
+                Distance = distance,
+                BeyondRange = true
+            };
+        }
+
+        private static void RestoreScratch(Camera reflectionCamera, Vector3 position, Quaternion rotation,
+            Matrix4x4 worldToCamera, Matrix4x4 projection)
+        {
+            reflectionCamera.transform.SetPositionAndRotation(position, rotation);
+            reflectionCamera.worldToCameraMatrix = worldToCamera;
+            reflectionCamera.projectionMatrix = projection;
         }
 
         // Mirror plane in camera space. What CalculateObliqueMatrix wants.
@@ -145,7 +162,6 @@ namespace EDIVE.Rendering.Mirrors
             return new Vector4(cameraNormal.x, cameraNormal.y, cameraNormal.z, -Vector3.Dot(cameraPos, cameraNormal));
         }
 
-        // Mirrors a point across the plane.
         private static Matrix4x4 CalculateReflectionMatrix(Vector4 plane)
         {
             var m = Matrix4x4.zero;

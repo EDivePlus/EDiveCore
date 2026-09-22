@@ -10,10 +10,10 @@ namespace EDIVE.Rendering.Mirrors
         public RenderTexture Texture { get; set; }
         public Camera SourceCamera { get; set; }
         public Camera.StereoscopicEye Eye { get; set; }
-        
+
         public bool InUse { get; set; }
     }
-    
+
     public sealed class MirrorResources : IDisposable
     {
         private const string CAMERA_NAME_PREFIX = "[Mirror] Reflection Camera";
@@ -25,10 +25,12 @@ namespace EDIVE.Rendering.Mirrors
         private readonly List<Camera> _deadCameras = new();
 
         private readonly string _ownerName;
+        private readonly Transform _cameraParent;
 
-        public MirrorResources(string ownerName)
+        public MirrorResources(string ownerName, Transform cameraParent = null)
         {
             _ownerName = ownerName;
+            _cameraParent = cameraParent;
         }
 
         public int TextureCount => _textures.Count;
@@ -36,8 +38,9 @@ namespace EDIVE.Rendering.Mirrors
         public void Preallocate(MirrorProfile profile, Camera camera, int count)
         {
             ReleasePreallocated();
+            var size = profile.GetResolution(camera);
             for (var i = 0; i < count; i++)
-                _preallocated.Enqueue(CreateTexture(profile, camera, true, $"{_ownerName}_prealloc{i}"));
+                _preallocated.Enqueue(CreateTexture(profile, size, true, $"{_ownerName}_prealloc{i}"));
         }
 
         public Camera GetReflectionCamera(Camera source, MirrorProfile profile)
@@ -45,10 +48,14 @@ namespace EDIVE.Rendering.Mirrors
             if (_reflectionCameras.TryGetValue(source, out var existing) && existing != null)
                 return existing;
 
+            // Visible and inspectable. Not saved, and every frame overwrites it, so edits do not stick.
             var go = new GameObject($"{CAMERA_NAME_PREFIX} for {source.name}", typeof(Camera), typeof(Skybox))
             {
-                hideFlags = HideFlags.HideAndDontSave
+                hideFlags = HideFlags.DontSave
             };
+
+            if (_cameraParent != null)
+                go.transform.SetParent(_cameraParent, false);
 
             var camera = go.GetComponent<Camera>();
             camera.enabled = false;
@@ -67,7 +74,6 @@ namespace EDIVE.Rendering.Mirrors
             return camera;
         }
 
-        // True for our own reflection cameras.
         public bool IsReflectionCamera(Camera camera) => _ownedCameras.Contains(camera);
 
         public static void Configure(UniversalAdditionalCameraData data, MirrorProfile profile)
@@ -82,7 +88,7 @@ namespace EDIVE.Rendering.Mirrors
             data.SetRenderer(profile.RendererIndex);
         }
 
-        // Free texture of the right size, or a new one. Held until ReleaseAll.
+        // Held until ReleaseAll.
         public PooledMirrorTexture Acquire(Camera source, Camera.StereoscopicEye eye, MirrorProfile profile)
         {
             var wanted = profile.GetResolution(source);
@@ -96,7 +102,7 @@ namespace EDIVE.Rendering.Mirrors
                 if (candidate.Texture == null || candidate.Texture.width != wanted.x || candidate.Texture.height != wanted.y)
                 {
                     ReleaseTexture(candidate.Texture);
-                    candidate.Texture = CreateTexture(profile, source, source.cameraType != CameraType.SceneView,
+                    candidate.Texture = CreateTexture(profile, wanted, source.cameraType != CameraType.SceneView,
                         $"{_ownerName}_{source.name}_{eye}");
                 }
 
@@ -117,7 +123,7 @@ namespace EDIVE.Rendering.Mirrors
                 SourceCamera = source,
                 Eye = eye,
                 InUse = true,
-                Texture = preallocated ?? CreateTexture(profile, source, allowMsaa,
+                Texture = preallocated ?? CreateTexture(profile, wanted, allowMsaa,
                     $"{_ownerName}_{source.name}_{eye}_{_textures.Count}")
             };
 
@@ -131,13 +137,13 @@ namespace EDIVE.Rendering.Mirrors
                 texture.InUse = false;
         }
 
-        // Drop entries whose camera is gone.
+        // Gone or switched off. Otherwise every toggled camera keeps a reflection texture alive.
         public void Prune()
         {
             _deadCameras.Clear();
             foreach (var pair in _reflectionCameras)
             {
-                if (pair.Key == null || pair.Value == null)
+                if (pair.Key == null || pair.Value == null || !pair.Key.isActiveAndEnabled)
                     _deadCameras.Add(pair.Key);
             }
 
@@ -154,10 +160,11 @@ namespace EDIVE.Rendering.Mirrors
 
             for (var i = _textures.Count - 1; i >= 0; i--)
             {
-                if (_textures[i].SourceCamera != null && _textures[i].Texture != null)
+                var pooled = _textures[i];
+                if (pooled.SourceCamera != null && pooled.Texture != null && pooled.SourceCamera.isActiveAndEnabled)
                     continue;
 
-                ReleaseTexture(_textures[i].Texture);
+                ReleaseTexture(pooled.Texture);
                 _textures.RemoveAt(i);
             }
         }
@@ -197,9 +204,9 @@ namespace EDIVE.Rendering.Mirrors
             _ownedCameras.Clear();
         }
 
-        private RenderTexture CreateTexture(MirrorProfile profile, Camera camera, bool allowMsaa, string name)
+        private RenderTexture CreateTexture(MirrorProfile profile, Vector2Int size, bool allowMsaa, string name)
         {
-            var texture = new RenderTexture(profile.GetDescriptor(camera, allowMsaa))
+            var texture = new RenderTexture(profile.GetDescriptor(size, allowMsaa))
             {
                 name = $"[Mirror] {name}",
                 hideFlags = HideFlags.HideAndDontSave,

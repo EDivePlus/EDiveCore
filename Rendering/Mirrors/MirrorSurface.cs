@@ -12,6 +12,9 @@ namespace EDIVE.Rendering.Mirrors
         private static readonly int MIRROR_BLEND = Shader.PropertyToID("_MirrorBlend");
         private static readonly int MIRROR_EYE = Shader.PropertyToID("_MirrorEye");
         private static readonly int MIRROR_FLIP_Y = Shader.PropertyToID("_MirrorFlipY");
+        private static readonly int MIRROR_VP_LEFT = Shader.PropertyToID("_MirrorVpLeft");
+        private static readonly int MIRROR_VP_RIGHT = Shader.PropertyToID("_MirrorVpRight");
+
         private static readonly int FALLBACK_CUBEMAP = Shader.PropertyToID("_FallbackCubemap");
         private static readonly int FALLBACK_CUBEMAP_HDR = Shader.PropertyToID("_FallbackCubemapHDR");
         private static readonly int FALLBACK_PROBE_POS = Shader.PropertyToID("_FallbackProbePos");
@@ -191,11 +194,10 @@ namespace EDIVE.Rendering.Mirrors
             if (!_valid || !enabled || !gameObject.activeInHierarchy || _MeshRenderer == null)
                 return false;
 
-            // isVisible lies for the first frames after enable.
+            // Occlusion culled, so skip the whole reflection. Lags a frame on the way back in.
             if (Time.frameCount - _enabledFrame > 1 && !_MeshRenderer.isVisible)
                 return false;
 
-            // Behind the mirror?
             var forward = -ForwardTransform.forward;
             if (Vector3.Dot(forward, cam.transform.position - ForwardTransform.position) < 0)
                 return false;
@@ -228,6 +230,24 @@ namespace EDIVE.Rendering.Mirrors
                     continue;
 
                 child.SetReflectionTexture(eye, texture);
+            }
+        }
+
+        // Shader finds its texel from a world position, not the screen.
+        public void SetReflectionMatrix(Camera.StereoscopicEye eye, Matrix4x4 viewProjection)
+        {
+            if (_instance != null)
+                _instance.SetMatrix(eye == Camera.StereoscopicEye.Left ? MIRROR_VP_LEFT : MIRROR_VP_RIGHT, viewProjection);
+
+            if (_LinkedSurfaces == null)
+                return;
+
+            foreach (var child in _LinkedSurfaces)
+            {
+                if (child == null || child == this)
+                    continue;
+
+                child.SetReflectionMatrix(eye, viewProjection);
             }
         }
 
@@ -298,7 +318,7 @@ namespace EDIVE.Rendering.Mirrors
             if (_UseDepthFalloff && depth > 1)
             {
                 var t = 1f - (depth - 1f) / Mathf.Max(1, recursions);
-                return Mathf.Clamp01(_DepthFalloffCurve.Evaluate(t));
+                return Mathf.Clamp01(_DepthFalloffCurve.Evaluate(t)) * _BlendStrength;
             }
 
             var fadeBand = Mathf.Min(_FadeLength, _RenderDistance);
@@ -309,7 +329,6 @@ namespace EDIVE.Rendering.Mirrors
             return Mathf.Clamp01(1f - faded / fadeBand) * _BlendStrength;
         }
 
-        // Writes the probe straight into the material.
         [Button("Reapply Probe")]
         public void ApplyFallbackProbe()
         {
@@ -343,11 +362,12 @@ namespace EDIVE.Rendering.Mirrors
             _instance.SetVector(FALLBACK_BOX_MAX, max);
         }
 
-        // Tight culling frustum around the mirror. False if there is nothing to cull to.
-        public bool TryGetCullingMatrix(Camera reflectionCamera, MirrorProfile profile,
-            Camera.MonoOrStereoscopicEye eye, out Matrix4x4 cullingMatrix)
+        // Frustum that just covers the mirror, for culling. viewMargin widens it for a shared centre view.
+        public bool TryGetCullingMatrices(Camera reflectionCamera, MirrorProfile profile,
+            Camera.MonoOrStereoscopicEye eye, float viewMargin, out Matrix4x4 view, out Matrix4x4 projection)
         {
-            cullingMatrix = Matrix4x4.identity;
+            view = Matrix4x4.identity;
+            projection = Matrix4x4.identity;
 
             var mirror = ForwardTransform;
             var right = mirror.right;
@@ -373,9 +393,14 @@ namespace EDIVE.Rendering.Mirrors
                 return false;
 
             // Cut it down to what the camera can see.
-            if (TryGetViewRect(reflectionCamera, eye, right, up, normal, planeDistance, out var viewRect)
-                && !Intersect(clipped, viewRect, out clipped))
-                return false;
+            if (TryGetViewRect(reflectionCamera, eye, right, up, normal, planeDistance, out var viewRect))
+            {
+                viewRect = Rect.MinMaxRect(viewRect.xMin - viewMargin, viewRect.yMin - viewMargin,
+                    viewRect.xMax + viewMargin, viewRect.yMax + viewMargin);
+
+                if (!Intersect(clipped, viewRect, out clipped))
+                    return false;
+            }
 
             var padX = clipped.width * profile.FrustumPadding;
             var padY = clipped.height * profile.FrustumPadding;
@@ -390,16 +415,15 @@ namespace EDIVE.Rendering.Mirrors
             // Rect was measured at the mirror. The frustum wants it at the near plane.
             var scale = near / planeDistance;
 
-            var projection = Matrix4x4.Frustum(clipped.xMin * scale, clipped.xMax * scale,
+            projection = Matrix4x4.Frustum(clipped.xMin * scale, clipped.xMax * scale,
                 clipped.yMin * scale, clipped.yMax * scale, near, far);
 
-            // View from the eye, built on the mirror axes.
-            var view = Matrix4x4.identity;
+            // View from the eye, on the mirror axes. Row 2 is -forward.
+            view = Matrix4x4.identity;
             view.SetRow(0, new Vector4(right.x, right.y, right.z, -Vector3.Dot(right, eyePos)));
             view.SetRow(1, new Vector4(up.x, up.y, up.z, -Vector3.Dot(up, eyePos)));
             view.SetRow(2, new Vector4(normal.x, normal.y, normal.z, -Vector3.Dot(normal, eyePos)));
 
-            cullingMatrix = projection * view;
             return true;
         }
 
@@ -468,9 +492,14 @@ namespace EDIVE.Rendering.Mirrors
             var min = new Vector2(float.MaxValue, float.MaxValue);
             var max = new Vector2(float.MinValue, float.MinValue);
 
+            // Matrix, not transform. A reflected camera has no valid rotation.
+            var cameraToWorld = cam.cameraToWorldMatrix;
+
             for (var i = 0; i < 4; i++)
             {
-                var dir = cam.transform.TransformVector(_frustumCorners[i]);
+                var corner = _frustumCorners[i];
+                // Corners are transform space. The matrix wants -Z forward.
+                var dir = cameraToWorld.MultiplyVector(new Vector3(corner.x, corner.y, -corner.z));
 
                 var towards = -Vector3.Dot(dir, normal);
                 if (towards <= 1e-6f)

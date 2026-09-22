@@ -51,9 +51,43 @@ namespace EDIVE.Rendering.Mirrors
         [Tooltip("Also render in the scene view. Both views share one material and will fight.")]
         private bool _IncludeSceneView;
 
+        // Shared Center draws one frustum for both eyes. Widen it so neither eye sees past it.
+        private const float SHARED_EYE_EXPAND = 0.1f;
+
+        // One frame, one answer. Multi pass asks twice.
+        private struct FrameSkipState
+        {
+            public int Remaining;
+            public int Frame;
+            public bool Render;
+        }
+
+        // What a surface ends the frame showing.
+        private struct ReflectionBinding
+        {
+            public int Depth;
+            public RenderTexture Texture;
+            public Matrix4x4 ViewProjection;
+            public float Blend;
+            public bool FlipY;
+            public bool Fallback;
+        }
+
+        private struct Frustum
+        {
+            public float Left;
+            public float Right;
+            public float Bottom;
+            public float Top;
+            public float Near;
+            public float Far;
+        }
+
         private MirrorResources _resources;
         private ReflectionPlanner _planner;
-        private readonly Dictionary<Camera, int> _frameSkip = new();
+        private readonly Dictionary<Camera, FrameSkipState> _frameSkip = new();
+        private readonly Dictionary<Camera, int> _sharedFrame = new();
+        private readonly Dictionary<MirrorSurface, ReflectionBinding> _finalBindings = new();
         private readonly List<Camera> _deadSkipKeys = new();
         private MirrorProfile _boundProfile;
         private int _pruneCounter;
@@ -72,7 +106,7 @@ namespace EDIVE.Rendering.Mirrors
         {
             Teardown();
         }
-        
+
         [PropertySpace]
         [Button]
         public void Rebuild()
@@ -86,7 +120,7 @@ namespace EDIVE.Rendering.Mirrors
         private void Setup()
         {
             Teardown();
-            _resources = new MirrorResources(name);
+            _resources = new MirrorResources(name, transform);
             _planner = new ReflectionPlanner();
 
             BindProfile();
@@ -113,6 +147,8 @@ namespace EDIVE.Rendering.Mirrors
             _preallocated = false;
             _pruneCounter = 0;
             _frameSkip.Clear();
+            _sharedFrame.Clear();
+            _finalBindings.Clear();
         }
 
         private void BindProfile()
@@ -137,6 +173,7 @@ namespace EDIVE.Rendering.Mirrors
         private void OnProfileChanged()
         {
             _resources?.ReleaseTextures();
+            _preallocated = false;
         }
 
         private void OnBeginCameraRendering(ScriptableRenderContext context, Camera renderCamera)
@@ -171,7 +208,7 @@ namespace EDIVE.Rendering.Mirrors
             {
                 _pruneCounter = 0;
                 _resources.Prune();
-                PruneFrameSkip();
+                PruneCameraKeys();
             }
 
             if (_PauseRendering)
@@ -179,6 +216,13 @@ namespace EDIVE.Rendering.Mirrors
                 UpdateBlendsOnly(renderCamera);
                 return;
             }
+
+            var stereoMode = GetStereoMode(renderCamera);
+            var sharedCenter = stereoMode != MirrorStereoMode.None && _Profile.SharedCenterEye;
+
+            // Multi pass calls us per eye. Shared only needs the first.
+            if (sharedCenter && stereoMode == MirrorStereoMode.MultiPass && !ClaimSharedFrame(renderCamera))
+                return;
 
             if (!_preallocated)
             {
@@ -189,42 +233,47 @@ namespace EDIVE.Rendering.Mirrors
             var reflectionCamera = _resources.GetReflectionCamera(renderCamera, _Profile);
             PrepareReflectionCamera(renderCamera, reflectionCamera);
 
-            var stereoMode = GetStereoMode(renderCamera);
             var shouldRender = ConsumeFrameSkip(renderCamera);
 
             _rendering = true;
             try
             {
-                switch (stereoMode)
+                if (sharedCenter)
                 {
-                    case MirrorStereoMode.SinglePass:
-                        // One pass draws both eyes. Both textures must be ready.
-                        RenderEye(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Left, true, shouldRender);
-                        RenderEye(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Right, true, shouldRender);
-                        SetForceEyeOnAll(-1);
-                        break;
+                    RenderCenter(context, renderCamera, reflectionCamera, shouldRender);
+                    SetForceEyeOnAll(0);
+                }
+                else
+                {
+                    switch (stereoMode)
+                    {
+                        case MirrorStereoMode.SinglePass:
+                            // One pass draws both eyes. Both textures must be ready.
+                            RenderEye(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Left, true, shouldRender);
+                            RenderEye(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Right, true, shouldRender);
+                            SetForceEyeOnAll(-1);
+                            break;
 
-                    case MirrorStereoMode.MultiPass:
-                        // One eye per pass. Matrices are already set.
-                        var eye = renderCamera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Right
-                            ? Camera.StereoscopicEye.Right
-                            : Camera.StereoscopicEye.Left;
-                        RenderEye(context, renderCamera, reflectionCamera, eye, false, shouldRender);
-                        SetForceEyeOnAll((int) eye);
-                        break;
+                        case MirrorStereoMode.MultiPass:
+                            var eye = renderCamera.stereoActiveEye == Camera.MonoOrStereoscopicEye.Right
+                                ? Camera.StereoscopicEye.Right
+                                : Camera.StereoscopicEye.Left;
+                            RenderEye(context, renderCamera, reflectionCamera, eye, false, shouldRender);
+                            SetForceEyeOnAll((int) eye);
+                            break;
 
-                    case MirrorStereoMode.None:
-                    default:
-                        RenderEye(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Left, false, shouldRender);
-                        SetForceEyeOnAll(0);
-                        break;
+                        case MirrorStereoMode.None:
+                        default:
+                            RenderEye(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Left, false, shouldRender);
+                            SetForceEyeOnAll(0);
+                            break;
+                    }
                 }
             }
             finally
             {
                 _rendering = false;
             }
-
         }
 
         private void RenderEye(ScriptableRenderContext context, Camera renderCamera, Camera reflectionCamera,
@@ -232,12 +281,7 @@ namespace EDIVE.Rendering.Mirrors
         {
             if (stereo)
             {
-                reflectionCamera.worldToCameraMatrix = renderCamera.GetStereoViewMatrix(eye);
-                reflectionCamera.projectionMatrix = renderCamera.GetStereoProjectionMatrix(eye);
-                // The view matrix is mirrored, so Matrix4x4.rotation returns garbage. Build it from the axes.
-                var view = reflectionCamera.worldToCameraMatrix.inverse;
-                var rotation = Quaternion.LookRotation(-(Vector3) view.GetColumn(2), (Vector3) view.GetColumn(1));
-                reflectionCamera.transform.SetPositionAndRotation(view.GetColumn(3), rotation);
+                ApplyViewMatrices(reflectionCamera, renderCamera.GetStereoViewMatrix(eye), renderCamera.GetStereoProjectionMatrix(eye));
             }
             else
             {
@@ -246,17 +290,97 @@ namespace EDIVE.Rendering.Mirrors
                 reflectionCamera.projectionMatrix = renderCamera.projectionMatrix;
             }
 
-            _planner.Build(renderCamera, reflectionCamera, _Surfaces, _Profile, eye, stereo);
-            RenderPlan(context, renderCamera, reflectionCamera, eye, shouldRender);
+            var cullEye = stereo ? (Camera.MonoOrStereoscopicEye) eye : Camera.MonoOrStereoscopicEye.Mono;
+            BuildAndRender(context, renderCamera, reflectionCamera, eye, cullEye, 0f, shouldRender, false);
+        }
+
+        private void RenderCenter(ScriptableRenderContext context, Camera renderCamera, Camera reflectionCamera, bool shouldRender)
+        {
+            GetCenterStereo(renderCamera, out var view, out var projection, out var eyeSeparation);
+            ApplyViewMatrices(reflectionCamera, view, projection);
+            // Each eye sees half an IPD past the shared view.
+            BuildAndRender(context, renderCamera, reflectionCamera, Camera.StereoscopicEye.Left,
+                Camera.MonoOrStereoscopicEye.Mono, eyeSeparation * 0.5f, shouldRender, true);
+        }
+
+        private static void ApplyViewMatrices(Camera reflectionCamera, Matrix4x4 view, Matrix4x4 projection)
+        {
+            reflectionCamera.worldToCameraMatrix = view;
+            reflectionCamera.projectionMatrix = projection;
+
+            // The view matrix is mirrored, so Matrix4x4.rotation returns garbage. Build it from the axes.
+            var cameraToWorld = view.inverse;
+            var rotation = Quaternion.LookRotation(-(Vector3) cameraToWorld.GetColumn(2), (Vector3) cameraToWorld.GetColumn(1));
+            reflectionCamera.transform.SetPositionAndRotation(cameraToWorld.GetColumn(3), rotation);
+        }
+
+        private void GetCenterStereo(Camera renderCamera, out Matrix4x4 view, out Matrix4x4 projection, out float eyeSeparation)
+        {
+            var leftView = renderCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
+            var rightView = renderCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
+
+            // Same rotation, so the averaged translation is the head centre and the gap is the IPD.
+            view = leftView;
+            view.SetColumn(3, (leftView.GetColumn(3) + rightView.GetColumn(3)) * 0.5f);
+            eyeSeparation = Vector3.Distance(leftView.GetColumn(3), rightView.GetColumn(3));
+
+            var leftProjection = renderCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+            var rightProjection = renderCamera.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
+            projection = leftProjection;
+
+            if (!TryGetFrustum(leftProjection, out var left) || !TryGetFrustum(rightProjection, out var right))
+                return;
+
+            var minX = Mathf.Min(left.Left, right.Left);
+            var maxX = Mathf.Max(left.Right, right.Right);
+            var minY = Mathf.Min(left.Bottom, right.Bottom);
+            var maxY = Mathf.Max(left.Top, right.Top);
+
+            // Eyes sit off to the side. They see a little past it.
+            var padX = (maxX - minX) * SHARED_EYE_EXPAND * 0.5f;
+            var padY = (maxY - minY) * SHARED_EYE_EXPAND * 0.5f;
+
+            projection = Matrix4x4.Frustum(minX - padX, maxX + padX, minY - padY, maxY + padY,
+                Mathf.Min(left.Near, right.Near), Mathf.Max(left.Far, right.Far));
+        }
+
+        // Frustum edges back out of a perspective matrix.
+        private static bool TryGetFrustum(Matrix4x4 projection, out Frustum frustum)
+        {
+            frustum = default;
+            if (Mathf.Abs(projection.m00) < 1e-6f || Mathf.Abs(projection.m11) < 1e-6f)
+                return false;
+
+            if (Mathf.Abs(projection.m22 - 1f) < 1e-6f || Mathf.Abs(projection.m22 + 1f) < 1e-6f)
+                return false;
+
+            frustum.Near = projection.m23 / (projection.m22 - 1f);
+            frustum.Far = projection.m23 / (projection.m22 + 1f);
+            if (frustum.Near <= 0f || frustum.Far <= frustum.Near)
+                return false;
+
+            frustum.Left = frustum.Near * (projection.m02 - 1f) / projection.m00;
+            frustum.Right = frustum.Near * (projection.m02 + 1f) / projection.m00;
+            frustum.Bottom = frustum.Near * (projection.m12 - 1f) / projection.m11;
+            frustum.Top = frustum.Near * (projection.m12 + 1f) / projection.m11;
+            return true;
+        }
+
+        private void BuildAndRender(ScriptableRenderContext context, Camera renderCamera, Camera reflectionCamera,
+            Camera.StereoscopicEye eye, Camera.MonoOrStereoscopicEye cullEye, float viewMargin, bool shouldRender, bool bothEyes)
+        {
+            _planner.Build(renderCamera, reflectionCamera, _Surfaces, _Profile, cullEye, viewMargin);
+            RenderPlan(context, renderCamera, reflectionCamera, eye, shouldRender, bothEyes);
         }
 
         private void RenderPlan(ScriptableRenderContext context, Camera renderCamera, Camera reflectionCamera,
-            Camera.StereoscopicEye eye, bool shouldRender)
+            Camera.StereoscopicEye eye, bool shouldRender, bool bothEyes)
         {
             var steps = _planner.Steps;
             var recursions = _Profile.Recursions;
             var oldPixelLights = QualitySettings.pixelLightCount;
             var renderScale = UniversalRenderPipeline.asset != null ? UniversalRenderPipeline.asset.renderScale : 1f;
+            _finalBindings.Clear();
 
             try
             {
@@ -269,25 +393,37 @@ namespace EDIVE.Rendering.Mirrors
                     if (surface == null)
                         continue;
 
+                    var flipY = ShouldFlip(renderCamera, step.Depth);
                     surface.SetEye(eye);
-                    surface.SetFlipY(ShouldFlip(renderCamera, step.Depth));
+                    surface.SetFlipY(flipY);
 
                     if (step.BeyondRange || step.Depth >= recursions + 1)
                     {
                         surface.ShowFallback();
-
+                        KeepShallowest(surface, new ReflectionBinding {Depth = step.Depth, FlipY = flipY, Fallback = true});
                         continue;
                     }
 
                     var pooled = _resources.Acquire(renderCamera, eye, _Profile);
 
                     var blend = surface.CalculateBlend(step.Depth, recursions, step.Distance);
-                    surface.SetReflectionTexture(eye, pooled.Texture);
+                    BindReflection(surface, eye, bothEyes, pooled.Texture, step.ViewProjection, shouldRender);
                     surface.SetBlend(blend);
+
+                    KeepShallowest(surface, new ReflectionBinding
+                    {
+                        Depth = step.Depth,
+                        Texture = pooled.Texture,
+                        ViewProjection = step.ViewProjection,
+                        Blend = blend,
+                        FlipY = flipY
+                    });
 
                     if (shouldRender)
                         DrawStep(context, renderCamera, reflectionCamera, step, pooled.Texture);
                 }
+
+                ApplyFinalBindings(eye, bothEyes, shouldRender);
             }
             finally
             {
@@ -302,6 +438,51 @@ namespace EDIVE.Rendering.Mirrors
             }
         }
 
+        private void KeepShallowest(MirrorSurface surface, ReflectionBinding binding)
+        {
+            if (_finalBindings.TryGetValue(surface, out var existing) && existing.Depth <= binding.Depth)
+                return;
+
+            _finalBindings[surface] = binding;
+        }
+
+        // A mirror can sit at several depths. The viewer sees the shallowest, so it goes on last.
+        private void ApplyFinalBindings(Camera.StereoscopicEye eye, bool bothEyes, bool writeMatrix)
+        {
+            foreach (var pair in _finalBindings)
+            {
+                var surface = pair.Key;
+                var binding = pair.Value;
+                surface.SetFlipY(binding.FlipY);
+
+                if (binding.Fallback || binding.Texture == null)
+                {
+                    surface.ShowFallback();
+                    continue;
+                }
+
+                BindReflection(surface, eye, bothEyes, binding.Texture, binding.ViewProjection, writeMatrix);
+                surface.SetBlend(binding.Blend);
+            }
+        }
+
+        // Skipped frame keeps the old matrix, so the old texture still fits.
+        private static void BindReflection(MirrorSurface surface, Camera.StereoscopicEye eye, bool bothEyes,
+            RenderTexture texture, Matrix4x4 viewProjection, bool writeMatrix)
+        {
+            surface.SetReflectionTexture(eye, texture);
+            if (writeMatrix)
+                surface.SetReflectionMatrix(eye, viewProjection);
+
+            if (!bothEyes)
+                return;
+
+            var other = eye == Camera.StereoscopicEye.Left ? Camera.StereoscopicEye.Right : Camera.StereoscopicEye.Left;
+            surface.SetReflectionTexture(other, texture);
+            if (writeMatrix)
+                surface.SetReflectionMatrix(other, viewProjection);
+        }
+
         private void DrawStep(ScriptableRenderContext context, Camera renderCamera, Camera reflectionCamera,
             ReflectionStep step, RenderTexture target)
         {
@@ -309,13 +490,8 @@ namespace EDIVE.Rendering.Mirrors
             reflectionCamera.transform.position = step.CameraPosition;
             reflectionCamera.worldToCameraMatrix = step.WorldToCameraMatrix;
             reflectionCamera.projectionMatrix = step.ProjectionMatrix;
-            // cullingMatrix sticks. Only set it when wanted.
-            if (_Profile.TightFrustumCulling)
-                reflectionCamera.cullingMatrix = step.CullingMatrix;
-            else
-                reflectionCamera.ResetCullingMatrix();
+            reflectionCamera.cullingMatrix = step.CullingMatrix;
 
-            // Winding flips on every odd bounce.
             GL.invertCulling = step.InvertCulling;
 
             if (UniversalRenderPipeline.asset != null)
@@ -352,6 +528,8 @@ namespace EDIVE.Rendering.Mirrors
             reflectionCamera.rect = new Rect(0, 0, 1, 1);
             reflectionCamera.cullingMask = _Profile.RenderLayers;
             reflectionCamera.targetTexture = null;
+            // Wrong with a custom frustum, and it costs CPU either way.
+            reflectionCamera.useOcclusionCulling = false;
 
             if (_Profile.OverrideClearFlags)
             {
@@ -419,7 +597,7 @@ namespace EDIVE.Rendering.Mirrors
                 : MirrorStereoMode.SinglePass;
         }
 
-        private void PruneFrameSkip()
+        private void PruneCameraKeys()
         {
             _deadSkipKeys.Clear();
             foreach (var pair in _frameSkip)
@@ -430,6 +608,26 @@ namespace EDIVE.Rendering.Mirrors
 
             foreach (var key in _deadSkipKeys)
                 _frameSkip.Remove(key);
+
+            _deadSkipKeys.Clear();
+            foreach (var pair in _sharedFrame)
+            {
+                if (pair.Key == null)
+                    _deadSkipKeys.Add(pair.Key);
+            }
+
+            foreach (var key in _deadSkipKeys)
+                _sharedFrame.Remove(key);
+        }
+
+        // False when the frame is taken. Multi pass renders once.
+        private bool ClaimSharedFrame(Camera cam)
+        {
+            if (_sharedFrame.TryGetValue(cam, out var frame) && frame == Time.frameCount)
+                return false;
+
+            _sharedFrame[cam] = Time.frameCount;
+            return true;
         }
 
         private bool ConsumeFrameSkip(Camera cam)
@@ -438,15 +636,18 @@ namespace EDIVE.Rendering.Mirrors
             if (needed <= 0)
                 return true;
 
-            _frameSkip.TryGetValue(cam, out var remaining);
-            if (remaining > 0)
-            {
-                _frameSkip[cam] = remaining - 1;
-                return false;
-            }
+            if (!_frameSkip.TryGetValue(cam, out var state))
+                state = new FrameSkipState {Frame = -1, Remaining = 0, Render = true};
 
-            _frameSkip[cam] = needed;
-            return true;
+            // Multi pass asks once per eye. Both eyes need the same answer.
+            if (state.Frame == Time.frameCount)
+                return state.Render;
+
+            state.Frame = Time.frameCount;
+            state.Render = state.Remaining <= 0;
+            state.Remaining = state.Render ? needed : state.Remaining - 1;
+            _frameSkip[cam] = state;
+            return state.Render;
         }
 
         private bool ShouldFlip(Camera cam, int depth)
