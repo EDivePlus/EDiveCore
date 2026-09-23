@@ -52,7 +52,7 @@ namespace EDIVE.Tweening.ObjectActions
 
         private bool TryGetMaterial(TRenderer target, out Material material)
         {
-            var materials = Application.isPlaying || _UseSharedMaterial ? target.sharedMaterials : target.materials;
+            var materials = !Application.isPlaying || _UseSharedMaterial ? target.sharedMaterials : target.materials;
             material = null;
 
             if (materials.Length == 0 || _MaterialIndex >= materials.Length)
