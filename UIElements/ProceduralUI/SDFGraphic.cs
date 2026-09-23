@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace EDIVE.UIElements.ProceduralUI
 {
-    public class SignedDistanceFieldGraphic : AProceduralGraphic, ICanvasRaycastFilter
+    public class SDFGraphic : AProceduralGraphic, ICanvasRaycastFilter
     {
         private const string SHADER_NAME = "Hidden/EDIVE/ProceduralUI/SimpleSDF";
 
