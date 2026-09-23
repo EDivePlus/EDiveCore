@@ -22,19 +22,29 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private GradientFill _Fill = GradientFill.Default;
 
-        [EnhancedBoxGroup("Outline", order: 20, SpaceBefore = 4, SpaceAfter = 4)]
-        [LabelText("Size")]
-        [MinValue(0f)]
         [SerializeField]
+        [HideInInspector]
         private float _OutlineSize;
 
+        [EnhancedBoxGroup("Outline", order: 20, SpaceBefore = 4, SpaceAfter = 4)]
+        [PropertyOrder(0)]
+        [LabelText("Size")]
+        [ShowInInspector]
+        public float OutlineSize
+        {
+            get => _OutlineSize;
+            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_OutlineSize, value)) return; _OutlineSize = value; SetVerticesDirty(); }
+        }
+
         [EnhancedBoxGroup("Outline")]
+        [PropertyOrder(1)]
         [EnableIf(nameof(HasOutline))]
         [LabelText("Color")]
         [SerializeField]
         private Color _OutlineColor = Color.black;
 
         [EnhancedBoxGroup("Outline")]
+        [PropertyOrder(2)]
         [EnableIf(nameof(HasOutline))]
         [LabelText("Placement")]
         [SerializeField]
@@ -47,33 +57,59 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private CornerJoin _CornerJoin;
 
-        [EnhancedBoxGroup("Shadow", order: 30, SpaceAfter = 4)]
-        [LabelText("Size")]
-        [MinValue(0f)]
         [SerializeField]
+        [HideInInspector]
         private float _ShadowSize;
 
+        [EnhancedBoxGroup("Shadow", order: 30, SpaceAfter = 4)]
+        [PropertyOrder(0)]
+        [LabelText("Size")]
+        [ShowInInspector]
+        public float ShadowSize
+        {
+            get => _ShadowSize;
+            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_ShadowSize, value)) return; _ShadowSize = value; SetVerticesDirty(); }
+        }
+
         [EnhancedBoxGroup("Shadow")]
+        [PropertyOrder(1)]
         [EnableIf(nameof(HasShadow))]
         [LabelText("Color")]
         [SerializeField]
         private Color _ShadowColor = Color.black;
 
-        [EnhancedBoxGroup("Shadow")]
-        [EnableIf(nameof(HasShadow))]
-        [LabelText("Blur")]
-        [MinValue(0f)]
         [SerializeField]
+        [HideInInspector]
         private float _ShadowBlur;
 
         [EnhancedBoxGroup("Shadow")]
+        [PropertyOrder(2)]
         [EnableIf(nameof(HasShadow))]
-        [LabelText("Power")]
-        [MinValue(0f)]
+        [LabelText("Blur")]
+        [ShowInInspector]
+        public float ShadowBlur
+        {
+            get => _ShadowBlur;
+            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_ShadowBlur, value)) return; _ShadowBlur = value; SetVerticesDirty(); }
+        }
+
         [SerializeField]
+        [HideInInspector]
         private float _ShadowPower = 1f;
 
         [EnhancedBoxGroup("Shadow")]
+        [PropertyOrder(3)]
+        [EnableIf(nameof(HasShadow))]
+        [LabelText("Power")]
+        [ShowInInspector]
+        public float ShadowPower
+        {
+            get => _ShadowPower;
+            set { value = VertexPacking.ClampShadowPower(value); if (Mathf.Approximately(_ShadowPower, value)) return; _ShadowPower = value; SetVerticesDirty(); }
+        }
+
+        [EnhancedBoxGroup("Shadow")]
+        [PropertyOrder(4)]
         [LabelText("Offset")]
         [SerializeField]
         private Vector2 _ShadowOffset;
@@ -83,6 +119,11 @@ namespace EDIVE.UIElements.ProceduralUI
         [InlineProperty]
         [SerializeField]
         private ArcCutout _Arc = ArcCutout.Default;
+        
+        [PropertySpace]
+        [PropertyOrder(10)]
+        [SerializeField]
+        private CornerRoundness _Roundness;
 
         public Texture Texture
         {
@@ -94,12 +135,6 @@ namespace EDIVE.UIElements.ProceduralUI
         {
             get => _Fill;
             set { _Fill = value; SetVerticesDirty(); }
-        }
-
-        public float OutlineSize
-        {
-            get => _OutlineSize;
-            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_OutlineSize, value)) return; _OutlineSize = value; SetVerticesDirty(); }
         }
 
         public Color OutlineColor
@@ -118,24 +153,6 @@ namespace EDIVE.UIElements.ProceduralUI
         {
             get => _CornerJoin;
             set { if (_CornerJoin == value) return; _CornerJoin = value; SetVerticesDirty(); }
-        }
-
-        public float ShadowSize
-        {
-            get => _ShadowSize;
-            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_ShadowSize, value)) return; _ShadowSize = value; SetVerticesDirty(); }
-        }
-
-        public float ShadowBlur
-        {
-            get => _ShadowBlur;
-            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_ShadowBlur, value)) return; _ShadowBlur = value; SetVerticesDirty(); }
-        }
-
-        public float ShadowPower
-        {
-            get => _ShadowPower;
-            set { value = VertexPacking.ClampShadowPower(value); if (Mathf.Approximately(_ShadowPower, value)) return; _ShadowPower = value; SetVerticesDirty(); }
         }
 
         public Color ShadowColor
@@ -161,6 +178,12 @@ namespace EDIVE.UIElements.ProceduralUI
             get => _Arc.Value;
             set { if (Mathf.Approximately(_Arc.Value, value)) return; _Arc.Value = value; SetVerticesDirty(); }
         }
+        
+        public CornerRoundness Roundness
+        {
+            get => _Roundness;
+            set { _Roundness = value; SetVerticesDirty(); }
+        }
 
         public override Texture mainTexture => _Texture ? _Texture : s_WhiteTexture;
         protected override string ShaderName => SHADER_NAME;
@@ -168,15 +191,15 @@ namespace EDIVE.UIElements.ProceduralUI
 
         private bool HasOutline => _OutlineSize > 0f;
         private bool HasShadow => _ShadowSize > 0f || _ShadowBlur > 0f || _ShadowOffset != Vector2.zero;
-        private float ShadowSizeRounded => VertexPacking.RoundPixel(_ShadowSize);
-        private float ShadowBlurRounded => VertexPacking.RoundPixel(_ShadowBlur);
+        private float ShadowSizeRounded => Mathf.Round(_ShadowSize);
+        private float ShadowBlurRounded => Mathf.Round(_ShadowBlur);
         private float ShadowOffsetExtent => Mathf.Max(Mathf.Abs(VertexPacking.QuantizeOffset(_ShadowOffset.x)), Mathf.Abs(VertexPacking.QuantizeOffset(_ShadowOffset.y)));
         private float ExtraMargin => OutlineOutwardExtension + FrameOutwardExtension + ShadowSizeRounded + ShadowBlurRounded + ShadowOffsetExtent + 1f;
 
         private float OutlineOutwardExtension => _OutlinePlacement switch
         {
-            EdgePlacement.Center => VertexPacking.ClampPixel(_OutlineSize) * 0.5f,
-            EdgePlacement.Outside => VertexPacking.ClampPixel(_OutlineSize),
+            EdgePlacement.Center => _OutlineSize * 0.5f,
+            EdgePlacement.Outside => _OutlineSize,
             _ => 0f
         };
 
@@ -274,6 +297,10 @@ namespace EDIVE.UIElements.ProceduralUI
                 }
             }
         }
+        
+        public Vector4 ResolveRoundness(float width, float height) => _Roundness.Resolve(width, height);
+        
+        protected override Vector4 GetRoundness() => ResolveRoundness(rectTransform.rect.width, rectTransform.rect.height);
 
         // Effect info is packed into existing channels:
         //   uv2.x: outlineSize + outlinePlacement * 4096 + framePlacement * 16384 + cornerShape * 65536, negated and offset by 1 in frame mode
@@ -285,11 +312,11 @@ namespace EDIVE.UIElements.ProceduralUI
         //   normal: arc corner radius (x), shadow offset y as 16-bit fixed point with one byte spare (y), encoded fill + sharp center flag (z)
         private UIVertex BuildBaseVertex(float width, float height)
         {
-            var frameWidthRounded = NoFill ? VertexPacking.RoundPixel(FrameWidth) : 0f;
-            var outlineInfo = VertexPacking.ClampPixel(_OutlineSize) + (int) _OutlinePlacement * 4096f + (int) FramePlacement * 16384f + EncodedCornerShape * 65536f;
+            var frameWidthRounded = NoFill ? Mathf.Round(FrameWidth) : 0f;
+            var outlineInfo = _OutlineSize + (int) _OutlinePlacement * 4096f + (int) FramePlacement * 16384f + EncodedCornerShape * 65536f;
             var encodedOutline = NoFill ? -(1f + outlineInfo) : outlineInfo;
             var encodedShadow = ShadowSizeRounded + ShadowBlurRounded * 4096f;
-            var encodedShadowPower = VertexPacking.ClampShadowPower(_ShadowPower) + frameWidthRounded * 256f;
+            var encodedShadowPower = _ShadowPower + frameWidthRounded * 256f;
 
             var vertex = UIVertex.simpleVert;
             vertex.normal = new Vector3(_Arc.ShaderCornerRadius, VertexPacking.PackOffset(_ShadowOffset.y), _Fill.EncodeShaderFill() + _Arc.ShaderSharpCenterFlag);

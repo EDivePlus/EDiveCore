@@ -74,7 +74,7 @@ namespace EDIVE.UIElements.ProceduralUI
         private bool _editorSyncQueued;
 #endif
 
-        public bool HasSource => GetComponent<SimpleSDFGraphic>();
+        public bool HasSource => GetComponent<SignedDistanceFieldGraphic>();
         private bool HasOwnShape => !HasSource;
         private bool ShowFrameSettings => HasOwnShape && _FillMode == FillMode.NoFill;
 
@@ -338,7 +338,7 @@ namespace EDIVE.UIElements.ProceduralUI
             if (glow.Owner)
                 return false;
 
-            var rect = GetComponent<SimpleSDFGraphic>();
+            var rect = GetComponent<SignedDistanceFieldGraphic>();
             if (rect && glow.Source == rect)
                 return true;
 
@@ -396,7 +396,7 @@ namespace EDIVE.UIElements.ProceduralUI
             if (!_GlowGraphic)
                 return;
 
-            var rect = GetComponent<SimpleSDFGraphic>();
+            var rect = GetComponent<SignedDistanceFieldGraphic>();
             _GlowGraphic.Source = rect;
             _GlowGraphic.ExtraSize = _ExtraSize;
             _GlowGraphic.Fill = _Fill;

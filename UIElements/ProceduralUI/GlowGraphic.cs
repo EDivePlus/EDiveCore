@@ -15,7 +15,7 @@ namespace EDIVE.UIElements.ProceduralUI
         [PropertyOrder(-10)]
         [FormerlySerializedAs("_SourceRectangle")]
         [SerializeField]
-        private SimpleSDFGraphic _Source;
+        private SignedDistanceFieldGraphic _Source;
 
         [PropertyOrder(-9)]
         [SerializeField]
@@ -54,7 +54,7 @@ namespace EDIVE.UIElements.ProceduralUI
         [HideInInspector]
         private GlowModifier _Owner;
 
-        private SimpleSDFGraphic _trackedSource;
+        private SignedDistanceFieldGraphic _trackedSource;
 
         internal GlowModifier Owner
         {
@@ -62,7 +62,7 @@ namespace EDIVE.UIElements.ProceduralUI
             set => _Owner = value;
         }
 
-        public SimpleSDFGraphic Source
+        public SignedDistanceFieldGraphic Source
         {
             get => _Source;
             set
@@ -191,7 +191,7 @@ namespace EDIVE.UIElements.ProceduralUI
             if (!noFill)
                 return;
 
-            encodedFrame += 1f + (int) placement * 4096f + VertexPacking.RoundPixel(frameWidth);
+            encodedFrame += 1f + (int) placement * 4096f + Mathf.Round(frameWidth);
             outwardExtension = ResolveFrameOutwardExtension(true, frameWidth, placement);
         }
 

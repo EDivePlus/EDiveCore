@@ -46,11 +46,18 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private ShapeStyle _ShapeStyle;
 
+        [SerializeField]
+        [HideInInspector]
+        private float _FrameWidth = 5f;
+
         [PropertyOrder(13)]
         [ShowIf(nameof(ShowFrameSettings))]
-        [MinValue(0f)]
-        [SerializeField]
-        private float _FrameWidth = 5f;
+        [ShowInInspector]
+        public float FrameWidth
+        {
+            get => _FrameWidth;
+            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_FrameWidth, value)) return; _FrameWidth = value; SetVerticesDirty(); }
+        }
 
         [PropertyOrder(14)]
         [ShowIf(nameof(ShowFrameSettings))]
@@ -98,12 +105,6 @@ namespace EDIVE.UIElements.ProceduralUI
         {
             get => _ShapeStyle;
             set { if (_ShapeStyle == value) return; _ShapeStyle = value; SetVerticesDirty(); }
-        }
-
-        public float FrameWidth
-        {
-            get => _FrameWidth;
-            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_FrameWidth, value)) return; _FrameWidth = value; SetVerticesDirty(); }
         }
 
         public EdgePlacement FramePlacement
@@ -209,7 +210,7 @@ namespace EDIVE.UIElements.ProceduralUI
             if (!noFill)
                 return 0f;
 
-            var width = VertexPacking.RoundPixel(frameWidth);
+            var width = Mathf.Round(frameWidth);
             return placement switch
             {
                 EdgePlacement.Center => width * 0.5f,
@@ -264,7 +265,7 @@ namespace EDIVE.UIElements.ProceduralUI
         ShapeStyle ShapeStyle { get; }
     }
 
-    // Ranges the vertex encodings can hold; everything sent to the shader is clamped to them.
+    // Ranges the vertex encodings can hold; property setters clamp to them before the value is stored.
     // Byte and offset layouts match UnpackBytes and DecodeOffset in ProceduralShape.cginc.
     public static class VertexPacking
     {
@@ -274,7 +275,6 @@ namespace EDIVE.UIElements.ProceduralUI
         public const float MAX_RADIAL_SIZE = 40.95f;
 
         public static float ClampPixel(float value) => Mathf.Clamp(value, 0f, MAX_PIXEL);
-        public static float RoundPixel(float value) => Mathf.Round(ClampPixel(value));
         public static float ClampShadowPower(float value) => Mathf.Clamp(value, 0f, MAX_SHADOW_POWER);
         public static float ClampRadialSize(float value) => Mathf.Clamp(value, 0f, MAX_RADIAL_SIZE);
 
