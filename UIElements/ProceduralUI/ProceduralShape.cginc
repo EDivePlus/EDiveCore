@@ -84,6 +84,15 @@ float3 UnpackBytes(float packed)
     return float3(packed - b1 * 256.0, b1, b2);
 }
 
+// Packed colors are gamma bytes that bypass the canvas conversion, so they are brought to the working color space here
+half4 PackedToWorkingSpace(half4 color)
+{
+#ifndef UNITY_COLORSPACE_GAMMA
+    color.rgb = UIGammaToLinear(color.rgb);
+#endif
+    return color;
+}
+
 // Outline, shadow and gradient color from four floats, matching VertexPacking.PackColors
 void UnpackColors(float4 packed, out half4 outline, out half4 shadow, out half4 gradient)
 {
@@ -91,16 +100,16 @@ void UnpackColors(float4 packed, out half4 outline, out half4 shadow, out half4 
     float3 y = UnpackBytes(packed.y);
     float3 z = UnpackBytes(packed.z);
     float3 w = UnpackBytes(packed.w);
-    outline = half4(x.x, x.y, x.z, y.x) / 255.0;
-    shadow = half4(y.y, y.z, z.x, z.y) / 255.0;
-    gradient = half4(z.z, w.x, w.y, w.z) / 255.0;
+    outline = PackedToWorkingSpace(half4(x.x, x.y, x.z, y.x) / 255.0);
+    shadow = PackedToWorkingSpace(half4(y.y, y.z, z.x, z.y) / 255.0);
+    gradient = PackedToWorkingSpace(half4(z.z, w.x, w.y, w.z) / 255.0);
 }
 
 // One color from two floats, matching VertexPacking.PackColor
 half4 UnpackColor(float2 packed)
 {
     float3 rgb = UnpackBytes(packed.x);
-    return half4(rgb, packed.y) / 255.0;
+    return PackedToWorkingSpace(half4(rgb, packed.y) / 255.0);
 }
 
 // fill = radialSize * 100 + mode * 4096 + fillAlpha * 32768 + sharpApex * 8388608

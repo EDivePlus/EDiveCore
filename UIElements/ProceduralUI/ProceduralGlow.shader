@@ -100,6 +100,7 @@ Shader "Hidden/EDIVE/ProceduralUI/Glow"
 
             fixed4 _Color;
             float4 _ClipRect;
+            int _UIVertexColorAlwaysGammaSpace;
 
             void DecodeFrame(float raw, out float cornerShape, out bool frameMode, out float placement, out float frameWidth)
             {
@@ -118,6 +119,8 @@ Shader "Hidden/EDIVE/ProceduralUI/Glow"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
 
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
+                if (_UIVertexColorAlwaysGammaSpace && !IsGammaSpace())
+                    v.color.rgb = UIGammaToLinear(v.color.rgb);
                 OUT.color = v.color * _Color;
 
                 // UV transform for padding

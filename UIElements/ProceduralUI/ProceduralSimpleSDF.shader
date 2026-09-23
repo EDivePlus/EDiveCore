@@ -106,6 +106,7 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
             fixed4 _Color;
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
+            int _UIVertexColorAlwaysGammaSpace;
 
             // Placement: 0 = Inside, 1 = Center, 2 = Outside. Returns how far a band of the given width reaches past the edge.
             float PlacementOuterExtent(float placement, float width)
@@ -141,6 +142,8 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
 
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
+                if (_UIVertexColorAlwaysGammaSpace && !IsGammaSpace())
+                    v.color.rgb = UIGammaToLinear(v.color.rgb);
                 OUT.color = v.color * _Color;
 
                 // UV transform for padding
