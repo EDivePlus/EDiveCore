@@ -198,17 +198,19 @@ namespace EDIVE.UIElements.ProceduralUI
         // The arc is the source rectangle's; a glow with its own shape has none
         private ArcCutout SourceArc => _Source ? _Source.Arc : default;
 
+        // Shared geometry in uv0 and uv1 (see AProceduralGraphic.PackGeometry), then:
+        //   uv2: spread, blur, power, encodedFrame
+        //   uv3: gradient color (x = rgb, y = a), encoded fill + sharp center flag (z)
         // The arc apex is relative to the source rect, not the enlarged glow rect
-        private UIVertex BuildBaseVertex()
+        private UIVertex BuildBaseVertex(float width, float height)
         {
             var arc = SourceArc;
             var rect = _Source ? _Source.rectTransform.rect : rectTransform.rect;
 
             var vertex = UIVertex.simpleVert;
-            vertex.normal = new Vector3(arc.ShaderCornerRadius, 0f, _Fill.EncodeShaderFill() + arc.ShaderSharpCenterFlag);
-            vertex.tangent = arc.ResolveShaderParams(rect.width, rect.height);
-            vertex.uv1 = GetRoundness();
-            vertex.uv3 = VertexPacking.PackColor(_Fill.GetGradientColor(color));
+            PackGeometry(width, height, GetRoundness(), arc.ResolveShaderParams(rect.width, rect.height), arc.ShaderCornerRadius, out vertex.uv0, out vertex.uv1);
+            var gradient = VertexPacking.PackColor(_Fill.GetGradientColor(color));
+            vertex.uv3 = new Vector4(gradient.x, gradient.y, _Fill.EncodeShaderFill() + arc.ShaderSharpCenterFlag, 0f);
             return vertex;
         }
 
@@ -238,24 +240,25 @@ namespace EDIVE.UIElements.ProceduralUI
             var offsetY = (rectHeight - height) * 0.5f;
             var pivot = new Vector3(rectTransform.pivot.x * rectWidth, rectTransform.pivot.y * rectHeight, 0f);
 
-            var vertex = BuildBaseVertex();
+            var vertex = BuildBaseVertex(width, height);
             vertex.uv2 = new Vector4(_Spread, _Blur, _Power, encodedFrame);
             vertex.color = _Fill.GetVertexColor(color);
+            var sizeCode = vertex.uv0.x;
 
             vertex.position = new Vector3(offsetX - margin, offsetY - margin) - pivot;
-            vertex.uv0 = new Vector4(0f, 0f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(0, 0, 1);
             vh.AddVert(vertex);
 
             vertex.position = new Vector3(offsetX - margin, offsetY + height + margin) - pivot;
-            vertex.uv0 = new Vector4(0f, 1f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(0, 1, 1);
             vh.AddVert(vertex);
 
             vertex.position = new Vector3(offsetX + width + margin, offsetY + height + margin) - pivot;
-            vertex.uv0 = new Vector4(1f, 1f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(1, 1, 1);
             vh.AddVert(vertex);
 
             vertex.position = new Vector3(offsetX + width + margin, offsetY - margin) - pivot;
-            vertex.uv0 = new Vector4(1f, 0f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(1, 0, 1);
             vh.AddVert(vertex);
 
             vh.AddTriangle(0, 1, 2);
@@ -280,8 +283,9 @@ namespace EDIVE.UIElements.ProceduralUI
             var posMinY = offsetY - margin;
             var posRangeY = height + margin * 2f;
 
-            var vertex = BuildBaseVertex();
+            var vertex = BuildBaseVertex(width, height);
             vertex.uv2 = new Vector4(_Spread, _Blur, _Power, encodedFrame);
+            var sizeCode = vertex.uv0.x;
 
             var cols = n + 1;
             for (var y = 0; y <= n; y++)
@@ -293,7 +297,7 @@ namespace EDIVE.UIElements.ProceduralUI
                 {
                     var fx = (float) x / n;
                     vertex.position = new Vector3(posMinX + posRangeX * fx - pivot.x, posY, 0f);
-                    vertex.uv0 = new Vector4(fx, fy, width, height);
+                    vertex.uv0.x = sizeCode + VertexPacking.PackGrid(x, y, n);
                     vertex.color = _Fill.Evaluate(fx, fy, width, height, tint);
                     vh.AddVert(vertex);
                 }

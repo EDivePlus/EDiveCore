@@ -58,21 +58,17 @@ Shader "Hidden/EDIVE/ProceduralUI/Glow"
             #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
             #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
 
-            // Vertex attributes packed by GlowGraphic.OnPopulateMesh:
-            //   uv0: texU, texV, width, height
-            //   uv1: roundness (x, y, z, w)
+            // Vertex attributes packed by GlowGraphic.OnPopulateMesh. The canvas rotates and scales normals and
+            // tangents with the RectTransform, so everything lives in the uv channels.
+            //   uv0, uv1: grid position, size, roundness and arc, see DecodeGeometry
             //   uv2: spread, blur, power, encodedFrame
             //        encodedFrame: cornerShape*65536 + frame; frame = 0 for a solid shape, else 1 + placement*4096 + round(frameWidth)
-            //   tangent: arc apex in sdf space (xy), arc start and end angle in radians (zw); a full sweep disables the arc
-            //   uv3: gradient color (x = rgb, y = a)
-            //   normal: arc corner radius (x), free (y), encoded fill (z): radialSize*100 + mode*4096 + fillAlpha*32768
+            //   uv3: gradient color (x = rgb, y = a), encoded fill (z): radialSize*100 + mode*4096 + fillAlpha*32768 + sharpApex*8388608
             //   color: glow color * Graphic.color with the tint alpha alone; fill alpha is in the encoded fill
 
             struct appdata
             {
                 float4 vertex  : POSITION;
-                float3 normal  : NORMAL;
-                float4 tangent : TANGENT;
                 float4 color   : COLOR;
                 float4 uv0     : TEXCOORD0;
                 float4 uv1     : TEXCOORD1;
@@ -123,8 +119,12 @@ Shader "Hidden/EDIVE/ProceduralUI/Glow"
                     v.color.rgb = UIGammaToLinear(v.color.rgb);
                 OUT.color = v.color * _Color;
 
+                float2 gridUv, size;
+                float4 roundness, arc;
+                float cornerRadius;
+                DecodeGeometry(v.uv0, v.uv1, gridUv, size, roundness, arc, cornerRadius);
+
                 // UV transform for padding
-                float2 size = v.uv0.zw;
                 float spread = v.uv2.x;
                 float blur = v.uv2.y;
                 float frameVal = v.uv2.w;
@@ -140,17 +140,17 @@ Shader "Hidden/EDIVE/ProceduralUI/Glow"
                 }
                 float padding = spread + blur + frameOutward + 1.0;
                 float2 normPad = padding / size;
-                float2 uv = v.uv0.xy * (1 + normPad * 2) - normPad;
+                float2 uv = gridUv * (1 + normPad * 2) - normPad;
 
                 OUT.sdfPos = (uv - 0.5) * size;
-                OUT.roundness = v.uv1;
+                OUT.roundness = roundness;
                 OUT.params = float4(size * 0.5, spread, blur);
                 OUT.params2 = float2(v.uv2.z, frameVal);
                 OUT.worldPos = v.vertex.xy;
                 float sharpApex;
-                DecodeFill(v.normal.z, OUT.fill.x, OUT.fill.y, OUT.fill.z, sharpApex);
-                OUT.arc = v.tangent;
-                OUT.arcExtra = float2(v.normal.x, sharpApex);
+                DecodeFill(v.uv3.z, OUT.fill.x, OUT.fill.y, OUT.fill.z, sharpApex);
+                OUT.arc = arc;
+                OUT.arcExtra = float2(cornerRadius, sharpApex);
                 OUT.uv = uv;
                 half4 gradientColor = UnpackColor(v.uv3.xy);
                 gradientColor.rgb *= _Color.rgb;
@@ -194,7 +194,9 @@ Shader "Hidden/EDIVE/ProceduralUI/Glow"
                 }
 
                 // Arc cut after the ring so frames become open segments
-                sdf = ApplyArc(sdf, IN.sdfPos, IN.arc, IN.arcExtra.x, IN.arcExtra.y);
+                float sector = ArcSector(IN.sdfPos, IN.arc, IN.arcExtra.x, IN.arcExtra.y);
+                float edgeCos = EdgeCosine(sdf, sector, IN.sdfPos);
+                sdf = ApplyArc(sdf, sector, IN.arc, IN.arcExtra.x, cornerJoin, edgeCos);
 
                 // Glow: smooth falloff centered around 'spread' distance from shape/ring edge
                 float glow = 1.0 - smoothstep(spread - blur, spread + blur, sdf);

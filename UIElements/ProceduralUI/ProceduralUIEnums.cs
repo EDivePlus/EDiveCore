@@ -20,7 +20,7 @@ namespace EDIVE.UIElements.ProceduralUI
         [IconLabelText(FontAwesomeEditorIconType.CircleSolid, "Round")]
         Round = 0,
 
-        [IconLabelText(FontAwesomeEditorIconType.OctagonSolid, "Chamfer")]
+        [IconLabelText(FontAwesomeEditorIconType.DiamondSolid, "Chamfer")]
         Chamfer = 1
     }
 

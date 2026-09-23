@@ -14,7 +14,7 @@ namespace EDIVE.UIElements.Layout
         private SDFGraphic _Graphic;
 
         [SerializeField]
-        [Range(0f, 180f)]
+        [Range(-180f, 180f)]
         private float _AngularPadding;
 
         [SerializeField]

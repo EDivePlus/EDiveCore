@@ -75,6 +75,52 @@ float ShapeDistance(float2 p, float2 halfSize, float4 corners, float style, floa
     return style < 0.5 ? RoundCornerDistance(q, c, join) : ChamferCornerDistance(q, c, join);
 }
 
+// Three 16-bit values from two floats, matching VertexPacking.PackTriple
+void UnpackTriple(float2 packed, out float a, out float b, out float c)
+{
+    float bLow = floor(packed.x / 65536.0);
+    a = packed.x - bLow * 65536.0;
+    c = floor(packed.y / 256.0);
+    b = (packed.y - c * 256.0) * 256.0 + bLow;
+}
+
+// 16-bit fixed point in 1/16 px steps, matching VertexPacking.FixedPixel and FixedSignedPixel
+float FixedToPixel(float q) { return q / 16.0; }
+float FixedToSignedPixel(float q) { return q / 16.0 - 2048.0; }
+
+// 16-bit turn fraction, matching VertexPacking.FixedAngle
+float FixedToAngle(float q) { return q / 65535.0 * SHAPE_TWO_PI; }
+
+// Grid vertex index over subdivision count: x + y * 32 + n * 1024, matching VertexPacking.PackGrid
+float2 DecodeGrid(float code)
+{
+    float n = floor(code / 1024.0);
+    code -= n * 1024.0;
+    float y = floor(code / 32.0);
+    return float2(code - y * 32.0, y) / n;
+}
+
+// Geometry shared by both shaders, matching AProceduralGraphic.PackGeometry.
+// uv is the vertex position over the rect, size is in px, arc is apex (xy) and start / end angle (zw).
+void DecodeGeometry(float4 uv0, float4 uv1, out float2 uv, out float2 size, out float4 roundness, out float4 arc, out float cornerRadius)
+{
+    float grid, w, h;
+    UnpackTriple(uv0.xy, grid, w, h);
+    float r0, r1, r2;
+    UnpackTriple(uv0.zw, r0, r1, r2);
+    float r3, apexX, apexY;
+    UnpackTriple(uv1.xy, r3, apexX, apexY);
+    float start, sweep, corner;
+    UnpackTriple(uv1.zw, start, sweep, corner);
+
+    uv = DecodeGrid(grid);
+    size = float2(FixedToPixel(w), FixedToPixel(h));
+    roundness = float4(FixedToPixel(r0), FixedToPixel(r1), FixedToPixel(r2), FixedToPixel(r3));
+    float startAngle = FixedToAngle(start);
+    arc = float4(FixedToSignedPixel(apexX), FixedToSignedPixel(apexY), startAngle, startAngle + FixedToAngle(sweep));
+    cornerRadius = FixedToPixel(corner);
+}
+
 // Three bytes per float: b0 + b1 * 256 + b2 * 65536. Power-of-two divisions are exact, so no epsilon.
 float3 UnpackBytes(float packed)
 {
@@ -148,11 +194,53 @@ float GradientFactor(float mode, float2 uv, float2 size, float radialSize)
     return saturate(t / max(radialSize, 0.0001));
 }
 
-// Intersection of two distance fields with the joining corner rounded by r; exact for perpendicular edges
-float RoundedMax(float a, float b, float r)
+// Gradient of a field over shape space, from screen space derivatives of the field and of the shape position
+float2 ShapeGradient(float field, float2 p)
+{
+    float2 dpx = ddx(p);
+    float2 dpy = ddy(p);
+    float2 df = float2(ddx(field), ddy(field));
+    float det = dpx.x * dpy.y - dpx.y * dpy.x;
+    if (abs(det) < 1e-8)
+        return float2(1.0, 0.0);
+    return float2(dpy.y * df.x - dpx.y * df.y, dpx.x * df.y - dpy.x * df.x) / det;
+}
+
+// Cosine of the angle between the edge normals of two fields at this pixel
+float EdgeCosine(float a, float b, float2 p)
+{
+    float2 ga = ShapeGradient(a, p);
+    float2 gb = ShapeGradient(b, p);
+    return dot(ga, gb) / max(length(ga) * length(gb), 1e-6);
+}
+
+// Intersection of two distance fields. cosTheta is the cosine of the angle between their edge normals, which
+// keeps the corner exact at any angle. The corner is rounded by r, or offset outside with the join when sharp:
+// round is the true distance, miter extends both edges, bevel cuts the miter where the round would end.
+float JoinedMax(float a, float b, float r, float cosTheta, float join)
 {
     float2 q = float2(a, b) + r;
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+    float2 o = max(q, 0.0);
+    float outside;
+    if (r > 0.0 || join < 0.5)
+    {
+        bool corner = q.x >= q.y * cosTheta && q.y >= q.x * cosTheta && max(q.x, q.y) > 0.0;
+        float sinSq = max(1.0 - cosTheta * cosTheta, 1e-4);
+        outside = corner
+            ? sqrt(max(q.x * q.x + q.y * q.y - 2.0 * q.x * q.y * cosTheta, 0.0) / sinSq)
+            : max(o.x, o.y);
+    }
+    else if (join < 1.5)
+    {
+        outside = max(o.x, o.y);
+    }
+    else
+    {
+        // The cut is a third edge along the bisector; the unclamped distances keep it from reaching past the corner
+        float cosHalf = max(sqrt(max(0.5 + 0.5 * cosTheta, 0.0)), 1e-3);
+        outside = max(max(o.x, o.y), (q.x + q.y) / (2.0 * cosHalf));
+    }
+    return min(max(q.x, q.y), 0.0) + outside - r;
 }
 
 // Sector with its apex at the origin sweeping clockwise from north between two angles in radians.
@@ -182,27 +270,41 @@ float SectorDistance(float2 p, float startAngle, float endAngle, float r)
 }
 
 // arc: xy = apex in sdf space, zw = start and end angle; edge padding is already folded into the apex.
-// sharpApex keeps the apex unrounded while the corners against the shape still use cornerRadius.
-float ApplyArc(float sdf, float2 p, float4 arc, float cornerRadius, float sharpApex)
+bool ArcIsFull(float4 arc)
 {
-    if (arc.w - arc.z >= SHAPE_TWO_PI - 0.0001)
-        return sdf;
-
-    float sector = SectorDistance(p - arc.xy, arc.z, arc.w, sharpApex > 0.5 ? 0.0 : cornerRadius);
-    return RoundedMax(sdf, sector, cornerRadius);
+    return arc.w - arc.z >= SHAPE_TWO_PI - 0.0001;
 }
 
-// shadow = round(shadowSize) + round(shadowBlur) * 4096
-void DecodeShadow(float raw, out float shadowSize, out float shadowBlur)
+// sharpApex keeps the apex unrounded while the corners against the shape still use cornerRadius
+float ArcSector(float2 p, float4 arc, float cornerRadius, float sharpApex)
 {
-    shadowBlur = floor(raw / 4096.0);
-    shadowSize = raw - shadowBlur * 4096.0;
+    return SectorDistance(p - arc.xy, arc.z, arc.w, sharpApex > 0.5 ? 0.0 : cornerRadius);
 }
 
-// 16-bit fixed point: (value + 2048) * 16, so ±2048 px in 1/16 px steps; matches VertexPacking.PackOffset
-float DecodeOffset(float raw)
+// Cuts the shape by the sector; the corners between them are rounded by cornerRadius or joined with the corner join.
+// edgeCos comes from EdgeCosine of the same two fields and must be computed outside any branch.
+float ApplyArc(float shape, float sector, float4 arc, float cornerRadius, float join, float edgeCos)
 {
-    return raw / 16.0 - 2048.0;
+    if (ArcIsFull(arc))
+        return shape;
+
+    return JoinedMax(shape, sector, cornerRadius, edgeCos, join);
+}
+
+// shadow = round(shadowSize) + round(shadowBlur) * 4096, negated and offset by 1 when inset
+void DecodeShadow(float raw, out float shadowSize, out float shadowBlur, out bool inset)
+{
+    inset = raw < -0.5;
+    float info = inset ? -raw - 1.0 : raw;
+    shadowBlur = floor(info / 4096.0);
+    shadowSize = info - shadowBlur * 4096.0;
+}
+
+// Shadow offset, 12 bits per axis in 1/4 px steps; matches VertexPacking.PackOffsets
+float2 DecodeOffsets(float raw)
+{
+    float y = floor(raw / 4096.0);
+    return float2(raw - y * 4096.0, y) / 4.0 - 512.0;
 }
 
 #endif

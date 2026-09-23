@@ -114,6 +114,13 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private Vector2 _ShadowOffset;
 
+        [EnhancedBoxGroup("Shadow")]
+        [PropertyOrder(5)]
+        [EnableIf(nameof(HasShadow))]
+        [LabelText("Inset")]
+        [SerializeField]
+        private bool _ShadowInset;
+
         [EnhancedBoxGroup("Arc", order: 40, SpaceAfter = 4)]
         [HideLabel]
         [InlineProperty]
@@ -167,6 +174,12 @@ namespace EDIVE.UIElements.ProceduralUI
             set { if (_ShadowOffset == value) return; _ShadowOffset = value; SetVerticesDirty(); }
         }
 
+        public bool ShadowInset
+        {
+            get => _ShadowInset;
+            set { if (_ShadowInset == value) return; _ShadowInset = value; SetVerticesDirty(); }
+        }
+
         public ArcCutout Arc
         {
             get => _Arc;
@@ -194,7 +207,8 @@ namespace EDIVE.UIElements.ProceduralUI
         private float ShadowSizeRounded => Mathf.Round(_ShadowSize);
         private float ShadowBlurRounded => Mathf.Round(_ShadowBlur);
         private float ShadowOffsetExtent => Mathf.Max(Mathf.Abs(VertexPacking.QuantizeOffset(_ShadowOffset.x)), Mathf.Abs(VertexPacking.QuantizeOffset(_ShadowOffset.y)));
-        private float ExtraMargin => OutlineOutwardExtension + FrameOutwardExtension + ShadowSizeRounded + ShadowBlurRounded + ShadowOffsetExtent + 1f;
+        private float ShadowOutwardExtension => _ShadowInset ? 0f : ShadowSizeRounded + ShadowBlurRounded + ShadowOffsetExtent;
+        private float ExtraMargin => OutlineOutwardExtension + FrameOutwardExtension + ShadowOutwardExtension + 1f;
 
         private float OutlineOutwardExtension => _OutlinePlacement switch
         {
@@ -236,21 +250,22 @@ namespace EDIVE.UIElements.ProceduralUI
 
             var vertex = BuildBaseVertex(width, height);
             vertex.color = _Fill.GetVertexColor(color);
+            var sizeCode = vertex.uv0.x;
 
             vertex.position = new Vector3(-margin, -margin) - pivot;
-            vertex.uv0 = new Vector4(0f, 0f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(0, 0, 1);
             vh.AddVert(vertex);
 
             vertex.position = new Vector3(-margin, height + margin) - pivot;
-            vertex.uv0 = new Vector4(0f, 1f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(0, 1, 1);
             vh.AddVert(vertex);
 
             vertex.position = new Vector3(width + margin, height + margin) - pivot;
-            vertex.uv0 = new Vector4(1f, 1f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(1, 1, 1);
             vh.AddVert(vertex);
 
             vertex.position = new Vector3(width + margin, -margin) - pivot;
-            vertex.uv0 = new Vector4(1f, 0f, width, height);
+            vertex.uv0.x = sizeCode + VertexPacking.PackGrid(1, 0, 1);
             vh.AddVert(vertex);
 
             vh.AddTriangle(0, 1, 2);
@@ -265,6 +280,7 @@ namespace EDIVE.UIElements.ProceduralUI
             var tint = color;
 
             var vertex = BuildBaseVertex(width, height);
+            var sizeCode = vertex.uv0.x;
 
             var posMinX = -margin;
             var posRangeX = width + margin * 2f;
@@ -281,7 +297,7 @@ namespace EDIVE.UIElements.ProceduralUI
                 {
                     var fx = (float) x / n;
                     vertex.position = new Vector3(posMinX + posRangeX * fx - pivot.x, posY, 0f);
-                    vertex.uv0 = new Vector4(fx, fy, width, height);
+                    vertex.uv0.x = sizeCode + VertexPacking.PackGrid(x, y, n);
                     vertex.color = _Fill.Evaluate(fx, fy, width, height, tint);
                     vh.AddVert(vertex);
                 }
@@ -302,27 +318,26 @@ namespace EDIVE.UIElements.ProceduralUI
         
         protected override Vector4 GetRoundness() => ResolveRoundness(rectTransform.rect.width, rectTransform.rect.height);
 
-        // Effect info is packed into existing channels:
+        // Effect info on top of the shared geometry in uv0 and uv1 (see AProceduralGraphic.PackGeometry):
         //   uv2.x: outlineSize + outlinePlacement * 4096 + framePlacement * 16384 + cornerShape * 65536, negated and offset by 1 in frame mode
-        //   uv2.y: round(shadowSize) + round(shadowBlur) * 4096
-        //   uv2.z: shadow offset x as 16-bit fixed point, one byte spare
+        //   uv2.y: round(shadowSize) + round(shadowBlur) * 4096, negated and offset by 1 when inset
+        //   uv2.z: shadow offset x and y, 12 bits each
         //   uv2.w: shadowPower + round(frameWidth) * 256
         //   uv3: outline, shadow and gradient color, three bytes per float
-        //   tangent: arc apex (xy) and start / end angle (zw)
-        //   normal: arc corner radius (x), shadow offset y as 16-bit fixed point with one byte spare (y), encoded fill + sharp center flag (z)
+        //   tangent.w: encoded fill + sharp center flag
         private UIVertex BuildBaseVertex(float width, float height)
         {
             var frameWidthRounded = NoFill ? Mathf.Round(FrameWidth) : 0f;
             var outlineInfo = _OutlineSize + (int) _OutlinePlacement * 4096f + (int) FramePlacement * 16384f + EncodedCornerShape * 65536f;
             var encodedOutline = NoFill ? -(1f + outlineInfo) : outlineInfo;
-            var encodedShadow = ShadowSizeRounded + ShadowBlurRounded * 4096f;
+            var shadowInfo = ShadowSizeRounded + ShadowBlurRounded * 4096f;
+            var encodedShadow = _ShadowInset ? -(1f + shadowInfo) : shadowInfo;
             var encodedShadowPower = _ShadowPower + frameWidthRounded * 256f;
 
             var vertex = UIVertex.simpleVert;
-            vertex.normal = new Vector3(_Arc.ShaderCornerRadius, VertexPacking.PackOffset(_ShadowOffset.y), _Fill.EncodeShaderFill() + _Arc.ShaderSharpCenterFlag);
-            vertex.tangent = _Arc.ResolveShaderParams(width, height);
-            vertex.uv1 = GetRoundness();
-            vertex.uv2 = new Vector4(encodedOutline, encodedShadow, VertexPacking.PackOffset(_ShadowOffset.x), encodedShadowPower);
+            PackGeometry(width, height, GetRoundness(), _Arc.ResolveShaderParams(width, height), _Arc.ShaderCornerRadius, out vertex.uv0, out vertex.uv1);
+            vertex.tangent = new Vector4(0f, 0f, 0f, _Fill.EncodeShaderFill() + _Arc.ShaderSharpCenterFlag);
+            vertex.uv2 = new Vector4(encodedOutline, encodedShadow, VertexPacking.PackOffsets(_ShadowOffset), encodedShadowPower);
             vertex.uv3 = VertexPacking.PackColors(_OutlineColor, _ShadowColor, _Fill.GetGradientColor(color));
             return vertex;
         }

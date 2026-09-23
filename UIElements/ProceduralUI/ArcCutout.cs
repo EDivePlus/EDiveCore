@@ -38,7 +38,6 @@ namespace EDIVE.UIElements.ProceduralUI
         private ArcFillOrigin _FillOrigin;
 
         [EnableIf(nameof(_Enabled))]
-        [MinValue(0f)]
         [SerializeField]
         private float _EdgePadding;
 
@@ -64,7 +63,7 @@ namespace EDIVE.UIElements.ProceduralUI
         public float MaxAngle { get => _MaxAngle; set => _MaxAngle = value; }
         public float Value { get => _Value; set => _Value = Mathf.Clamp01(value); }
         public ArcFillOrigin FillOrigin { get => _FillOrigin; set => _FillOrigin = value; }
-        public float EdgePadding { get => _EdgePadding; set => _EdgePadding = Mathf.Max(0f, value); }
+        public float EdgePadding { get => _EdgePadding; set => _EdgePadding = value; }
         public float CornerRadius { get => _CornerRadius; set => _CornerRadius = Mathf.Max(0f, value); }
         public bool SharpCenter { get => _SharpCenter; set => _SharpCenter = value; }
 
@@ -101,7 +100,7 @@ namespace EDIVE.UIElements.ProceduralUI
         }
 
         // xy = apex in pixels from the rect center, zw = start and end angle in radians; a full sweep disables the cut.
-        // Edge padding moves both edges inward, which is the same sector with its apex shifted along the bisector.
+        // Edge padding moves both edges inward (negative moves them outward), which is the same sector with its apex shifted along the bisector.
         public Vector4 ResolveShaderParams(float width, float height)
         {
             if (IsFull)
@@ -112,7 +111,7 @@ namespace EDIVE.UIElements.ProceduralUI
             end *= Mathf.Deg2Rad;
 
             var apex = new Vector2((_Anchor.x - 0.5f) * width, (_Anchor.y - 0.5f) * height);
-            if (_EdgePadding > 0f)
+            if (!Mathf.Approximately(_EdgePadding, 0f))
             {
                 var center = (start + end) * 0.5f;
                 var halfSweep = (end - start) * 0.5f;

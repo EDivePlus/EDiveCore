@@ -58,24 +58,21 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
             #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
             #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
 
-            // Vertex attributes packed by OnPopulateMesh:
-            //   uv0: texU, texV, width, height
-            //   uv1: roundness (x, y, z, w)
-            //   uv2: encodedOutline, encodedShadow, shadowOffsetX, encodedShadowPow
+            // Vertex attributes packed by OnPopulateMesh. The canvas rotates and scales normals and tangent.xyz
+            // with the RectTransform, so everything lives in the uv channels and tangent.w.
+            //   uv0, uv1: grid position, size, roundness and arc, see DecodeGeometry
+            //   uv2: encodedOutline, encodedShadow, shadowOffset, encodedShadowPow
             //        encodedOutline: outlineSize + outlinePlacement*4096 + framePlacement*16384 + cornerShape*65536; < 0 → frame mode, abs = 1 + that
-            //        encodedShadow: round(shadowSize) + round(shadowBlur)*4096
-            //        shadowOffsetX: 16-bit fixed point, (px + 2048) * 16
+            //        encodedShadow: round(shadowSize) + round(shadowBlur)*4096, negated and offset by 1 when inset
+            //        shadowOffset: x and y as 12-bit fixed point, (px + 512) * 4
             //        encodedShadowPow: shadowPow + round(frameWidth)*256
             //   uv3: outline, shadow and gradient color, three bytes per float
-            //   tangent: arc apex in sdf space (xy), arc start and end angle in radians (zw); a full sweep disables the arc
-            //   normal: arc corner radius (x), shadowOffsetY as 16-bit fixed point (y),
-            //           encoded fill (z): radialSize*100 + mode*4096 + fillAlpha*32768 + sharpApex*8388608
+            //   tangent.w: encoded fill: radialSize*100 + mode*4096 + fillAlpha*32768 + sharpApex*8388608
             //   color: fill color * Graphic.color with the tint alpha alone; fill alpha is in the encoded fill
 
             struct appdata
             {
                 float4 vertex   : POSITION;
-                float3 normal   : NORMAL;
                 float4 tangent  : TANGENT;
                 float4 color    : COLOR;
                 float4 uv0      : TEXCOORD0;
@@ -91,8 +88,8 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 fixed4 color        : COLOR;
                 float4 texAndSdf    : TEXCOORD0; // xy=texcoord, zw=sdfPosition
                 float4 roundness    : TEXCOORD1;
-                float4 params       : TEXCOORD2; // xy=halfSize, z=outlineSize, w=shadowSize
-                float4 params2      : TEXCOORD3; // x=shadowBlur, y=shadowPow, zw=worldPos
+                float4 params       : TEXCOORD2; // xy=halfSize, z=rawOutline, w=rawShadow
+                float4 params2      : TEXCOORD3; // x=unused, y=rawShadowPow, zw=worldPos
                 half4 outlineColor  : TEXCOORD4;
                 half4 shadowColor   : TEXCOORD5;
                 float4 arc          : TEXCOORD6; // xy=apex, z=startAngle, w=endAngle
@@ -126,13 +123,12 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 outlineSize = info - outlinePlacement * 4096.0;
             }
 
-            // Shape, ring transform in frame mode, then the arc cut so frames become open segments
-            float FullDistance(float2 p, float2 halfSize, float4 roundness, float cornerStyle, float cornerJoin,
-                bool frameMode, float ringCenter, float ringHalf, float4 arc, float cornerRadius, float sharpApex)
+            // Shape with the ring transform in frame mode, before the arc cut
+            float RingDistance(float2 p, float2 halfSize, float4 roundness, float cornerStyle, float cornerJoin,
+                bool frameMode, float ringCenter, float ringHalf)
             {
                 float dist = ShapeDistance(p, halfSize, roundness, cornerStyle, cornerJoin);
-                float sdf = frameMode ? abs(dist - ringCenter) - ringHalf : dist;
-                return ApplyArc(sdf, p, arc, cornerRadius, sharpApex);
+                return frameMode ? abs(dist - ringCenter) - ringHalf : dist;
             }
 
             v2f vert(appdata v)
@@ -146,8 +142,12 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                     v.color.rgb = UIGammaToLinear(v.color.rgb);
                 OUT.color = v.color * _Color;
 
+                float2 gridUv, size;
+                float4 roundness, arc;
+                float cornerRadius;
+                DecodeGeometry(v.uv0, v.uv1, gridUv, size, roundness, arc, cornerRadius);
+
                 // UV transform for padding
-                float2 size = v.uv0.zw;
                 bool frameMode;
                 float outlineSize, outlinePlacement, framePlacement, cornerShape;
                 DecodeOutline(v.uv2.x, frameMode, outlineSize, outlinePlacement, framePlacement, cornerShape);
@@ -158,17 +158,19 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                     outlineExtent += PlacementOuterExtent(framePlacement, fw);
                 }
                 float shadowSize, shadowBlur;
-                DecodeShadow(v.uv2.y, shadowSize, shadowBlur);
-                float2 shadowOffset = float2(DecodeOffset(v.uv2.z), DecodeOffset(v.normal.y));
+                bool shadowInset;
+                DecodeShadow(v.uv2.y, shadowSize, shadowBlur, shadowInset);
+                float2 shadowOffset = DecodeOffsets(v.uv2.z);
                 float offsetExtent = max(abs(shadowOffset.x), abs(shadowOffset.y));
-                float padding = outlineExtent + shadowSize + shadowBlur + offsetExtent + 1.0; // outline+frame + shadow + blur + offset + 1px
+                float shadowExtent = shadowInset ? 0 : shadowSize + shadowBlur + offsetExtent; // inset shadows stay within the shape
+                float padding = outlineExtent + shadowExtent + 1.0; // outline+frame + shadow + blur + offset + 1px
                 float2 normPad = padding / size;
-                float2 uv = v.uv0.xy * (1 + normPad * 2) - normPad;
+                float2 uv = gridUv * (1 + normPad * 2) - normPad;
 
                 OUT.texAndSdf = float4(uv, (uv - 0.5) * size);
-                OUT.roundness = v.uv1;
-                OUT.params = float4(size * 0.5, v.uv2.x, shadowSize);
-                OUT.params2 = float4(shadowBlur, v.uv2.w, v.vertex.xy);
+                OUT.roundness = roundness;
+                OUT.params = float4(size * 0.5, v.uv2.x, v.uv2.y);
+                OUT.params2 = float4(0, v.uv2.w, v.vertex.xy);
 
                 // Unpack colors in vertex shader (4 verts) instead of fragment (thousands)
                 half4 gradientColor;
@@ -176,9 +178,9 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 gradientColor.rgb *= _Color.rgb;
                 OUT.gradientColor = gradientColor;
                 float sharpApex;
-                DecodeFill(v.normal.z, OUT.fill.x, OUT.fill.y, OUT.fill.z, sharpApex);
-                OUT.arc = v.tangent;
-                OUT.arcExtra = float4(v.normal.x, sharpApex, shadowOffset);
+                DecodeFill(v.tangent.w, OUT.fill.x, OUT.fill.y, OUT.fill.z, sharpApex);
+                OUT.arc = arc;
+                OUT.arcExtra = float4(cornerRadius, sharpApex, shadowOffset);
 
                 return OUT;
             }
@@ -187,8 +189,9 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
             {
                 float2 halfSize = IN.params.xy;
                 float rawOutline = IN.params.z;
-                float shadowSize = IN.params.w;
-                float shadowBlur = IN.params2.x;
+                float shadowSize, shadowBlur;
+                bool shadowInset;
+                DecodeShadow(IN.params.w, shadowSize, shadowBlur, shadowInset);
 
                 bool frameMode;
                 float outlineSize, outlinePlacement, framePlacement, cornerShape;
@@ -216,16 +219,23 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 // Ring in frame mode: negative inside the wall, positive in the hole and outside, so effects wrap both edges
                 float ringCenter = frameMode ? (outerEdge + innerEdge) * 0.5 : 0;
                 float ringHalf = frameMode ? (outerEdge - innerEdge) * 0.5 : 0;
-                float sdf = FullDistance(IN.texAndSdf.zw, halfSize, IN.roundness, cornerStyle, cornerJoin,
-                    frameMode, ringCenter, ringHalf, IN.arc, IN.arcExtra.x, IN.arcExtra.y);
+                float2 p = IN.texAndSdf.zw;
+                float shape = RingDistance(p, halfSize, IN.roundness, cornerStyle, cornerJoin, frameMode, ringCenter, ringHalf);
+                float sector = ArcSector(p, IN.arc, IN.arcExtra.x, IN.arcExtra.y);
+                float edgeCos = EdgeCosine(shape, sector, p);
+                float sdf = ApplyArc(shape, sector, IN.arc, IN.arcExtra.x, cornerJoin, edgeCos);
 
-                // The shadow samples the same field shifted by its offset
+                // The shadow samples the same fields shifted by its offset, with the corner angle of the unshifted pixel
                 float2 shadowOffset = IN.arcExtra.zw;
                 bool hasOffset = dot(shadowOffset, shadowOffset) > 0;
-                float shadowSdf = hasOffset
-                    ? FullDistance(IN.texAndSdf.zw - shadowOffset, halfSize, IN.roundness, cornerStyle, cornerJoin,
-                        frameMode, ringCenter, ringHalf, IN.arc, IN.arcExtra.x, IN.arcExtra.y)
-                    : sdf;
+                float shadowSdf = sdf;
+                if (hasOffset)
+                {
+                    float2 sp = p - shadowOffset;
+                    float shadowShape = RingDistance(sp, halfSize, IN.roundness, cornerStyle, cornerJoin, frameMode, ringCenter, ringHalf);
+                    float shadowSector = ArcSector(sp, IN.arc, IN.arcExtra.x, IN.arcExtra.y);
+                    shadowSdf = ApplyArc(shadowShape, shadowSector, IN.arc, IN.arcExtra.x, cornerJoin, edgeCos);
+                }
 
                 float delta = fwidth(sdf);
 
@@ -241,16 +251,27 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                     ? smoothstep(-outlineInner - delta, -outlineInner, sdf)
                     : 0;
 
-                // Shadow: beyond outline
+                // Shadow: beyond the outline, or inset from its inner edge and clipped to the fill
                 float shadow = 0;
                 float shadowRange = shadowSize + shadowBlur;
                 if (shadowRange > 0 || hasOffset)
                 {
-                    float shadowEdge = outlineOuter + shadowSize;
-                    shadow = 1 - smoothstep(
-                        shadowEdge - shadowBlur,
-                        shadowEdge + delta,
-                        shadowSdf);
+                    if (shadowInset)
+                    {
+                        float shadowEdge = -outlineInner - shadowSize;
+                        shadow = smoothstep(
+                            shadowEdge - delta,
+                            shadowEdge + shadowBlur,
+                            shadowSdf);
+                    }
+                    else
+                    {
+                        float shadowEdge = outlineOuter + shadowSize;
+                        shadow = 1 - smoothstep(
+                            shadowEdge - shadowBlur,
+                            shadowEdge + delta,
+                            shadowSdf);
+                    }
                     shadow = pow(shadow, shadowPow);
                 }
 
@@ -264,15 +285,19 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 float gA = fill * graphic.a * fillAlpha * masterAlpha;
                 float oA = outline * IN.outlineColor.a * masterAlpha;
                 float sA = shadow * IN.shadowColor.a * masterAlpha;
+                float innerSA = shadowInset ? sA * fill : 0;
+                float outerSA = shadowInset ? 0 : sA;
 
-                // Outline over fill, clipped by coverage, then over the shadow, all premultiplied
+                // Inset shadow over fill, outline over that, clipped by coverage, then over the outer shadow, all premultiplied
                 float oneMinusOA = 1 - oA;
-                half3 shapeRgb = (IN.outlineColor.rgb * oA + fillRgb * gA * oneMinusOA) * coverage;
-                float shapeA = (oA + gA * oneMinusOA) * coverage;
+                half3 innerRgb = IN.shadowColor.rgb * innerSA + fillRgb * gA * (1 - innerSA);
+                float innerA = innerSA + gA * (1 - innerSA);
+                half3 shapeRgb = (IN.outlineColor.rgb * oA + innerRgb * oneMinusOA) * coverage;
+                float shapeA = (oA + innerA * oneMinusOA) * coverage;
 
                 half4 result;
-                result.rgb = shapeRgb + IN.shadowColor.rgb * sA * (1 - shapeA);
-                result.a = shapeA + sA * (1 - shapeA);
+                result.rgb = shapeRgb + IN.shadowColor.rgb * outerSA * (1 - shapeA);
+                result.a = shapeA + outerSA * (1 - shapeA);
 
                 #ifdef UNITY_UI_CLIP_RECT
                 result *= UnityGet2DClipping(IN.params2.zw, _ClipRect);

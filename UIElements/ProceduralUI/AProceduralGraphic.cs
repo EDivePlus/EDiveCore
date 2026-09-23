@@ -24,7 +24,6 @@ namespace EDIVE.UIElements.ProceduralUI
             AdditionalCanvasShaderChannels.TexCoord1 |
             AdditionalCanvasShaderChannels.TexCoord2 |
             AdditionalCanvasShaderChannels.TexCoord3 |
-            AdditionalCanvasShaderChannels.Normal |
             AdditionalCanvasShaderChannels.Tangent;
 
         private static readonly Dictionary<Shader, Material> SHARED_MATERIALS = new();
@@ -205,6 +204,22 @@ namespace EDIVE.UIElements.ProceduralUI
         // Matches DecodeCornerShape in ProceduralShape.cginc
         protected float EncodedCornerShape => (int) ResolvedShapeStyle + (int) ResolvedCornerJoin * 2;
 
+        // Geometry shared by every vertex, matching DecodeGeometry in ProceduralShape.cginc:
+        //   uv0.xy: grid code (added per vertex to x), width, height
+        //   uv0.zw: roundness top right, bottom right, top left
+        //   uv1.xy: roundness bottom left, arc apex x, arc apex y
+        //   uv1.zw: arc start angle, arc sweep, arc corner radius
+        protected static void PackGeometry(float width, float height, Vector4 roundness, Vector4 arc, float cornerRadius, out Vector4 uv0, out Vector4 uv1)
+        {
+            var size = VertexPacking.PackTriple(0f, VertexPacking.FixedPixel(width), VertexPacking.FixedPixel(height));
+            var corners = VertexPacking.PackTriple(VertexPacking.FixedPixel(roundness.x), VertexPacking.FixedPixel(roundness.y), VertexPacking.FixedPixel(roundness.z));
+            var apex = VertexPacking.PackTriple(VertexPacking.FixedPixel(roundness.w), VertexPacking.FixedSignedPixel(arc.x), VertexPacking.FixedSignedPixel(arc.y));
+            var angles = VertexPacking.PackArcAngles(arc.z, arc.w);
+            var arcData = VertexPacking.PackTriple(angles.x, angles.y, VertexPacking.FixedPixel(cornerRadius));
+            uv0 = new Vector4(size.x, size.y, corners.x, corners.y);
+            uv1 = new Vector4(apex.x, apex.y, arcData.x, arcData.y);
+        }
+
         protected static float ResolveFrameOutwardExtension(bool noFill, float frameWidth, EdgePlacement placement)
         {
             if (!noFill)
@@ -266,13 +281,19 @@ namespace EDIVE.UIElements.ProceduralUI
     }
 
     // Ranges the vertex encodings can hold; property setters clamp to them before the value is stored.
-    // Byte and offset layouts match UnpackBytes and DecodeOffset in ProceduralShape.cginc.
+    // Everything travels in the uv channels and tangent.w, the only vertex data the canvas leaves untransformed.
+    // Layouts match the decode functions in ProceduralShape.cginc.
     public static class VertexPacking
     {
         public const float MAX_PIXEL = 4095f;
-        public const float MAX_OFFSET = 2048f;
+        public const float MAX_OFFSET = 512f;
         public const float MAX_SHADOW_POWER = 255.99f;
         public const float MAX_RADIAL_SIZE = 40.95f;
+
+        private const float FIXED_MAX = 65535f;
+        private const float FIXED_STEP = 16f;
+        private const float OFFSET_STEP = 4f;
+        private const float FULL_TURN = Mathf.PI * 2f;
 
         public static float ClampPixel(float value) => Mathf.Clamp(value, 0f, MAX_PIXEL);
         public static float ClampShadowPower(float value) => Mathf.Clamp(value, 0f, MAX_SHADOW_POWER);
@@ -300,10 +321,39 @@ namespace EDIVE.UIElements.ProceduralUI
             return new Vector2(PackBytes(c.r, c.g, c.b), c.a);
         }
 
-        // 16-bit fixed point, ±2048 px in 1/16 px steps
-        public static float PackOffset(float value) => Mathf.Round((Mathf.Clamp(value, -MAX_OFFSET, MAX_OFFSET - 0.0625f) + MAX_OFFSET) * 16f);
+        // 16-bit fixed point in 1/16 px steps, up to 4095.9375 px
+        public static float FixedPixel(float value) => Mathf.Clamp(Mathf.Round(value * FIXED_STEP), 0f, FIXED_MAX);
 
-        public static float QuantizeOffset(float value) => PackOffset(value) / 16f - MAX_OFFSET;
+        // 16-bit fixed point, ±2048 px in 1/16 px steps
+        public static float FixedSignedPixel(float value) => Mathf.Clamp(Mathf.Round((value + 2048f) * FIXED_STEP), 0f, FIXED_MAX);
+
+        // 16-bit turn fraction, 65535 is a full turn
+        public static float FixedAngle(float radians) => Mathf.Clamp(Mathf.Round(radians / FULL_TURN * FIXED_MAX), 0f, FIXED_MAX);
+
+        // Three 16-bit values in two floats: a with the low byte of b, then the high byte of b with c
+        public static Vector2 PackTriple(float a, float b, float c)
+        {
+            var bLow = b % 256f;
+            var bHigh = (b - bLow) / 256f;
+            return new Vector2(a + bLow * 65536f, bHigh + c * 256f);
+        }
+
+        // Grid vertex index and subdivision count, 5 bits each
+        public static float PackGrid(int x, int y, int n) => x + y * 32f + n * 1024f;
+
+        // Start angle wrapped to one turn and the sweep it covers
+        public static Vector2 PackArcAngles(float start, float end)
+        {
+            var sweep = Mathf.Clamp(end - start, 0f, FULL_TURN);
+            return new Vector2(FixedAngle(Mathf.Repeat(start, FULL_TURN)), FixedAngle(sweep));
+        }
+
+        // Shadow offset, 12 bits per axis: ±512 px in 1/4 px steps
+        public static float PackOffsets(Vector2 offset) => PackOffset(offset.x) + PackOffset(offset.y) * 4096f;
+
+        public static float QuantizeOffset(float value) => PackOffset(value) / OFFSET_STEP - MAX_OFFSET;
+
+        private static float PackOffset(float value) => Mathf.Clamp(Mathf.Round((value + MAX_OFFSET) * OFFSET_STEP), 0f, 4095f);
     }
 
 #if UNITY_EDITOR
