@@ -4,6 +4,7 @@
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.ServiceHub;
+using EDIVE.Utils.Activations;
 using EDIVE.VisualPresets.Presets;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -13,49 +14,23 @@ namespace EDIVE.Avatars.Networking
 {
     public class AvatarCustomizationPresetSetter : MonoBehaviour
     {
-        public enum TriggerType
-        {
-            Select,
-            Activate
-        }
-
-        [SerializeField]
-        private XRBaseInteractable _Interactable;
-
-        [SerializeField]
-        private TriggerType _Trigger = TriggerType.Activate;
-
+        [SerializeReference]
+        private IActivation _Activation;
+        
         [SerializeField]
         private VisualPreset _Preset = new();
 
-        private void Awake()
-        {
-            if (_Interactable == null)
-                TryGetComponent(out _Interactable);
-        }
-
         private void OnEnable()
         {
-            if (_Interactable == null)
-                return;
-
-            if (_Trigger == TriggerType.Select)
-                _Interactable.selectEntered.AddListener(OnSelectEntered);
-            else
-                _Interactable.activated.AddListener(OnActivated);
+            _Activation?.RegisterActivationListener(Activate);
         }
 
         private void OnDisable()
         {
-            if (_Interactable == null)
-                return;
-
-            _Interactable.selectEntered.RemoveListener(OnSelectEntered);
-            _Interactable.activated.RemoveListener(OnActivated);
+            _Activation?.UnregisterActivationListener(Activate);
         }
 
-        private void OnSelectEntered(SelectEnterEventArgs _) => ApplyPreset().Forget();
-        private void OnActivated(ActivateEventArgs _) => ApplyPreset().Forget();
+        private void Activate() => ApplyPreset().Forget();
 
         private async UniTaskVoid ApplyPreset()
         {
