@@ -14,8 +14,9 @@ namespace EDIVE.Rendering.UVDecals
 {
     public enum UVDecalChannel
     {
-        Primary = 0,
-        Secondary = 1,
+        UV0 = 0,
+        UV1 = 1,
+        UV2 = 2,
     }
 
     [Serializable]
@@ -24,7 +25,7 @@ namespace EDIVE.Rendering.UVDecals
         [Tooltip("Alpha is shape.")]
         public Texture2D _Texture;
         
-        [Tooltip("Mesh UV set.")]
+        [Tooltip("Mesh UV channel. UV1 is the lightmap UV when generated at import.")]
         public UVDecalChannel _Channel;
 
         [Tooltip("UV 0-1.")]

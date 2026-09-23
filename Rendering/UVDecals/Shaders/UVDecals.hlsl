@@ -10,17 +10,24 @@ TEXTURE2D(_UVDecal1Tex);
 TEXTURE2D(_UVDecal2Tex);
 TEXTURE2D(_UVDecal3Tex);
 
-// rect: center, size (negative mirrors). parameters: cos, sin, uv set, smoothness (<0 keeps).
+// deriv: ddx.xy, ddy.xy per channel.
+struct UVDecalCoords
+{
+    float2 uv[3];
+    float4 deriv[3];
+};
+
+// rect: center, size (negative mirrors). parameters: cos, sin, uv channel, smoothness (<0 keeps).
 void ApplyUVDecal(TEXTURE2D_PARAM(decalTex, decalSampler), float4 rect, float4 parameters, half4 tint,
-                  float2 uv0, float2 uv1, float4 deriv0, float4 deriv1, inout SurfaceData surfaceData)
+                  UVDecalCoords coords, inout SurfaceData surfaceData)
 {
     UNITY_BRANCH
     if (abs(rect.z) <= 0.0 || abs(rect.w) <= 0.0)
         return;
 
-    bool secondary = parameters.z > 0.5;
-    float2 uv = secondary ? uv1 : uv0;
-    float4 deriv = secondary ? deriv1 : deriv0;
+    uint channel = min((uint)(parameters.z + 0.5), 2u);
+    float2 uv = coords.uv[channel];
+    float4 deriv = coords.deriv[channel];
 
     float2x2 rotation = float2x2(parameters.x, -parameters.y, parameters.y, parameters.x);
     float2 stampUV = mul(rotation, uv - rect.xy) / rect.zw + 0.5;
@@ -36,15 +43,20 @@ void ApplyUVDecal(TEXTURE2D_PARAM(decalTex, decalSampler), float4 rect, float4 p
         surfaceData.smoothness = lerp(surfaceData.smoothness, half(parameters.w), weight);
 }
 
-void ApplyUVDecals(inout SurfaceData surfaceData, float2 uv0, float2 uv1)
+void ApplyUVDecals(inout SurfaceData surfaceData, float2 uv0, float2 uv1, float2 uv2)
 {
-    float4 deriv0 = float4(ddx(uv0), ddy(uv0));
-    float4 deriv1 = float4(ddx(uv1), ddy(uv1));
+    UVDecalCoords coords;
+    coords.uv[0] = uv0;
+    coords.uv[1] = uv1;
+    coords.uv[2] = uv2;
+    coords.deriv[0] = float4(ddx(uv0), ddy(uv0));
+    coords.deriv[1] = float4(ddx(uv1), ddy(uv1));
+    coords.deriv[2] = float4(ddx(uv2), ddy(uv2));
 
-    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal0Tex, sampler_TrilinearClamp), _UVDecal0Rect, _UVDecal0Params, _UVDecal0Tint, uv0, uv1, deriv0, deriv1, surfaceData);
-    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal1Tex, sampler_TrilinearClamp), _UVDecal1Rect, _UVDecal1Params, _UVDecal1Tint, uv0, uv1, deriv0, deriv1, surfaceData);
-    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal2Tex, sampler_TrilinearClamp), _UVDecal2Rect, _UVDecal2Params, _UVDecal2Tint, uv0, uv1, deriv0, deriv1, surfaceData);
-    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal3Tex, sampler_TrilinearClamp), _UVDecal3Rect, _UVDecal3Params, _UVDecal3Tint, uv0, uv1, deriv0, deriv1, surfaceData);
+    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal0Tex, sampler_TrilinearClamp), _UVDecal0Rect, _UVDecal0Params, _UVDecal0Tint, coords, surfaceData);
+    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal1Tex, sampler_TrilinearClamp), _UVDecal1Rect, _UVDecal1Params, _UVDecal1Tint, coords, surfaceData);
+    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal2Tex, sampler_TrilinearClamp), _UVDecal2Rect, _UVDecal2Params, _UVDecal2Tint, coords, surfaceData);
+    ApplyUVDecal(TEXTURE2D_ARGS(_UVDecal3Tex, sampler_TrilinearClamp), _UVDecal3Rect, _UVDecal3Params, _UVDecal3Tint, coords, surfaceData);
 }
 
 #endif // EDIVE_UV_DECALS_INCLUDED

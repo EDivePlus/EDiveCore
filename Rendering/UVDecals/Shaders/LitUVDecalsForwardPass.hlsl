@@ -32,6 +32,7 @@ struct Attributes
 struct Varyings
 {
     float4 uv                       : TEXCOORD0; // xy uv0, zw uv1
+    float2 uv2                      : TEXCOORD11;
 
 #if defined(REQUIRES_WORLD_SPACE_POS_INTERPOLATOR)
     float3 positionWS               : TEXCOORD1;
@@ -179,6 +180,7 @@ Varyings LitPassVertex(Attributes input)
     #endif
 
     output.uv = float4(input.texcoord, input.staticLightmapUV);
+    output.uv2 = input.dynamicLightmapUV;
 
     // already normalized from normal transform to WS.
     output.normalWS = normalInput.normalWS;
@@ -246,7 +248,7 @@ void LitPassFragment(
 
     SurfaceData surfaceData;
     InitializeStandardLitSurfaceData(uv, surfaceData);
-    ApplyUVDecals(surfaceData, input.uv.xy, input.uv.zw);
+    ApplyUVDecals(surfaceData, input.uv.xy, input.uv.zw, input.uv2);
 
 #ifdef LOD_FADE_CROSSFADE
     LODFadeCrossFade(input.positionCS);
