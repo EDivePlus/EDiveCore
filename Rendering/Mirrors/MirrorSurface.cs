@@ -69,6 +69,11 @@ namespace EDIVE.Rendering.Mirrors
 
         [PropertySpace]
         [SerializeField]
+        [Tooltip("Boxes this mirror may see into. Empty means the profile far clip is the only limit.")]
+        private List<MirrorVisibilityVolume> _VisibilityVolumes = new();
+
+        [PropertySpace]
+        [SerializeField]
         [Tooltip("Moves the clip plane. Hides edge seams.")]
         private float _ClippingPlaneOffset;
 
@@ -402,13 +407,18 @@ namespace EDIVE.Rendering.Mirrors
                     return false;
             }
 
+            // Author-placed boxes. Trims the beam sideways and caps how far it reaches.
+            var volumeFar = float.PositiveInfinity;
+            if (!ClampToVolumes(right, up, normal, eyePos, planeDistance, ref clipped, ref volumeFar))
+                return false;
+
             var padX = clipped.width * profile.FrustumPadding;
             var padY = clipped.height * profile.FrustumPadding;
             clipped = Rect.MinMaxRect(clipped.xMin - padX, clipped.yMin - padY, clipped.xMax + padX, clipped.yMax + padY);
 
             // Near plane goes in front of the mirror. Stuff on the glass still draws.
             var near = Mathf.Max(planeDistance - profile.CullingNearOffset, planeDistance * 0.01f);
-            var far = reflectionCamera.farClipPlane;
+            var far = Mathf.Min(reflectionCamera.farClipPlane, volumeFar);
             if (near >= far)
                 return false;
 
@@ -425,6 +435,70 @@ namespace EDIVE.Rendering.Mirrors
             view.SetRow(2, new Vector4(normal.x, normal.y, normal.z, -Vector3.Dot(normal, eyePos)));
 
             return true;
+        }
+
+        // Boxes flattened onto the mirror plane, the same way the mesh is. The union of what they
+        // cover becomes the widest the beam may get, and their deepest corner becomes its far plane.
+        private bool ClampToVolumes(Vector3 right, Vector3 up, Vector3 normal, Vector3 eyePos,
+            float planeDistance, ref Rect clipped, ref float far)
+        {
+            if (_VisibilityVolumes == null || _VisibilityVolumes.Count == 0)
+                return true;
+
+            var min = new Vector2(float.MaxValue, float.MaxValue);
+            var max = new Vector2(float.MinValue, float.MinValue);
+            var maxDepth = 0f;
+            var anyInFront = false;
+            var straddlesEye = false;
+
+            foreach (var volume in _VisibilityVolumes)
+            {
+                if (volume == null)
+                    continue;
+
+                foreach (var corner in volume.GetWorldCorners())
+                {
+                    var offset = corner - eyePos;
+
+                    // Row 2 of the view matrix is the normal, so depth in front of the eye is the negated dot.
+                    var depth = -Vector3.Dot(offset, normal);
+                    if (depth <= 1e-4f)
+                    {
+                        straddlesEye = true;
+                        continue;
+                    }
+
+                    anyInFront = true;
+                    maxDepth = Mathf.Max(maxDepth, depth);
+
+                    var toPlane = planeDistance / depth;
+                    var x = Vector3.Dot(offset, right) * toPlane;
+                    var y = Vector3.Dot(offset, up) * toPlane;
+
+                    min.x = Mathf.Min(min.x, x);
+                    min.y = Mathf.Min(min.y, y);
+                    max.x = Mathf.Max(max.x, x);
+                    max.y = Mathf.Max(max.y, y);
+                }
+            }
+
+            // Every box sits behind the virtual eye. Collapse the beam rather than fall back to the
+            // whole scene, which is what an empty list would do.
+            if (!anyInFront)
+            {
+                var center = clipped.center;
+                clipped = Rect.MinMaxRect(center.x - 1e-4f, center.y - 1e-4f, center.x + 1e-4f, center.y + 1e-4f);
+                far = planeDistance * 1.001f;
+                return true;
+            }
+
+            far = maxDepth;
+
+            // A box wrapped around the eye has no silhouette to clip against. Keep the depth limit only.
+            if (straddlesEye)
+                return true;
+
+            return Intersect(clipped, Rect.MinMaxRect(min.x, min.y, max.x, max.y), out clipped);
         }
 
         // Mirror size, flattened on the mirror axes, measured from the eye.

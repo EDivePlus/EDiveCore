@@ -92,6 +92,20 @@ namespace EDIVE.Rendering.Mirrors
         [MinValue(0)]
         private int _UpdateInterval;
 
+        [SerializeField]
+        [Tooltip("Far plane for the reflection only. 0 inherits the camera. The single biggest cost lever.")]
+        [MinValue(0f)]
+        private float _FarClip;
+
+        [SerializeField]
+        [Tooltip("Cull the reflection against baked occlusion. The virtual eye sits behind the glass, so check the mirror still looks right.")]
+        private bool _OcclusionCulling;
+
+        [SerializeField]
+        [Tooltip("Scales the quality level's LOD bias for the reflection. Lower drops to cheaper meshes sooner. Only bites if the scene has LOD groups.")]
+        [PropertyRange(0.05f, 1f)]
+        private float _LodBias = 1f;
+
         [PropertySpace]
         [SerializeField]
         private LayerMask _RenderLayers = ~0;
@@ -152,6 +166,10 @@ namespace EDIVE.Rendering.Mirrors
         public MirrorStereoEyeMode StereoEyeMode => _StereoEyeMode;
         public int Recursions => Mathf.Clamp(_Recursions, 1, 8);
         public int UpdateInterval => Mathf.Max(0, _UpdateInterval);
+        public float FarClip => Mathf.Max(0f, _FarClip);
+        public bool OcclusionCulling => _OcclusionCulling;
+        // Zero means a profile saved before this field existed. Treat it as no change, not as the floor.
+        public float LodBias => _LodBias <= 0f ? 1f : Mathf.Clamp(_LodBias, 0.05f, 1f);
         public LayerMask RenderLayers => _RenderLayers;
         public int RendererIndex => Mathf.Max(0, _RendererIndex);
         public bool RenderShadows => _RenderShadows;

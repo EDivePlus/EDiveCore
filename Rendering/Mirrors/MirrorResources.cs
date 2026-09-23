@@ -23,9 +23,12 @@ namespace EDIVE.Rendering.Mirrors
         private readonly List<PooledMirrorTexture> _textures = new();
         private readonly Queue<RenderTexture> _preallocated = new();
         private readonly List<Camera> _deadCameras = new();
+        private readonly Dictionary<Camera, int> _lastUsedTick = new();
 
         private readonly string _ownerName;
         private readonly Transform _cameraParent;
+
+        private int _tick;
 
         public MirrorResources(string ownerName, Transform cameraParent = null)
         {
@@ -45,6 +48,8 @@ namespace EDIVE.Rendering.Mirrors
 
         public Camera GetReflectionCamera(Camera source, MirrorProfile profile)
         {
+            _lastUsedTick[source] = _tick;
+
             if (_reflectionCameras.TryGetValue(source, out var existing) && existing != null)
                 return existing;
 
@@ -137,13 +142,14 @@ namespace EDIVE.Rendering.Mirrors
                 texture.InUse = false;
         }
 
-        // Gone or switched off. Otherwise every toggled camera keeps a reflection texture alive.
+        // Gone, or not served since the last sweep. Otherwise every camera that stops rendering
+        // keeps a reflection texture alive.
         public void Prune()
         {
             _deadCameras.Clear();
             foreach (var pair in _reflectionCameras)
             {
-                if (pair.Key == null || pair.Value == null || !pair.Key.isActiveAndEnabled)
+                if (pair.Key == null || pair.Value == null || IsStale(pair.Key))
                     _deadCameras.Add(pair.Key);
             }
 
@@ -156,17 +162,27 @@ namespace EDIVE.Rendering.Mirrors
                 }
 
                 _reflectionCameras.Remove(deadCamera);
+                _lastUsedTick.Remove(deadCamera);
             }
 
             for (var i = _textures.Count - 1; i >= 0; i--)
             {
                 var pooled = _textures[i];
-                if (pooled.SourceCamera != null && pooled.Texture != null && pooled.SourceCamera.isActiveAndEnabled)
+                if (pooled.Texture != null && !IsStale(pooled.SourceCamera))
                     continue;
 
                 ReleaseTexture(pooled.Texture);
                 _textures.RemoveAt(i);
             }
+
+            _tick++;
+        }
+
+        // Asking whether the camera is enabled does not work. A scene view camera is driven by hand
+        // and reads disabled, so it used to be thrown away and rebuilt every sweep.
+        private bool IsStale(Camera camera)
+        {
+            return camera == null || !_lastUsedTick.TryGetValue(camera, out var tick) || tick != _tick;
         }
 
         // Textures rebuild on the next request.
@@ -202,6 +218,7 @@ namespace EDIVE.Rendering.Mirrors
 
             _reflectionCameras.Clear();
             _ownedCameras.Clear();
+            _lastUsedTick.Clear();
         }
 
         private RenderTexture CreateTexture(MirrorProfile profile, Vector2Int size, bool allowMsaa, string name)

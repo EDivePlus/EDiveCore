@@ -7,6 +7,10 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.XR;
 
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
+
 namespace EDIVE.Rendering.Mirrors
 {
     public enum MirrorStereoMode
@@ -46,23 +50,35 @@ namespace EDIVE.Rendering.Mirrors
         [Tooltip("Some setups render the reflection upside down. Use Rules reads the profile table.")]
         private MirrorFlip _Flip = MirrorFlip.UseRules;
 
+#if UNITY_EDITOR
         [PropertySpace]
-        [SerializeField]
+        [ShowInInspector]
         [Tooltip("Also render in the scene view. Both views share one material and will fight.")]
-        private bool _IncludeSceneView;
+        public bool IncludeSceneView
+        {
+            get => IncludeSceneViewContext.Value;
+            set
+            {
+                if (IncludeSceneViewContext.Value == value)
+                    return;
 
-        // Shared Center draws one frustum for both eyes. Widen it so neither eye sees past it.
+                IncludeSceneViewContext.Value = value;
+                UnityEditor.SceneView.RepaintAll();
+            }
+        }
+
+        private static GlobalPersistentContext<bool> IncludeSceneViewContext => PersistentContext.Get("MirrorRenderer.IncludeSceneView", false);
+#endif
+        
         private const float SHARED_EYE_EXPAND = 0.1f;
-
-        // One frame, one answer. Multi pass asks twice.
+        
         private struct FrameSkipState
         {
             public int Remaining;
             public int Frame;
             public bool Render;
         }
-
-        // What a surface ends the frame showing.
+        
         private struct ReflectionBinding
         {
             public int Depth;
@@ -379,13 +395,23 @@ namespace EDIVE.Rendering.Mirrors
             var steps = _planner.Steps;
             var recursions = _Profile.Recursions;
             var oldPixelLights = QualitySettings.pixelLightCount;
+            var oldLodBias = QualitySettings.lodBias;
             var renderScale = UniversalRenderPipeline.asset != null ? UniversalRenderPipeline.asset.renderScale : 1f;
+            var scaleOverridden = !Mathf.Approximately(renderScale, 1f);
+            var lodBiased = !Mathf.Approximately(_Profile.LodBias, 1f);
             _finalBindings.Clear();
 
             try
             {
                 if (_Profile.DisablePixelLights)
                     QualitySettings.pixelLightCount = 0;
+
+                // Culling reads this, so it has to land before the reflection camera is submitted.
+                if (lodBiased)
+                    QualitySettings.lodBias = oldLodBias * _Profile.LodBias;
+
+                if (scaleOverridden)
+                    ApplyRenderScale(1f);
 
                 foreach (var step in steps)
                 {
@@ -429,8 +455,11 @@ namespace EDIVE.Rendering.Mirrors
             {
                 GL.invertCulling = false;
                 QualitySettings.pixelLightCount = oldPixelLights;
-                if (UniversalRenderPipeline.asset != null)
-                    UniversalRenderPipeline.asset.renderScale = renderScale;
+                if (lodBiased)
+                    QualitySettings.lodBias = oldLodBias;
+
+                if (scaleOverridden)
+                    ApplyRenderScale(renderScale);
 
                 reflectionCamera.targetTexture = null;
                 reflectionCamera.ResetCullingMatrix();
@@ -494,18 +523,31 @@ namespace EDIVE.Rendering.Mirrors
 
             GL.invertCulling = step.InvertCulling;
 
-            if (UniversalRenderPipeline.asset != null)
-                UniversalRenderPipeline.asset.renderScale = 1f;
-
-            var isSceneCamera = renderCamera.cameraType == CameraType.SceneView;
-            if (!isSceneCamera || _IncludeSceneView)
+#if UNITY_EDITOR
+            // ShouldServe already turned the scene view away, so this only catches a toggle mid frame.
+            if (renderCamera.cameraType == CameraType.SceneView && !IncludeSceneView)
             {
-#pragma warning disable CS0618 // RenderSingleCamera is obsolete. SubmitRenderRequest recurses here.
-                UniversalRenderPipeline.RenderSingleCamera(context, reflectionCamera);
-#pragma warning restore CS0618
+                GL.invertCulling = false;
+                return;
             }
+#endif
+
+#pragma warning disable CS0618 // RenderSingleCamera is obsolete. SubmitRenderRequest recurses here.
+            UniversalRenderPipeline.RenderSingleCamera(context, reflectionCamera);
+#pragma warning restore CS0618
 
             GL.invertCulling = false;
+        }
+
+        // URP scales a target texture camera too, so the reflection needs a scale of one to fill its
+        // texture. It also pushes whatever it reads onto the XR display, so that has to go back with it.
+        private static void ApplyRenderScale(float scale)
+        {
+            if (UniversalRenderPipeline.asset == null)
+                return;
+
+            UniversalRenderPipeline.asset.renderScale = scale;
+            UnityEngine.Experimental.Rendering.XRSystem.SetRenderScale(scale);
         }
 
         private void UpdateBlendsOnly(Camera renderCamera)
@@ -528,8 +570,13 @@ namespace EDIVE.Rendering.Mirrors
             reflectionCamera.rect = new Rect(0, 0, 1, 1);
             reflectionCamera.cullingMask = _Profile.RenderLayers;
             reflectionCamera.targetTexture = null;
-            // Wrong with a custom frustum, and it costs CPU either way.
-            reflectionCamera.useOcclusionCulling = false;
+            // Off by default: the virtual eye sits behind the glass, so the baked data can lie.
+            reflectionCamera.useOcclusionCulling = _Profile.OcclusionCulling;
+
+            // The tight culling frustum reads this. Without a clamp the beam runs all the way to the
+            // camera far plane, which in a deep room is most of the scene.
+            if (_Profile.FarClip > 0f)
+                reflectionCamera.farClipPlane = Mathf.Min(renderCamera.farClipPlane, _Profile.FarClip);
 
             if (_Profile.OverrideClearFlags)
             {
@@ -563,9 +610,11 @@ namespace EDIVE.Rendering.Mirrors
             if (cam.cameraType == CameraType.Reflection || cam.cameraType == CameraType.Preview)
                 return false;
 
+#if UNITY_EDITOR
             // Preview cameras say SceneView too.
             if (cam.cameraType == CameraType.SceneView)
-                return _IncludeSceneView && IsOpenSceneView(cam);
+                return IncludeSceneView && IsOpenSceneView(cam);
+#endif
 
             if (!cam.CompareTag("MainCamera"))
                 return false;
@@ -574,17 +623,18 @@ namespace EDIVE.Rendering.Mirrors
             return data == null || data.renderType != CameraRenderType.Overlay;
         }
 
+#if UNITY_EDITOR
         private static bool IsOpenSceneView(Camera camera)
         {
-#if UNITY_EDITOR
             foreach (UnityEditor.SceneView view in UnityEditor.SceneView.sceneViews)
             {
                 if (view != null && view.camera == camera)
                     return true;
             }
-#endif
+
             return false;
         }
+#endif
 
         private static MirrorStereoMode GetStereoMode(Camera camera)
         {
