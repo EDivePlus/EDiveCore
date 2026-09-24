@@ -2,7 +2,8 @@
     "name": "EDIVE.Utils.Actions",
     "rootNamespace": "",
     "references": [
-        "UniTask"
+        "UniTask",
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
