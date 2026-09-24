@@ -49,7 +49,7 @@ namespace EDIVE.Environment.SceneSetup
                 return;
 
             if (AppCore.Services.TryGet<SceneSetupManager>(out var sceneContextManager))
-                sceneContextManager.SetCurrentContext(_Definition);
+                sceneContextManager.SetCurrentSetup(_Definition);
         }
     }
 }

@@ -28,7 +28,7 @@ namespace EDIVE.Environment.SceneSetup
         private SceneSetupDefinition _DefaultSetup;
 
         public SceneSetupDefinition CurrentSetup { get; private set; }
-        public event Action<SceneSetupDefinition> CurrentContextChanged;
+        public event Action<SceneSetupDefinition> CurrentSetupChanged;
         
         private bool _switchInProgress;
         private MasterNetworkManager _networkManager;
@@ -81,7 +81,7 @@ namespace EDIVE.Environment.SceneSetup
 
         private void OnClientAuthenticated(PlayerID player)
         {
-            SetCurrentContextAsync(_DefaultSetup).Forget();
+            SetCurrentSetupAsync(_DefaultSetup).Forget();
         }
 
         private void OnConnectionStateChanged(ConnectionState state)
@@ -90,7 +90,7 @@ namespace EDIVE.Environment.SceneSetup
                 return;
 
             CurrentSetup = null;
-            CurrentContextChanged?.Invoke(null);
+            CurrentSetupChanged?.Invoke(null);
 
             if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
                 controlsManager.TeleportToStart();
@@ -106,22 +106,22 @@ namespace EDIVE.Environment.SceneSetup
         }
 
         [Button]
-        public void SetCurrentContext(SceneSetupDefinition definition)
+        public void SetCurrentSetup(SceneSetupDefinition definition)
         {
-            SetCurrentContextAsync(definition).Forget();
+            SetCurrentSetupAsync(definition).Forget();
         }
 
-        public async UniTask SetCurrentContextAsync(SceneSetupDefinition definition)
+        public async UniTask SetCurrentSetupAsync(SceneSetupDefinition definition)
         {
             Debug.Log($"[SceneSetupManager] Requesting scene setup change to {definition?.name ?? "<null>"}");
             if (definition == null)
             {
-                Debug.LogWarning("[SceneSetupManager] SetCurrentContextAsync aborted: definition is null", this);
+                Debug.LogWarning("[SceneSetupManager] SetCurrentSetupAsync aborted: definition is null", this);
                 return;
             }
             if (_switchInProgress)
             {
-                Debug.LogWarning($"[SceneSetupManager] SetCurrentContextAsync aborted: switch already in progress (requested={definition.name})", this);
+                Debug.LogWarning($"[SceneSetupManager] SetCurrentSetupAsync aborted: switch already in progress (requested={definition.name})", this);
                 return;
             }
 
@@ -144,7 +144,7 @@ namespace EDIVE.Environment.SceneSetup
                 await UniTask.Yield();
 
                 CurrentSetup = definition;
-                CurrentContextChanged?.Invoke(CurrentSetup);
+                CurrentSetupChanged?.Invoke(CurrentSetup);
             }
             catch (Exception e)
             {
