@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
-using EDIVE.External.Promises;
 using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
@@ -24,8 +23,8 @@ namespace EDIVE.Networking.Players
         public NetworkPlayerController LocalPlayer { get; private set; }
         public List<NetworkPlayerController> CurrentPlayers { get; } = new();
 
-        private readonly List<(PlayerID id, Promise<NetworkPlayerController> promise)> _playerRequests = new();
-        private Promise<NetworkPlayerController> _localPlayerRequest;
+        private readonly List<(PlayerID id, UniTaskCompletionSource<NetworkPlayerController> completionSource)> _playerRequests = new();
+        private UniTaskCompletionSource<NetworkPlayerController> _localPlayerRequest;
         
         public event Action<NetworkPlayerController> PlayerRegistered;
         public event Action<NetworkPlayerController> PlayerUnregistered;
@@ -47,7 +46,7 @@ namespace EDIVE.Networking.Players
             {
                 player.gameObject.name += "_Local";
                 LocalPlayer = player;
-                _localPlayerRequest?.Dispatch(player);
+                _localPlayerRequest?.TrySetResult(player);
                 _localPlayerRequest = null;
             }
 
@@ -58,7 +57,7 @@ namespace EDIVE.Networking.Players
             if (player.owner.HasValue &&
                 _playerRequests.TryGetFirst(p => p.id == player.owner.Value, out var request))
             {
-                request.promise.Dispatch(player);
+                request.completionSource.TrySetResult(player);
                 _playerRequests.Remove(request);
             }
             
@@ -80,15 +79,9 @@ namespace EDIVE.Networking.Players
             dependencies.Add(typeof(MasterNetworkManager));
         }
 
-        public async UniTask<NetworkPlayerController> AwaitLocalPlayerController()
+        public UniTask<NetworkPlayerController> AwaitLocalPlayerController()
         {
-            if (LocalPlayer != null)
-                return LocalPlayer;
-
-            _localPlayerRequest ??= new Promise<NetworkPlayerController>();
-            var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
-            _localPlayerRequest.Then(r => completionSource.TrySetResult(r));
-            return await completionSource.Task;
+            return LocalPlayer != null ? UniTask.FromResult(LocalPlayer) : _localPlayerRequest.Task;
         }
         
         public bool TryGetPlayerController(PlayerID clientID, out NetworkPlayerController playerController)
@@ -108,12 +101,9 @@ namespace EDIVE.Networking.Players
             if (TryGetPlayerController(clientID, out var playerController))
                 return playerController;
 
-            var promise = new Promise<NetworkPlayerController>();
-            var record = (clientID, promise);
-            _playerRequests.Add(record);
-
             var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
-            promise.Then(r => completionSource.TrySetResult(r));
+            var record = (clientID, completionSource);
+            _playerRequests.Add(record);
 
             var timeout = UniTask.Delay(TimeSpan.FromMinutes(1));
             var result = await UniTask.WhenAny(completionSource.Task, timeout);

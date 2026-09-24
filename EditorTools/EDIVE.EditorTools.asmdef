@@ -9,7 +9,6 @@
         "EDIVE.NativeUtils",
         "Unity.EditorCoroutines.Editor",
         "EDIVE.Core",
-        "EDIVE.External.Promises"
     ],
     "includePlatforms": [
         "Editor"

@@ -8,7 +8,6 @@
         "EDIVE.OdinExtensions",
         "Oculus.VR",
         "EDIVE.AppLoading",
-        "EDIVE.External.Promises",
         "R3.Unity",
         "Unity.XR.OpenXR",
         "Unity.InputSystem"

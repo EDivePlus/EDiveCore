@@ -7,8 +7,7 @@
         "EDIVE.External.ToolbarExtensions",
         "EDIVE.NativeUtils",
         "Unity.EditorCoroutines.Editor",
-        "EDIVE.Core",
-        "EDIVE.External.Promises"
+        "EDIVE.Core"
     ],
     "includePlatforms": [
         "Editor"

@@ -3,7 +3,6 @@
     "rootNamespace": "",
     "references": [
         "EDIVE.External.DomainReloadHelper",
-        "EDIVE.External.Promises",
         "UniTask",
         "EDIVE.NativeUtils",
         "Unity.TextMeshPro",

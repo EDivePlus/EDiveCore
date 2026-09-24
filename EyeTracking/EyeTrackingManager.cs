@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
-using EDIVE.External.Promises;
 using R3;
 using UnityEngine;
 
@@ -19,9 +18,7 @@ namespace EDIVE.EyeTracking
         public Observable<EyeGazeFrame> RawEyeGazeStream => _rawEyeGazeStream;
         public Observable<EyeGazeFrame> FrameEyeGazeStream => _rawEyeGazeStream.ThrottleLastFrame(1, UnityFrameProvider.Update);
         
-        private bool IsTracking => _startTrackingPromise != null && _startTrackingPromise.State == BasePromise.PromiseState.Fulfilled;
-        
-        private Promise<bool> _startTrackingPromise;
+        private UniTaskCompletionSource<bool> _startTrackingCompletionSource;
         private readonly HashSet<object> _requesters = new();
         private readonly Subject<EyeGazeFrame> _rawEyeGazeStream = new();
         private IDisposable _eyeGazeSubscription;
@@ -65,13 +62,13 @@ namespace EDIVE.EyeTracking
             if (requester == null)
                 return;
 
-            _startTrackingPromise ??= new Promise<bool>();
+            _startTrackingCompletionSource ??= new UniTaskCompletionSource<bool>();
             _requesters.Add(requester);
         
             if (ActiveModule == null)
                 return;
 
-            _startTrackingPromise.Then(callback);
+            _startTrackingCompletionSource.Task.ContinueWith(callback);
             if (ActiveModule.IsTracking)
                 return;
             
@@ -83,7 +80,7 @@ namespace EDIVE.EyeTracking
         
         private void OnTrackingStarted(bool success)
         {
-            _startTrackingPromise?.Dispatch(success);
+            _startTrackingCompletionSource?.TrySetResult(success);
             _eyeGazeSubscription = ActiveModule.EyeGazeStream.Subscribe(data =>
             {
                 _rawEyeGazeStream.OnNext(data);
@@ -103,8 +100,8 @@ namespace EDIVE.EyeTracking
                     ActiveModule.StopTracking();
                 
                 _eyeGazeSubscription?.Dispose();
-                _startTrackingPromise?.RemoveAllListeners();
-                _startTrackingPromise = null;
+                _startTrackingCompletionSource?.TrySetCanceled();
+                _startTrackingCompletionSource = null;
             }
         }
     }

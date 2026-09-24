@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using EDIVE.External.Promises;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -140,23 +139,11 @@ namespace EDIVE.Core.Services
             if (TryGetServiceWrapper<T>(out var wrapper)) 
                 wrapper.ServiceChanged -= handler;
         }
-
-        public void WhenRegistered<T>(Action<T> action) where T : class, IService
-        {
-            var wrapper = GetServiceWrapper<T>();
-            if (wrapper.HasService)
-            {
-               action.Invoke(wrapper.Service);
-               return;
-            }
-            wrapper.Promise.Then(action);
-        }
         
         public UniTask<T> AwaitRegistered<T>() where T : class, IService
         {
-            var source = new UniTaskCompletionSource<T>();
-            WhenRegistered<T>(service => source.TrySetResult(service));
-            return source.Task;
+            var wrapper = GetServiceWrapper<T>();
+            return wrapper.HasService ? UniTask.FromResult(wrapper.Service) : wrapper.CompletionSource.Task;
         }
         
         public async UniTask<(T, T2)> AwaitRegistered<T, T2>() 
@@ -177,6 +164,11 @@ namespace EDIVE.Core.Services
             var t2 = await AwaitRegistered<T2>();
             var t3 = await AwaitRegistered<T3>();
             return (t, t2, t3);
+        }
+        
+        public void WhenRegistered<T>(Action<T> action) where T : class, IService
+        {
+            AwaitRegistered<T>().ContinueWith(r => action?.Invoke(r));
         }
         
         public void WhenRegistered<T, T2>(Action<T, T2> action)
@@ -205,8 +197,8 @@ namespace EDIVE.Core.Services
             public IService BaseService => Service;
             public bool HasService => Service != null;
             
-            public Promise<T> Promise => _promise ??= new Promise<T>();
-            private Promise<T> _promise;
+            public UniTaskCompletionSource<T> CompletionSource => _completionSource ??= new UniTaskCompletionSource<T>();
+            private UniTaskCompletionSource<T> _completionSource;
             
             public event Action<T> ServiceChanged;
             
@@ -217,8 +209,8 @@ namespace EDIVE.Core.Services
                 Service = (T)service;
                 ServiceChanged?.Invoke(Service);
                 if (Service != null) 
-                    _promise?.Dispatch(Service);
-                _promise = null;
+                    _completionSource?.TrySetResult(Service);
+                _completionSource = null;
             }
 
             public bool ClearService()
@@ -227,7 +219,7 @@ namespace EDIVE.Core.Services
                     return false;
                 
                 Service = null;
-                _promise = null;
+                _completionSource = null;
                 ServiceChanged?.Invoke(null);
                 return true;
             }

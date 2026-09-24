@@ -1,14 +1,12 @@
 ﻿// Author: František Holubec
 // Created: 09.03.2025
 
-using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core.Restart;
 using EDIVE.Core.Services;
 using EDIVE.Core.Versions;
 using EDIVE.External.DomainReloadHelper;
-using EDIVE.External.Promises;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -56,7 +54,7 @@ namespace EDIVE.Core
         }
 
         private bool _isLoaded;
-        private Promise _loadedPromise;
+        private UniTaskCompletionSource _loadedCompletionSource;
 
         private void Awake()
         {
@@ -90,29 +88,12 @@ namespace EDIVE.Core
                 return;
 
             Instance._isLoaded = true;
-            Instance._loadedPromise?.Dispatch();
-        }
-        
-        public static void WhenLoaded(Action action)
-        {
-            if (!HasInstance)
-                return;
-            
-            if (IsLoaded)
-            {
-                action?.Invoke();
-                return;
-            }
-
-            Instance._loadedPromise ??= new Promise();
-            Instance._loadedPromise.Then(action);
+            Instance._loadedCompletionSource?.TrySetResult();
         }
 
         public static UniTask AwaitLoaded()
         {
-            var source = new UniTaskCompletionSource();
-            WhenLoaded(() => source.TrySetResult());
-            return source.Task;
+            return Instance._loadedCompletionSource.Task;
         }
 
         [ExecuteOnAppRestart(0)]

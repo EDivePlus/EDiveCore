@@ -19,7 +19,6 @@
         "EDIVE.Avatars",
         "EDIVE.XRTools",
         "EDIVE.DataStructures",
-        "EDIVE.External.Promises",
         "EDIVE.NativeUtils",
         "EDIVE.ScriptableArchitecture",
         "PurrNet.Runtime",

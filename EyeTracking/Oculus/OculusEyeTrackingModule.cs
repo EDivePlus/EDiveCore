@@ -7,7 +7,6 @@ using R3;
 
 #if OCULUS_VR
 using System.Threading;
-using EDIVE.External.Promises;
 using UnityEngine;
 #endif
 
@@ -22,7 +21,7 @@ namespace EDIVE.EyeTracking.Oculus
         
         private readonly Subject<EyeGazeFrame> _eyeGazeStream = new();
   
-        private readonly Promise _permissionPromise = new();
+        private readonly UniTaskCompletionSource _permissionCompletionSource = new();
         private CancellationTokenSource _trackingCancellation;
         
         public override UniTask Initialize()
@@ -31,7 +30,7 @@ namespace EDIVE.EyeTracking.Oculus
             
             if (OVRPermissionsRequester.IsPermissionGranted(OVRPermissionsRequester.Permission.EyeTracking))
             {
-                _permissionPromise.Dispatch();
+                _permissionCompletionSource.TrySetResult();
             }
             else
             {
@@ -49,7 +48,7 @@ namespace EDIVE.EyeTracking.Oculus
             if (permissionId != OVRPermissionsRequester.GetPermissionId(OVRPermissionsRequester.Permission.EyeTracking))
                 return;
             
-            _permissionPromise.Dispatch();
+            _permissionCompletionSource.TrySetResult();
             OVRPermissionsRequester.PermissionGranted -= OnPermissionGranted;
         }
         
@@ -74,7 +73,7 @@ namespace EDIVE.EyeTracking.Oculus
             }
 
             Debug.Log($"[EyeTrackingManager] Waiting for Oculus EyeTracking permission...");
-            _permissionPromise.Then(() =>
+            _permissionCompletionSource.Task.ContinueWith(() =>
             {
                 if (!OVRPlugin.StartEyeTracking())
                 {
