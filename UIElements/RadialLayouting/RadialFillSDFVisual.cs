@@ -32,12 +32,12 @@ namespace EDIVE.UIElements.Layout
             var arc = _Graphic.Arc;
             var minAngle = -(info.CenterAngle + halfWidth);
             var maxAngle = -(info.CenterAngle - halfWidth);
-            if (!arc.Enabled || !Mathf.Approximately(arc.MinAngle, minAngle) || !Mathf.Approximately(arc.MaxAngle, maxAngle))
+            if (!_Graphic.ArcEnabled || !Mathf.Approximately(arc.MinAngle, minAngle) || !Mathf.Approximately(arc.MaxAngle, maxAngle))
             {
-                arc.Enabled = true;
                 arc.MinAngle = minAngle;
                 arc.MaxAngle = maxAngle;
                 _Graphic.Arc = arc;
+                _Graphic.ArcEnabled = true;
             }
 
             var rad = (90f + info.CenterAngle) * Mathf.Deg2Rad;

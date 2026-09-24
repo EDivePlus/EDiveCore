@@ -22,12 +22,19 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private GradientFill _Fill = GradientFill.Default;
 
+        [EnhancedBoxGroup("Outline", order: 20, SpaceBefore = 4, SpaceAfter = 4)]
+        [ShowInGroupHeader]
+        [HideLabel]
+        [SerializeField]
+        private bool _OutlineEnabled;
+
         [SerializeField]
         [HideInInspector]
         private float _OutlineSize;
 
-        [EnhancedBoxGroup("Outline", order: 20, SpaceBefore = 4, SpaceAfter = 4)]
+        [EnhancedBoxGroup("Outline")]
         [PropertyOrder(0)]
+        [ShowIf(nameof(_OutlineEnabled))]
         [LabelText("Size")]
         [ShowInInspector]
         public float OutlineSize
@@ -38,14 +45,14 @@ namespace EDIVE.UIElements.ProceduralUI
 
         [EnhancedBoxGroup("Outline")]
         [PropertyOrder(1)]
-        [EnableIf(nameof(HasOutline))]
+        [ShowIf(nameof(_OutlineEnabled))]
         [LabelText("Color")]
         [SerializeField]
         private Color _OutlineColor = Color.black;
 
         [EnhancedBoxGroup("Outline")]
         [PropertyOrder(2)]
-        [EnableIf(nameof(HasOutline))]
+        [ShowIf(nameof(_OutlineEnabled))]
         [LabelText("Placement")]
         [SerializeField]
         private EdgePlacement _OutlinePlacement = EdgePlacement.Outside;
@@ -57,12 +64,19 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private CornerJoin _CornerJoin;
 
+        [EnhancedBoxGroup("Shadow", order: 30, SpaceAfter = 4)]
+        [ShowInGroupHeader]
+        [HideLabel]
+        [SerializeField]
+        private bool _ShadowEnabled;
+
         [SerializeField]
         [HideInInspector]
         private float _ShadowSize;
 
-        [EnhancedBoxGroup("Shadow", order: 30, SpaceAfter = 4)]
+        [EnhancedBoxGroup("Shadow")]
         [PropertyOrder(0)]
+        [ShowIf(nameof(_ShadowEnabled))]
         [LabelText("Size")]
         [ShowInInspector]
         public float ShadowSize
@@ -73,7 +87,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
         [EnhancedBoxGroup("Shadow")]
         [PropertyOrder(1)]
-        [EnableIf(nameof(HasShadow))]
+        [ShowIf(nameof(_ShadowEnabled))]
         [LabelText("Color")]
         [SerializeField]
         private Color _ShadowColor = Color.black;
@@ -84,7 +98,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
         [EnhancedBoxGroup("Shadow")]
         [PropertyOrder(2)]
-        [EnableIf(nameof(HasShadow))]
+        [ShowIf(nameof(_ShadowEnabled))]
         [LabelText("Blur")]
         [ShowInInspector]
         public float ShadowBlur
@@ -99,7 +113,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
         [EnhancedBoxGroup("Shadow")]
         [PropertyOrder(3)]
-        [EnableIf(nameof(HasShadow))]
+        [ShowIf(nameof(_ShadowEnabled))]
         [LabelText("Power")]
         [ShowInInspector]
         public float ShadowPower
@@ -110,18 +124,26 @@ namespace EDIVE.UIElements.ProceduralUI
 
         [EnhancedBoxGroup("Shadow")]
         [PropertyOrder(4)]
+        [ShowIf(nameof(_ShadowEnabled))]
         [LabelText("Offset")]
         [SerializeField]
         private Vector2 _ShadowOffset;
 
         [EnhancedBoxGroup("Shadow")]
         [PropertyOrder(5)]
-        [EnableIf(nameof(HasShadow))]
+        [ShowIf(nameof(_ShadowEnabled))]
         [LabelText("Inset")]
         [SerializeField]
         private bool _ShadowInset;
 
         [EnhancedBoxGroup("Arc", order: 40, SpaceAfter = 4)]
+        [ShowInGroupHeader]
+        [HideLabel]
+        [SerializeField]
+        private bool _ArcEnabled;
+
+        [EnhancedBoxGroup("Arc")]
+        [ShowIf(nameof(_ArcEnabled))]
         [HideLabel]
         [InlineProperty]
         [SerializeField]
@@ -144,6 +166,12 @@ namespace EDIVE.UIElements.ProceduralUI
             set { _Fill = value; SetVerticesDirty(); }
         }
 
+        public bool OutlineEnabled
+        {
+            get => _OutlineEnabled;
+            set { if (_OutlineEnabled == value) return; _OutlineEnabled = value; SetVerticesDirty(); }
+        }
+
         public Color OutlineColor
         {
             get => _OutlineColor;
@@ -160,6 +188,12 @@ namespace EDIVE.UIElements.ProceduralUI
         {
             get => _CornerJoin;
             set { if (_CornerJoin == value) return; _CornerJoin = value; SetVerticesDirty(); }
+        }
+
+        public bool ShadowEnabled
+        {
+            get => _ShadowEnabled;
+            set { if (_ShadowEnabled == value) return; _ShadowEnabled = value; SetVerticesDirty(); }
         }
 
         public Color ShadowColor
@@ -180,11 +214,19 @@ namespace EDIVE.UIElements.ProceduralUI
             set { if (_ShadowInset == value) return; _ShadowInset = value; SetVerticesDirty(); }
         }
 
+        public bool ArcEnabled
+        {
+            get => _ArcEnabled;
+            set { if (_ArcEnabled == value) return; _ArcEnabled = value; SetVerticesDirty(); }
+        }
+
         public ArcCutout Arc
         {
             get => _Arc;
             set { _Arc = value; SetVerticesDirty(); }
         }
+
+        public ArcCutout ActiveArc => _ArcEnabled ? _Arc : ArcCutout.Default;
 
         public float ArcValue
         {
@@ -202,31 +244,32 @@ namespace EDIVE.UIElements.ProceduralUI
         protected override string ShaderName => SHADER_NAME;
         protected override CornerJoin ResolvedCornerJoin => _CornerJoin;
 
-        private bool HasOutline => _OutlineSize > 0f;
-        private bool HasShadow => _ShadowSize > 0f || _ShadowBlur > 0f || _ShadowOffset != Vector2.zero;
-        private float ShadowSizeRounded => Mathf.Round(_ShadowSize);
-        private float ShadowBlurRounded => Mathf.Round(_ShadowBlur);
-        private float ShadowOffsetExtent => Mathf.Max(Mathf.Abs(VertexPacking.QuantizeOffset(_ShadowOffset.x)), Mathf.Abs(VertexPacking.QuantizeOffset(_ShadowOffset.y)));
+        private float ActiveOutlineSize => _OutlineEnabled ? _OutlineSize : 0f;
+        private Vector2 ActiveShadowOffset => _ShadowEnabled ? _ShadowOffset : Vector2.zero;
+        private float ShadowSizeRounded => _ShadowEnabled ? Mathf.Round(_ShadowSize) : 0f;
+        private float ShadowBlurRounded => _ShadowEnabled ? Mathf.Round(_ShadowBlur) : 0f;
+        private float ShadowOffsetExtent => Mathf.Max(Mathf.Abs(VertexPacking.QuantizeOffset(ActiveShadowOffset.x)), Mathf.Abs(VertexPacking.QuantizeOffset(ActiveShadowOffset.y)));
         private float ShadowOutwardExtension => _ShadowInset ? 0f : ShadowSizeRounded + ShadowBlurRounded + ShadowOffsetExtent;
         private float ExtraMargin => OutlineOutwardExtension + FrameOutwardExtension + ShadowOutwardExtension + 1f;
 
         private float OutlineOutwardExtension => _OutlinePlacement switch
         {
-            EdgePlacement.Center => _OutlineSize * 0.5f,
-            EdgePlacement.Outside => _OutlineSize,
+            EdgePlacement.Center => ActiveOutlineSize * 0.5f,
+            EdgePlacement.Outside => ActiveOutlineSize,
             _ => 0f
         };
 
         public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
         {
-            if (_Arc.IsFull)
+            var arc = ActiveArc;
+            if (arc.IsFull)
                 return true;
 
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, eventCamera, out var local))
                 return false;
 
             var rect = rectTransform.rect;
-            return _Arc.Contains(local - rect.center, rect.width, rect.height);
+            return arc.Contains(local - rect.center, rect.width, rect.height);
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -236,7 +279,7 @@ namespace EDIVE.UIElements.ProceduralUI
             var width = rectTransform.rect.width;
             var height = rectTransform.rect.height;
 
-            if (width <= 0f || height <= 0f || _Arc.IsEmpty)
+            if (width <= 0f || height <= 0f || ActiveArc.IsEmpty)
                 return;
 
             if (_Fill.RequiresSubdivision)
@@ -328,16 +371,17 @@ namespace EDIVE.UIElements.ProceduralUI
         private UIVertex BuildBaseVertex(float width, float height)
         {
             var frameWidthRounded = NoFill ? Mathf.Round(FrameWidth) : 0f;
-            var outlineInfo = _OutlineSize + (int) _OutlinePlacement * 4096f + (int) FramePlacement * 16384f + EncodedCornerShape * 65536f;
+            var outlineInfo = ActiveOutlineSize + (int) _OutlinePlacement * 4096f + (int) FramePlacement * 16384f + EncodedCornerShape * 65536f;
             var encodedOutline = NoFill ? -(1f + outlineInfo) : outlineInfo;
             var shadowInfo = ShadowSizeRounded + ShadowBlurRounded * 4096f;
-            var encodedShadow = _ShadowInset ? -(1f + shadowInfo) : shadowInfo;
+            var encodedShadow = _ShadowEnabled && _ShadowInset ? -(1f + shadowInfo) : shadowInfo;
             var encodedShadowPower = _ShadowPower + frameWidthRounded * 256f;
+            var arc = ActiveArc;
 
             var vertex = UIVertex.simpleVert;
-            PackGeometry(width, height, GetRoundness(), _Arc.ResolveShaderParams(width, height), _Arc.ShaderCornerRadius, out vertex.uv0, out vertex.uv1);
-            vertex.tangent = new Vector4(0f, 0f, 0f, _Fill.EncodeShaderFill() + _Arc.ShaderSharpCenterFlag);
-            vertex.uv2 = new Vector4(encodedOutline, encodedShadow, VertexPacking.PackOffsets(_ShadowOffset), encodedShadowPower);
+            PackGeometry(width, height, GetRoundness(), arc.ResolveShaderParams(width, height), arc.ShaderCornerRadius, out vertex.uv0, out vertex.uv1);
+            vertex.tangent = new Vector4(0f, 0f, 0f, _Fill.EncodeShaderFill() + arc.ShaderSharpCenterFlag);
+            vertex.uv2 = new Vector4(encodedOutline, encodedShadow, VertexPacking.PackOffsets(ActiveShadowOffset), encodedShadowPower);
             vertex.uv3 = VertexPacking.PackColors(_OutlineColor, _ShadowColor, _Fill.GetGradientColor(color));
             return vertex;
         }

@@ -7,46 +7,34 @@ using UnityEngine;
 
 namespace EDIVE.UIElements.ProceduralUI
 {
-    // Angles are degrees clockwise from north, the anchor is in normalized rect space with (0, 0) at the bottom left
     [Serializable]
     public struct ArcCutout
     {
         private const float FULL_SWEEP = 360f;
 
         [SerializeField]
-        private bool _Enabled;
-
-        [EnableIf(nameof(_Enabled))]
-        [SerializeField]
         private Vector2 _Anchor;
 
-        [EnableIf(nameof(_Enabled))]
         [SerializeField]
         private float _MinAngle;
 
-        [EnableIf(nameof(_Enabled))]
         [SerializeField]
         private float _MaxAngle;
 
-        [EnableIf(nameof(_Enabled))]
         [Range(0f, 1f)]
         [SerializeField]
         private float _Value;
 
-        [EnableIf(nameof(_Enabled))]
         [SerializeField]
         private ArcFillOrigin _FillOrigin;
 
-        [EnableIf(nameof(_Enabled))]
         [SerializeField]
         private float _EdgePadding;
 
-        [EnableIf(nameof(_Enabled))]
         [MinValue(0f)]
         [SerializeField]
         private float _CornerRadius;
 
-        [EnableIf(nameof(_Enabled))]
         [SerializeField]
         private bool _SharpCenter;
 
@@ -57,7 +45,6 @@ namespace EDIVE.UIElements.ProceduralUI
             _Value = 1f
         };
 
-        public bool Enabled { get => _Enabled; set => _Enabled = value; }
         public Vector2 Anchor { get => _Anchor; set => _Anchor = value; }
         public float MinAngle { get => _MinAngle; set => _MinAngle = value; }
         public float MaxAngle { get => _MaxAngle; set => _MaxAngle = value; }
@@ -67,12 +54,12 @@ namespace EDIVE.UIElements.ProceduralUI
         public float CornerRadius { get => _CornerRadius; set => _CornerRadius = Mathf.Max(0f, value); }
         public bool SharpCenter { get => _SharpCenter; set => _SharpCenter = value; }
 
-        public bool IsFull => !_Enabled || FilledSweep >= FULL_SWEEP;
-        public bool IsEmpty => _Enabled && FilledSweep <= 0f;
-        public float ShaderCornerRadius => _Enabled ? _CornerRadius : 0f;
+        public bool IsFull => FilledSweep >= FULL_SWEEP;
+        public bool IsEmpty => FilledSweep <= 0f;
+        public float ShaderCornerRadius => _CornerRadius;
 
         // Rides the top bit of the encoded fill; matches DecodeFill in ProceduralShape.cginc
-        public float ShaderSharpCenterFlag => _Enabled && _SharpCenter ? 8388608f : 0f;
+        public float ShaderSharpCenterFlag => _SharpCenter ? 8388608f : 0f;
 
         private float Sweep => Mathf.Clamp(_MaxAngle - _MinAngle, 0f, FULL_SWEEP);
         private float FilledSweep => Sweep * Mathf.Clamp01(_Value);

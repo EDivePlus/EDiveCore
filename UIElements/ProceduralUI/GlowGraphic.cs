@@ -196,7 +196,7 @@ namespace EDIVE.UIElements.ProceduralUI
         }
 
         // The arc is the source rectangle's; a glow with its own shape has none
-        private ArcCutout SourceArc => _Source ? _Source.Arc : default;
+        private ArcCutout SourceArc => _Source ? _Source.ActiveArc : ArcCutout.Default;
 
         // Shared geometry in uv0 and uv1 (see AProceduralGraphic.PackGeometry), then:
         //   uv2: spread, blur, power, encodedFrame
