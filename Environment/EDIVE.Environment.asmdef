@@ -21,7 +21,8 @@
     "EDIVE.AddressableAssets",
     "EDIVE.Input",
     "EDIVE.AppLoading",
-    "EDIVE.Utils.Activations"
+    "EDIVE.Utils.Activations",
+    "EDIVE.Utils.Actions"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
