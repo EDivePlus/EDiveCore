@@ -291,11 +291,12 @@ float ApplyArc(float shape, float sector, float4 arc, float cornerRadius, float 
     return JoinedMax(shape, sector, cornerRadius, edgeCos, join);
 }
 
-// shadow = round(shadowSize) + round(shadowBlur) * 4096, negated and offset by 1 when inset
+// shadow = round(shadowSize) + round(shadowBlur) * 4096, negated and offset by 1 when inset.
+// Rounded first: perspective interpolation drifts the value slightly and floor would turn 0 into a 4096 px shadow.
 void DecodeShadow(float raw, out float shadowSize, out float shadowBlur, out bool inset)
 {
     inset = raw < -0.5;
-    float info = inset ? -raw - 1.0 : raw;
+    float info = round(max(inset ? -raw - 1.0 : raw, 0.0));
     shadowBlur = floor(info / 4096.0);
     shadowSize = info - shadowBlur * 4096.0;
 }
