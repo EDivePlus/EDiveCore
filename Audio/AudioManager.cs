@@ -83,6 +83,8 @@ namespace EDIVE.Audio
         // Triggered when any audio frame is received (local and remote), frames are encoded
         public event Action<PlayerID, AudioFrame> UserAudioFrameReady;
 
+        public event Action<bool> AllowMicChanged;
+
         private List<IAudioFilter> _encodeFilters;
         private CapturingAudioFilter _capturingFilter;
         
@@ -106,6 +108,7 @@ namespace EDIVE.Audio
             set
             {
                 PlayerPrefs.SetInt("Audio_AllowMic", value ? 1 : 0);
+                AllowMicChanged?.Invoke(value);
                 RefreshAudioInput();
             }
         }

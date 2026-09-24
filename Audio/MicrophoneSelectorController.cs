@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 02.06.2025
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Core;
@@ -21,9 +22,30 @@ namespace EDIVE.Audio
         private AudioManager _audioManager;
         private List<string> _microphones;
 
+        private IDisposable _serviceDisposable;
+
         private void OnEnable()
         {
-            AppCore.Services.WhenRegistered<AudioManager>(Initialize);
+            _serviceDisposable = AppCore.Services.WhenRegistered<AudioManager>(Initialize);
+        }
+
+        private void OnDisable()
+        {
+            if (_audioManager == null) 
+                _serviceDisposable.Dispose();
+            else
+            {
+                if (_MicDropdown)
+                {
+                    _MicDropdown.onValueChanged.RemoveListener(OnMicChanged);
+                }
+
+                if (_AllowMicToggle)
+                {
+                    _audioManager.AllowMicChanged -= OnManagerAllowMicChanged;
+                    _AllowMicToggle.onValueChanged.RemoveListener(OnAllowMicToggleChanged);
+                }
+            }
         }
 
         private void Initialize(AudioManager audioManager)
@@ -46,12 +68,13 @@ namespace EDIVE.Audio
 
             if (_AllowMicToggle)
             {
-                _AllowMicToggle.onValueChanged.AddListener(OnAllowMicChanged);
+                _AllowMicToggle.onValueChanged.AddListener(OnAllowMicToggleChanged);
                 _AllowMicToggle.isOn = _audioManager.AllowMic;
+                _audioManager.AllowMicChanged += OnManagerAllowMicChanged;
             }
         }
 
-        private void OnAllowMicChanged(bool value)
+        private void OnAllowMicToggleChanged(bool value)
         {
             _audioManager.AllowMic = value;
         }
@@ -60,6 +83,11 @@ namespace EDIVE.Audio
         {
             var micName = value == 0 ? null : _microphones[value];
             _audioManager.TrySetMicrophone(micName);
+        }
+
+        private void OnManagerAllowMicChanged(bool value)
+        {
+            _AllowMicToggle.isOn = value;
         }
     }
 }
