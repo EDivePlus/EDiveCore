@@ -37,7 +37,7 @@ namespace EDIVE.BuildTool.BuildSetupData
         private class PlatformRecord
         {
             [EnhancedFoldoutGroup("Platforms", true)]
-            [ShowInFoldoutHeader]
+            [ShowInGroupHeader]
             [HideLabel]
             [JsonProperty("Platforms")]
             [SerializeField]

@@ -65,7 +65,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 ? GUIContent.none
                 : GUIHelper.TempContent(_titleResolver.GetValue());
 
-            var hasHeaderChildren = Property.Children.Any(child => child.GetAttribute<ShowInFoldoutHeaderAttribute>() != null);
+            var hasHeaderChildren = Property.Children.Any(child => child.GetAttribute<ShowInGroupHeaderAttribute>() != null);
             if (hasHeaderChildren)
             {
                 EditorGUILayout.BeginHorizontal();
@@ -79,8 +79,14 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
                 foreach (var child in Property.Children)
                 {
-                    if (child.GetAttribute<ShowInFoldoutHeaderAttribute>() != null)
-                        child.Draw(child.Label);
+                    if (child.GetAttribute<ShowInGroupHeaderAttribute>() == null)
+                        continue;
+
+                    GUILayout.BeginVertical(GUILayout.ExpandHeight(true));
+                    GUILayout.FlexibleSpace();
+                    child.Draw(child.Label);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndVertical();
                 }
                 EditorGUILayout.EndHorizontal();
             }
@@ -94,7 +100,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             {
                 foreach (var child in Property.Children)
                 {
-                    if (child.GetAttribute<ShowInFoldoutHeaderAttribute>() != null)
+                    if (child.GetAttribute<ShowInGroupHeaderAttribute>() != null)
                         continue;
                     child.Draw(child.Label);
                 }

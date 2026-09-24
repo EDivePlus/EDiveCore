@@ -61,7 +61,7 @@ namespace EDIVE.StateHandling.MultiStates
     public class MultiStateRecord
     {
         [EnhancedFoldoutGroup("State", "GetFoldoutColor", true)]
-        [ShowInFoldoutHeader]
+        [ShowInGroupHeader]
         [HideLabel]
         [SerializeField]
         private string _StateID;
@@ -98,7 +98,7 @@ namespace EDIVE.StateHandling.MultiStates
 
 #if UNITY_EDITOR
         [EnhancedFoldoutGroup("State")]
-        [ShowInFoldoutHeader]
+        [ShowInGroupHeader]
         [OnInspectorGUI]
         private void DrawControls(InspectorProperty property)
         {

@@ -1,3 +1,4 @@
+using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector.Editor.ValueResolvers;
@@ -57,14 +58,61 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 }
             }
             
+            var titleContent = Attribute.HideGroupTitle
+                ? GUIContent.none
+                : GUIHelper.TempContent(headerLabel);
+            
             EditorGUILayout.BeginHorizontal();
             if (Attribute.Alignment != ContentAlignment.Left) GUILayout.FlexibleSpace();
             EditorGUILayout.BeginVertical();
-
-            SirenixEditorGUI.BeginBox(headerLabel, Attribute.CenterLabel);
+            
+            var style = new GUIStyle(SirenixGUIStyles.Label);
+            if (Attribute.Bold)
+            {
+                style.fontStyle = FontStyle.Bold;
+            }
+            
+            SirenixEditorGUI.BeginBox();
             GUI.backgroundColor = previousBgColor;
+            
+            SirenixEditorGUI.BeginBoxHeader();
+            
+            var hasHeaderChildren = Property.Children.Any(child => child.GetAttribute<ShowInGroupHeaderAttribute>() != null);
+            if (hasHeaderChildren)
+            {
+                EditorGUILayout.BeginHorizontal();
+                
+                var titleWidth = Attribute.TitleWidth > 0 ? Attribute.TitleWidth
+                    : Attribute.HideGroupTitle ? 15
+                    : EditorGUIUtility.labelWidth;
+                EditorGUILayout.BeginHorizontal(GUILayout.MaxWidth(titleWidth));
+                DrawLabel(titleContent, style);
+                EditorGUILayout.EndHorizontal();
+
+                foreach (var child in Property.Children)
+                {
+                    if (child.GetAttribute<ShowInGroupHeaderAttribute>() == null)
+                        continue;
+
+                    GUILayout.BeginVertical(GUILayout.ExpandHeight(true));
+                    GUILayout.FlexibleSpace();
+                    child.Draw(child.Label);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndVertical();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            else
+            {
+                DrawLabel(titleContent, style);
+            }
+            
+            SirenixEditorGUI.EndBoxHeader();
+
             foreach (var child in Property.Children)
             {
+                if (child.GetAttribute<ShowInGroupHeaderAttribute>() != null)
+                    continue;
                 child.Draw(child.Label);
             }
             SirenixEditorGUI.EndBox();
@@ -74,6 +122,15 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             EditorGUILayout.EndHorizontal();
 
             GUILayout.Space(Attribute.SpaceAfter);
+        }
+
+        private void DrawLabel(GUIContent label, GUIStyle style)
+        {
+            var fieldWidth = EditorGUIUtility.fieldWidth;
+            EditorGUIUtility.fieldWidth = 10f;
+            var controlRect = EditorGUILayout.GetControlRect(false);
+            EditorGUIUtility.fieldWidth = fieldWidth;
+            GUI.Label(controlRect, label, style);
         }
     }
 }

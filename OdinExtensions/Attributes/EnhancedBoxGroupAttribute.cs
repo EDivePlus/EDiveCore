@@ -11,6 +11,9 @@ namespace EDIVE.OdinExtensions.Attributes
     {
         public string UseIf;
 
+        public bool Bold;
+        public bool HideGroupTitle;
+        public float TitleWidth;
         public float SpaceBefore = 0;
         public float SpaceAfter = 0;
 
@@ -57,24 +60,27 @@ namespace EDIVE.OdinExtensions.Attributes
 
         protected override void CombineValuesWith(PropertyGroupAttribute other)
         {
-            if (other is EnhancedBoxGroupAttribute boxGroupAttribute)
+            if (other is EnhancedBoxGroupAttribute attr)
             {
-                if (!ShowLabel || !boxGroupAttribute.ShowLabel)
+                if (!ShowLabel || !attr.ShowLabel)
                 {
                     ShowLabel = false;
-                    boxGroupAttribute.ShowLabel = false;
+                    attr.ShowLabel = false;
                 }
 
-                CenterLabel |= boxGroupAttribute.CenterLabel;
+                CenterLabel |= attr.CenterLabel;
                 
-                if (boxGroupAttribute.HasColorDefined) 
-                    Color = boxGroupAttribute.Color;
+                if (attr.HasColorDefined) 
+                    Color = attr.Color;
                 
                 if (HasColorDefined) 
-                    boxGroupAttribute.Color = Color;
+                    attr.Color = Color;
                 
-                SpaceBefore = boxGroupAttribute.SpaceBefore = Mathf.Max(SpaceBefore, boxGroupAttribute.SpaceBefore);
-                SpaceAfter = boxGroupAttribute.SpaceAfter = Mathf.Max(SpaceAfter, boxGroupAttribute.SpaceAfter);
+                Bold = attr.Bold = Bold || attr.Bold;
+                HideGroupTitle = attr.HideGroupTitle = HideGroupTitle || attr.HideGroupTitle;
+                TitleWidth = attr.TitleWidth = Mathf.Max(TitleWidth, attr.TitleWidth);
+                SpaceBefore = attr.SpaceBefore = Mathf.Max(SpaceBefore, attr.SpaceBefore);
+                SpaceAfter = attr.SpaceAfter = Mathf.Max(SpaceAfter, attr.SpaceAfter);
             }
         }
     }

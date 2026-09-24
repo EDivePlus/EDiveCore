@@ -14,7 +14,7 @@ namespace EDIVE.Avatars
     public class VRBodySolver : MonoBehaviour
     {
         [EnhancedFoldoutGroup("Animator", "@ColorTools.Red", SpaceAfter = 4)]
-        [ShowInFoldoutHeader]
+        [ShowInGroupHeader]
         [Required]
         [HideLabel]
         [SerializeField]
@@ -1250,7 +1250,7 @@ namespace EDIVE.Avatars
         
         [EnhancedFoldoutGroup("Bones")]
         [Button("Auto Detect Bones")]
-        [ShowInFoldoutHeader]
+        [ShowInGroupHeader]
         public void AutoDetectBones()
         {
             if (_Animator == null || !_Animator.isHuman)
