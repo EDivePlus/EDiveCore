@@ -66,7 +66,7 @@ namespace EDIVE.Rendering.Mirrors
     public class MirrorFlipRules : ScriptableObject
     {
         [SerializeField]
-        [InfoBox("Some graphics APIs store the reflection upside down. Add a rule only if you see a flipped mirror. First match wins.")]
+        [InfoBox("Add a rule only if a mirror shows upside down. First match wins.")]
         [EnhancedTableList]
         private List<MirrorFlipRule> _Rules = new();
 

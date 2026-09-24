@@ -16,9 +16,16 @@ CBUFFER_START(UnityPerMaterial)
     float4 _FallbackProbePos;
     float4 _FallbackBoxMin;
     float4 _FallbackBoxMax;
+    // 0 colour, 1 reflection probe, 2 depth probe. Set by MirrorSurface.
+    float _Environment;
+    float _BoxProjection;
+    // XYZ capture point, W range.
+    float4 _DepthProbePos;
+    float _DepthProbeSteps;
     float _MirrorEye;
     float _MirrorFlipY;
     float _MirrorBlend;
+    float _MirrorBackground;
     // View projection the reflection was drawn with.
     float4x4 _MirrorVpLeft;
     float4x4 _MirrorVpRight;
@@ -41,6 +48,10 @@ TEXTURE2D(_MaskMap);    SAMPLER(sampler_MaskMap);
 // Optional. Empty uses the probe Unity bound.
 TEXTURECUBE(_FallbackCubemap);  SAMPLER(sampler_FallbackCubemap);
 
+// Distance from the capture point in R.
+TEXTURECUBE(_DepthProbe);          SAMPLER(sampler_DepthProbe);
+TEXTURECUBE(_DepthProbeDistance);  SAMPLER(sampler_DepthProbeDistance);
+
 #ifdef MIRROR_USE_URP_PROBES
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/BRDF.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/GlobalIllumination.hlsl"
@@ -50,8 +61,7 @@ static const half kMirrorBlurCenter = 0.147761h;
 static const half kMirrorBlurEdge   = 0.118318h;
 static const half kMirrorBlurCorner = 0.0947416h;
 
-// _MirrorEye: 0 left, 1 right, negative means work it out.
-// Only single pass stereo leaves it negative, and only there is unity_StereoEyeIndex meaningful.
+// _MirrorEye: 0 left, 1 right. Negative uses unity_StereoEyeIndex, single pass only.
 bool MirrorIsLeftEye()
 {
     uint eye = (uint) max(_MirrorEye, 0);
@@ -135,8 +145,7 @@ half4 SampleMirror(float2 uv, half blurScale)
 
 half3 MirrorBoxProject(half3 dirWS, float3 positionWS, float4 probePos, float4 boxMin, float4 boxMax)
 {
-#ifdef _BOXPROJECTION_ON
-    if (probePos.w > 0.0)
+    UNITY_BRANCH if (_BoxProjection > 0.5 && probePos.w > 0.0)
     {
         float3 invDir = rcp(dirWS);
         float3 t1 = (boxMax.xyz - positionWS) * invDir;
@@ -145,7 +154,6 @@ half3 MirrorBoxProject(half3 dirWS, float3 positionWS, float4 probePos, float4 b
         float dist = min(min(tmax.x, tmax.y), tmax.z);
         dirWS = dirWS * dist + (positionWS - probePos.xyz);
     }
-#endif
     return dirWS;
 }
 
@@ -153,14 +161,67 @@ half3 SampleMirrorProbe(float3 positionWS, half3 normalWS, half3 viewDirWS, half
 {
     half3 r = reflect(-viewDirWS, normalWS);
 
-#if defined(_PROBE_EXPLICIT) || !defined(MIRROR_USE_URP_PROBES)
+#ifdef MIRROR_USE_URP_PROBES
+    // Zero W means no probe was assigned, so use the one Unity picked.
+    UNITY_BRANCH if (_FallbackProbePos.w <= 0.0)
+        return GlossyEnvironmentReflection(r, positionWS, perceptualRoughness, 1.0h, screenUV);
+#endif
+
     r = MirrorBoxProject(r, positionWS, _FallbackProbePos, _FallbackBoxMin, _FallbackBoxMax);
     half mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
     half4 encoded = SAMPLE_TEXTURECUBE_LOD(_FallbackCubemap, sampler_FallbackCubemap, r, mip);
     return DecodeHDREnvironment(encoded, _FallbackCubemapHDR);
-#else
-    return GlossyEnvironmentReflection(r, positionWS, perceptualRoughness, 1.0h, screenUV);
-#endif
+}
+
+static const int   kDepthProbeRefine = 5;
+static const float kDepthProbeStart  = 0.1;
+
+// Marches the ray until it passes behind a baked surface.
+// The mip comes from the smooth reflection derivatives, the hit direction jumps at edges.
+half3 SampleDepthProbe(float3 positionWS, float3 dirWS, float3 dirDX, float3 dirDY)
+{
+    float3 origin = positionWS - _DepthProbePos.xyz;
+    // Steps grow with distance.
+    int steps = max((int)_DepthProbeSteps, 1);
+    float growth = exp2(log2(max(_DepthProbePos.w, kDepthProbeStart * 2.0) / kDepthProbeStart) / steps);
+
+    float before = 0.0;
+    float t = kDepthProbeStart;
+    bool hit = false;
+
+    UNITY_LOOP
+    for (int i = 0; i < steps; i++)
+    {
+        float3 p = origin + dirWS * t;
+        float stored = SAMPLE_TEXTURECUBE_LOD(_DepthProbeDistance, sampler_DepthProbeDistance, p, 0).r;
+        if (dot(p, p) >= stored * stored)
+        {
+            hit = true;
+            break;
+        }
+        before = t;
+        t *= growth;
+    }
+
+    UNITY_BRANCH if (hit)
+    {
+        float after = t;
+        UNITY_LOOP
+        for (int j = 0; j < kDepthProbeRefine; j++)
+        {
+            float mid = 0.5 * (before + after);
+            float3 p = origin + dirWS * mid;
+            float stored = SAMPLE_TEXTURECUBE_LOD(_DepthProbeDistance, sampler_DepthProbeDistance, p, 0).r;
+            if (dot(p, p) >= stored * stored)
+                after = mid;
+            else
+                before = mid;
+        }
+        t = after;
+    }
+
+    float3 hitDir = normalize(origin + dirWS * t);
+    return _DepthProbe.SampleGrad(sampler_DepthProbe, hitDir, dirDX, dirDY).rgb;
 }
 
 struct MirrorSurface
@@ -173,7 +234,7 @@ struct MirrorSurface
     half3 cameraReflection;
     half  cameraAmount;
 
-    // Used when it is not. Own material: diffuse to light, specular already scaled by metalness.
+    // Fallback material. Specular is already scaled by metalness.
     half3 fallbackAlbedo;
     half3 fallbackSpecular;
 
@@ -223,23 +284,43 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
 #endif
     half fresnel = pow(1.0h - saturate(dot(s.normalWS, viewDirWS)), _FresnelPower);
 
-    // FROM CAMERA. Reflectivity is head on. Fresnel takes it to 1 at grazing.
-    s.cameraReflection = SampleMirror(mirrorUV, blurScale).rgb * _ReflectionTint.rgb;
+    // Live reflection, skipped when faded out. Alpha is 0 where nothing was drawn.
+    // Reflectivity is head on, Fresnel takes it to 1 at grazing.
+    half coverage = 0.0h;
+    UNITY_BRANCH if (_MirrorBlend > 0.001)
+    {
+        half4 live = SampleMirror(mirrorUV, blurScale);
+        s.cameraReflection = live.rgb * _ReflectionTint.rgb;
+        coverage = live.a;
+    }
     s.cameraAmount = saturate(lerp(_Reflectivity, 1.0h, fresnel) * mask.r);
 
-    // FALLBACK. Still PBR. The environment is a colour or a probe.
-    // Metalness splits diffuse from specular the same either way.
+    // Fallback. The environment is a colour or a probe, split into diffuse and specular by metalness.
     half3 environment = _FallbackEnvColor.rgb;
-#ifdef _PROBE_FALLBACK
-    environment = SampleMirrorProbe(positionWS, s.normalWS, viewDirWS, 1.0h - mask.a * _Smoothness, screenUV);
-#endif
+    UNITY_BRANCH if (_Environment > 0.5 && _Environment < 1.5)
+        environment = SampleMirrorProbe(positionWS, s.normalWS, viewDirWS, 1.0h - mask.a * _Smoothness, screenUV);
 
     half metallic = _Metallic * mask.r;
     half3 f0 = lerp(half3(0.04h, 0.04h, 0.04h), _FallbackColor.rgb, metallic);
     s.fallbackAlbedo = _FallbackColor.rgb * (1.0h - metallic);
     s.fallbackSpecular = environment * lerp(f0, half3(1, 1, 1), fresnel);
 
-    s.blend = _MirrorBlend;
+    // With a background the environment fills what the reflection left empty.
+    s.blend = _MirrorBlend * lerp(1.0h, coverage, _MirrorBackground);
+
+    // Depth probe replaces the fallback material.
+    float3 probeDir = reflect(-viewDirWS, s.normalWS);
+    float3 probeDirDX = ddx(probeDir);
+    float3 probeDirDY = ddy(probeDir);
+    UNITY_BRANCH if (_Environment > 1.5)
+    {
+        UNITY_BRANCH if (s.blend < 0.999)
+        {
+            half3 probe = SampleDepthProbe(positionWS, probeDir, probeDirDX, probeDirDY) * _ReflectionTint.rgb;
+            s.cameraReflection = lerp(probe, s.cameraReflection, s.blend);
+        }
+        s.blend = 1.0h;
+    }
     return s;
 }
 

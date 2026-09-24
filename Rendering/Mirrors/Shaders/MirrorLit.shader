@@ -24,17 +24,22 @@ Shader "EDIVE/Mirror Lit"
         _Smoothness("Fallback Smoothness", Range(0,1)) = 1
 
         [HideInInspector] _MirrorBlend("Distance Blend", Range(0,1)) = 1
-        _FallbackEnvColor("Fallback Environment Color", Color) = (0,0,0,0)
+        [HideInInspector] _MirrorBackground("__mirrorBackground", Float) = 0
+        [HideInInspector] _FallbackEnvColor("__fallbackEnvColor", Color) = (0,0,0,0)
         _Alpha("Alpha", Range(0,1)) = 1
         _Cutoff("Alpha Cutoff", Range(0,1)) = 0.5
 
-        [HideInInspector] _ProbeFallback("__probeFallback", Float) = 0
+        [HideInInspector] _Environment("__environment", Float) = 0
         [HideInInspector] _BoxProjection("__boxProjection", Float) = 0
         [HideInInspector] _FallbackCubemap("Fallback Cubemap", Cube) = "" {}
         [HideInInspector] _FallbackCubemapHDR("__fallbackHDR", Vector) = (1,1,0,0)
         [HideInInspector] _FallbackProbePos("__fallbackProbePos", Vector) = (0,0,0,0)
         [HideInInspector] _FallbackBoxMin("__fallbackBoxMin", Vector) = (0,0,0,0)
         [HideInInspector] _FallbackBoxMax("__fallbackBoxMax", Vector) = (0,0,0,0)
+        [HideInInspector] _DepthProbe("Depth Probe", Cube) = "" {}
+        [HideInInspector] _DepthProbeDistance("Depth Probe Distance", Cube) = "" {}
+        [HideInInspector] _DepthProbePos("__depthProbePos", Vector) = (0,0,0,0)
+        [HideInInspector] _DepthProbeSteps("__depthProbeSteps", Float) = 16
 
         [HideInInspector] _MirrorEye("MirrorEye", Float) = -1
         [HideInInspector] _MirrorFlipY("MirrorFlipY", Float) = 0
@@ -87,9 +92,6 @@ Shader "EDIVE/Mirror Lit"
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local_fragment _MASKMAP
             #pragma shader_feature_local_fragment _BLUR_ON
-            #pragma shader_feature_local_fragment _PROBE_FALLBACK
-            #pragma shader_feature_local_fragment _BOXPROJECTION_ON
-            #pragma shader_feature_local_fragment _PROBE_EXPLICIT
 
             // GlossyEnvironmentReflection needs these. Without them the atlas and blending paths compile out.
             #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
@@ -177,8 +179,7 @@ Shader "EDIVE/Mirror Lit"
                 return output;
             }
 
-            // Diffuse only. The reflection gives all the specular.
-            // A BRDF lobe here would double every light.
+            // Diffuse only. The reflection is the specular, a BRDF lobe would double every light.
             half3 MirrorDiffuseLighting(Varyings input, half3 normalWS, float2 screenUV)
             {
                 half4 shadowMask = half4(1, 1, 1, 1);

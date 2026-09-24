@@ -101,6 +101,8 @@ namespace EDIVE.Rendering.Mirrors
 
         private MirrorResources _resources;
         private ReflectionPlanner _planner;
+        private Material _fadeMaterial;
+        private MirrorBackgroundFadePass _fadePass;
         private readonly Dictionary<Camera, FrameSkipState> _frameSkip = new();
         private readonly Dictionary<Camera, int> _sharedFrame = new();
         private readonly Dictionary<MirrorSurface, ReflectionBinding> _finalBindings = new();
@@ -159,6 +161,11 @@ namespace EDIVE.Rendering.Mirrors
             _resources?.Dispose();
             _resources = null;
             _planner = null;
+
+            if (_fadeMaterial != null)
+                CoreUtils.Destroy(_fadeMaterial);
+            _fadeMaterial = null;
+            _fadePass = null;
             _rendering = false;
             _preallocated = false;
             _pruneCounter = 0;
@@ -326,11 +333,11 @@ namespace EDIVE.Rendering.Mirrors
 
             // The view matrix is mirrored, so Matrix4x4.rotation returns garbage. Build it from the axes.
             var cameraToWorld = view.inverse;
-            var rotation = Quaternion.LookRotation(-(Vector3) cameraToWorld.GetColumn(2), (Vector3) cameraToWorld.GetColumn(1));
+            var rotation = Quaternion.LookRotation(-(Vector3) cameraToWorld.GetColumn(2), cameraToWorld.GetColumn(1));
             reflectionCamera.transform.SetPositionAndRotation(cameraToWorld.GetColumn(3), rotation);
         }
 
-        private void GetCenterStereo(Camera renderCamera, out Matrix4x4 view, out Matrix4x4 projection, out float eyeSeparation)
+        private static void GetCenterStereo(Camera renderCamera, out Matrix4x4 view, out Matrix4x4 projection, out float eyeSeparation)
         {
             var leftView = renderCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Left);
             var rightView = renderCamera.GetStereoViewMatrix(Camera.StereoscopicEye.Right);
@@ -422,6 +429,7 @@ namespace EDIVE.Rendering.Mirrors
                     var flipY = ShouldFlip(renderCamera, step.Depth);
                     surface.SetEye(eye);
                     surface.SetFlipY(flipY);
+                    surface.SetBackground(_Profile.EnvironmentBackground);
 
                     if (step.BeyondRange || step.Depth >= recursions + 1)
                     {
@@ -532,6 +540,8 @@ namespace EDIVE.Rendering.Mirrors
             }
 #endif
 
+            EnqueueBackgroundFade(reflectionCamera, step.CullingMatrix);
+
 #pragma warning disable CS0618 // RenderSingleCamera is obsolete. SubmitRenderRequest recurses here.
             UniversalRenderPipeline.RenderSingleCamera(context, reflectionCamera);
 #pragma warning restore CS0618
@@ -539,8 +549,33 @@ namespace EDIVE.Rendering.Mirrors
             GL.invertCulling = false;
         }
 
-        // URP scales a target texture camera too, so the reflection needs a scale of one to fill its
-        // texture. It also pushes whatever it reads onto the XR display, so that has to go back with it.
+        // URP drops the queue after each render, so this goes in every time.
+        private void EnqueueBackgroundFade(Camera reflectionCamera, Matrix4x4 cullingMatrix)
+        {
+            var fade = _Profile.BackgroundFade;
+            if (fade <= 0f || _Profile.BackgroundFadeShader == null)
+                return;
+
+            if (_fadePass == null)
+            {
+                _fadeMaterial = CoreUtils.CreateEngineMaterial(_Profile.BackgroundFadeShader);
+                _fadePass = new MirrorBackgroundFadePass(_fadeMaterial);
+            }
+
+            // URP only honours the camera's renderer for game cameras. The rest get the default one.
+            var isGame = reflectionCamera.cameraType is CameraType.Game or CameraType.VR;
+            var urpRenderer = isGame
+                ? reflectionCamera.GetUniversalAdditionalCameraData().scriptableRenderer
+                : UniversalRenderPipeline.asset != null ? UniversalRenderPipeline.asset.scriptableRenderer : null;
+            if (urpRenderer == null)
+                return;
+
+            _fadePass.SetFadeLength(fade);
+            _fadePass.SetCullingMatrix(cullingMatrix);
+            urpRenderer.EnqueuePass(_fadePass);
+        }
+
+        // URP scales target texture cameras too and pushes the scale to XR. Set one, then restore it.
         private static void ApplyRenderScale(float scale)
         {
             if (UniversalRenderPipeline.asset == null)
@@ -570,15 +605,20 @@ namespace EDIVE.Rendering.Mirrors
             reflectionCamera.rect = new Rect(0, 0, 1, 1);
             reflectionCamera.cullingMask = _Profile.RenderLayers;
             reflectionCamera.targetTexture = null;
-            // Off by default: the virtual eye sits behind the glass, so the baked data can lie.
+            // The virtual eye sits behind the glass, so baked occlusion can be wrong.
             reflectionCamera.useOcclusionCulling = _Profile.OcclusionCulling;
 
-            // The tight culling frustum reads this. Without a clamp the beam runs all the way to the
-            // camera far plane, which in a deep room is most of the scene.
+            // Culling reads this. Unclamped, the beam reaches the camera far plane.
             if (_Profile.FarClip > 0f)
                 reflectionCamera.farClipPlane = Mathf.Min(renderCamera.farClipPlane, _Profile.FarClip);
 
-            if (_Profile.OverrideClearFlags)
+            // Transparent clear marks what the reflection did not draw.
+            if (_Profile.EnvironmentBackground)
+            {
+                reflectionCamera.clearFlags = CameraClearFlags.SolidColor;
+                reflectionCamera.backgroundColor = Color.clear;
+            }
+            else if (_Profile.OverrideClearFlags)
             {
                 reflectionCamera.clearFlags = _Profile.ClearFlags;
                 reflectionCamera.backgroundColor = _Profile.ClearColor;
@@ -607,7 +647,7 @@ namespace EDIVE.Rendering.Mirrors
             if (_resources.IsReflectionCamera(cam))
                 return false;
 
-            if (cam.cameraType == CameraType.Reflection || cam.cameraType == CameraType.Preview)
+            if (cam.cameraType is CameraType.Reflection or CameraType.Preview)
                 return false;
 
 #if UNITY_EDITOR

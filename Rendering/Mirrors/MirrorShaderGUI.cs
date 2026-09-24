@@ -23,14 +23,10 @@ namespace EDIVE.Rendering.Mirrors
         private static readonly GUIContent REFRACTION = EditorGUIUtility.TrTextContent("Refraction", "Bends the reflection with the normal map.");
 
         private static readonly GUIContent FALLBACK_HEADER = EditorGUIUtility.TrTextContent("Fallback");
-        private static readonly GUIContent SOURCE = EditorGUIUtility.TrTextContent("Environment", "What the fallback material reflects.");
-        private static readonly GUIContent FALLBACK_ENV_COLOR = EditorGUIUtility.TrTextContent("Color");
-        private static readonly GUIContent BOX_PROJECTION = EditorGUIUtility.TrTextContent("Box Projection", "Fit the probe to its box.");
         private static readonly GUIContent FALLBACK_COLOR = EditorGUIUtility.TrTextContent("Base Color");
         private static readonly GUIContent METALLIC = EditorGUIUtility.TrTextContent("Metallic", "1 is a mirror tinted by Base Color. 0 is a plain diffuse surface.");
         private static readonly GUIContent SMOOTHNESS = EditorGUIUtility.TrTextContent("Smoothness");
-
-        private static readonly string[] SOURCE_NAMES = { "Color", "Reflection Probe" };
+        private static readonly GUIContent ENVIRONMENT_NOTE = EditorGUIUtility.TrTextContent("The environment is set on the Mirror Surface.");
 
         private const string BUMP_MAP_PROP = "_BumpMap";
         private const string BUMP_SCALE_PROP = "_BumpScale";
@@ -45,23 +41,16 @@ namespace EDIVE.Rendering.Mirrors
         private const string FRESNEL_POWER_PROP = "_FresnelPower";
         private const string BLUR_PROP = "_Blur";
         private const string REFRACTION_PROP = "_Refraction";
-        private const string PROBE_FALLBACK_PROP = "_ProbeFallback";
-        private const string FALLBACK_ENV_COLOR_PROP = "_FallbackEnvColor";
-        private const string BOX_PROJECTION_PROP = "_BoxProjection";
         private const string FALLBACK_COLOR_PROP = "_FallbackColor";
         private const string METALLIC_PROP = "_Metallic";
         private const string SMOOTHNESS_PROP = "_Smoothness";
 
         private const string MASK_MAP_KEYWORD = "_MASKMAP";
         private const string BLUR_KEYWORD = "_BLUR_ON";
-        private const string PROBE_FALLBACK_KEYWORD = "_PROBE_FALLBACK";
-        private const string BOX_PROJECTION_KEYWORD = "_BOXPROJECTION_ON";
 
         // FindProperty needs the name, material reads want the id.
         private static readonly int MASK_MAP_ID = Shader.PropertyToID(MASK_MAP_PROP);
         private static readonly int BLUR_ID = Shader.PropertyToID(BLUR_PROP);
-        private static readonly int PROBE_FALLBACK_ID = Shader.PropertyToID(PROBE_FALLBACK_PROP);
-        private static readonly int BOX_PROJECTION_ID = Shader.PropertyToID(BOX_PROJECTION_PROP);
 
         private MaterialProperty _bumpMap;
         private MaterialProperty _bumpScale;
@@ -78,9 +67,6 @@ namespace EDIVE.Rendering.Mirrors
         private MaterialProperty _blur;
         private MaterialProperty _refraction;
 
-        private MaterialProperty _probeFallback;
-        private MaterialProperty _fallbackEnvColor;
-        private MaterialProperty _boxProjection;
         private MaterialProperty _fallbackColor;
         private MaterialProperty _metallic;
         private MaterialProperty _smoothness;
@@ -104,9 +90,6 @@ namespace EDIVE.Rendering.Mirrors
             _blur = FindProperty(BLUR_PROP, properties, false);
             _refraction = FindProperty(REFRACTION_PROP, properties, false);
 
-            _probeFallback = FindProperty(PROBE_FALLBACK_PROP, properties, false);
-            _fallbackEnvColor = FindProperty(FALLBACK_ENV_COLOR_PROP, properties, false);
-            _boxProjection = FindProperty(BOX_PROJECTION_PROP, properties, false);
             _fallbackColor = FindProperty(FALLBACK_COLOR_PROP, properties, false);
             _metallic = FindProperty(METALLIC_PROP, properties, false);
             _smoothness = FindProperty(SMOOTHNESS_PROP, properties, false);
@@ -121,10 +104,6 @@ namespace EDIVE.Rendering.Mirrors
         {
             CoreUtils.SetKeyword(material, MASK_MAP_KEYWORD, material.GetTexture(MASK_MAP_ID));
             CoreUtils.SetKeyword(material, BLUR_KEYWORD, material.GetFloat(BLUR_ID) > 0f);
-
-            var probe = material.GetFloat(PROBE_FALLBACK_ID) > 0.5f;
-            CoreUtils.SetKeyword(material, PROBE_FALLBACK_KEYWORD, probe);
-            CoreUtils.SetKeyword(material, BOX_PROJECTION_KEYWORD, probe && material.GetFloat(BOX_PROJECTION_ID) > 0.5f);
         }
 
         public override void DrawSurfaceInputs(Material material)
@@ -143,7 +122,6 @@ namespace EDIVE.Rendering.Mirrors
             DrawTileOffset(materialEditor, baseMapProp);
         }
 
-        // Two foldouts. Reflection and fallback are set up separately.
         private const uint CAMERA_FOLDOUT = 1u << 3;
         private const uint FALLBACK_FOLDOUT = 1u << 4;
 
@@ -171,26 +149,7 @@ namespace EDIVE.Rendering.Mirrors
 
         private void DrawFallback()
         {
-            if (_probeFallback == null)
-                return;
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.showMixedValue = _probeFallback.hasMixedValue;
-            var source = EditorGUILayout.Popup(SOURCE, (int) _probeFallback.floatValue, SOURCE_NAMES);
-            EditorGUI.showMixedValue = false;
-            if (EditorGUI.EndChangeCheck())
-            {
-                materialEditor.RegisterPropertyChangeUndo(SOURCE.text);
-                _probeFallback.floatValue = source;
-            }
-
-            EditorGUI.indentLevel++;
-            if (source == 0)
-                Draw(_fallbackEnvColor, FALLBACK_ENV_COLOR);
-            else
-                Draw(_boxProjection, BOX_PROJECTION);
-            EditorGUI.indentLevel--;
-
+            EditorGUILayout.HelpBox(ENVIRONMENT_NOTE.text, MessageType.None);
             Draw(_fallbackColor, FALLBACK_COLOR);
             Draw(_metallic, METALLIC);
             Draw(_smoothness, SMOOTHNESS);
@@ -203,7 +162,7 @@ namespace EDIVE.Rendering.Mirrors
         }
 
         // Vectors are float4. Only XY used.
-        private void DrawVector2(MaterialProperty property, GUIContent label)
+        private static void DrawVector2(MaterialProperty property, GUIContent label)
         {
             if (property == null)
                 return;

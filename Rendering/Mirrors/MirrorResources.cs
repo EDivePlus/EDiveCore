@@ -53,7 +53,7 @@ namespace EDIVE.Rendering.Mirrors
             if (_reflectionCameras.TryGetValue(source, out var existing) && existing != null)
                 return existing;
 
-            // Visible and inspectable. Not saved, and every frame overwrites it, so edits do not stick.
+            // Visible for debugging. Not saved, and overwritten every frame.
             var go = new GameObject($"{CAMERA_NAME_PREFIX} for {source.name}", typeof(Camera), typeof(Skybox))
             {
                 hideFlags = HideFlags.DontSave
@@ -142,8 +142,7 @@ namespace EDIVE.Rendering.Mirrors
                 texture.InUse = false;
         }
 
-        // Gone, or not served since the last sweep. Otherwise every camera that stops rendering
-        // keeps a reflection texture alive.
+        // Drops cameras that are gone or were not served since the last sweep, freeing their textures.
         public void Prune()
         {
             _deadCameras.Clear();
@@ -178,8 +177,7 @@ namespace EDIVE.Rendering.Mirrors
             _tick++;
         }
 
-        // Asking whether the camera is enabled does not work. A scene view camera is driven by hand
-        // and reads disabled, so it used to be thrown away and rebuilt every sweep.
+        // Not by enabled. The scene view camera reads disabled.
         private bool IsStale(Camera camera)
         {
             return camera == null || !_lastUsedTick.TryGetValue(camera, out var tick) || tick != _tick;
@@ -221,7 +219,7 @@ namespace EDIVE.Rendering.Mirrors
             _lastUsedTick.Clear();
         }
 
-        private RenderTexture CreateTexture(MirrorProfile profile, Vector2Int size, bool allowMsaa, string name)
+        private static RenderTexture CreateTexture(MirrorProfile profile, Vector2Int size, bool allowMsaa, string name)
         {
             var texture = new RenderTexture(profile.GetDescriptor(size, allowMsaa))
             {

@@ -2,11 +2,7 @@ using UnityEngine;
 
 namespace EDIVE.Rendering.Mirrors
 {
-    /// <summary>
-    /// A box a mirror is allowed to see into. Listed on a MirrorSurface, it trims the culling
-    /// frustum down to what the boxes cover, so the reflection stops at the room instead of
-    /// running to the far plane.
-    /// </summary>
+    // A box a mirror may see into. Trims its culling so the reflection stops at the room.
     [DisallowMultipleComponent]
     public class MirrorVisibilityVolume : MonoBehaviour
     {

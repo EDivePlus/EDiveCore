@@ -1,6 +1,7 @@
 using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.XR;
 
@@ -42,7 +43,7 @@ namespace EDIVE.Rendering.Mirrors
         private Vector2Int _FixedResolution = new(512, 512);
 
         [SerializeField]
-        [Tooltip("Share of the eye, before the mirror size is taken into account.")]
+        [Tooltip("Fraction of the eye resolution.")]
         [ShowIf(nameof(_ResolutionMode), MirrorResolutionMode.ScreenFraction)]
         [Range(0.05f, 1f)]
         private float _ScreenFraction = 1f;
@@ -52,7 +53,7 @@ namespace EDIVE.Rendering.Mirrors
         private RenderTextureFormat _Format = RenderTextureFormat.Default;
 
         [SerializeField]
-        [Tooltip("16 is cheaper. Try it on mobile VR, watch for z fighting.")]
+        [Tooltip("16 is cheaper. Watch for z fighting.")]
         private MirrorDepthBits _DepthBits = MirrorDepthBits.High;
 
         [SerializeField]
@@ -68,41 +69,40 @@ namespace EDIVE.Rendering.Mirrors
         private FilterMode _FilterMode = FilterMode.Bilinear;
 
         [SerializeField]
-        [Tooltip("What happens past the texture edge. Blur and refraction go there.")]
+        [Tooltip("Used where blur and refraction sample past the edge.")]
         private TextureWrapMode _WrapMode = TextureWrapMode.Mirror;
 
         [SerializeField]
-        [Tooltip("Made up front. Avoids a hitch on first use.")]
+        [Tooltip("Created up front to avoid a hitch on first use.")]
         [MinValue(0)]
         private int _PreallocatedTextures = 1;
-
-        [Title("Cost")]
+        
+        [PropertySpace]
         [SerializeField]
         [Tooltip("Shared Center halves the VR cost. Per Eye gives the reflection real depth.")]
         private MirrorStereoEyeMode _StereoEyeMode = MirrorStereoEyeMode.SharedCenter;
-
-        [PropertySpace]
+        
         [SerializeField]
         [Tooltip("How many times a mirror can show another mirror.")]
         [PropertyRange(1, 8)]
         private int _Recursions = 1;
 
         [SerializeField]
-        [Tooltip("Frames to skip between updates. The reflection stays glued, only parallax lags.")]
+        [Tooltip("Frames skipped between updates. Only parallax lags.")]
         [MinValue(0)]
         private int _UpdateInterval;
 
         [SerializeField]
-        [Tooltip("Far plane for the reflection only. 0 inherits the camera. The single biggest cost lever.")]
+        [Tooltip("Reflection far plane. 0 uses the camera's. The biggest cost lever.")]
         [MinValue(0f)]
         private float _FarClip;
 
         [SerializeField]
-        [Tooltip("Cull the reflection against baked occlusion. The virtual eye sits behind the glass, so check the mirror still looks right.")]
+        [Tooltip("Uses baked occlusion. The virtual eye is behind the glass, so check it still looks right.")]
         private bool _OcclusionCulling;
 
         [SerializeField]
-        [Tooltip("Scales the quality level's LOD bias for the reflection. Lower drops to cheaper meshes sooner. Only bites if the scene has LOD groups.")]
+        [Tooltip("Scales the LOD bias for the reflection. Lower switches to cheaper LODs sooner.")]
         [PropertyRange(0.05f, 1f)]
         private float _LodBias = 1f;
 
@@ -119,11 +119,10 @@ namespace EDIVE.Rendering.Mirrors
         private bool _RenderShadows;
 
         [SerializeField]
-        [Tooltip("Usually wasted. The screen gets post processing anyway.")]
+        [Tooltip("Usually wasted, the screen gets it anyway.")]
         private bool _RenderPostProcessing;
 
         [SerializeField]
-
         private CameraOverrideOption _OpaqueTexture = CameraOverrideOption.Off;
 
         [SerializeField]
@@ -133,18 +132,37 @@ namespace EDIVE.Rendering.Mirrors
         private bool _DisablePixelLights = true;
 
         [SerializeField]
+        [Tooltip("Shows the mirror environment past the far clip instead of the skybox. Pair with a short Far Clip.")]
+        [InfoBox("Format has no alpha, so the background never shows.", InfoMessageType.Warning, nameof(FormatLacksAlpha))]
+        [InfoBox("Post processing drops alpha unless Alpha Processing is on in the URP asset.", InfoMessageType.Warning,
+            "@_EnvironmentBackground && _RenderPostProcessing")]
+        private bool _EnvironmentBackground;
+
+        [SerializeField]
+        [ShowIf(nameof(_EnvironmentBackground))]
+        [Tooltip("Softens the far edge over this many metres. Optional, costs a depth copy. 0 turns it off.")]
+        [MinValue(0f)]
+        private float _BackgroundFade = 2f;
+
+        [SerializeField]
+        [HideInInspector]
+        private Shader _BackgroundFadeShader;
+
+        [SerializeField]
+        [HideIf(nameof(_EnvironmentBackground))]
         [Tooltip("Empty uses the camera skybox.")]
         private Material _CustomSkybox;
 
         [SerializeField]
+        [HideIf(nameof(_EnvironmentBackground))]
         private bool _OverrideClearFlags;
 
         [SerializeField]
-        [ShowIf(nameof(_OverrideClearFlags))]
+        [ShowIf("@_OverrideClearFlags && !_EnvironmentBackground")]
         private CameraClearFlags _ClearFlags = CameraClearFlags.Color;
 
         [SerializeField]
-        [ShowIf(nameof(_OverrideClearFlags))]
+        [ShowIf("@_OverrideClearFlags && !_EnvironmentBackground")]
         private Color _ClearColor = Color.black;
 
         [PropertySpace]
@@ -154,7 +172,7 @@ namespace EDIVE.Rendering.Mirrors
         private float _FrustumPadding = 0.02f;
 
         [SerializeField]
-        [Tooltip("Pulls the culling near plane in front of the mirror. Stops things touching the glass vanishing.")]
+        [Tooltip("Moves the culling near plane in front of the glass so touching objects stay.")]
         [Range(0f, 0.5f)]
         private float _CullingNearOffset = 0.05f;
 
@@ -168,7 +186,7 @@ namespace EDIVE.Rendering.Mirrors
         public int UpdateInterval => Mathf.Max(0, _UpdateInterval);
         public float FarClip => Mathf.Max(0f, _FarClip);
         public bool OcclusionCulling => _OcclusionCulling;
-        // Zero means a profile saved before this field existed. Treat it as no change, not as the floor.
+        // Zero comes from profiles saved before this field. Treat it as 1.
         public float LodBias => _LodBias <= 0f ? 1f : Mathf.Clamp(_LodBias, 0.05f, 1f);
         public LayerMask RenderLayers => _RenderLayers;
         public int RendererIndex => Mathf.Max(0, _RendererIndex);
@@ -178,6 +196,9 @@ namespace EDIVE.Rendering.Mirrors
         public CameraOverrideOption DepthTexture => _DepthTexture;
         public bool DisablePixelLights => _DisablePixelLights;
         public Material CustomSkybox => _CustomSkybox;
+        public bool EnvironmentBackground => _EnvironmentBackground;
+        public float BackgroundFade => _EnvironmentBackground ? Mathf.Max(0f, _BackgroundFade) : 0f;
+        public Shader BackgroundFadeShader => _BackgroundFadeShader;
         public bool OverrideClearFlags => _OverrideClearFlags;
         public CameraClearFlags ClearFlags => _ClearFlags;
         public Color ClearColor => _ClearColor;
@@ -232,7 +253,12 @@ namespace EDIVE.Rendering.Mirrors
             };
         }
 
-        // OnValidate is editor only.
+        private bool FormatLacksAlpha()
+        {
+            return _EnvironmentBackground && !GraphicsFormatUtility.HasAlphaChannel(GraphicsFormatUtility.GetGraphicsFormat(_Format, false));
+        }
+
+        // For runtime changes. OnValidate is editor only.
         public void NotifyChanged()
         {
             Changed?.Invoke();
@@ -240,6 +266,10 @@ namespace EDIVE.Rendering.Mirrors
 
         private void OnValidate()
         {
+            // Serialized so builds include it.
+            if (_BackgroundFadeShader == null)
+                _BackgroundFadeShader = Shader.Find("Hidden/EDIVE/MirrorBackgroundFade");
+
             Changed?.Invoke();
         }
     }
