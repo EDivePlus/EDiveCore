@@ -2,6 +2,7 @@
 // Created: 02.04.2025
 
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 
 namespace EDIVE.Core.Services
@@ -24,20 +25,20 @@ namespace EDIVE.Core.Services
         public void SubscribeOnChange<T>(Action<T> handler) where T : class, IService;
         public void UnsubscribeOnChange<T>(Action<T> handler) where T : class, IService;
         
-        public void WhenRegistered<T>(Action<T> action) where T : class, IService;
-        public void WhenRegistered<T, T2>(Action<T, T2> action)
+        public IDisposable WhenRegistered<T>(Action<T> action) where T : class, IService;
+        public IDisposable WhenRegistered<T, T2>(Action<T, T2> action)
             where T : class, IService
             where T2 : class, IService;
-        public void WhenRegistered<T, T2, T3>(Action<T, T2, T3> action)
+        public IDisposable WhenRegistered<T, T2, T3>(Action<T, T2, T3> action)
             where T : class, IService
             where T2 : class, IService
             where T3 : class, IService;
         
-        public UniTask<T> AwaitRegistered<T>() where T : class, IService;
-        public UniTask<(T, T2)> AwaitRegistered<T, T2>()
+        public UniTask<T> AwaitRegistered<T>(CancellationToken cancellationToken = default) where T : class, IService;
+        public UniTask<(T, T2)> AwaitRegistered<T, T2>(CancellationToken cancellationToken = default)
             where T : class, IService
             where T2 : class, IService;
-        public UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>()
+        public UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>(CancellationToken cancellationToken = default)
             where T : class, IService
             where T2 : class, IService
             where T3 : class, IService;

@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -140,50 +142,60 @@ namespace EDIVE.Core.Services
                 wrapper.ServiceChanged -= handler;
         }
         
-        public UniTask<T> AwaitRegistered<T>() where T : class, IService
+        public async UniTask<T> AwaitRegistered<T>(CancellationToken cancellationToken = default) where T : class, IService
         {
             var wrapper = GetServiceWrapper<T>();
-            return wrapper.HasService ? UniTask.FromResult(wrapper.Service) : wrapper.CompletionSource.Task;
+            
+            if (wrapper.HasService)
+                return wrapper.Service;
+            
+            return await wrapper.CompletionSource.Task.AttachExternalCancellation(cancellationToken);
         }
         
-        public async UniTask<(T, T2)> AwaitRegistered<T, T2>() 
+        public async UniTask<(T, T2)> AwaitRegistered<T, T2>(CancellationToken cancellationToken = default) 
             where T : class, IService
             where T2 : class, IService
         {
-            var t = await AwaitRegistered<T>();
-            var t2 = await AwaitRegistered<T2>();
+            var t = await AwaitRegistered<T>(cancellationToken);
+            var t2 = await AwaitRegistered<T2>(cancellationToken);
             return (t, t2);
         }
         
-        public async UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>() 
+        public async UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>(CancellationToken cancellationToken = default) 
             where T : class, IService
             where T2 : class, IService
             where T3 : class, IService
         {
-            var t = await AwaitRegistered<T>();
-            var t2 = await AwaitRegistered<T2>();
-            var t3 = await AwaitRegistered<T3>();
+            var t = await AwaitRegistered<T>(cancellationToken);
+            var t2 = await AwaitRegistered<T2>(cancellationToken);
+            var t3 = await AwaitRegistered<T3>(cancellationToken);
             return (t, t2, t3);
         }
         
-        public void WhenRegistered<T>(Action<T> action) where T : class, IService
+        public IDisposable WhenRegistered<T>(Action<T> action) where T : class, IService
         {
-            AwaitRegistered<T>().ContinueWith(r => action?.Invoke(r));
+            var cts =  new CancellationTokenSource();
+            AwaitRegistered<T>(cts.Token).ContinueWith(r => action?.Invoke(r));
+            return DisposableUtils.Create(cts.Cancel);
         }
         
-        public void WhenRegistered<T, T2>(Action<T, T2> action)
+        public IDisposable WhenRegistered<T, T2>(Action<T, T2> action)
             where T : class, IService
             where T2 : class, IService
         {
-            AwaitRegistered<T, T2>().ContinueWith(r => action?.Invoke(r.Item1, r.Item2));
+            var cts =  new CancellationTokenSource();
+            AwaitRegistered<T, T2>(cts.Token).ContinueWith(r => action?.Invoke(r.Item1, r.Item2));
+            return DisposableUtils.Create(cts.Cancel);
         }
         
-        public void WhenRegistered<T, T2, T3>(Action<T, T2, T3> action)
+        public IDisposable WhenRegistered<T, T2, T3>(Action<T, T2, T3> action)
             where T : class, IService
             where T2 : class, IService
             where T3 : class, IService
         {
-            AwaitRegistered<T, T2, T3>().ContinueWith(r => action?.Invoke(r.Item1, r.Item2, r.Item3));
+            var cts =  new CancellationTokenSource();
+            AwaitRegistered<T, T2, T3>(cts.Token).ContinueWith(r => action?.Invoke(r.Item1, r.Item2, r.Item3));
+            return DisposableUtils.Create(cts.Cancel);
         }
         
         private interface IServiceWrapper

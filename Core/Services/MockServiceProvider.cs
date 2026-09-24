@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.NativeUtils;
 using UnityEngine;
 
 namespace EDIVE.Core.Services
@@ -75,34 +76,37 @@ namespace EDIVE.Core.Services
             PrintMockMessage(nameof(IsRegisteredWith));
         }
 
-        public void WhenRegistered<T>(Action<T> action) where T : class, IService
+        public IDisposable WhenRegistered<T>(Action<T> action) where T : class, IService
         {
             PrintMockMessage(nameof(WhenRegistered));
+            return DisposableUtils.Empty;
         }
 
-        public void WhenRegistered<T, T2>(Action<T, T2> action) where T : class, IService where T2 : class, IService
+        public IDisposable WhenRegistered<T, T2>(Action<T, T2> action) where T : class, IService where T2 : class, IService
         {
             PrintMockMessage(nameof(WhenRegistered));
+            return DisposableUtils.Empty;
         }
 
-        public void WhenRegistered<T, T2, T3>(Action<T, T2, T3> action) where T : class, IService where T2 : class, IService where T3 : class, IService
+        public IDisposable WhenRegistered<T, T2, T3>(Action<T, T2, T3> action) where T : class, IService where T2 : class, IService where T3 : class, IService
         {
             PrintMockMessage(nameof(WhenRegistered));
+            return DisposableUtils.Empty;
         }
 
-        public UniTask<T> AwaitRegistered<T>() where T : class, IService
+        public UniTask<T> AwaitRegistered<T>(CancellationToken cancellationToken = default) where T : class, IService
         {
             PrintMockMessage(nameof(AwaitRegistered));
             return UniTask.Never<T>(CancellationToken.None);
         }
 
-        public UniTask<(T, T2)> AwaitRegistered<T, T2>() where T : class, IService where T2 : class, IService
+        public UniTask<(T, T2)> AwaitRegistered<T, T2>(CancellationToken cancellationToken = default) where T : class, IService where T2 : class, IService
         {
             PrintMockMessage(nameof(AwaitRegistered));
             return UniTask.Never<(T, T2)>(CancellationToken.None);
         }
 
-        public UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>() where T : class, IService where T2 : class, IService where T3 : class, IService
+        public UniTask<(T, T2, T3)> AwaitRegistered<T, T2, T3>(CancellationToken cancellationToken = default) where T : class, IService where T2 : class, IService where T3 : class, IService
         {
             PrintMockMessage(nameof(AwaitRegistered));
             return UniTask.Never<(T, T2, T3)>(CancellationToken.None);
