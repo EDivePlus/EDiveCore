@@ -108,7 +108,8 @@ namespace EDIVE.UIElements.Selectables
 
             if (_Direction == Direction.Clockwise)
             {
-                _Value = 1 - (finalRotation.eulerAngles.z / 360f);
+                // Repeat keeps the rest angle at 0 instead of 1
+                _Value = Mathf.Repeat(1 - finalRotation.eulerAngles.z / 360f, 1f);
 
                 if (_SnapToPosition)
                 {

@@ -32,13 +32,18 @@ namespace EDIVE.UIElements
         
         private static string GetInitials(string name)
         {
-            var parts = name.Split(' ');
-            return parts.Length == 1 ? parts[0][..1].ToUpper() : (parts[0][..1] + parts[1][..1]).ToUpper();
+            var parts = (name ?? string.Empty).Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length switch
+            {
+                0 => string.Empty,
+                1 => parts[0][..1].ToUpper(),
+                _ => (parts[0][..1] + parts[1][..1]).ToUpper()
+            };
         }
         
         private static Color ColorFromString(string input)
         {
-            var hash = Mathf.Abs(input.GetHashCode());
+            var hash = Mathf.Abs((input ?? string.Empty).GetHashCode());
             var hue = (hash % 360) / 360f;
             return Color.HSVToRGB(hue, 0.6f, 0.45f);
         }

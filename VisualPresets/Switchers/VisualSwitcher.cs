@@ -58,9 +58,10 @@ namespace EDIVE.VisualPresets.Switchers
         
         public void Apply(IEnumerable<VisualPreset> presets)
         {
+            if (presets == null) return;
             foreach (var bundle in presets)
             {
-                if (bundle == null) return;
+                if (bundle == null) continue;
                 Apply(bundle);
             }
         }

@@ -176,7 +176,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
         
-        protected override Tween GetTween(Transform target) => target.DOMove(target.position + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(Transform target) => target.DOMove(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
     
     [Serializable]
@@ -188,7 +188,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
         
-        protected override Tween GetTween(Transform target) => target.DOMoveX(target.position.x + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(Transform target) => target.DOMoveX(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
     
     [Serializable]
@@ -200,7 +200,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
         
-        protected override Tween GetTween(Transform target) => target.DOMoveY(target.position.y + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(Transform target) => target.DOMoveY(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
     
     [Serializable]
@@ -212,7 +212,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
         
-        protected override Tween GetTween(Transform target) => target.DOMoveZ(target.position.z + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(Transform target) => target.DOMoveZ(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
     
     [Serializable]

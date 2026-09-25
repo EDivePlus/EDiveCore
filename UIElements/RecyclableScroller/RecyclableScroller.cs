@@ -572,10 +572,13 @@ namespace EDIVE.UIElements.RecyclableScroller
             AnimationCurve velocityCurve = null;
             if (options.TweenTime > 0 && !Mathf.Approximately(velocity, 0f))
             {
-                var distance = _scrollPosition + offset - newScrollPosition;
+                var distance = newScrollPosition - _scrollPosition;
                 if (!Mathf.Approximately(distance, 0f))
                 {
-                    var startTangent = velocity / options.TweenTime / distance;
+                    // Curve slope is in normalized units: position speed * time / distance.
+                    // Vertical content velocity grows with scroll position, horizontal shrinks it.
+                    var positionVelocity = IsVertical ? velocity : -velocity;
+                    var startTangent = Mathf.Clamp(positionVelocity * options.TweenTime / distance, -3f, 3f);
                     velocityCurve = new AnimationCurve(
                         new Keyframe(0f, 0f, -startTangent, startTangent),
                         new Keyframe(1f, 1f, 0f, 0f));
@@ -893,7 +896,13 @@ namespace EDIVE.UIElements.RecyclableScroller
 
         private void SetSpacers()
         {
-            if (ItemCount == 0) return;
+            if (ItemCount == 0)
+            {
+                SetSpacerSize(LeadingSpacer, 0);
+                SetSpacerSize(TrailingSpacer, 0);
+                return;
+            }
+
 
             var firstSize = _itemOffsetArray[StartItemIndex] - _itemSizeArray[StartItemIndex];
             var lastSize = _itemOffsetArray[^1] - _itemOffsetArray[EndItemIndex];

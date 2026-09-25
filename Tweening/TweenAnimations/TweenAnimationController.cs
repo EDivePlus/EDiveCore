@@ -82,9 +82,11 @@ namespace EDIVE.Tweening
         private TweenSequence _Sequence = new ();
 
         private bool IsLoopSequence => _Loops != 0;
-        public bool IsPlaying => _tweener != null && _tweener.IsPlaying();
-        public bool IsPaused => _tweener != null && _tweener.IsInitialized() && !_tweener.IsPlaying() && !_tweener.IsComplete();
-        public bool IsInitialized => _tweener != null && _tweener.IsInitialized();
+        // Completed tweens get killed by DOTween, the reference stays but is dead
+        private bool IsActive => _tweener != null && _tweener.IsActive();
+        public bool IsPlaying => IsActive && _tweener.IsPlaying();
+        public bool IsPaused => IsActive && _tweener.IsInitialized() && !_tweener.IsPlaying() && !_tweener.IsComplete();
+        public bool IsInitialized => IsActive && _tweener.IsInitialized();
 
         private Sequence _tweener;
 
@@ -213,7 +215,7 @@ namespace EDIVE.Tweening
                     break;
                 
                 case PlayAction.PlayOrResume:
-                    if(_tweener == null) Play();
+                    if (!IsActive) Play();
                     else Resume();
                     break;
                 

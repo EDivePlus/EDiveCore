@@ -44,6 +44,19 @@ namespace EDIVE.Input.Touch
         private float _totalMovement;
         private bool _hasFreshDelta;
 
+        // Pointer up never arrives while disabled, a held pointer would lock the pad for good
+        protected override void OnDisable()
+        {
+            if (_activePointerId != -1)
+            {
+                _activePointerId = -1;
+                _accumDelta = Vector2.zero;
+                _hasFreshDelta = false;
+                SendValueToControl(Vector2.zero);
+            }
+            base.OnDisable();
+        }
+
         public void OnPointerDown(PointerEventData eventData)
         {
             if (_activePointerId != -1) return;

@@ -96,7 +96,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
 
-        protected override Tween GetTween(RectTransform target) => target.DOAnchorPos(target.anchoredPosition + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(RectTransform target) => target.DOAnchorPos(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
 
     [Serializable]
@@ -108,7 +108,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
 
-        protected override Tween GetTween(RectTransform target) => target.DOAnchorPosX(target.anchoredPosition.x + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(RectTransform target) => target.DOAnchorPosX(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
 
     [Serializable]
@@ -120,7 +120,7 @@ namespace EDIVE.Tweening.ObjectActions
         [SerializeField]
         private bool _Snapping;
 
-        protected override Tween GetTween(RectTransform target) => target.DOAnchorPosY(target.anchoredPosition.y + _EndValue, _Duration, _Snapping);
+        protected override Tween GetTween(RectTransform target) => target.DOAnchorPosY(_EndValue, _Duration, _Snapping).SetRelative(true);
     }
 
     [Serializable]

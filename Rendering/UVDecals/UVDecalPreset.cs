@@ -63,7 +63,8 @@ namespace EDIVE.Rendering.UVDecals
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(_Placement, _Texture, _Tint, _OverrideSmoothness, _Scale, _Anchor, _Pivot, _Rotation);
+            // Approx compared floats left out
+            return HashCode.Combine(_Placement, _Texture, _Tint, _OverrideSmoothness, _Scale, _Anchor, _Pivot);
         }
     }
 }

@@ -36,7 +36,7 @@ namespace EDIVE.Tweening.StateHandling
                     continue;
                 }
 
-                if (!objectPreset.Target.TryGetTempValue(out var target))
+                if (objectPreset.Target == null || !objectPreset.Target.TryGetTempValue(out var target))
                     continue;
 
                 TweenCallback applyAction = () => objectPreset.ApplyTo(target);
