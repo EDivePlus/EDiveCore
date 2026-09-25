@@ -21,7 +21,7 @@ namespace EDIVE.EyeTracking.Oculus
         
         private readonly Subject<EyeGazeFrame> _eyeGazeStream = new();
   
-        private readonly UniTaskCompletionSource _permissionCompletionSource = new();
+        private readonly UniTaskCompletionSource<bool> _permissionCompletionSource = new();
         private CancellationTokenSource _trackingCancellation;
         
         public override UniTask Initialize()
@@ -30,26 +30,36 @@ namespace EDIVE.EyeTracking.Oculus
             
             if (OVRPermissionsRequester.IsPermissionGranted(OVRPermissionsRequester.Permission.EyeTracking))
             {
-                _permissionCompletionSource.TrySetResult();
+                _permissionCompletionSource.TrySetResult(true);
             }
             else
             {
-                //OVRPermissionsRequester.Request(new[] {OVRPermissionsRequester.Permission.EyeTracking});
-                OVRPermissionsRequester.PermissionGranted -= OnPermissionGranted;
-                OVRPermissionsRequester.PermissionGranted += OnPermissionGranted;
+                RequestPermission();
             }
 
             Debug.Log("[EyeTrackingManager] Oculus EyeTracking Module Initialized");
             return UniTask.CompletedTask;
         }
 
-        private void OnPermissionGranted(string permissionId)
+        // Android callback may come off main thread
+        private async UniTask<bool> WaitForPermission()
         {
-            if (permissionId != OVRPermissionsRequester.GetPermissionId(OVRPermissionsRequester.Permission.EyeTracking))
-                return;
-            
-            _permissionCompletionSource.TrySetResult();
-            OVRPermissionsRequester.PermissionGranted -= OnPermissionGranted;
+            var granted = await _permissionCompletionSource.Task;
+            await UniTask.SwitchToMainThread();
+            return granted;
+        }
+
+        // Denied resolves false, so start never hangs
+        private void RequestPermission()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            var callbacks = new UnityEngine.Android.PermissionCallbacks();
+            callbacks.PermissionGranted += _ => _permissionCompletionSource.TrySetResult(true);
+            callbacks.PermissionDenied += _ => _permissionCompletionSource.TrySetResult(false);
+            UnityEngine.Android.Permission.RequestUserPermission(OVRPermissionsRequester.GetPermissionId(OVRPermissionsRequester.Permission.EyeTracking), callbacks);
+#else
+            _permissionCompletionSource.TrySetResult(false);
+#endif
         }
         
         public override void Terminate()
@@ -73,8 +83,21 @@ namespace EDIVE.EyeTracking.Oculus
             }
 
             Debug.Log($"[EyeTrackingManager] Waiting for Oculus EyeTracking permission...");
-            _permissionCompletionSource.Task.ContinueWith(() =>
+            WaitForPermission().ContinueWith(granted =>
             {
+                if (this == null)
+                    return;
+                if (!granted)
+                {
+                    Debug.LogWarning("[OculusEyeTrackingModule] Eye tracking permission denied.");
+                    callback?.Invoke(false);
+                    return;
+                }
+                if (IsTracking)
+                {
+                    callback?.Invoke(true);
+                    return;
+                }
                 if (!OVRPlugin.StartEyeTracking())
                 {
                     Debug.LogWarning("[OculusEyeTrackingModule] Failed to start eye tracking.");
