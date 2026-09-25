@@ -128,6 +128,11 @@ namespace EDIVE.Audio
             }
         }
         
+        // Saved mic name meaning user picked no mic
+        public const string NO_MICROPHONE = "<none>";
+
+        public bool IsMicrophoneDisabled => CurrentMicrophoneName == NO_MICROPHONE;
+
         public string CurrentMicrophoneName
         {
             get => PlayerPrefs.GetString("Audio_MicName", string.Empty);
@@ -140,6 +145,52 @@ namespace EDIVE.Audio
             InitializeAudioInput();
             InitializeVoiceChat();
             return UniTask.CompletedTask;
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            var manager = NetworkManager.main;
+            if (manager != null)
+            {
+                if (_uniVoiceClient != null)
+                    manager.Unsubscribe<PurrNetBroadcast>(OnClientReceivedAudioMessage, asServer: false);
+                if (_uniVoiceServer != null)
+                    manager.Unsubscribe<PurrNetBroadcast>(OnServerReceivedAudioMessage, asServer: true);
+            }
+
+            if (_capturingFilter != null)
+                _capturingFilter.AudioFrameCaptured -= OnVoiceChatFrameCaptured;
+
+            if (_uniVoiceClient != null)
+            {
+                _uniVoiceClient.OnJoined -= OnVoiceChatClientJoined;
+                _uniVoiceClient.OnLeft -= OnVoiceChatClientLeft;
+                _uniVoiceClient.OnPeerJoined -= OnVoiceChatPeerJoined;
+                _uniVoiceClient.OnPeerLeft -= OnVoiceChatPeerLeft;
+            }
+
+            if (_currentAudioInput is UniMicInput uniMicInput)
+                uniMicInput.Device.StopRecording();
+            if (_currentAudioInput != null)
+                _currentAudioInput.OnFrameReady -= OnRawAudioFrameReady;
+
+            // Session disposes client and input
+            if (_voiceChatSession != null)
+                _voiceChatSession.Dispose();
+            else
+                _currentAudioInput?.Dispose();
+            _voiceChatSession = null;
+            _uniVoiceClient = null;
+            _currentAudioInput = null;
+
+            if (_uniVoiceServer != null)
+            {
+                _uniVoiceServer.OnServerStart -= OnVoiceChatServerStarted;
+                _uniVoiceServer.OnServerStop -= OnVoiceChatServerStopped;
+                _uniVoiceServer.Dispose();
+                _uniVoiceServer = null;
+            }
         }
 
         private static string VolumePrefKey(string parameter) => $"Audio_Volume_{parameter}";
@@ -265,7 +316,8 @@ namespace EDIVE.Audio
         {
             Debug.Log($"[AudioManager] Peer '{playerID}' joined the chatroom");
 
-            var output = _voiceChatSession.PeerOutputs[playerID] as StreamedAudioSourceOutput;
+            _voiceChatSession.PeerOutputs.TryGetValue(playerID, out var peerOutput);
+            var output = peerOutput as StreamedAudioSourceOutput;
             if (output == null)
             {
                 Debug.LogError($"[AudioManager] Could not get StreamedAudioSourceOutput for peer {playerID}");
@@ -460,8 +512,16 @@ namespace EDIVE.Audio
         {
             if (_voiceChatSession == null)
                 return false;
+
+            // Null means no mic
+            if (micName == null || micName == NO_MICROPHONE)
+            {
+                CurrentMicrophoneName = NO_MICROPHONE;
+                RefreshAudioInput();
+                return true;
+            }
             
-            if (micName == null || !TryFindAvailableMicrophoneDevice(micName, out _))
+            if (!TryFindAvailableMicrophoneDevice(micName, out _))
                 return false;
             
             CurrentMicrophoneName = micName;
@@ -540,6 +600,10 @@ namespace EDIVE.Audio
             // if voice chat is enabled we will get frames from OnVoiceChatFrameCaptured
             if (_voiceChatSession == null || _voiceChatSession.InputEnabled)
                 return;
+
+            // Muted mic stays out of replay
+            if (VoiceChatMuted)
+                return;
             
             if (UserAudioFrameReady == null)
                 return;
@@ -559,7 +623,7 @@ namespace EDIVE.Audio
 
         private Mic.Device ResolveMicrophone()
         {
-            if (!_microphonePermissionGranted || !AllowMic)
+            if (!_microphonePermissionGranted || !AllowMic || IsMicrophoneDisabled)
                 return null;
             
             var availableMics = Mic.AvailableDevices;

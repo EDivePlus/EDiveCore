@@ -32,7 +32,9 @@ namespace EDIVE.Environment.SceneSetup
         
         public bool CheckAvailable(SceneSetupDefinition setup)
         {
-            return _SetupRestrictions.Count == 0 || _SetupRestrictions.Any(s => s.UniqueID == setup.UniqueID);
+            if (_SetupRestrictions.Count == 0)
+                return true;
+            return setup != null && _SetupRestrictions.Any(s => s != null && s.UniqueID == setup.UniqueID);
         }
 
         public abstract bool TryGetLocation(PlayerID player, out Vector3 position, out Quaternion? rotation);

@@ -80,7 +80,8 @@ namespace EDIVE.StagePlay
         {
             foreach (var selector in _Selectors)
             {
-                selector.DefinitionSelected += OnDefinitionSelected;
+                if (selector != null)
+                    selector.DefinitionSelected += OnDefinitionSelected;
             }
             _HomeActivation?.RegisterActivationListener(OnHomeActivated);
             _ToggleActivation?.RegisterActivationListener(ToggleTablet);
@@ -92,7 +93,8 @@ namespace EDIVE.StagePlay
             _HomeActivation?.UnregisterActivationListener(OnHomeActivated);
             foreach (var selector in _Selectors)
             {
-                selector.DefinitionSelected -= OnDefinitionSelected;
+                if (selector != null)
+                    selector.DefinitionSelected -= OnDefinitionSelected;
             }
         }
 

@@ -27,12 +27,12 @@ namespace EDIVE.StagePlay
         
         private void OnEnable()
         {
-            _Activation.RegisterActivationListener(OnActivated);
+            _Activation?.RegisterActivationListener(OnActivated);
         }
 
         private void OnDisable()
         {
-            _Activation.UnregisterActivationListener(OnActivated);
+            _Activation?.UnregisterActivationListener(OnActivated);
         }
         
         private void OnActivated()

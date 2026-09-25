@@ -52,7 +52,10 @@ namespace EDIVE.Audio
             _audioManager = audioManager;
             _microphones = _audioManager.GetAvailableMicrophones().ToList();
             _microphones.Insert(0, "None");
-            var currentIndex = Mathf.Max(0, _microphones.IndexOf(_audioManager.CurrentMicrophoneName));
+            // Unknown saved name falls back to first mic, same as manager
+            var currentIndex = _audioManager.IsMicrophoneDisabled
+                ? 0
+                : _microphones.IndexOf(_audioManager.CurrentMicrophoneName) is var index and > 0 ? index : Mathf.Min(1, _microphones.Count - 1);
             
             if (_MicDropdown)
             {

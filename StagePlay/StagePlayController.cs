@@ -72,9 +72,9 @@ namespace EDIVE.StagePlay
         [Button]
         public void IncrementCurrentSegment()
         {
-            if (CurrentState == null)
+            if (CurrentState == null || _Definition == null || _Definition.ScriptSegments.Count == 0)
                 return;
-            var newIndex = Mathf.Clamp(CurrentState.CurrentSegmentIndex + 1, 0, _Definition.ScriptSegments.Count - 1) ;
+            var newIndex = Mathf.Clamp(CurrentState.CurrentSegmentIndex + 1, 0, _Definition.ScriptSegments.Count - 1);
             SetCurrentSegment(newIndex);
         }
         

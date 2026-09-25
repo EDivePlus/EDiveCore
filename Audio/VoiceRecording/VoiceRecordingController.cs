@@ -38,6 +38,8 @@ namespace EDIVE.Audio.VoiceRecording
         private void OnDisable()
         {
             _ToggleRecordingActivation?.UnregisterActivationListener(ToggleRecording);
+            if (_voiceRecordingManager != null)
+                _voiceRecordingManager.RecordingStateChanged -= OnVoiceRecordingStateChanged;
         }
         
         [Button]
@@ -52,6 +54,9 @@ namespace EDIVE.Audio.VoiceRecording
             if (!_voiceRecordingManager.Recording)
             {
                 _voiceRecordingManager.StartRecording();
+                // Auto stop at max duration
+                _voiceRecordingManager.RecordingStateChanged -= OnVoiceRecordingStateChanged;
+                _voiceRecordingManager.RecordingStateChanged += OnVoiceRecordingStateChanged;
                 ShowRecordingUI();
             }
             else

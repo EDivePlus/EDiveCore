@@ -20,7 +20,7 @@ namespace EDIVE.Audio
 
         private void Update()
         {
-            if (_audioOutput != null)
+            if (_audioOutput != null && _PeerRoot != null)
                 _audioOutput.transform.position = _PeerRoot.position;
         }
     }

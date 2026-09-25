@@ -86,7 +86,8 @@ namespace EDIVE.StagePlay.UI
 
         private void OnDestroy()
         {
-            _Controller.DefinitionChanged -= UpdateDefinition;
+            if (_Controller != null)
+                _Controller.DefinitionChanged -= UpdateDefinition;
             if (_Scroller != null)
                 _Scroller.ItemWillRecycle -= OnItemWillRecycle;
         }
@@ -152,6 +153,8 @@ namespace EDIVE.StagePlay.UI
         [Button]
         public void JumpToCurrentSegment()
         {
+            if (_currentState == null || _segmentsList == null || _segmentsList.Count == 0)
+                return;
             _Scroller.JumpToDataIndex(_currentState.CurrentSegmentIndex, new RecyclableScroller.JumpOptions
             {
                 ScrollerOffset = _AutoScrollScrollerOffset,
