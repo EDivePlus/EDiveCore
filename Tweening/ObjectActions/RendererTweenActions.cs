@@ -31,11 +31,8 @@ namespace EDIVE.Tweening.ObjectActions
         {
             if (!property.TryGetParentObject<ObjectTweenSegment>(out var segment) || segment.Target is not Renderer renderer)
                 return;
-            
-            if (materialIndex < 0)
-                renderer.SetPropertyBlock(null);
-            else
-                renderer.SetPropertyBlock(null, materialIndex);
+
+            renderer.ClearPropertyBlock(materialIndex);
         }
 #endif
     }
@@ -87,21 +84,9 @@ namespace EDIVE.Tweening.ObjectActions
         [InlineIconButton(FontAwesomeEditorIconType.BroomSolid, "ClearPropertyBlock", "Clear property block")]
         protected string _Property;
 
-        protected void GetBlock(Renderer renderer, MaterialPropertyBlock block)
-        {
-            if (_MaterialIndex < 0)
-                renderer.GetPropertyBlock(block);
-            else
-                renderer.GetPropertyBlock(block, _MaterialIndex);
-        }
+        protected void GetBlock(Renderer renderer, MaterialPropertyBlock block) => renderer.GetPropertyBlockAt(block, _MaterialIndex);
 
-        protected void SetBlock(Renderer renderer, MaterialPropertyBlock block)
-        {
-            if (_MaterialIndex < 0)
-                renderer.SetPropertyBlock(block);
-            else
-                renderer.SetPropertyBlock(block, _MaterialIndex);
-        }
+        protected void SetBlock(Renderer renderer, MaterialPropertyBlock block) => renderer.SetPropertyBlockAt(block, _MaterialIndex);
 
         protected Material GetMaterial(Renderer renderer)
         {

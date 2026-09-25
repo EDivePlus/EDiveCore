@@ -35,6 +35,9 @@ namespace EDIVE.NativeUtils
 
         public static void SafeDestroy(this Object go, bool immediate = false)
         {
+            if (go == null)
+                return;
+
             if (!Application.isPlaying || immediate)
                 Object.DestroyImmediate(go);
             else
