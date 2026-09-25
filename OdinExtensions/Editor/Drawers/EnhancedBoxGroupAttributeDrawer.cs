@@ -66,11 +66,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (Attribute.Alignment != ContentAlignment.Left) GUILayout.FlexibleSpace();
             EditorGUILayout.BeginVertical();
             
-            var style = new GUIStyle(SirenixGUIStyles.Label);
-            if (Attribute.Bold)
-            {
-                style.fontStyle = FontStyle.Bold;
-            }
+            var style = Attribute.Bold ? SirenixGUIStyles.BoldLabel : SirenixGUIStyles.Label;
             
             SirenixEditorGUI.BeginBox();
             GUI.backgroundColor = previousBgColor;
