@@ -25,6 +25,8 @@ namespace EDIVE.Replay.Network
 
         public override UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(CancellationToken cancellationToken = default)
         {
+            if (_Prefab == null)
+                return UniTask.FromResult((false, (ReplayAgentHandler) null));
             var netObj = UnityEngine.Object.Instantiate(_Prefab);
             
             var networkManager = NetworkManager.main;
@@ -32,7 +34,10 @@ namespace EDIVE.Replay.Network
                 netObj.GiveOwnership(networkManager.localPlayer);
 
             if (!netObj.TryGetComponent<ReplayAgentHandler>(out var handler))
+            {
+                UnityEngine.Object.Destroy(netObj.gameObject);
                 return UniTask.FromResult((false, (ReplayAgentHandler) null));
+            }
 
             handler.SetDespawnDelegate(h => UnityEngine.Object.Destroy(h.gameObject));
             return UniTask.FromResult((true, handler));

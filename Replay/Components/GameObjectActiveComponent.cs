@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EDIVE.Replay.Agents;
 using EDIVE.Utils.Cysharp;
 using MemoryPack;
@@ -20,6 +21,28 @@ namespace EDIVE.Replay.Components
         
         public GameObjectActiveComponent() { }
         public GameObjectActiveComponent(GameObject target, ComponentData data) : base(target, data) { }
+
+        private bool _hasRestoreState;
+        private bool _restoreActive;
+
+        public override UniTask PreparePlayback(float startTime, CancellationToken cancellationToken = default)
+        {
+            if (_Target != null && !_hasRestoreState)
+            {
+                _restoreActive = _Target.activeSelf;
+                _hasRestoreState = true;
+            }
+            return base.PreparePlayback(startTime, cancellationToken);
+        }
+
+        public override void OnPlaybackUnloaded()
+        {
+            if (_hasRestoreState && _Target != null && _Target.activeSelf != _restoreActive)
+                _Target.SetActive(_restoreActive);
+            _hasRestoreState = false;
+        }
+
+        public override void OnAgentTerminating() => _Data?.MarkTerminating();
         
         [Serializable]
         [MemoryPackable, MemoryPackUnionTag(2)]
@@ -30,16 +53,24 @@ namespace EDIVE.Replay.Components
             public ComponentData() { }
             public ComponentData(string id, List<FramePreset> frames) : base(id, frames) { }
 
-            private ReplayAgent _currentAgent;
+            private bool _terminating;
+
+            public void MarkTerminating() => _terminating = true;
 
             public override void StartRecording(float startTime, GameObject target, ReplayRecordingConfig config, CancellationToken cancellationToken = default)
             {
+                _terminating = false;
                 // Set inactive for previous frames if started during recording.
                 if (startTime != 0)
                     _Frames.Add(new FramePreset(startTime, false));
 
                 base.StartRecording(startTime, target, config, cancellationToken);
-                cancellationToken.Register(() => { _Frames.Add(new FramePreset(UnityEngine.Time.time - _startTimestamp + startTime, false)); });
+                // Destroyed object ends inactive, normal stop keeps real state
+                cancellationToken.Register(() =>
+                {
+                    var active = !_terminating && target != null && target.activeSelf;
+                    _Frames.Add(new FramePreset(UnityEngine.Time.time - _startTimestamp + startTime, active));
+                });
             }
 
             protected override FramePreset Capture(GameObject target, float time) => new(time, target.activeSelf);

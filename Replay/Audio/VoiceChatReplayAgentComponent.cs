@@ -50,8 +50,14 @@ namespace EDIVE.Replay.Audio
                 return;
             }
             
-            _ownerUserID = networkBehaviour.owner!.Value;
-            _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (!networkBehaviour.owner.HasValue)
+            {
+                Debug.LogError("VoiceChatReplayAgentComponent target has no owner!");
+                return;
+            }
+            _ownerUserID = networkBehaviour.owner.Value;
+            // Frames stored on replay timeline
+            _startTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(startTime * 1000f);
 
             audioManager.UserAudioFrameReady += WriteAudioFrame;
             cancellationToken.Register(() =>
@@ -72,21 +78,31 @@ namespace EDIVE.Replay.Audio
 
         public override UniTask PreparePlayback(float startTime, CancellationToken cancellationToken = default)
         {
+            Seek(startTime);
+            return UniTask.CompletedTask;
+        }
+
+        // Reset index and buffer to time, prefeed initial buffer
+        private void Seek(float startTime)
+        {
+            _playbackIndex = -1;
             if (_Data == null || _AudioOutput == null)
-                return UniTask.CompletedTask;
+                return;
 
             _AudioOutput.SetPlaybackEnabled(false);
+            _AudioOutput.ClearBuffer();
             var timelineOffsetMs = (long)(startTime * 1000f);
-            _playbackIndex = -1;
-            if (!_Data.BinarySearchFrameIndex(timelineOffsetMs, out _playbackIndex))
-                return UniTask.CompletedTask;
-            
+            if (!_Data.BinarySearchFrameIndex(timelineOffsetMs, out var index))
+                return;
+
+            _playbackIndex = index;
             FeedBufferedData(timelineOffsetMs + _AudioOutput.InitialBufferSize);
-            return UniTask.CompletedTask;
         }
 
         public override void StartPlayback(float startTime, CancellationToken cancellationToken = default)
         {
+            // Resume or seek, index may be stale
+            Seek(startTime);
             if (_playbackIndex < 0)
                 return;
             
@@ -220,8 +236,8 @@ namespace EDIVE.Replay.Audio
                 _Configs = configs;
             }
             
-            public override float GetMinTime() => _AudioFrames != null && _AudioFrames.Any() ? _AudioFrames.First()._Timestamp : 0f;
-            public override float GetMaxTime() => _AudioFrames != null && _AudioFrames.Any() ? _AudioFrames.Last()._Timestamp : 0f;
+            public override float GetMinTime() => _AudioFrames != null && _AudioFrames.Any() ? _AudioFrames.First()._Timestamp / 1000f : 0f;
+            public override float GetMaxTime() => _AudioFrames != null && _AudioFrames.Any() ? _AudioFrames.Last()._Timestamp / 1000f : 0f;
 
             public override AReplayAgentComponentData GetCopy() => new ComponentData(ID, _AudioFrames.ToList(), _Configs.ToList());
             

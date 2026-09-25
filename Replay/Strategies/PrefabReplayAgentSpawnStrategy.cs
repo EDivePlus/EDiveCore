@@ -24,6 +24,8 @@ namespace EDIVE.Replay.Strategies
 
         public override UniTask<(bool, ReplayAgentHandler)> TrySpawnObjectAsync(CancellationToken cancellationToken = default)
         {
+            if (_Prefab == null)
+                return UniTask.FromResult((false, (ReplayAgentHandler) null));
             var handler = Object.Instantiate(_Prefab);
             handler.SetDespawnDelegate(h => Object.Destroy(h.gameObject));
             return UniTask.FromResult((true, handler));

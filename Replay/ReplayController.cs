@@ -107,7 +107,7 @@ namespace EDIVE.Replay
 
         public PlaybackLoadState PlaybackLoadState => CurrentHandler?.PlaybackLoadState ?? PlaybackLoadState.NotLoaded;
         public bool IsPlaybackLoaded => CurrentHandler?.IsPlaybackLoaded ?? false;
-        public bool IsPlaybackLoading => CurrentHandler?.IsPlaybackLoaded ?? false;
+        public bool IsPlaybackLoading => CurrentHandler?.IsPlaybackLoading ?? false;
         public bool IsPlaybackPlaying => CurrentHandler?.IsPlaybackPlaying ?? false;
 
         public void StartPlayback() => CurrentHandler?.StartPlayback();

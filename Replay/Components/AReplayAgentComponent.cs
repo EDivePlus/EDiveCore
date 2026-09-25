@@ -36,6 +36,12 @@ namespace EDIVE.Replay.Components
         public virtual UniTask PreparePlayback(float startTime, CancellationToken cancellationToken = default) => UniTask.CompletedTask;
         public abstract void StartPlayback(float startTime, CancellationToken cancellationToken = default);
         public abstract void ApplyTime(float time);
+
+        // Agent is going away, called before its recording is cancelled
+        public virtual void OnAgentTerminating() { }
+
+        // Playback unloaded for found scene object, undo playback changes
+        public virtual void OnPlaybackUnloaded() { }
         public abstract void ClearData(float startTime = 0f);
         
 #if UNITY_EDITOR
