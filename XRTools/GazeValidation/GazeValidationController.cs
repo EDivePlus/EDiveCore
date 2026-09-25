@@ -41,7 +41,8 @@ namespace EDIVE.XRTools.GazeValidation
         {
             foreach (var target in _Targets)
             {
-                target.SetSelected(false);
+                if (target != null)
+                    target.SetSelected(false);
             }
             
             if (_GazeTraceToggle != null)
@@ -61,13 +62,23 @@ namespace EDIVE.XRTools.GazeValidation
         
         private void OnDisable()
         {
+            if (_GazeTraceToggle != null)
+                _GazeTraceToggle.onValueChanged.RemoveListener(OnGazeTraceToggleChanged);
+            
+            if (_DwellSelectToggle != null)
+                _DwellSelectToggle.onValueChanged.RemoveListener(OnDwellSelectToggleChanged);
+            
+            if (_ReactionChallengeToggle != null)
+                _ReactionChallengeToggle.onValueChanged.RemoveListener(OnReactionChallengeToggleChanged);
+            
             foreach (var target in _Targets)
             {
                 if (target == null)
                     continue;
                 target.SetSelected(false);
-                target.HoverStateChanged -= OnReactionChallengeToggleChanged;
+                target.HoverStateChanged -= OnTargetHoverChanged;
             }
+            _currentReactionChallengeTarget = null;
         }
         
         private void OnGazeTraceToggleChanged(bool state)
@@ -93,7 +104,7 @@ namespace EDIVE.XRTools.GazeValidation
                 if (target == null)
                     continue;
                 target.SelectOnHover = true;
-                target.HoverStateChanged -= OnReactionChallengeToggleChanged;
+                target.HoverStateChanged -= OnTargetHoverChanged;
             }
         }
         
@@ -104,7 +115,8 @@ namespace EDIVE.XRTools.GazeValidation
                 if (target == null)
                     continue;
                 target.SelectOnHover = false;
-                target.HoverStateChanged += OnReactionChallengeToggleChanged;
+                target.HoverStateChanged -= OnTargetHoverChanged;
+                target.HoverStateChanged += OnTargetHoverChanged;
             }
             SelectRandomTarget();
         }
@@ -127,7 +139,7 @@ namespace EDIVE.XRTools.GazeValidation
             _currentReactionChallengeTarget.SetSelected(true);
         }
 
-        private void OnReactionChallengeToggleChanged(GazeValidationTarget target, bool state)
+        private void OnTargetHoverChanged(GazeValidationTarget target, bool state)
         {
             if (target == _currentReactionChallengeTarget && state)
             {

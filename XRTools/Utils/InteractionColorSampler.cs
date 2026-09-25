@@ -71,7 +71,8 @@ namespace EDIVE.XRTools.Utils
 
         private void OnHoverExited(HoverExitEventArgs args)
         {
-            _currentInteractor = null;
+            if (_currentInteractor == args.interactorObject)
+                _currentInteractor = null;
         }
 
         private void OnSelected(SelectExitEventArgs args)
@@ -81,11 +82,11 @@ namespace EDIVE.XRTools.Utils
 
         private void Update()
         {
-            if (_currentInteractor != null && _currentInteractor.TryGetCurrentRaycastTarget(_MeshCollider, out var raycastHit))
+            if (_Texture != null && _currentInteractor != null && _currentInteractor.TryGetCurrentRaycastTarget(_MeshCollider, out var raycastHit))
             {
                 var textureCoord = raycastHit.textureCoord;
-                var newX = Mathf.RoundToInt(textureCoord.x * _Texture.width);
-                var newY = Mathf.RoundToInt(textureCoord.y * _Texture.height);
+                var newX = Mathf.Clamp(Mathf.FloorToInt(textureCoord.x * _Texture.width), 0, _Texture.width - 1);
+                var newY = Mathf.Clamp(Mathf.FloorToInt(textureCoord.y * _Texture.height), 0, _Texture.height - 1);
                 CurrentSampleColor = _Texture.GetPixel(newX, newY);
             }
             else

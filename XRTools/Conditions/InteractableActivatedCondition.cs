@@ -21,7 +21,7 @@ namespace EDIVE.XRTools.Conditions
             if (_Interactable == null)
                 return false;
 
-            foreach (var interactor in _Interactable.interactorsHovering)
+            foreach (var interactor in _Interactable.interactorsSelecting)
             {
                 if (interactor is XRBaseInputInteractor inputInteractor && inputInteractor.logicalActivateState.isPerformed)
                     return true;

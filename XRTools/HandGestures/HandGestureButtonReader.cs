@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 17.03.2026
 
+#if XR_HANDS
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
@@ -80,3 +81,4 @@ namespace EDIVE.XRTools.HandGestures
         }
     }
 }
+#endif

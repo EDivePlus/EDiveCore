@@ -27,7 +27,7 @@ namespace EDIVE.XRTools.Utils
 
         [Header("References")]
         [SerializeField]
-        [Tooltip("Transform that will be moved to the hit point. If not set, this transform is used.")]
+        [Tooltip("Moved to hit point. Must not be this transform, ray starts here.")]
         private Transform _TargetTransform;
 
         [Header("Ray")]
@@ -71,7 +71,7 @@ namespace EDIVE.XRTools.Utils
         [HideIf(nameof(_UseSmoothing), false)]
         private float _RotationSmoothTime = 0.08f;
 
-        public Transform TargetTransform => _TargetTransform != null ? _TargetTransform : transform;
+        public Transform TargetTransform => _TargetTransform;
 
         private Vector3 _positionVelocity;
         private Vector3 _rotationVelocity;
@@ -85,7 +85,8 @@ namespace EDIVE.XRTools.Utils
         public void Refresh(bool immediate = false)
         {
             var target = TargetTransform;
-            if (target == null)
+            // Moving ray origin to hit would drift
+            if (target == null || target == transform)
                 return;
 
             var origin = transform.position;
@@ -117,6 +118,12 @@ namespace EDIVE.XRTools.Utils
 
             target.position = Vector3.SmoothDamp(target.position, targetPosition, ref _positionVelocity, _PositionSmoothTime);
             target.rotation = RotationUtility.SmoothDampQuaternion(target.rotation, targetRotation, ref _rotationVelocity, _RotationSmoothTime);
+        }
+
+        private void OnValidate()
+        {
+            if (_TargetTransform == transform)
+                Debug.LogWarning($"[PlaceAtCast] {name}: target is this transform, use child or other object.", this);
         }
 
         private Vector3 GetWorldDirection()
