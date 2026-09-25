@@ -145,8 +145,9 @@ namespace EDIVE.Console
 
                     try
                     {
-                        while (System.Console.KeyAvailable)
-                            HandleKey(System.Console.ReadKey(intercept: true));
+                        // Read under lock, prompt may have taken console
+                        while (TryReadKey(out var key))
+                            HandleKey(key);
 
                         Redraw();
                     }
@@ -161,10 +162,26 @@ namespace EDIVE.Console
             catch (OperationCanceledException) { }
         }
 
+        private static bool TryReadKey(out ConsoleKeyInfo key)
+        {
+            lock (WRITE_LOCK)
+            {
+                if (RENDER_PAUSED.IsSet && System.Console.KeyAvailable)
+                {
+                    key = System.Console.ReadKey(intercept: true);
+                    return true;
+                }
+            }
+            key = default;
+            return false;
+        }
+
         private static void Redraw()
         {
             lock (WRITE_LOCK)
             {
+                if (!RENDER_PAUSED.IsSet)
+                    return;
                 var sb = new StringBuilder();
                 sb.Append(HIDE_CURSOR);
                 sb.Append(CURSOR_TO_COL0);

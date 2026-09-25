@@ -122,7 +122,7 @@ namespace EDIVE.CredentialStore
         public static ICredentialStore CreateDefault() => PLATFORM switch
         {
             RuntimePlatform.WindowsEditor => new WindowsCredentialStore(),
-            RuntimePlatform.OSXEditor => new MacKeychainCredentialStore(),
+            RuntimePlatform.OSXEditor => MacSecItemCredentialStore.IsSupported ? new MacSecItemCredentialStore() : new MacKeychainCredentialStore(),
             RuntimePlatform.LinuxEditor => new LinuxSecretToolCredentialStore(),
             _ => new UnsupportedCredentialStore(PLATFORM.ToString())
         };

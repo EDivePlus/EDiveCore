@@ -17,26 +17,27 @@ namespace EDIVE.CredentialStore
 
         public string Name => $"Unsupported ({_platform})";
 
-        public CredentialResult CheckAvailability() => Unavailable();
+        public CredentialResult CheckAvailability() => NotSupported();
 
         public CredentialResult Get(string service, string account, out string secret)
         {
             secret = null;
-            return Unavailable();
+            return NotSupported();
         }
 
-        public CredentialResult Contains(string service, string account) => Unavailable();
+        public CredentialResult Contains(string service, string account) => NotSupported();
 
-        public CredentialResult Set(string service, string account, string secret) => Unavailable();
+        public CredentialResult Set(string service, string account, string secret) => NotSupported();
 
-        public CredentialResult Delete(string service, string account) => Unavailable();
+        public CredentialResult Delete(string service, string account) => NotSupported();
 
         public CredentialResult List(out IReadOnlyList<CredentialEntry> entries)
         {
             entries = Array.Empty<CredentialEntry>();
-            return Unavailable();
+            return NotSupported();
         }
 
-        private CredentialResult Unavailable() => CredentialResult.Unavailable($"No store for {_platform}.");
+        // NotSupported is not logged as error
+        private CredentialResult NotSupported() => CredentialResult.NotSupported($"No store for {_platform}.");
     }
 }

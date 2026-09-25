@@ -51,7 +51,8 @@ namespace EDIVE.Console
     public class CustomLogHandler : ILogHandler
     {
         private readonly ILogHandler _default;
-        private readonly StreamWriter _logFile;
+        private readonly object _fileLock = new();
+        private StreamWriter _logFile;
 
         public CustomLogHandler(ILogHandler defaultHandler, string logPath)
         {
@@ -66,8 +67,8 @@ namespace EDIVE.Console
         public void LogFormat(LogType logType, Object context, string format, params object[] args)
         {
             var timestamp = GetTimeStamp();
-            var message = string.Format(format, args);
-            _logFile?.WriteLine($"{timestamp} {message}");
+            var message = args is { Length: > 0 } ? string.Format(format, args) : format;
+            WriteFile($"{timestamp} {message}");
 
 #if SPECTRE_CONSOLE
             if (PlatformUtils.IsHeadless())
@@ -82,7 +83,7 @@ namespace EDIVE.Console
         public void LogException(Exception exception, Object context)
         {
             var timestamp = GetTimeStamp();
-            _logFile?.WriteLine($"{timestamp} {exception}");
+            WriteFile($"{timestamp} {exception}");
 #if SPECTRE_CONSOLE
             if (PlatformUtils.IsHeadless())
             {
@@ -108,15 +109,37 @@ namespace EDIVE.Console
 
         private static string GetTimeStamp() => $"{DateTime.UtcNow:yyyy.MM.dd HH:mm:ss}";
 
+        // Logs come from any thread, file may be closed on quit
+        private void WriteFile(string line)
+        {
+            lock (_fileLock)
+            {
+                try
+                {
+                    _logFile?.WriteLine(line);
+                }
+                catch (Exception e) when (e is IOException or ObjectDisposedException)
+                {
+                    _logFile = null;
+                }
+            }
+        }
+        private void CloseFile()
+        {
+            lock (_fileLock)
+            {
+                _logFile?.Close();
+                _logFile = null;
+            }
+        }
         private void Shutdown()
         {
-            _logFile?.Close();
+            CloseFile();
         }
-
         public void Detach()
         {
             Application.quitting -= Shutdown;
-            _logFile?.Close();
+            CloseFile();
         }
 
 #if SPECTRE_CONSOLE

@@ -39,11 +39,14 @@ namespace EDIVE.Http.Editor
         private static readonly List<NetworkRequestLog> _logs = new();
         private static readonly Dictionary<long, NetworkRequestLog> _logsByRequestId = new();
 
+        private const int MAX_LOGS = 1000;
+
         public static IReadOnlyList<NetworkRequestLog> Logs => _logs;
 
         public static event Action<NetworkRequestLog> OnLogAdded;
         public static event Action<NetworkRequestLog> OnLogUpdated;
         public static event Action OnLogsCleared;
+        public static event Action<NetworkRequestLog> OnLogRemoved;
 
         // RestUtils events are cleared on reload, so subscribe again right after.
         [InitializeOnLoadMethod]
@@ -74,6 +77,14 @@ namespace EDIVE.Http.Editor
             _logs.Add(log);
             _logsByRequestId[e.RequestId] = log;
             OnLogAdded?.Invoke(log);
+            // Drop oldest past cap
+            while (_logs.Count > MAX_LOGS)
+            {
+                var oldest = _logs[0];
+                _logs.RemoveAt(0);
+                _logsByRequestId.Remove(oldest.Id);
+                OnLogRemoved?.Invoke(oldest);
+            }
         }
 
         private static void HandleRequestCompleted(RequestCompletedEvent e)

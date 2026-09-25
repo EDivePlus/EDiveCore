@@ -63,7 +63,7 @@ namespace EDIVE.CredentialStore
             SirenixEditorGUI.BeginHorizontalPropertyLayout(label);
 
             var fieldRect = EditorGUILayout.GetControlRect();
-            if (HasTyped && IsReleased(fieldRect))
+            if (HasTyped && IsCommitted(fieldRect))
                 Property.Tree.DelayActionUntilRepaint(Save);
 
             EditorGUI.BeginChangeCheck();
@@ -104,12 +104,11 @@ namespace EDIVE.CredentialStore
             SirenixEditorGUI.EndHorizontalPropertyLayout();
         }
 
-        private static bool IsReleased(Rect rect)
+        // Enter or click outside field, not clicks inside while typing
+        private static bool IsCommitted(Rect rect)
         {
             var e = Event.current;
-            return e.rawType == EventType.MouseUp
-                || (e.rawType == EventType.KeyDown && e.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
-                || (e.rawType == EventType.MouseDown && e.button == 1)
+            return (e.rawType == EventType.KeyDown && e.keyCode is KeyCode.Return or KeyCode.KeypadEnter)
                 || (e.rawType == EventType.MouseDown && !rect.Contains(e.mousePosition));
         }
 
@@ -164,6 +163,8 @@ namespace EDIVE.CredentialStore
 
         private void Clear()
         {
+            if (_saved && !EditorUtility.DisplayDialog("Delete password?", $"Delete stored password '{_service}:{_account}'?", "Delete", "Cancel"))
+                return;
             if (IsTargetValid)
                 Credentials.Delete(_service, _account);
 
