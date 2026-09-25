@@ -265,9 +265,11 @@ namespace EDIVE.Networking.Scenes
             }
             else if (state == ConnectionState.Disconnected)
             {
-                foreach (var pending in _serverPendingLoads.Values)
-                    pending.TrySetCanceled();
+                // Cancel runs awaiters inline, they may touch the dictionary
+                var pendingLoads = new List<UniTaskCompletionSource<SceneID>>(_serverPendingLoads.Values);
                 _serverPendingLoads.Clear();
+                foreach (var pending in pendingLoads)
+                    pending.TrySetCanceled();
                 _serverLoadedScenes.Clear();
                 _clientJoinedScenes.Clear();
             }

@@ -75,6 +75,11 @@ namespace EDIVE.Networking
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            if (_networkManager != null)
+            {
+                _networkManager.onClientConnectionState -= OnClientConnectionStateChanged;
+                _networkManager.onServerConnectionState -= OnServerConnectionStateChanged;
+            }
             AppCore.Services.Unregister(this);
         }
         
