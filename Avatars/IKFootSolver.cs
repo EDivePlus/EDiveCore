@@ -103,7 +103,7 @@ namespace EDIVE.Avatars
         private float _smoothBodyVelocity;
         
         private Vector3 _smoothOffGroundVelocity;
-        private readonly RaycastHit[] _rayHits = new RaycastHit[1];
+        private Vector3 _lastRayHit;
         private bool _initialized = false;
 
         private void Start()
@@ -114,7 +114,7 @@ namespace EDIVE.Avatars
             _initialized = true;
             _footSpacing = transform.localPosition.x;
             _currentPosition = _newPosition = _oldPosition = transform.position;
-            _currentNormal = Vector3.up;
+            _currentNormal = _newNormal = _oldNormal = Vector3.up;
             _initialLocalRotation = transform.localRotation;
             _lerp = 1;
             
@@ -145,14 +145,15 @@ namespace EDIVE.Avatars
             // Raycast to find ground position
             var rayStart = bodyAttachPosition + Vector3.up * _RayStartYOffset;
             var ray = new Ray(rayStart, Vector3.down);
-            if (Physics.RaycastNonAlloc(ray, _rayHits,  _RayLength, _WalkableLayer.value) > 0)
+            // Raycast gives nearest hit, NonAlloc gives any
+            if (Physics.Raycast(ray, out var rayHit, _RayLength, _WalkableLayer.value))
             {
-                var rayHit = _rayHits[0];
+                _lastRayHit = rayHit.point;
                 var distanceStep = Vector3.Distance(_newPosition, rayHit.point) > stepDistanceThreshold;
                 var rotationStep = Vector3.Angle(_lastStepForward, bodyForward) >= _StepRotationThreshold;
 
                 // Step decision
-                if ((distanceStep || rotationStep) && !_OtherFoot.IsMoving && _lerp >= 1)
+                if ((distanceStep || rotationStep) && (_OtherFoot == null || !_OtherFoot.IsMoving) && _lerp >= 1)
                 {
                     var targetPosition = rayHit.point;
                     if (distanceStep && bodySpeed > _MinSpeedForStep)
@@ -213,8 +214,9 @@ namespace EDIVE.Avatars
             }
             else
             {
-                _oldPosition = _newPosition;
-                _oldNormal = _newNormal;
+                // Lerp stops short of 1, snap to target
+                _currentPosition = _oldPosition = _newPosition;
+                _currentNormal = _oldNormal = _newNormal;
             }
             
             // Apply position and rotation
@@ -235,7 +237,7 @@ namespace EDIVE.Avatars
             Gizmos.color = new Color(0f, 1f, 0f, 0.9f);
             Gizmos.DrawSphere(_currentPosition, 0.05f);
             Gizmos.color = new Color(0f, 0f, 1f, 0.9f);
-            Gizmos.DrawSphere(_rayHits[0].point, 0.05f);
+            Gizmos.DrawSphere(_lastRayHit, 0.05f);
             
             var rayStart = _Body.position + (_Body.right * _footSpacing) + Vector3.up * _RayStartYOffset;
             var rayEnd = rayStart + Vector3.down * _RayLength;

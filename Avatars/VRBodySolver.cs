@@ -491,7 +491,6 @@ namespace EDIVE.Avatars
         private bool _isMoving;
         private bool _turning;
         private bool _hasLastState;
-        private readonly RaycastHit[] _rayHits = new RaycastHit[1];
 
         private void OnEnable()
         {
@@ -836,8 +835,9 @@ namespace EDIVE.Avatars
             var probeOrigin = headTargetPos - Vector3.up * _RootProbeHeadOffset;
             var range = _standingHeadHeight - _RootProbeHeadOffset + _MaxStepHeight;
             var ray = new Ray(probeOrigin, Vector3.down);
-            var targetY = Physics.RaycastNonAlloc(ray, _rayHits, range, _GroundLayers.value) > 0
-                ? _rayHits[0].point.y
+            // Raycast gives nearest hit, NonAlloc gives any
+            var targetY = Physics.Raycast(ray, out var rootHit, range, _GroundLayers.value)
+                ? rootHit.point.y
                 : headTargetPos.y - _standingHeadHeight;
 
             var position = transform.position;
@@ -975,15 +975,15 @@ namespace EDIVE.Avatars
             var rootY = transform.position.y;
 
             var ray = new Ray(footPos + Vector3.up * _MaxStepHeight, Vector3.down);
-            if (Physics.RaycastNonAlloc(ray, _rayHits, _MaxStepHeight * 2f, _GroundLayers.value) == 0)
+            if (!Physics.Raycast(ray, out var groundHit, _MaxStepHeight * 2f, _GroundLayers.value))
             {
                 // no ground, keep anim pose
                 leg.ClearGrounding();
                 return 0f;
             }
 
-            var groundY = _rayHits[0].point.y;
-            var groundNormal = _rayHits[0].normal;
+            var groundY = groundHit.point.y;
+            var groundNormal = groundHit.normal;
             var offsetTarget = groundY - rootY;
 
             // lifted feet pull down less
