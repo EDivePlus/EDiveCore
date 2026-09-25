@@ -31,20 +31,19 @@ namespace EDIVE.Audio
 
         private void OnDisable()
         {
-            if (_audioManager == null) 
-                _serviceDisposable.Dispose();
-            else
-            {
-                if (_MicDropdown)
-                {
-                    _MicDropdown.onValueChanged.RemoveListener(OnMicChanged);
-                }
+            _serviceDisposable?.Dispose();
+            _serviceDisposable = null;
 
-                if (_AllowMicToggle)
-                {
-                    _audioManager.AllowMicChanged -= OnManagerAllowMicChanged;
-                    _AllowMicToggle.onValueChanged.RemoveListener(OnAllowMicToggleChanged);
-                }
+            if (_audioManager == null)
+                return;
+
+            if (_MicDropdown)
+                _MicDropdown.onValueChanged.RemoveListener(OnMicChanged);
+
+            if (_AllowMicToggle)
+            {
+                _audioManager.AllowMicChanged -= OnManagerAllowMicChanged;
+                _AllowMicToggle.onValueChanged.RemoveListener(OnAllowMicToggleChanged);
             }
         }
 
@@ -68,8 +67,8 @@ namespace EDIVE.Audio
 
             if (_AllowMicToggle)
             {
+                _AllowMicToggle.SetIsOnWithoutNotify(_audioManager.AllowMic);
                 _AllowMicToggle.onValueChanged.AddListener(OnAllowMicToggleChanged);
-                _AllowMicToggle.isOn = _audioManager.AllowMic;
                 _audioManager.AllowMicChanged += OnManagerAllowMicChanged;
             }
         }
@@ -87,7 +86,7 @@ namespace EDIVE.Audio
 
         private void OnManagerAllowMicChanged(bool value)
         {
-            _AllowMicToggle.isOn = value;
+            _AllowMicToggle.SetIsOnWithoutNotify(value);
         }
     }
 }

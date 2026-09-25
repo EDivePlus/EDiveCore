@@ -107,6 +107,9 @@ namespace EDIVE.Audio
             get => PlayerPrefs.GetInt("Audio_AllowMic", 1) > 0;
             set
             {
+                if (AllowMic == value)
+                    return;
+
                 PlayerPrefs.SetInt("Audio_AllowMic", value ? 1 : 0);
                 AllowMicChanged?.Invoke(value);
                 RefreshAudioInput();
