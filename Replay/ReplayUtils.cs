@@ -52,7 +52,9 @@ namespace EDIVE.Replay
             await UniTask.SwitchToThreadPool();
             using var compressor = new BrotliCompressor();
             MemoryPackSerializer.Serialize(compressor, record);
-            return compressor.ToArray();
+            var bytes = compressor.ToArray();
+            await UniTask.SwitchToMainThread();
+            return bytes;
         }
         
         public static  async UniTask<T> DeserializeAsync<T>(byte[] data)
@@ -60,7 +62,9 @@ namespace EDIVE.Replay
             await UniTask.SwitchToThreadPool();
             using var decompressor = new BrotliDecompressor();
             var decompressedBuffer = decompressor.Decompress(data);
-            return MemoryPackSerializer.Deserialize<T>(decompressedBuffer);
+            var result = MemoryPackSerializer.Deserialize<T>(decompressedBuffer);
+            await UniTask.SwitchToMainThread();
+            return result;
         }
     }
 }
