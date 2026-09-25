@@ -165,7 +165,36 @@ namespace EDIVE.BuildTool
                 yield break;
 
             EditorApplication.LockReloadAssemblies();
-            yield return segmentFunction();
+
+            // Run nested routines by hand so exception fails build instead of leaving assemblies locked
+            var stack = new Stack<IEnumerator>();
+            stack.Push(segmentFunction());
+            while (stack.Count > 0)
+            {
+                object current;
+                try
+                {
+                    if (!stack.Peek().MoveNext())
+                    {
+                        stack.Pop();
+                        continue;
+                    }
+                    current = stack.Peek().Current;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                    Context.Fail($"Build segment failed in state {Context.State}: {e.Message}");
+                    break;
+                }
+                if (current is IEnumerator nested)
+                {
+                    stack.Push(nested);
+                    continue;
+                }
+                yield return current;
+            }
+
             DomainReloadUtility.RegisterSurvivor(DOMAIN_RELOAD_SURVIVOR_ID, new BuildRunnerDomainReloadSurvivor(this));
             EditorApplication.UnlockReloadAssemblies();
             yield return DomainReloadUtility.WaitWhileCompiling();
@@ -205,6 +234,9 @@ namespace EDIVE.BuildTool
             DebugLite.Log("[BuildRunner] StateCapture Actions executing");
             yield return ExecuteBuildCallback<IStateCaptureBuildCallback>(Preset.GetBuildCallbacks(Context), c => c.OnStateCapture(_Context));
             DebugLite.Log("[BuildRunner] StateCapture Actions completed");
+
+            DebugLite.Log("[BuildRunner] Applying defines");
+            SetDefineSymbols(PlatformConfig.NamedBuildTarget, Context.Defines);
         }
         
         private IEnumerator SwitchBuildTarget()
@@ -275,8 +307,11 @@ namespace EDIVE.BuildTool
             SetContextState(BuildStateType.BuildTargetRestore);
             
             DebugLite.Log("[BuildRunner] Restoring settings");
-            SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
-            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildUtils.GetNamedBuildTarget(_PrevNamedBuildTargetName), _PrevBuildTarget);
+            // Early fail may skip capture or switch
+            if (_PrevDefines != null)
+                SetDefineSymbols(PlatformConfig.NamedBuildTarget, _PrevDefines);
+            if (!string.IsNullOrEmpty(_PrevNamedBuildTargetName))
+                EditorUserBuildSettings.SwitchActiveBuildTarget(BuildUtils.GetNamedBuildTarget(_PrevNamedBuildTargetName), _PrevBuildTarget);
             CompilationPipeline.RequestScriptCompilation();
         }
 

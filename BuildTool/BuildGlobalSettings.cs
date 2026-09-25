@@ -43,7 +43,12 @@ namespace EDIVE.BuildTool
 
         public BuildUserConfig CurrentUser
         {
-            get => !string.IsNullOrEmpty(CurrentUserContext.Value) ? AssetDatabase.LoadAssetAtPath<BuildUserConfig>(AssetDatabase.GUIDToAssetPath(CurrentUserContext.Value)) : DefaultUser;
+            get
+            {
+                // Stale guid falls back to default
+                var user = !string.IsNullOrEmpty(CurrentUserContext.Value) ? AssetDatabase.LoadAssetAtPath<BuildUserConfig>(AssetDatabase.GUIDToAssetPath(CurrentUserContext.Value)) : null;
+                return user != null ? user : DefaultUser;
+            }
             set => CurrentUserContext.Value = value != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(value)) : null;
         }
         

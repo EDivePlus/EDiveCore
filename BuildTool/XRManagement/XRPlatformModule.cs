@@ -40,8 +40,12 @@ namespace EDIVE.BuildTool.XRManagement
             
             var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);
-            var pluginsSettings = buildTargetSettings.AssignedSettings;
-
+            var pluginsSettings = buildTargetSettings != null ? buildTargetSettings.AssignedSettings : null;
+            if (pluginsSettings == null)
+            {
+                Debug.LogWarning($"[XRPlatformModule] No XR settings for {buildTargetGroup}, loaders not applied.");
+                yield break;
+            }
             data._PrevLoaders = pluginsSettings.activeLoaders.ToList();
             data._PrevLoaders.ForEach(l => pluginsSettings.TryRemoveLoader(l));
             GetValidLoaders(buildTargetGroup).ForEach(l => pluginsSettings.TryAddLoader(l));
@@ -58,10 +62,13 @@ namespace EDIVE.BuildTool.XRManagement
             
             var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);
-            var pluginsSettings = buildTargetSettings.AssignedSettings;
-            
+            var pluginsSettings = buildTargetSettings != null ? buildTargetSettings.AssignedSettings : null;
+            if (pluginsSettings == null || data._PrevLoaders == null)
+                yield break;
             pluginsSettings.activeLoaders.ToList().ForEach(l => pluginsSettings.TryRemoveLoader(l));
-            data._PrevLoaders.ForEach(l => pluginsSettings.TryAddLoader(l));
+            data._PrevLoaders.Where(l => l != null).ForEach(l => pluginsSettings.TryAddLoader(l));
+            EditorUtility.SetDirty(pluginsSettings);
+            AssetDatabase.SaveAssets();
         }
         
         [Serializable]

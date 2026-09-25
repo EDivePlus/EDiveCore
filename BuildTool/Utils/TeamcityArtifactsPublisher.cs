@@ -24,7 +24,7 @@ namespace EDIVE.BuildTool.Utils
             Debug.Log("[TeamcityArtifactsPublisher] Attempting to publish artifacts to TeamCity...");
             
             var report = context.Report;
-            if (report.summary.result != BuildResult.Succeeded)
+            if (report == null || report.summary.result != BuildResult.Succeeded)
                 yield break;
 
             if (!TryGetArtifactPath(report, out var artifactPath))

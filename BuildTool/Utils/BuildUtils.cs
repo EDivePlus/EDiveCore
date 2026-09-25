@@ -93,12 +93,24 @@ namespace EDIVE.BuildTool.Utils
                     Arguments = "rev-parse --abbrev-ref HEAD"
                 };
 
-                var process = new Process();
+                using var process = new Process();
                 process.StartInfo = startInfo;
                 process.Start();
 
-                branch = process.StandardOutput.ReadLine();
-                return branch != null;
+                branch = process.StandardOutput.ReadToEnd().Trim();
+                // Not a repo or git missing, don't hang build
+                if (!process.WaitForExit(5000))
+                {
+                    process.Kill();
+                    branch = null;
+                    return false;
+                }
+                if (process.ExitCode != 0 || string.IsNullOrEmpty(branch))
+                {
+                    branch = null;
+                    return false;
+                }
+                return true;
             }
             catch (Exception e)
             {
