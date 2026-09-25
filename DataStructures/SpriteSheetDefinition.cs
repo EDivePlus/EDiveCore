@@ -15,10 +15,13 @@ namespace EDIVE.DataStructures
         private Sprite[] _Sprites;
         
         public Sprite[] Sprites => _Sprites;
-        public int Length => _Sprites.Length;
+        public int Length => _Sprites?.Length ?? 0;
         
         public Sprite GetSprite(int index)
         {
+            if (Length == 0)
+                return null;
+
             index = index.PositiveModulo(_Sprites.Length); 
             return _Sprites[index];
         }

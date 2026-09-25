@@ -24,6 +24,9 @@ namespace EDIVE.Utils.Json
         private FileSystemWatcher _fileWatcher;
         private JsonSerializerSettings _jsonSerializerSettings;
 
+        // Last content read or written. The watcher also fires for our own saves.
+        private string _lastJson;
+
         public JsonFileWatchingEditor(string filePath, JsonSerializerSettings jsonSerializerSettings = null)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -47,7 +50,21 @@ namespace EDIVE.Utils.Json
                 return;
             }
 
-            var json = File.ReadAllText(FilePath, Encoding.UTF8);
+            string json;
+            try
+            {
+                json = File.ReadAllText(FilePath, Encoding.UTF8);
+            }
+            catch (IOException)
+            {
+                // Still being written, the next change event reads it
+                return;
+            }
+
+            if (json == _lastJson)
+                return;
+
+            _lastJson = json;
             if (TryDeserialize(json, out var data))
             {
                 Data = data;
@@ -87,6 +104,7 @@ namespace EDIVE.Utils.Json
             try
             {
                 var json = JsonConvert.SerializeObject(Data, _jsonSerializerSettings);
+                _lastJson = json;
                 File.WriteAllText(FilePath, json, Encoding.UTF8);
             }
             catch (Exception e)

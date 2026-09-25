@@ -108,12 +108,12 @@ namespace EDIVE.DataStructures
         
         public bool HasIndex(Vector2Int pos)
         {
-            return pos.x < Width && pos.y < Height;
+            return HasIndex(pos.x, pos.y);
         }
         
         public bool HasIndex(int x, int y)
         {
-            return x < Width && y < Height;
+            return x >= 0 && y >= 0 && x < Width && y < Height;
         }
         
         public T GetElement(Vector2Int pos)
@@ -211,6 +211,7 @@ namespace EDIVE.DataStructures
         public void Clear()
         {
             _Array.Clear();
+            _Size = Vector2Int.zero;
         }
 
 #if UNITY_EDITOR

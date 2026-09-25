@@ -54,12 +54,11 @@ namespace EDIVE.Utils.SerializableDictionary
         
         public SerializableDictionary() { }
         
+        // Own copies, edits must not leak back into the source
         public SerializableDictionary(SerializableDictionary<TKey, TValue> dictionary) : this()
         {
-            _List = dictionary._List;
-            _keyIndexes = dictionary._keyIndexes;
-            _dict = dictionary._dict;
-            _keyCollision = dictionary._keyCollision;
+            _List = new List<SerializableKeyValuePair>(dictionary._List);
+            UpdateDictFromList();
         }
 
         public SerializableDictionary(IDictionary<TKey, TValue> dictionary) : this()
@@ -203,15 +202,9 @@ namespace EDIVE.Utils.SerializableDictionary
         
         public void ClearNullKeys()
         {
-            for (var i = _List.Count - 1; i >= 0; i--)
-            {
-                // Unity fakes null for UnityEngine.Object so we need to cast it 
-                if (_List[i].Key == null || (_List[i].Key is UnityEngine.Object obj && obj == null))
-                {
-                    _List.RemoveAt(i);
-                }
-                UpdateKeyIndexes(i);
-            }
+            // Unity fakes null for UnityEngine.Object so we need to cast it
+            _List.RemoveAll(pair => pair.Key == null || (pair.Key is UnityEngine.Object obj && obj == null));
+            OnAfterDeserialize();
         }
 
         public bool Contains(KeyValuePair<TKey, TValue> pair)

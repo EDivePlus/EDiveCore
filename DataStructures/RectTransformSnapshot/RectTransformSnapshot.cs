@@ -111,7 +111,7 @@ namespace EDIVE.DataStructures.RectTransformSnapshot
         public void FromRectTransform(RectTransform transform)
         {
             _AnchoredPosition = transform.anchoredPosition;
-            _Rotation = transform.rotation;
+            _Rotation = transform.localRotation;
             _LocalScale = transform.localScale;
             _SizeDelta = transform.sizeDelta;
             _AnchorMin = transform.anchorMin;
@@ -122,7 +122,7 @@ namespace EDIVE.DataStructures.RectTransformSnapshot
         public void ApplyTo(RectTransform transform)
         {
             transform.anchoredPosition = _AnchoredPosition;
-            transform.rotation = _Rotation;
+            transform.localRotation = _Rotation;
             transform.localScale = _LocalScale;
             transform.sizeDelta = _SizeDelta;
             transform.anchorMin = _AnchorMin;

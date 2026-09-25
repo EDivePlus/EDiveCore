@@ -22,7 +22,7 @@ namespace EDIVE.NativeUtils
 
         public static bool IsPowerOfTwo(this int value)
         {
-            return (value & (value - 1)) == 0;
+            return value > 0 && (value & (value - 1)) == 0;
         }
 
         public static bool FastApproximately(this float a, float b)

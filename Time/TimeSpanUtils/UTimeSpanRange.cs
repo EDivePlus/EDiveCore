@@ -18,14 +18,14 @@ namespace EDIVE.Time.TimeSpanUtils
         [LabelWidth(22)]
         [IconLabelText(FontAwesomeEditorIconType.PlaySolid, HideText = true)]
         [OnValueChanged("OnStartChanged")]
-        private UTimeSpan _Start;
+        private UTimeSpan _Start = new();
 
         [JsonProperty("End")]
         [SerializeField]
         [LabelWidth(22)]
         [IconLabelText(FontAwesomeEditorIconType.StopSolid, HideText = true)]
         [OnValueChanged("OnEndChanged")]
-        private UTimeSpan _End;
+        private UTimeSpan _End = new();
 
         public TimeSpan Start
         {

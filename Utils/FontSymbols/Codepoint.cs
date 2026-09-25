@@ -20,8 +20,9 @@ namespace EDIVE.Utils.FontSymbols
         public string HexCode => _Code;
 
         [ShowInInspector]
-        public uint Unicode => Convert.ToUInt32(HexCode, 16);
-        public char Char => Convert.ToChar(Unicode);
+        // 0 for bad hex, '\0' past the 16 bit range, one broken entry must not break lookups
+        public uint Unicode => uint.TryParse(HexCode, System.Globalization.NumberStyles.HexNumber, null, out var value) ? value : 0;
+        public char Char => Unicode <= char.MaxValue ? (char) Unicode : '\0';
 
         public Codepoint(string name, string code)
         {

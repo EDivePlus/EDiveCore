@@ -67,9 +67,10 @@ namespace EDIVE.Core.Services
             return result;
         }
 
+        // Only while this instance is the registered one, a newer registration stays
         public bool Unregister<T>(T service) where T : class, IService
         {
-            var result = TryGetServiceWrapper<T>(out var wrapper) && wrapper.ClearService();
+            var result = TryGetServiceWrapper<T>(out var wrapper) && ReferenceEquals(wrapper.Service, service) && wrapper.ClearService();
             if (result)
                 DebugLite.Log($"[ServiceProvider] '{typeof(T).Name}' unregistered");
             return result;
@@ -220,8 +221,10 @@ namespace EDIVE.Core.Services
                     return;
                 Service = (T)service;
                 ServiceChanged?.Invoke(Service);
-                if (Service != null) 
-                    _completionSource?.TrySetResult(Service);
+                if (Service == null)
+                    return;
+
+                _completionSource?.TrySetResult(Service);
                 _completionSource = null;
             }
 

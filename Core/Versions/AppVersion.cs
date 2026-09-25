@@ -98,8 +98,13 @@ namespace EDIVE.Core.Versions
         public AppVersion Incremented(AppVersionSignificance significance)
         {
             var result = this;
-            result.SetSegment(significance, result.GetSegment(significance) + 1);
-            for (var i = (int) significance + 1; i < AppVersionSignificanceUtils.SEGMENT_COUNT; i++)
+            // Carry into higher segment on overflow
+            var index = (int) significance;
+            while (index > 0 && result.GetSegment(AppVersionSignificanceUtils.ALL[index]) >= AppVersionSignificanceUtils.MAX_SEGMENT_VALUE)
+                index--;
+            var target = AppVersionSignificanceUtils.ALL[index];
+            result.SetSegment(target, result.GetSegment(target) + 1);
+            for (var i = index + 1; i < AppVersionSignificanceUtils.SEGMENT_COUNT; i++)
                 result.SetSegment(AppVersionSignificanceUtils.ALL[i], 0);
             return result;
         }

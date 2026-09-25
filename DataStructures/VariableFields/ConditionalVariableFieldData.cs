@@ -14,10 +14,10 @@ namespace EDIVE.DataStructures.VariableFields
         private ICondition _Condition;
         
         [SerializeField]
-        private VariableField<T> _ConditionalValue;
+        private VariableField<T> _ConditionalValue = new();
 
         [SerializeField]
-        private VariableField<T> _DefaultValue;
+        private VariableField<T> _DefaultValue = new();
 
         public T Value
         {

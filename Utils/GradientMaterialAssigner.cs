@@ -88,7 +88,8 @@ namespace EDIVE.Utils
                     return;
 
                 var material = materials[_MaterialIndex];
-                material.SetTexture(_TexturePropertyName, _GradientTexture);
+                if (material != null)
+                    material.SetTexture(_TexturePropertyName, _GradientTexture);
             }
 
             if (_RawImage != null)

@@ -20,7 +20,7 @@ namespace EDIVE.Conditions.StateHandling
         private void OnEnable()
         {
             RefreshState();
-            if (_ObserveCondition)
+            if (_ObserveCondition && _Condition != null)
             {
                 _Condition.StateChanged += RefreshState;
                 _Condition.InitializeObserving();
@@ -29,7 +29,7 @@ namespace EDIVE.Conditions.StateHandling
 
         private void OnDisable()
         {
-            if (_ObserveCondition)
+            if (_ObserveCondition && _Condition != null)
             {
                 _Condition.StateChanged -= RefreshState;
                 _Condition.TerminateObserving();

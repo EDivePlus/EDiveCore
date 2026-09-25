@@ -143,7 +143,7 @@ namespace EDIVE.Extensions.Random
             for (var i = 0; i < _entries.Count; i++)
             {
                 var entryItem = _entries[i];
-                _accumulatedWeight += entry.Weight;
+                _accumulatedWeight += entryItem.Weight;
                 entryItem.AccumulatedWeight = _accumulatedWeight;
                 _entries[i] = entryItem;
             }
@@ -154,7 +154,7 @@ namespace EDIVE.Extensions.Random
             Entry? foundItem = null;
             foreach (var entry in _entries)
             {
-                if (!entry.Item.Equals(item)) continue;
+                if (!EqualityComparer<T>.Default.Equals(entry.Item, item)) continue;
                 foundItem = entry;
                 break;
             }
@@ -163,12 +163,13 @@ namespace EDIVE.Extensions.Random
             return true;
         }
         
+        // Zero weight entries are never picked
         public bool TryGetRandom(out T result)
         {
             var r = RandomGenerator.Next() * _accumulatedWeight;
             foreach (var entry in _entries)
             {
-                if (entry.AccumulatedWeight >= r)
+                if (entry.Weight > 0 && entry.AccumulatedWeight >= r)
                 {
                     result = entry.Item;
                     return true;
@@ -191,7 +192,7 @@ namespace EDIVE.Extensions.Random
             var r = RandomGenerator.Next() * _accumulatedWeight;
             foreach (var entry in _entries)
             {
-                if (entry.AccumulatedWeight >= r)
+                if (entry.Weight > 0 && entry.AccumulatedWeight >= r)
                 {
                     var a = entry.Item;
                     RemoveEntry(entry);

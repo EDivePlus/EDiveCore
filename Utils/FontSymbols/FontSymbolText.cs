@@ -94,7 +94,6 @@ namespace EDIVE.Utils.FontSymbols
         private void RefreshSymbol()
         {
             var changed = false;
-            material = null;
             alignment = TextAnchor.MiddleCenter;
             supportRichText = false;
             horizontalOverflow = HorizontalWrapMode.Overflow;
