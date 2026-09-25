@@ -32,12 +32,19 @@ namespace EDIVE.Http.Editor
             wantsMouseMove = true;
             
             // Populate from existing logs
+            _entries.Clear();
+            _selected = null;
             foreach (var log in NetworkRequestLogger.Logs)
             {
                 _entries.Add(new RequestEntry(log));
             }
 
+            NetworkRequestLogger.OnLogAdded -= OnLogAdded;
+            NetworkRequestLogger.OnLogUpdated -= OnLogUpdated;
+            NetworkRequestLogger.OnLogsCleared -= OnLogsCleared;
+            NetworkRequestLogger.OnLogRemoved -= OnLogRemoved;
             NetworkRequestLogger.OnLogAdded += OnLogAdded;
+            NetworkRequestLogger.OnLogRemoved += OnLogRemoved;
             NetworkRequestLogger.OnLogUpdated += OnLogUpdated;
             NetworkRequestLogger.OnLogsCleared += OnLogsCleared;
         }
@@ -47,6 +54,7 @@ namespace EDIVE.Http.Editor
             NetworkRequestLogger.OnLogAdded -= OnLogAdded;
             NetworkRequestLogger.OnLogUpdated -= OnLogUpdated;
             NetworkRequestLogger.OnLogsCleared -= OnLogsCleared;
+            NetworkRequestLogger.OnLogRemoved -= OnLogRemoved;
             base.OnDestroy();
         }
 
@@ -58,6 +66,14 @@ namespace EDIVE.Http.Editor
 
         private void OnLogUpdated(NetworkRequestLog log)
         {
+            Repaint();
+        }
+
+        private void OnLogRemoved(NetworkRequestLog log)
+        {
+            _entries.RemoveAll(e => e.Log == log);
+            if (_selected != null && _selected.Log == log)
+                _selected = null;
             Repaint();
         }
 
