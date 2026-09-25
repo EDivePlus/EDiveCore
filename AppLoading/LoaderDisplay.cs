@@ -64,6 +64,9 @@ namespace EDIVE.AppLoading
         
         private void OnDestroy()
         {
+            if (_LoaderController != null)
+                _LoaderController.LoadFinalizedSignal -= OnLoadFinalized;
+
             if (_LoadReportToggle)
                 _LoadReportToggle.onValueChanged.RemoveListener(OnToggleValueChanged);
         }

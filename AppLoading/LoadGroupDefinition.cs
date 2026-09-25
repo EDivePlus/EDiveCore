@@ -66,8 +66,12 @@ namespace EDIVE.AppLoading
 
         public async UniTask Load()
         {
-            var dependencySources = _Dependencies.Where(d => d != null && d.IsAvailable).Select(d => d.CompletionSource.Task);
-            await UniTask.WhenAll(dependencySources);
+            var dependencies = _Dependencies.Where(d => d != null && d.IsAvailable).ToList();
+            var missing = dependencies.Where(d => d.CompletionSource == null).Select(d => d.name).ToList();
+            if (missing.Count > 0)
+                Debug.LogError($"[{name}] Dependency groups not in the active setup: {string.Join(", ", missing)}");
+
+            await UniTask.WhenAll(dependencies.Where(d => d.CompletionSource != null).Select(d => d.CompletionSource.Task));
 
             var itemTasks = GetLoadItems().Select(l => l.Load());
             await UniTask.WhenAll(itemTasks);
