@@ -287,6 +287,7 @@ namespace EDIVE.UIElements.ProceduralUI
     {
         public const float MAX_PIXEL = 4095f;
         public const float MAX_OFFSET = 512f;
+        public const float MAX_SIGNED_PIXEL = 2048f;
         public const float MAX_SHADOW_POWER = 255.99f;
         public const float MAX_RADIAL_SIZE = 40.95f;
 
@@ -325,7 +326,7 @@ namespace EDIVE.UIElements.ProceduralUI
         public static float FixedPixel(float value) => Mathf.Clamp(Mathf.Round(value * FIXED_STEP), 0f, FIXED_MAX);
 
         // 16-bit fixed point, ±2048 px in 1/16 px steps
-        public static float FixedSignedPixel(float value) => Mathf.Clamp(Mathf.Round((value + 2048f) * FIXED_STEP), 0f, FIXED_MAX);
+        public static float FixedSignedPixel(float value) => Mathf.Clamp(Mathf.Round((value + MAX_SIGNED_PIXEL) * FIXED_STEP), 0f, FIXED_MAX);
 
         // 16-bit turn fraction, 65535 is a full turn
         public static float FixedAngle(float radians) => Mathf.Clamp(Mathf.Round(radians / FULL_TURN * FIXED_MAX), 0f, FIXED_MAX);

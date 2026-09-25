@@ -102,7 +102,8 @@ namespace EDIVE.UIElements.ProceduralUI
             {
                 var center = (start + end) * 0.5f;
                 var halfSweep = (end - start) * 0.5f;
-                var shift = _EdgePadding / Mathf.Max(Mathf.Sin(halfSweep), 0.0001f);
+                // Near 0 or 360 degrees the shift blows up. Keep it in the packable apex range.
+                var shift = Mathf.Clamp(_EdgePadding / Mathf.Max(Mathf.Sin(halfSweep), 0.0001f), -VertexPacking.MAX_SIGNED_PIXEL, VertexPacking.MAX_SIGNED_PIXEL);
                 apex += new Vector2(Mathf.Sin(center), Mathf.Cos(center)) * shift;
             }
 
