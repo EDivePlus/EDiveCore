@@ -33,6 +33,9 @@ namespace EDIVE.AppLoading.LoadItems
         protected override async UniTask<GameObject> CreateInstance()
         {
             var instance = await _PrefabReference.InstantiateAsync();
+            if (instance == null)
+                return null;
+            instance.AddComponent<AddressableInstanceReleaser>();
             OnInstantiated(instance);
             return instance;
         }

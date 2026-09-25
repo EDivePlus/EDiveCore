@@ -52,6 +52,9 @@ namespace EDIVE.AddressableAssets
                 return;
 
             _Container.DestroyChildren();
+            if (_assetsHandle.IsValid())
+                _assetsHandle.Release();
+
             try
             {
                 _assetsHandle = Addressables.LoadAssetsAsync<TAsset>(_AssetLabel.RuntimeKey, null);

@@ -19,10 +19,10 @@ namespace EDIVE.ScriptableArchitecture.StateHandling
         {
             if (_Variable != null)    
                 _Variable.ValueChanged += OnVariableChanged;
-            if (_Toggle) 
+            if (_Toggle && _Variable != null)
                 _Toggle.State = _Variable.Value;
         }
-        
+
         private void OnDisable()
         {
             if (_Variable != null)

@@ -13,7 +13,7 @@ namespace EDIVE.ScriptableArchitecture.Collections.Assigners
 
         protected override void AssignReferences()
         {
-            if (TryGetReference(out var value))
+            if (_ScriptableList != null && TryGetReference(out var value))
             {
                 _ScriptableList.TryAdd(value);
             }
@@ -21,7 +21,7 @@ namespace EDIVE.ScriptableArchitecture.Collections.Assigners
 
         protected override void UnassignReferences()
         {
-            if (TryGetReference(out var value))
+            if (_ScriptableList != null && TryGetReference(out var value))
             {
                 _ScriptableList.Remove(value);
             }

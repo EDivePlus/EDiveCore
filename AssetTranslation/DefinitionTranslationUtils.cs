@@ -53,12 +53,13 @@ namespace EDIVE.AssetTranslation
                 }
             }
 #endif
-            packer.WriteString(Encoding.ASCII, value != null ? value.UniqueID : string.Empty);
+            // UTF8, IDs come from file names and may hold non-ASCII characters
+            packer.WriteString(Encoding.UTF8, value != null ? value.UniqueID : string.Empty);
         }
 
         public static TDefinition CustomReadTranslatedDefinition<TDefinition>(this BitPacker packer) where TDefinition : ScriptableObject, IUniqueDefinition
         {
-            var uniqueId = packer.ReadString(Encoding.ASCII);
+            var uniqueId = packer.ReadString(Encoding.UTF8);
             if (string.IsNullOrEmpty(uniqueId))
                 return null;
 

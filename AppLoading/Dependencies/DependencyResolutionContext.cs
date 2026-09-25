@@ -26,6 +26,7 @@ namespace EDIVE.AppLoading.Dependencies
 #endif
         
         private readonly List<LoadItemDefinition> _allItems;
+        private readonly HashSet<LoadItemDefinition> _itemSet;
         private readonly Dictionary<Type, List<LoadItemDefinition>> _cache = new();
 
         public IEnumerable<LoadItemDefinition> AllItems => _allItems;
@@ -36,7 +37,10 @@ namespace EDIVE.AppLoading.Dependencies
                 .Where(i => i != null)
                 .Distinct()
                 .ToList();
+            _itemSet = new HashSet<LoadItemDefinition>(_allItems);
         }
+
+        public bool Contains(LoadItemDefinition item) => item != null && _itemSet.Contains(item);
 
         public IEnumerable<LoadItemDefinition> GetItemsRepresentingType(Type type)
         {

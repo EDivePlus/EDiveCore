@@ -76,8 +76,8 @@ namespace EDIVE.View
 
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Left)) anchorMin.x = 0;
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Bottom)) anchorMin.y = 0;
-            if (!ShouldUpdateSide(SafeAreaUpdateSide.Right)) anchorMax.x = 0;
-            if (!ShouldUpdateSide(SafeAreaUpdateSide.Top)) anchorMax.y = 0;
+            if (!ShouldUpdateSide(SafeAreaUpdateSide.Right)) anchorMax.x = 1;
+            if (!ShouldUpdateSide(SafeAreaUpdateSide.Top)) anchorMax.y = 1;
 
             var targetRect = GetComponent<RectTransform>();
             targetRect.anchorMin = anchorMin;
