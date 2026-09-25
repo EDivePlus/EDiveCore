@@ -2,6 +2,7 @@
   "name": "EDIVE.Rendering.UVDecals",
   "rootNamespace": "",
   "references": [
+    "EDIVE.NativeUtils",
     "EDIVE.OdinExtensions"
   ],
   "includePlatforms": [],

@@ -2,6 +2,7 @@
 // Created: 02.09.2026
 
 using System.Collections.Generic;
+using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -43,8 +44,7 @@ namespace EDIVE.Rendering.UVDecals
         private static readonly int[] PARAMS_IDS = CreateIds("Params");
         private static readonly int[] TINT_IDS = CreateIds("Tint");
 
-        private Material _sourceMaterial;
-        private Material _instance;
+        private MaterialSlotOverride _override;
 
         private readonly List<UVDecal> _extraDecals = new();
         private readonly List<UVDecal> _activeDecals = new();
@@ -95,16 +95,7 @@ namespace EDIVE.Rendering.UVDecals
 
         private void OnDisable()
         {
-#if UNITY_EDITOR
-            ClearPreview();
-#endif
-            RestoreSourceMaterial();
-        }
-
-        private void OnDestroy()
-        {
-            SafeDestroy(_instance);
-            _instance = null;
+            MaterialSlotOverride.Release(ref _override);
         }
 
         [Button("Rebuild")]
@@ -121,60 +112,17 @@ namespace EDIVE.Rendering.UVDecals
             if (decals.Count > MAX_DECALS)
                 Debug.LogWarning($"{name}: {decals.Count} UV decals set, only the first {MAX_DECALS} are used.", this);
 
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                WritePreview(decals);
-                return;
-            }
-            ClearPreview();
-#endif
-
-            var material = GetInstance();
-            if (material == null) return;
+            // Edit mode writes a property block, so the scene stays clean.
+            if (!MaterialSlotOverride.Ensure(ref _override, _Renderer, _MaterialIndex, " (UV Decals)")) return;
 
             for (var i = 0; i < MAX_DECALS; i++)
             {
                 GetSlot(decals, i, out var texture, out var rect, out var parameters, out var tint);
-                material.SetTexture(TEX_IDS[i], texture);
-                material.SetVector(RECT_IDS[i], rect);
-                material.SetVector(PARAMS_IDS[i], parameters);
-                material.SetColor(TINT_IDS[i], tint);
+                _override.SetTexture(TEX_IDS[i], texture);
+                _override.SetVector(RECT_IDS[i], rect);
+                _override.SetVector(PARAMS_IDS[i], parameters);
+                _override.SetColor(TINT_IDS[i], tint);
             }
-        }
-
-        private Material GetInstance()
-        {
-            var materials = _Renderer.sharedMaterials;
-            if (_MaterialIndex >= materials.Length) return null;
-
-            var current = materials[_MaterialIndex];
-            if (current == null) return null;
-
-            if (_instance == null || (current != _instance && current != _sourceMaterial))
-            {
-                SafeDestroy(_instance);
-                _sourceMaterial = current;
-                _instance = new Material(current) { name = $"{current.name} (UV Decals)" };
-            }
-
-            if (current != _instance)
-            {
-                materials[_MaterialIndex] = _instance;
-                _Renderer.sharedMaterials = materials;
-            }
-            return _instance;
-        }
-
-        private void RestoreSourceMaterial()
-        {
-            if (_Renderer == null || _instance == null || _sourceMaterial == null) return;
-
-            var materials = _Renderer.sharedMaterials;
-            if (_MaterialIndex >= materials.Length || materials[_MaterialIndex] != _instance) return;
-
-            materials[_MaterialIndex] = _sourceMaterial;
-            _Renderer.sharedMaterials = materials;
         }
 
         private static void GetSlot(IReadOnlyList<UVDecal> decals, int index, out Texture texture, out Vector4 rect, out Vector4 parameters, out Color tint)
@@ -204,40 +152,7 @@ namespace EDIVE.Rendering.UVDecals
             return ids;
         }
 
-        private static void SafeDestroy(Object o)
-        {
-            if (o == null) return;
-            if (Application.isPlaying) Destroy(o);
-            else DestroyImmediate(o);
-        }
-
 #if UNITY_EDITOR
-        private MaterialPropertyBlock _previewBlock;
-
-        // Preview without dirtying the scene
-        private void WritePreview(IReadOnlyList<UVDecal> decals)
-        {
-            if (_MaterialIndex >= _Renderer.sharedMaterials.Length) return;
-
-            _previewBlock ??= new MaterialPropertyBlock();
-            _Renderer.GetPropertyBlock(_previewBlock, _MaterialIndex);
-            for (var i = 0; i < MAX_DECALS; i++)
-            {
-                GetSlot(decals, i, out var texture, out var rect, out var parameters, out var tint);
-                _previewBlock.SetTexture(TEX_IDS[i], texture);
-                _previewBlock.SetVector(RECT_IDS[i], rect);
-                _previewBlock.SetVector(PARAMS_IDS[i], parameters);
-                _previewBlock.SetColor(TINT_IDS[i], tint);
-            }
-            _Renderer.SetPropertyBlock(_previewBlock, _MaterialIndex);
-        }
-
-        private void ClearPreview()
-        {
-            if (_Renderer != null && _MaterialIndex < _Renderer.sharedMaterials.Length)
-                _Renderer.SetPropertyBlock(null, _MaterialIndex);
-        }
-
         private void OnValidate()
         {
             _MaterialIndex = Mathf.Max(0, _MaterialIndex);
