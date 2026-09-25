@@ -32,15 +32,12 @@ namespace EDIVE.VisualPresets.Switchers
         
         public bool TryGetMaterial(out Material material)
         {
-            var materials = _UseSharedMaterial ? _Renderer.sharedMaterials : _Renderer.materials;
-
-#if UNITY_EDITOR
-            // To not leak materials into the scene
-            if (!Application.isPlaying) 
-                materials = _Renderer.sharedMaterials;
-#endif
-            
             material = null;
+            if (_Renderer == null)
+                return false;
+
+            // Shared outside play mode, reading .materials alone would leak copies into the scene
+            var materials = _UseSharedMaterial || !Application.isPlaying ? _Renderer.sharedMaterials : _Renderer.materials;
 
             if (materials.Length == 0 || _MaterialIndex >= materials.Length)
                 return false;

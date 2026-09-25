@@ -13,11 +13,11 @@ namespace EDIVE.UIElements.ProgressBars
         
         public override float Progress
         {
-            get => _Slider != null ? _Slider.value : 0;
+            get => _Slider != null ? _Slider.normalizedValue : 0;
             set
             {
                 if (_Slider)     
-                    _Slider.value = value;
+                    _Slider.normalizedValue = value;
             }
         }
     }

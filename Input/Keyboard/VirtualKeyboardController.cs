@@ -213,7 +213,7 @@ namespace EDIVE.Input.Keyboard
                 _characterLimit = observeCharacterLimit ? CurrentInputField.CharacterLimit : -1;
             }
 
-            Open(CurrentInputField.Text);
+            Open(CurrentInputField?.Text ?? string.Empty);
         }
 
         public void Open()
@@ -272,19 +272,26 @@ namespace EDIVE.Input.Keyboard
         {
             if (inputField == null || !inputField.IsValid())
                 return;
-            CurrentInputField.ValueChanged += OnInputFieldValueChange;
+
+            inputField.ValueChanged -= OnInputFieldValueChange;
         }
 
         private void StartObservingInputField(AInputFieldWrapper inputField)
         {
-            if (inputField == null || !inputField.IsValid()) 
+            if (inputField == null || !inputField.IsValid())
                 return;
-            CurrentInputField.ValueChanged -= OnInputFieldValueChange;
+
+            inputField.ValueChanged += OnInputFieldValueChange;
         }
 
+        // Only outside edits, the echo of our own text must not move the caret
         private void OnInputFieldValueChange(string updatedText)
         {
-            CaretPosition = updatedText.Length;
+            if (updatedText == _text)
+                return;
+
+            var fieldCaret = _currentInputField != null && _currentInputField.IsValid() ? _currentInputField.CaretPosition : updatedText.Length;
+            CaretPosition = Math.Clamp(fieldCaret, 0, updatedText.Length);
             Text = updatedText;
         }
     }

@@ -95,8 +95,8 @@ namespace EDIVE.Tweening
             {
                 case EaseType.Ease:
                     if (IsElasticEase) tween.SetEase(EaseFunction, _Amplitude, _Period);
-                    if (IsBackEase) tween.SetEase(EaseFunction, _Overshoot);
-                    if (IsFlashEase) tween.SetEase(EaseFunction, _Count, _Power);
+                    else if (IsBackEase) tween.SetEase(EaseFunction, _Overshoot);
+                    else if (IsFlashEase) tween.SetEase(EaseFunction, _Count, _Power);
                     else tween.SetEase(EaseFunction);
                     break;
                 case EaseType.Curve:

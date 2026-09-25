@@ -32,7 +32,7 @@ namespace EDIVE.VisualPresets.Switchers
     {
         protected override IDisposable Apply(PrefabVisualPresetRecord presetRecord, PrefabVisualSwitcherRecord switcherRecord)
         {
-            if (switcherRecord.Root == null)
+            if (switcherRecord.Root == null || presetRecord.Prefab == null)
                 return null;
             
             switcherRecord.Root.DestroyChildren();

@@ -163,6 +163,22 @@ namespace EDIVE.Input.Touch
             SetMode(_Mode);
         }
 
+        // Pointer up never arrives while disabled, a held pointer would lock the stick for good
+        protected override void OnDisable()
+        {
+            if (_activePointerId != -1)
+            {
+                _activePointerId = -1;
+                _input = Vector2.zero;
+                if (_Handle != null)
+                    _Handle.anchoredPosition = Vector2.zero;
+                SendValueToControl(Vector2.zero);
+                if (_HoldingState != null)
+                    _HoldingState.SetState(false);
+            }
+            base.OnDisable();
+        }
+
         public void OnPointerDown(PointerEventData eventData)
         {
             if (_activePointerId != -1) return;

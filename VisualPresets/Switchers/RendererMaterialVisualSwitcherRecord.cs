@@ -43,7 +43,9 @@ namespace EDIVE.VisualPresets.Switchers
             if (switcherRecord.Renderer == null)
                 return DisposableUtils.Empty;
             
-            var materials = switcherRecord.UseSharedMaterial ? switcherRecord.Renderer.sharedMaterials : switcherRecord.Renderer.materials;
+            // Shared outside play mode, reading .materials would leak copies into the scene
+            var useShared = switcherRecord.UseSharedMaterial || !Application.isPlaying;
+            var materials = useShared ? switcherRecord.Renderer.sharedMaterials : switcherRecord.Renderer.materials;
             if (materials.Length <= 0)
                 return DisposableUtils.Empty;
 
@@ -51,7 +53,7 @@ namespace EDIVE.VisualPresets.Switchers
                 return DisposableUtils.Empty;
 
             materials[switcherRecord.MaterialIndex] = presetRecord.Material; 
-            if (switcherRecord.UseSharedMaterial)
+            if (useShared)
                 switcherRecord.Renderer.sharedMaterials = materials;
             else
                 switcherRecord.Renderer.materials = materials;

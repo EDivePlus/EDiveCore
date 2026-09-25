@@ -20,6 +20,10 @@ namespace EDIVE.VisualPresets.UVDecals
         [VerticalGroup("Value")]
         [SerializeField]
         [HideLabel]
+        [JsonProperty("Decal")]
+#if PURRNET
+        [JsonConverter(typeof(UVDecalPresetJsonConverter))]
+#endif
         private UVDecalPreset _Decal;
 
         public UVDecalPreset Decal => _Decal;

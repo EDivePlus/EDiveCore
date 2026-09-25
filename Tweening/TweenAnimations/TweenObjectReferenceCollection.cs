@@ -142,6 +142,7 @@ namespace EDIVE.Tweening
 
             public void ClearTempReferenceValue()
             {
+                if (_Reference is null) return;
                 _Reference.ClearTempValue();
             }
 

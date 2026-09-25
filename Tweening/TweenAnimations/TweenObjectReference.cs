@@ -26,7 +26,7 @@ namespace EDIVE.Tweening
 
         public Type ValueType
         {
-            get => _ValueType.Value;
+            get => _ValueType?.Value;
             internal set
             {
                 _ValueType = value;
@@ -36,7 +36,7 @@ namespace EDIVE.Tweening
             }
         }
 
-        public bool IsValueTypeDefined => _ValueType.Value != null;
+        public bool IsValueTypeDefined => ValueType != null;
 
         private Object _tempValue;
         private bool _hasTempValue;
@@ -45,13 +45,13 @@ namespace EDIVE.Tweening
         {
             if (value == null)
             {
-                Debug.LogWarning($"[{nameof(TweenObjectReference)}] Value is null for type {ValueType.Name}");
+                Debug.LogWarning($"[{nameof(TweenObjectReference)}] Value is null for type {ValueType?.Name ?? "Undefined"}");
                 _tempValue = null;
                 _hasTempValue = false;
                 return;
             }
 
-            if (!_ValueType.Value.IsInstanceOfType(value))
+            if (ValueType != null && !ValueType.IsInstanceOfType(value))
             {
                 Debug.LogError($"[{nameof(TweenObjectReference)}] {value.GetType().Name} is not compatible with the defined value type {ValueType.Name}");
                 _tempValue = null;

@@ -65,7 +65,8 @@ namespace EDIVE.Rendering.UVDecals
         public void SetDecals(IEnumerable<UVDecal> decals)
         {
             _Decals.Clear();
-            _Decals.AddRange(decals);
+            if (decals != null)
+                _Decals.AddRange(decals);
             Rebuild();
         }
 

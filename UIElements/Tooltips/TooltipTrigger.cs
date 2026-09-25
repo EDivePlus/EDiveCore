@@ -46,9 +46,11 @@ namespace EDIVE.UIElements.Tooltips
             return true;
         }
 
-        private void OnDestroy()
+        // Pointer exit never comes once disabled, the tooltip would stay up
+        private void OnDisable()
         {
             _tooltipSubscription?.Dispose();
+            _tooltipSubscription = null;
         }
 
         public void SetPreset(VisualPreset visualPreset)

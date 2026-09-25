@@ -93,7 +93,7 @@ namespace EDIVE.Rendering.UVDecals
 
             foreach (var preset in _Decals)
             {
-                if (preset._Texture == null) continue;
+                if (preset == null || preset._Texture == null) continue;
 
                 if (!TryGetArea(preset._Placement, out var area))
                 {
