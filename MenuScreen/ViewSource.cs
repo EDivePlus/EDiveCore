@@ -89,7 +89,9 @@ namespace EDIVE.MenuScreen
 
         protected bool Equals(AddressablePrefabViewSource other)
         {
-            return Equals(Reference, other.Reference);
+            if (Reference == null || other.Reference == null)
+                return ReferenceEquals(Reference, other.Reference);
+            return Reference.AssetGUID == other.Reference.AssetGUID && Reference.SubObjectName == other.Reference.SubObjectName;
         }
 
         public override bool Equals(object obj)
@@ -102,7 +104,7 @@ namespace EDIVE.MenuScreen
 
         public override int GetHashCode()
         {
-            return Reference != null ? Reference.GetHashCode() : 0;
+            return Reference != null ? (Reference.AssetGUID ?? string.Empty).GetHashCode() : 0;
         }
     }
 }

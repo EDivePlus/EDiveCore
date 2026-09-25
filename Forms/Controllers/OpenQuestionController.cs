@@ -48,10 +48,9 @@ namespace EDIVE.Forms.Controllers
 
         public override void SetAnswer(AFormAnswer answer)
         {
-            if (answer is not ValueFormAnswer<string> stringAnswer) 
+            if (answer is not ValueFormAnswer<string> stringAnswer || _InputField == null) 
                 return;
-            
-            _InputField.text = stringAnswer.Value;
+            _InputField.SetTextWithoutNotify(stringAnswer.Value);
         }
 
         private void OnConfirmAnswer(string value)

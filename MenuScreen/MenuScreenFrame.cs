@@ -6,6 +6,7 @@ using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 
@@ -70,6 +71,13 @@ namespace EDIVE.MenuScreen
                 var reference = referenceSource.Reference;
                 _asyncViewHandle = reference.InstantiateAsync(_ViewRoot);
                 var viewObj = await _asyncViewHandle;
+                // Closed while loading, drop instance
+                if (this == null || State == FrameState.Terminated)
+                {
+                    if (_asyncViewHandle.IsValid())
+                        Addressables.ReleaseInstance(_asyncViewHandle);
+                    return;
+                }
                 View = viewObj.GetComponent<WidgetView>();
             }
             
@@ -98,10 +106,11 @@ namespace EDIVE.MenuScreen
                 return;
             }
             
-            _asyncViewHandle.Release();
-            
             SetState(FrameState.Terminated);
             if (View) View.OnTerminate();
+            // Still loading, Initialize releases it
+            if (_asyncViewHandle.IsValid() && _asyncViewHandle.IsDone)
+                _asyncViewHandle.Release();
         }
 
         private void OnEnable()

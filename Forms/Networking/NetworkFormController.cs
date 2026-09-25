@@ -62,6 +62,23 @@ namespace EDIVE.Forms.Networking
             
             OnSyncFormStateChanged(_formState.value);
             OnSyncCurrentQuestionChanged(_questionIndex.value);
+            ApplySyncedAnswers();
+        }
+
+        // Late joiner gets answers already given
+        private void ApplySyncedAnswers()
+        {
+            if (isServer || _answers.Count == 0)
+                return;
+            UnregisterLocalEvents();
+            foreach (var (questionID, answerJson) in _answers)
+            {
+                var answer = JsonConvert.DeserializeObject<AFormAnswer>(answerJson, JSON_SETTINGS);
+                _parsedAnswers[questionID] = answer;
+                _formController.SetAnswerForQuestion(questionID, answer);
+            }
+            RegisterLocalEvents();
+            AnswersChanged?.Invoke(_parsedAnswers);
         }
 
         protected override void OnDespawned()
@@ -151,6 +168,7 @@ namespace EDIVE.Forms.Networking
                     break;
                 case SyncDictionaryOperation.Removed:
                     _parsedAnswers.Remove(change.key);
+                    _formController.SetAnswerForQuestion(change.key, null);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

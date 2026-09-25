@@ -31,7 +31,7 @@ namespace EDIVE.MenuScreen
         public void OnBeforeSerialize() { }
         public void OnAfterDeserialize()
         {
-            if (_ViewSource == null && _WidgetView != null)
+            if (_ViewSource == null && _WidgetView != null && !string.IsNullOrEmpty(_WidgetView.AssetGUID))
             {
                 _ViewSource = new AddressablePrefabViewSource(_WidgetView);
                 _WidgetView = null;

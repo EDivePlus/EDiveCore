@@ -66,7 +66,7 @@ namespace EDIVE.Forms.Controllers
 
         public override void Terminate()
         {
-            foreach (var optionHandler in _OptionHandlers)
+            foreach (var optionHandler in FilteredOptionHandlers)
             {
                 optionHandler.SelectionChanged -= OnOptionSelected;
                 optionHandler.Terminate();
@@ -75,7 +75,7 @@ namespace EDIVE.Forms.Controllers
 
         public override IEnumerable<IFormAnswerMetadata> CollectMetadata()
         {
-            return _OptionHandlers.SelectMany(h => h.CollectMetadata());
+            return FilteredOptionHandlers.SelectMany(h => h.CollectMetadata());
         }
 
         public override void SetSelected(IQuestionOption option, bool selected, bool notify = true)
