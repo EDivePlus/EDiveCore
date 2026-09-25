@@ -1,7 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 08.08.2025
 
-#if UNITY_SERVICES && UNITY_TRANSPORT
+#if UNITY_MULTIPLAYER && UNITY_TRANSPORT
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -113,8 +113,15 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 };
 
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
-                var response = await LobbyService.Instance.QueryLobbiesAsync(options);
-                SetServers(BuildRecords(response.Results));
+                try
+                {
+                    var response = await LobbyService.Instance.QueryLobbiesAsync(options);
+                    SetServers(BuildRecords(response.Results));
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Debug.LogWarning($"[UnityLobbyServerListAdapter] Lobby query failed: {e.Message}");
+                }
                 await UniTask.Delay(TimeSpan.FromSeconds(_QueryInterval), true, cancellationToken: cancellationToken);
             }
         }
