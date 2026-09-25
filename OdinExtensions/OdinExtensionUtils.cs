@@ -20,14 +20,22 @@ namespace EDIVE.OdinExtensions
 
         public static void DrawSubtypeDropDownOrCall(Type type, Action<Type> onSelectAction)
         {
-            if(type == null) onSelectAction?.Invoke(null);
+            if (type == null)
+            {
+                onSelectAction?.Invoke(null);
+                return;
+            }
             var dropdownPosition = new Rect(Event.current.mousePosition, Vector2.zero);
             DrawSubtypeDropDownOrCall(dropdownPosition, type, onSelectAction);
         }
         
         public static void DrawSubtypeDropDownOrCall(Rect dropdownPosition, Type type, Action<Type> onSelectAction)
         {
-            if(type == null) onSelectAction?.Invoke(null);
+            if (type == null)
+            {
+                onSelectAction?.Invoke(null);
+                return;
+            }
 
             var assignableTypes = TypeCache.GetTypesDerivedFrom(type).Append(type).Where(t => !t.IsAbstract && !t.IsGenericType).ToList();
             if (assignableTypes.Count <= 0) return;
@@ -151,8 +159,7 @@ namespace EDIVE.OdinExtensions
             if (!string.IsNullOrWhiteSpace(defaultAssetName)) defaultName = defaultAssetName;
             
             var path = EditorUtility.SaveFilePanel($"Create new {type.Name}", defaultPath, defaultName, "asset");
-            if (string.IsNullOrEmpty(path)) return null;
-            path = $"Assets{path.Replace(Application.dataPath, "")}";
+            if (!TryToProjectPath(path, out path)) return null;
             var instance = ScriptableObject.CreateInstance(type);
             AssetDatabase.CreateAsset(instance, path);
             AssetDatabase.SaveAssets();
@@ -175,20 +182,37 @@ namespace EDIVE.OdinExtensions
             if (!string.IsNullOrWhiteSpace(defaultAssetName)) defaultName = defaultAssetName;
             
             var path = EditorUtility.SaveFilePanel($"Create new {type.Name}", defaultPath, defaultName, "prefab");
-            if (string.IsNullOrEmpty(path)) return null;
-            path = $"Assets{path.Replace(Application.dataPath, "")}";
+            if (!TryToProjectPath(path, out path)) return null;
             
             var instance = new GameObject("GameObject", type);
-            if (!instance.TryGetComponent(type, out var component))
+            if (!instance.TryGetComponent(type, out _))
+            {
+                Object.DestroyImmediate(instance);
                 return null;
+            }
             
             var prefab = PrefabUtility.SaveAsPrefabAsset(instance, path);
             Object.DestroyImmediate(instance);
             
-            AssetDatabase.CreateAsset(instance, path);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            return prefab.GetComponent(type);
+            return prefab != null ? prefab.GetComponent(type) : null;
+        }
+
+        // Absolute panel path to Assets/ path
+        private static bool TryToProjectPath(string absolutePath, out string projectPath)
+        {
+            projectPath = null;
+            if (string.IsNullOrEmpty(absolutePath))
+                return false;
+            var normalized = absolutePath.Replace('\\', '/');
+            if (!normalized.StartsWith(Application.dataPath, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogError($"Path must be inside Assets folder: {absolutePath}");
+                return false;
+            }
+            projectPath = "Assets" + normalized.Substring(Application.dataPath.Length);
+            return true;
         }
         
         public static T DuplicateAsset<T>(T asset) where T : Object
@@ -199,7 +223,7 @@ namespace EDIVE.OdinExtensions
                     return null;
             
                 var path = AssetDatabase.GetAssetPath(asset);
-                if (path == null)
+                if (string.IsNullOrEmpty(path))
                 {
                     Debug.LogError("Asset not found in the AssetDatabase!"); 
                     return null;

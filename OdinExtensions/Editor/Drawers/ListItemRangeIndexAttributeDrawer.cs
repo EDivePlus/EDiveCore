@@ -7,8 +7,10 @@ using UnityEngine;
 
 namespace EDIVE.OdinExtensions.Editor.Drawers
 {
-    public class ListItemRangeIndexAttributeDrawer : OdinAttributeDrawer<ListItemRangeIndexAttribute, int>
+    public class ListItemRangeIndexAttributeDrawer : OdinAttributeDrawer<ListItemRangeIndexAttribute, int>, System.IDisposable
     {
+        private InspectorProperty _listProperty;
+
         private ValueResolver<int> _getterMinValue;
         private ValueResolver<int> _getterMaxValue;
 
@@ -19,9 +21,10 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         protected override void Initialize()
         {
-            var listProperty = Property.ParentValueProperty.Parent;
-            if (listProperty == null)
+            var listProperty = Property.ParentValueProperty?.Parent;
+            if (listProperty?.ValueEntry == null)
                 return;
+            _listProperty = listProperty;
 
             if (Attribute.MinGetter != null) _getterMinValue = ValueResolver.Get<int>(Property, Attribute.MinGetter);
             if (Attribute.MaxGetter != null) _getterMaxValue = ValueResolver.Get<int>(Property, Attribute.MaxGetter);
@@ -51,6 +54,15 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
 
             EditorGUILayout.EndHorizontal();
+        }
+
+        public void Dispose()
+        {
+            if (_listProperty?.ValueEntry == null)
+                return;
+            _listProperty.ValueEntry.OnValueChanged -= OnPropertyChanged;
+            _listProperty.ValueEntry.OnChildValueChanged -= OnPropertyChanged;
+            _listProperty = null;
         }
 
         private void OnPropertyChanged(int idx) => RefreshIndexes();

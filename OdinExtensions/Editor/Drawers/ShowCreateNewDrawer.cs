@@ -74,7 +74,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         }
 
         protected virtual Type GetBaseType() => _overrideTypeResolver != null && !_overrideTypeResolver.HasError ? _overrideTypeResolver.GetValue() : null;
-        protected string GetDefaultPath() => _defaultPathResolver != null && !_defaultPathResolver.HasError ? PathUtility.GetAbsolutePath(_defaultPathResolver.GetValue()) : Application.dataPath;
+        // Null = let creator pick (selected folder)
+        protected string GetDefaultPath() => _defaultPathResolver != null && !_defaultPathResolver.HasError ? PathUtility.GetAbsolutePath(_defaultPathResolver.GetValue()) : null;
         private void CreateInstance(Type type)
         {
             if (TryCreateInstance(type, GetDefaultPath(), GetDefaultName(type), out var instance))
@@ -129,7 +130,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             return true;
         }
         
-        protected override Type GetBaseType() => base.GetBaseType() ?? ValueEntry.BaseValueType;
+        // Value type is AssetReferenceT, not creatable
+        protected override Type GetBaseType() => base.GetBaseType() ?? typeof(ScriptableObject);
     }
 #endif
 }

@@ -167,10 +167,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     var selector = new TypeSelectorV2(
                         types,
                         supportsMultiSelect: false,
-                        selectedType: typeof(T),
+                        selectedType: selectedType ?? typeof(T),
                         showNoneItem: false);
-
-                    selector.SetSelection(typeof(T));
+                    selector.SetSelection(selectedType ?? typeof(T));
                     selector.DrawConfirmSelectionButton = true;
                     selector.SelectionConfirmed += selection =>
                     {
@@ -186,6 +185,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private void ChangeType(Type newType)
         {
+            if (newType == null)
+                return;
             var prevValue = ValueEntry.SmartValue;
      
             if (ValueEntry.SmartValue is Object unityObject)
@@ -194,6 +195,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 // We are not assigning it anywhere because this refreshes inspector anyway, assigning it may cause exception
                 unityObject.ChangeType(newType, newValue =>
                 {
+                    if (_onTypeChanged != null && !_onTypeChanged.HasError)
                     {
                         _onTypeChanged.Context.NamedValues.Set(PREV_VALUE_ID, prevValue);
                         _onTypeChanged.Context.NamedValues.Set(NEW_VALUE_ID, newValue);
