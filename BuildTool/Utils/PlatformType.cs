@@ -35,14 +35,14 @@ namespace EDIVE.BuildTool.Utils
         {
             if (namedBuildTarget == NamedBuildTarget.Standalone) return target switch
             {
-                BuildTarget.StandaloneWindows64 => platformType.HasFlag(PlatformType.WindowsClient),
+                BuildTarget.StandaloneWindows or BuildTarget.StandaloneWindows64 => platformType.HasFlag(PlatformType.WindowsClient),
                 BuildTarget.StandaloneLinux64 => platformType.HasFlag(PlatformType.LinuxClient),
                 BuildTarget.StandaloneOSX => platformType.HasFlag(PlatformType.MacOSClient),
                 _ => false
             };
             if (namedBuildTarget == NamedBuildTarget.Server) return target switch
             {
-                BuildTarget.StandaloneWindows64 => platformType.HasFlag(PlatformType.WindowsServer),
+                BuildTarget.StandaloneWindows or BuildTarget.StandaloneWindows64 => platformType.HasFlag(PlatformType.WindowsServer),
                 BuildTarget.StandaloneLinux64 => platformType.HasFlag(PlatformType.LinuxServer),
                 BuildTarget.StandaloneOSX => platformType.HasFlag(PlatformType.MacOSServer),
                 _ => false

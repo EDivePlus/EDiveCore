@@ -56,8 +56,8 @@ namespace EDIVE.BuildTool.PlatformConfigs
         public override string BuildExtension => _Platform switch
         {
             StandalonePlatform.Windows => ".exe",
-            StandalonePlatform.Linux => ".app",
-            StandalonePlatform.MacOS => ".x86_64",
+            StandalonePlatform.Linux => ".x86_64",
+            StandalonePlatform.MacOS => ".app",
             _ => throw new ArgumentOutOfRangeException()
         };
     }

@@ -27,7 +27,7 @@ namespace EDIVE.BuildTool.Utils
         {
             Debug.Log("[BuildResultArchiver] Attempting to zip build...");
             var report = context.Report;
-            if (report.summary.result != BuildResult.Succeeded)
+            if (report == null || report.summary.result != BuildResult.Succeeded)
                 yield break;
 
             if (!ShouldZip(report))

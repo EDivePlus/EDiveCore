@@ -20,7 +20,7 @@ using Unity.Android.Types;
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     [Serializable]
-    public class AndroidBuildPlatformModule : ABuildTargetPlatformModule
+    public class AndroidBuildPlatformModule : ABuildTargetPlatformModule, IPreprocessBuildCallback, IPostprocessBuildCallback
     {
         public override string PlatformName => "Android";
 
@@ -100,7 +100,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
         public override IEnumerator OnStateCapture(BuildContext context)
         {
-#if UNITY_ANDROID
+            // Runs before target switch, so no UNITY_ANDROID here
             yield return base.OnStateCapture(context);
             var data = context.GetOrCreateData<Data>();
             
@@ -122,30 +122,43 @@ namespace EDIVE.BuildTool.PlatformConfigs
             data._PrevSplitAppBinary = PlayerSettings.Android.splitApplicationBinary;
             PlayerSettings.Android.splitApplicationBinary = _SplitApplicationBinary;
 
+            data._PrevEnableCloudDiagnostics = CrashReportingSettings.enabled;
+            if (_ForceDisableCloudDiagnostics) CrashReportingSettings.enabled = false;
+            yield break;
+        }
+
+        // Symbols need Android module, only active after switch
+        public IEnumerator OnPreprocess(BuildContext context)
+        {
+#if UNITY_ANDROID
+            var data = context.GetOrCreateData<SymbolsData>();
             data._PrevSymbolLevel = UserBuildSettings.DebugSymbols.level;
             UserBuildSettings.DebugSymbols.level = SymbolLevel;
 
             data._PrevSymbolFormat = UserBuildSettings.DebugSymbols.format;
             UserBuildSettings.DebugSymbols.format = SymbolFormat;
-            
-            data._PrevEnableCloudDiagnostics = CrashReportingSettings.enabled;
-            if (_ForceDisableCloudDiagnostics) CrashReportingSettings.enabled = false;
+#endif
+            yield break;
+        }
 
+        // Still on Android here, restore target switches away
+        public IEnumerator OnPostprocess(BuildContext context)
+        {
+#if UNITY_ANDROID
+            if (context.TryGetData<SymbolsData>(out var data))
+            {
+                UserBuildSettings.DebugSymbols.level = data._PrevSymbolLevel;
+                UserBuildSettings.DebugSymbols.format = data._PrevSymbolFormat;
+            }
 #endif
             yield break;
         }
 
         public override IEnumerator OnStateRestore(BuildContext context)
         {
-#if UNITY_ANDROID
             yield return base.OnStateRestore(context);
             if (!context.TryGetData<Data>(out var data))
                 yield break;
-            
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget, data._PrevBackend);
-            PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget, data._PrevIl2CppConfig);
-            PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget, data._PrevIl2CppCodeGeneration);
-
             EditorUserBuildSettings.androidBuildSystem = data._PrevSystem;
             PlayerSettings.Android.targetArchitectures = data._PrevArchitectures;
 
@@ -153,29 +166,15 @@ namespace EDIVE.BuildTool.PlatformConfigs
             PlayerSettings.Android.minifyDebug = data._PrevMinifyDebug;
             PlayerSettings.Android.minifyRelease = data._PrevMinifyRelease;
             PlayerSettings.Android.splitApplicationBinary = data._PrevSplitAppBinary;
-            UserBuildSettings.DebugSymbols.level = data._PrevSymbolLevel;
-            UserBuildSettings.DebugSymbols.format = data._PrevSymbolFormat;
-            
             CrashReportingSettings.enabled = data._PrevEnableCloudDiagnostics;
-#endif
             yield break;
         }
 
-#if UNITY_ANDROID
         [Serializable]
         private class Data : ABuildContextData
         {
             [SerializeField]
             public AndroidBuildSystem _PrevSystem;
-
-            [SerializeField]
-            public ScriptingImplementation _PrevBackend;
-
-            [SerializeField]
-            public Il2CppCompilerConfiguration _PrevIl2CppConfig;
-
-            [SerializeField]
-            public Il2CppCodeGeneration _PrevIl2CppCodeGeneration;
 
             [SerializeField]
             public AndroidArchitecture _PrevArchitectures;
@@ -191,15 +190,20 @@ namespace EDIVE.BuildTool.PlatformConfigs
 
             [SerializeField]
             public bool _PrevMinifyRelease;
-            
+
+            [SerializeField]
+            public bool _PrevEnableCloudDiagnostics;
+        }
+
+#if UNITY_ANDROID
+        [Serializable]
+        private class SymbolsData : ABuildContextData
+        {
             [SerializeField]
             public DebugSymbolFormat _PrevSymbolFormat;
 
             [SerializeField]
             public DebugSymbolLevel _PrevSymbolLevel;
-            
-            [SerializeField]
-            public bool _PrevEnableCloudDiagnostics;
         }
 #endif
     }
