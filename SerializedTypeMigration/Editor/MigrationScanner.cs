@@ -130,10 +130,11 @@ namespace EDIVE.SerializedTypeMigration.Editor
             finally
             {
                 AssetDatabase.StopAssetEditing();
-            }
 
-            foreach (var path in changed.Where(path => path.StartsWith("Assets/") || path.StartsWith("Packages/")))
-                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                // also on cancel, files written so far must reimport
+                foreach (var path in changed.Where(path => path.StartsWith("Assets/") || path.StartsWith("Packages/")))
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            }
 
             return changed;
         }

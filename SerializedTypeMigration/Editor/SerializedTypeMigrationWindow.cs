@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
@@ -64,7 +65,16 @@ namespace EDIVE.SerializedTypeMigration.Editor
         private void Scan()
         {
             var map = MigrationMap.Build();
-            var report = MigrationScanner.Scan(map);
+            MigrationReport report;
+            try
+            {
+                report = MigrationScanner.Scan(map);
+            }
+            catch (OperationCanceledException)
+            {
+                _summary = "Scan canceled.";
+                return;
+            }
 
             _errors = map.Errors.ToList();
             _warnings = map.Warnings.ToList();
@@ -91,8 +101,15 @@ namespace EDIVE.SerializedTypeMigration.Editor
                     $"Rewrites {_pending.Count} type name(s) in {files} asset(s) on disk.\n\nCommit your work first.", "Migrate", "Cancel"))
                 return;
 
-            var changed = MigrationScanner.Apply(MigrationMap.Build());
-            Debug.Log($"[SerializedTypeMigration] Rewrote {changed.Count} asset(s):\n{string.Join("\n", changed)}");
+            try
+            {
+                var changed = MigrationScanner.Apply(MigrationMap.Build());
+                Debug.Log($"[SerializedTypeMigration] Rewrote {changed.Count} asset(s):\n{string.Join("\n", changed)}");
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.LogWarning("[SerializedTypeMigration] Canceled. Some assets may already be rewritten, scan again.");
+            }
             Scan();
         }
 
