@@ -135,7 +135,8 @@ namespace EDIVE.Extensions.Random
         public static float NextGaussian(float mu = 0, float sigma = 1, IRandom r = null)
         {
             r ??= GlobalRandom;
-            var u1 = r.NextFloat();
+            // (0, 1], Log(0) would be infinite
+            var u1 = 1f - r.NextFloat();
             var u2 = r.NextFloat();
 
             var randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) * Mathf.Sin(2.0f * Mathf.PI * u2);

@@ -14,10 +14,12 @@ namespace EDIVE.Utils
         {
             if (idGetter == null)
                 return null;
-            
+
+            prefix ??= string.Empty;
             var highestID = parentCollection.AsValueEnumerable()
-                .Where(e => e != null && !ReferenceEquals(e, self) && idGetter.Invoke(e).StartsWith(prefix) && int.TryParse(idGetter.Invoke(e)[1..], out _))
-                .Select(e => int.Parse(idGetter.Invoke(e)[1..]))
+                .Select(e => e != null && !ReferenceEquals(e, self) ? idGetter.Invoke(e) : null)
+                .Where(id => id != null && id.StartsWith(prefix) && int.TryParse(id[prefix.Length..], out _))
+                .Select(id => int.Parse(id[prefix.Length..]))
                 .Prepend(0)
                 .Max();
             return $"{prefix}{highestID + 1:D2}";    

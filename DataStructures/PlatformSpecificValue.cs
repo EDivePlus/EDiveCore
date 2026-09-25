@@ -31,7 +31,6 @@ namespace EDIVE.DataStructures
                 return true;
             }
 
-            DebugLite.LogError("No value found for platform: " + platform);
             result = default;
             return false;
         }

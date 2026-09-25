@@ -28,6 +28,11 @@ namespace EDIVE.Utils.DefinesRegistry
             var defines = CollectDefines();
             var asset = TryFindExistingAsset(out var foundAsset) ? foundAsset : CreateAssetAtDefaultPath(defines);
 
+            // Runtime loads it by this exact Resources path
+            var assetPath = AssetDatabase.GetAssetPath(asset);
+            if (!assetPath.EndsWith($"/Resources/{ActiveDefinesRegistry.RESOURCE_PATH}.asset"))
+                Debug.LogError($"[ActiveDefines] '{assetPath}' is not at Resources/{ActiveDefinesRegistry.RESOURCE_PATH}.asset, builds will see no defines.", asset);
+
             if (asset.Defines.SequenceEqual(defines))
                 return;
 

@@ -16,7 +16,7 @@ namespace EDIVE.Conditions
         private ICondition _Condition;
         
         [SerializeField]
-        private TimingPreset _Timing;
+        private TimingPreset _Timing = new();
         
         private IDisposable _observingSubscription;
         
@@ -24,6 +24,7 @@ namespace EDIVE.Conditions
 
         public override void InitializeObserving()
         {
+            _observingSubscription?.Dispose();
             _observingSubscription = Observable
                 .Interval(_Timing.TimeStep, _Timing.TimeProvider)
                 .Select(_ => Evaluate())
@@ -34,6 +35,7 @@ namespace EDIVE.Conditions
         public override void TerminateObserving()
         {
             _observingSubscription?.Dispose();
+            _observingSubscription = null;
         }
     }
 }

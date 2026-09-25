@@ -64,6 +64,7 @@ namespace EDIVE.Core
             {
                 Debug.LogError("[AppCore] Instance was already created!", this);
                 Destroy(gameObject);
+                return;
             }
             _instance = this;
             DebugLite.Log("[AppCore] Initializing");

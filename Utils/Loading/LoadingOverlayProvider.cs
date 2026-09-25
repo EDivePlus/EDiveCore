@@ -32,9 +32,9 @@ namespace EDIVE.Utils.Loading
             if (requester == null)
                 return;
 
-            if (_requesters.Count == 0)
+            // Every requester counts, the overlay stays until the last one releases
+            if (_requesters.Add(requester) && _requesters.Count == 1)
             {
-                _requesters.Add(requester);
                 _FadeOut.Kill();
                 _FadeIn.Play();
             }

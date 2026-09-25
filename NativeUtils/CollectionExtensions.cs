@@ -324,7 +324,7 @@ namespace EDIVE.NativeUtils
 
         public static T GetClamp<T>(this IReadOnlyList<T> readOnlyList, int index)
         {
-            if (readOnlyList == null) return default;
+            if (readOnlyList == null || readOnlyList.Count == 0) return default;
             if (index < 0) index = 0;
             else if (index >= readOnlyList.Count) index = readOnlyList.Count - 1;
             return readOnlyList[index];
@@ -332,7 +332,7 @@ namespace EDIVE.NativeUtils
 
         public static bool TryGetClamp<T>(this IReadOnlyList<T> readOnlyList, int index, out T value)
         {
-            if (readOnlyList == null)
+            if (readOnlyList == null || readOnlyList.Count == 0)
             {
                 value = default;
                 return false;

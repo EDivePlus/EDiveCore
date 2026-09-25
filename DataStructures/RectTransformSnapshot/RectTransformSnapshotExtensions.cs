@@ -13,7 +13,7 @@ namespace EDIVE.DataStructures.RectTransformSnapshot
                 .Join(t.DOAnchorMax(preset.AnchorMax, duration))
                 .Join(t.DOAnchorMin(preset.AnchorMin, duration))
                 .Join(t.DOSizeDelta(preset.SizeDelta, duration))
-                .Join(t.DORotateQuaternion(preset.Rotation, duration))
+                .Join(t.DOLocalRotateQuaternion(preset.Rotation, duration))
                 .Join(t.DOScale(preset.LocalScale, duration));
 
             return sequence;

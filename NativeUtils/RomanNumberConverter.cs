@@ -5,21 +5,22 @@ namespace EDIVE.NativeUtils
 {
     public static class RomanNumberConverter
     {
-        private static readonly Dictionary<int, string> TO_ROMAN_DICTIONARY = new Dictionary<int, string>
+        // Largest first, ToRoman depends on the order
+        private static readonly (int Key, string Value)[] TO_ROMAN =
         {
-            { 1000, "M" },
-            { 900, "CM" },
-            { 500, "D" },
-            { 400, "CD" },
-            { 100, "C" },
-            { 90, "XC" },
-            { 50, "L" },
-            { 40, "XL" },
-            { 10, "X" },
-            { 9, "IX" },
-            { 5, "V" },
-            { 4, "IV" },
-            { 1, "I" },
+            (1000, "M"),
+            (900, "CM"),
+            (500, "D"),
+            (400, "CD"),
+            (100, "C"),
+            (90, "XC"),
+            (50, "L"),
+            (40, "XL"),
+            (10, "X"),
+            (9, "IX"),
+            (5, "V"),
+            (4, "IV"),
+            (1, "I"),
         };
         
         private static readonly Dictionary<char, int> TO_NUMBER_DICTIONARY = new Dictionary<char, int>
@@ -37,7 +38,7 @@ namespace EDIVE.NativeUtils
         {
             var roman = new StringBuilder();
 
-            foreach (var item in TO_ROMAN_DICTIONARY)
+            foreach (var item in TO_ROMAN)
             {
                 while (number >= item.Key)
                 {

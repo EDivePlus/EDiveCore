@@ -19,14 +19,19 @@ namespace EDIVE.NativeUtils
             return copy;
         }
 
+        // Any texture. Unreadable ones go through the GPU.
         public static Texture2D Get2DCopy(this Texture original)
         {
             if (original == null)
                 return null;
 
-            var copy = new Texture2D(original.width, original.height);
-            copy.SetPixels((original as Texture2D)?.GetPixels());
-            copy.Apply();
+            if (original is Texture2D { isReadable: true } readable)
+                return readable.GetCopy();
+
+            var temporary = RenderTexture.GetTemporary(original.width, original.height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(original, temporary);
+            var copy = temporary.ToTexture2D();
+            RenderTexture.ReleaseTemporary(temporary);
             return copy;
         }
 

@@ -23,7 +23,7 @@ namespace EDIVE.Utils.FontSymbols
 
         public bool TryGetCodepoint(char symbol, out Codepoint codepoint)
         {
-            return _Entries.TryGetFirst(t => t.Char == symbol, out codepoint);
+            return _Entries.TryGetFirst(t => t.Unicode == symbol, out codepoint);
         }
     }
 }
