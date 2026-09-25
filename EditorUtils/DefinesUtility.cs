@@ -10,7 +10,6 @@ namespace EDIVE.EditorUtils
     {
         private static readonly NamedBuildTarget[] VALID_NAMED_BUILD_TARGETS =
         {
-            NamedBuildTarget.Unknown,
             NamedBuildTarget.Standalone,
             NamedBuildTarget.Server,
             NamedBuildTarget.iOS,

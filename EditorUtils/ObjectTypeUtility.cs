@@ -24,7 +24,7 @@ namespace EDIVE.EditorUtils
             };
             if (type == null) return;
 
-            var targets = Selection.objects.Where(type.IsInstanceOfType);
+            var targets = Selection.objects.Where(type.IsInstanceOfType).ToArray();
             var selector = new TypeSelector(TypeCache.GetTypesDerivedFrom(type), false);
             selector.SelectionConfirmed += selection =>
             {

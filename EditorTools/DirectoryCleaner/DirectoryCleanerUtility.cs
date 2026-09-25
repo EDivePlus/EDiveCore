@@ -12,6 +12,8 @@ namespace EDIVE.EditorTools.DirectoryCleaner
     {
         private const string CLEAR_ON_SAVE_PREFS_KEY = "DirectoryCleanerUtility_ClearOnSave";
 
+        private const string CLEANED_SESSION_KEY = "DirectoryCleaner.CleanedThisSession";
+
         public static bool CleanOnEditorInitialized
         {
             get => EditorPrefs.GetBool(CLEAR_ON_SAVE_PREFS_KEY, false); 
@@ -22,7 +24,15 @@ namespace EDIVE.EditorTools.DirectoryCleaner
         private static void OnEditorLoaded()
         {
             if (!CleanOnEditorInitialized) return;
+            // Once per editor session, not every reload
+            if (SessionState.GetBool(CLEANED_SESSION_KEY, false)) return;
+            SessionState.SetBool(CLEANED_SESSION_KEY, true);
+            // Asset db not ready during load
+            EditorApplication.delayCall += CleanEmptyDirectories;
+        }
 
+        private static void CleanEmptyDirectories()
+        {
             var emptyDirs = GetEmptyDirectories();
             if (!emptyDirs.Any()) 
                 return;
@@ -81,7 +91,8 @@ namespace EDIVE.EditorTools.DirectoryCleaner
         {
             try
             {
-                return dirInfo.EnumerateFileSystemInfos("*.*").Any(IsNonMetaFile);
+                // Subfolders checked by caller, only files count here
+                return dirInfo.EnumerateFiles("*.*").Any(IsNonMetaFile);
             }
             catch (Exception)
             {

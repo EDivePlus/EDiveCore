@@ -16,9 +16,10 @@ namespace EDIVE.EditorTools
                 if (obj is not TMP_FontAsset font)
                     continue;
 
+                var mode = font.atlasPopulationMode;
                 font.atlasPopulationMode = AtlasPopulationMode.Static;
                 font.ClearFontAssetData(true);
-                font.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+                font.atlasPopulationMode = mode;
 
                 EditorUtility.SetDirty(font);
             }
