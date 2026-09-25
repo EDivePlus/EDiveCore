@@ -7,6 +7,7 @@ using EDIVE.Core;
 
 namespace EDIVE.Audio
 {
+    [Serializable]
     public class MicAllowedCondition : ABoolCondition
     {
         private AudioManager _manager;

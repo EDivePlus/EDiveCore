@@ -5,6 +5,7 @@ using System;
 
 namespace EDIVE.Conditions
 {
+    [Serializable]
     public abstract class ABaseCondition : ICondition
     {
         public event Action StateChanged;

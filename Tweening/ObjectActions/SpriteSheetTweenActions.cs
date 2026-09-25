@@ -1,7 +1,9 @@
+using System;
 using DG.Tweening;
 
 namespace EDIVE.Tweening.ObjectActions
 {
+    [Serializable]
     public class SpriteSheetTweenActions : ATweenObjectAction<SpriteSheetTweener>
     {
         protected override Tween GetTween(SpriteSheetTweener target)
