@@ -64,9 +64,11 @@ namespace EDIVE.EyeTracking
 
             _startTrackingCompletionSource ??= new UniTaskCompletionSource<bool>();
             _requesters.Add(requester);
-        
             if (ActiveModule == null)
+            {
+                callback?.Invoke(false);
                 return;
+            }
 
             _startTrackingCompletionSource.Task.ContinueWith(callback).Forget();
             if (ActiveModule.IsTracking)
@@ -81,6 +83,16 @@ namespace EDIVE.EyeTracking
         private void OnTrackingStarted(bool success)
         {
             _startTrackingCompletionSource?.TrySetResult(success);
+            _eyeGazeSubscription?.Dispose();
+            _eyeGazeSubscription = null;
+            if (!success || ActiveModule == null)
+                return;
+            // Stopped while starting
+            if (_requesters.Count == 0)
+            {
+                ActiveModule.StopTracking();
+                return;
+            }
             _eyeGazeSubscription = ActiveModule.EyeGazeStream.Subscribe(data =>
             {
                 _rawEyeGazeStream.OnNext(data);
@@ -100,7 +112,8 @@ namespace EDIVE.EyeTracking
                     ActiveModule.StopTracking();
                 
                 _eyeGazeSubscription?.Dispose();
-                _startTrackingCompletionSource?.TrySetCanceled();
+                _eyeGazeSubscription = null;
+                _startTrackingCompletionSource?.TrySetResult(false);
                 _startTrackingCompletionSource = null;
             }
         }

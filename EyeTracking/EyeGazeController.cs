@@ -38,7 +38,7 @@ namespace EDIVE.EyeTracking
             {
                 _eyeTrackingManager = await AppCore.Services.AwaitRegistered<EyeTrackingManager>();
                 var success = await _eyeTrackingManager.AwaitStartTracking(this);
-                if (success)
+                if (success && isActiveAndEnabled)
                 {
                     _trackingSubscription = _eyeTrackingManager.FrameEyeGazeStream.Subscribe(OnEyeGazeFrame);
                 }
@@ -51,6 +51,7 @@ namespace EDIVE.EyeTracking
                 _eyeTrackingManager?.StopTracking(this);
             
             _trackingSubscription?.Dispose();
+            _trackingSubscription = null;
         }
 
         private void OnEyeGazeFrame(EyeGazeFrame eyeGazeFrame)
