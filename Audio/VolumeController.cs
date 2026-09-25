@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 09.06.2026
 
+using System;
 using System.Collections.Generic;
 using EDIVE.Core;
 using Sirenix.OdinInspector;
@@ -31,14 +32,17 @@ namespace EDIVE.Audio
         private float _MaxValue = 1f;
 
         private AudioManager _audioManager;
+        private IDisposable _serviceRegistration;
 
         private void OnEnable()
         {
-            AppCore.Services.WhenRegistered<AudioManager>(Initialize);
+            _serviceRegistration = AppCore.Services.WhenRegistered<AudioManager>(Initialize);
         }
 
         private void OnDisable()
         {
+            _serviceRegistration?.Dispose();
+            _serviceRegistration = null;
             _Slider.onValueChanged.RemoveListener(OnSliderChanged);
         }
 

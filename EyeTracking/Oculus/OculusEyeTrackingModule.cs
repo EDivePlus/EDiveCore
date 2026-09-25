@@ -85,7 +85,7 @@ namespace EDIVE.EyeTracking.Oculus
                 _trackingCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
                 TrackingRoutine(_trackingCancellation.Token).Forget(); 
                 callback?.Invoke(true);
-            }); 
+            }).Forget();
         }
         
         public override void StopTracking()

@@ -174,8 +174,8 @@ namespace EDIVE.Core.Services
         
         public IDisposable WhenRegistered<T>(Action<T> action) where T : class, IService
         {
-            var cts =  new CancellationTokenSource();
-            AwaitRegistered<T>(cts.Token).ContinueWith(r => action?.Invoke(r));
+            var cts = new CancellationTokenSource();
+            AwaitRegistered<T>(cts.Token).ContinueWith(r => action?.Invoke(r)).Forget();
             return DisposableUtils.Create(cts.Cancel);
         }
         
@@ -183,8 +183,8 @@ namespace EDIVE.Core.Services
             where T : class, IService
             where T2 : class, IService
         {
-            var cts =  new CancellationTokenSource();
-            AwaitRegistered<T, T2>(cts.Token).ContinueWith(r => action?.Invoke(r.Item1, r.Item2));
+            var cts = new CancellationTokenSource();
+            AwaitRegistered<T, T2>(cts.Token).ContinueWith(r => action?.Invoke(r.Item1, r.Item2)).Forget();
             return DisposableUtils.Create(cts.Cancel);
         }
         
@@ -193,8 +193,8 @@ namespace EDIVE.Core.Services
             where T2 : class, IService
             where T3 : class, IService
         {
-            var cts =  new CancellationTokenSource();
-            AwaitRegistered<T, T2, T3>(cts.Token).ContinueWith(r => action?.Invoke(r.Item1, r.Item2, r.Item3));
+            var cts = new CancellationTokenSource();
+            AwaitRegistered<T, T2, T3>(cts.Token).ContinueWith(r => action?.Invoke(r.Item1, r.Item2, r.Item3)).Forget();
             return DisposableUtils.Create(cts.Cancel);
         }
         

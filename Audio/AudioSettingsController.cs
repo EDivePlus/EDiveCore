@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 02.06.2025
 
+using System;
 using EDIVE.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,10 +17,17 @@ namespace EDIVE.Audio
         private Toggle _SpatialAudioToggle;
 
         private AudioManager _audioManager;
+        private IDisposable _serviceRegistration;
 
         private void OnEnable()
         {
-            AppCore.Services.WhenRegistered<AudioManager>(Initialize);
+            _serviceRegistration = AppCore.Services.WhenRegistered<AudioManager>(Initialize);
+        }
+
+        private void OnDisable()
+        {
+            _serviceRegistration?.Dispose();
+            _serviceRegistration = null;
         }
 
         private void Initialize(AudioManager audioManager)

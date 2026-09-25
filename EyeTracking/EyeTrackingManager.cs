@@ -68,7 +68,7 @@ namespace EDIVE.EyeTracking
             if (ActiveModule == null)
                 return;
 
-            _startTrackingCompletionSource.Task.ContinueWith(callback);
+            _startTrackingCompletionSource.Task.ContinueWith(callback).Forget();
             if (ActiveModule.IsTracking)
                 return;
             

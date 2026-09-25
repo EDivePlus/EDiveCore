@@ -1,3 +1,4 @@
+using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Input.Keyboard.InputFieldWrappers;
@@ -48,10 +49,11 @@ namespace EDIVE.Input.Keyboard
 
         private int _lastCaretPosition;
         private bool _isAvailable;
+        private IDisposable _serviceRegistration;
 
         private void Awake()
         {
-            AppCore.Services.WhenRegistered<VirtualKeyboardManager>(keyboardManager =>
+            _serviceRegistration = AppCore.Services.WhenRegistered<VirtualKeyboardManager>(keyboardManager =>
             {
                 if (!keyboardManager.CheckAvailable()) 
                     return;
@@ -136,6 +138,8 @@ namespace EDIVE.Input.Keyboard
 
         private void OnDestroy()
         {
+            _serviceRegistration?.Dispose();
+            _serviceRegistration = null;
             StopObservingKeyboard(_activeKeyboard);
         }
         

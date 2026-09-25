@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 29.06.2025
 
+using System;
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
 using EDIVE.Networking.ServerManagement.UI;
@@ -36,6 +37,7 @@ namespace EDIVE.Networking.UI
         
         private MasterNetworkManager _networkManager;
         private NetworkServerManager _serverManager;
+        private IDisposable _serviceRegistration;
         
         private void OnEnable()
         {
@@ -47,7 +49,7 @@ namespace EDIVE.Networking.UI
                 if (_RuntimeModeState)
                     _RuntimeModeState.SetState(NetworkRuntimeMode.None);
             }
-            AppCore.Services.WhenRegistered<MasterNetworkManager, NetworkServerManager>(Initialize);
+            _serviceRegistration = AppCore.Services.WhenRegistered<MasterNetworkManager, NetworkServerManager>(Initialize);
         }
 
         private void Initialize(MasterNetworkManager networkManager, NetworkServerManager serverManager)
@@ -62,6 +64,8 @@ namespace EDIVE.Networking.UI
 
         private void OnDisable()
         {
+            _serviceRegistration?.Dispose();
+            _serviceRegistration = null;
             if (_networkManager)
             {
                 _networkManager.ConnectionStateChanged -= OnClientConnectionStateChanged;

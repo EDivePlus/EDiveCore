@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 13.06.2025
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -26,10 +27,11 @@ namespace EDIVE.Networking.ServerManagement.UI
         private NetworkServerManager _serverManager;
         
         private CancellationTokenSource _cancellationTokenSource;
+        private IDisposable _serviceRegistration;
 
         private void OnEnable()
         {
-            AppCore.Services.WhenRegistered<NetworkServerManager>(Initialize);
+            _serviceRegistration = AppCore.Services.WhenRegistered<NetworkServerManager>(Initialize);
         }
 
         private void Initialize(NetworkServerManager manager)
@@ -58,6 +60,9 @@ namespace EDIVE.Networking.ServerManagement.UI
 
         private void OnDisable()
         {
+            _serviceRegistration?.Dispose();
+            _serviceRegistration = null;
+
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
