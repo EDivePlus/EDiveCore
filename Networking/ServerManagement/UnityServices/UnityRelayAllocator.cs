@@ -18,15 +18,11 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         [SerializeField]
         private ServerConfig _Config;
         
-        private Allocation _allocation;
         
+        // New each time, allocation expires unused and is single session
         public async UniTask<Allocation> GetAllocationAsync()
         {
-            if (_allocation != null)
-                return _allocation;
-            
-            _allocation = await RelayService.Instance.CreateAllocationAsync(_Config.MaxPlayers);
-            return _allocation;
+            return await RelayService.Instance.CreateAllocationAsync(_Config.MaxPlayers);
         }
 
         public IEnumerable<Type> GetDependencies()

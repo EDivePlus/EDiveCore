@@ -126,12 +126,34 @@ namespace EDIVE.Networking.Utils
         [SerializeField]
         protected List<T> _Targets;
             
+        // Only what we turned off, so targets meant off stay off
+        private readonly HashSet<T> _hiddenTargets = new();
+
         public override void UpdateVisibility(bool prevVisible, bool nextVisible)
         {
             _Targets?.RemoveAll(t => t == null);
-            _Targets?.ForEach(t => UpdateTarget(t, prevVisible, nextVisible));
+            if (nextVisible)
+            {
+                foreach (var target in _hiddenTargets)
+                {
+                    if (target != null)
+                        SetEnabled(target, true);
+                }
+                _hiddenTargets.Clear();
+                return;
+            }
+
+            _Targets?.ForEach(t =>
+            {
+                if (!IsEnabled(t))
+                    return;
+                SetEnabled(t, false);
+                _hiddenTargets.Add(t);
+            });
         }
-        protected abstract void UpdateTarget(T target, bool prevVisible, bool nextVisible);
+
+        protected abstract bool IsEnabled(T target);
+        protected abstract void SetEnabled(T target, bool enabled);
     }
     
     [Serializable]
@@ -154,10 +176,8 @@ namespace EDIVE.Networking.Utils
         where TSelf : IObserverUpdaterRule, new()
         where T : Behaviour
     {
-        protected override void UpdateTarget(T target, bool prevVisible, bool nextVisible)
-        {
-            target.enabled = nextVisible;
-        }
+        protected override bool IsEnabled(T target) => target.enabled;
+        protected override void SetEnabled(T target, bool enabled) => target.enabled = enabled;
     }
     
     [Serializable, Preserve]
@@ -182,7 +202,8 @@ namespace EDIVE.Networking.Utils
     public class RendererObserverUpdaterRule : AComponentObserverUpdaterRule<RendererObserverUpdaterRule, Renderer>
     {
         protected override string Label => "Renderers";
-        protected override void UpdateTarget(Renderer target, bool prevVisible, bool nextVisible) => target.enabled = nextVisible;
+        protected override bool IsEnabled(Renderer target) => target.enabled;
+        protected override void SetEnabled(Renderer target, bool enabled) => target.enabled = enabled;
     }
     
         
@@ -190,6 +211,7 @@ namespace EDIVE.Networking.Utils
     public class TerrainObserverUpdaterRule : AComponentObserverUpdaterRule<TerrainObserverUpdaterRule, Terrain>
     {
         protected override string Label => "Terrains";
-        protected override void UpdateTarget(Terrain target, bool prevVisible, bool nextVisible) => target.enabled = nextVisible;
+        protected override bool IsEnabled(Terrain target) => target.enabled;
+        protected override void SetEnabled(Terrain target, bool enabled) => target.enabled = enabled;
     }
 }

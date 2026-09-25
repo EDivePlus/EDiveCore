@@ -23,6 +23,7 @@ namespace EDIVE.Networking.Utils
             
             AppCore.Services.WhenRegistered<MasterNetworkManager>(_ =>
             {
+                NetworkManager.main.onServerConnectionState -= OnServerConnectionState;
                 NetworkManager.main.onServerConnectionState += OnServerConnectionState;
             });
         }

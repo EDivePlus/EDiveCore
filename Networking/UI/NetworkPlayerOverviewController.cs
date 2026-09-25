@@ -27,6 +27,8 @@ namespace EDIVE.Networking.UI
 
         private void OnEnable()
         {
+            if (_networkPlayerManager == null && !AppCore.Services.TryGet(out _networkPlayerManager))
+                return;
             _networkPlayerManager.PlayerRegistered += OnPlayerRegistered;
             _networkPlayerManager.PlayerUnregistered += OnPlayerUnregistered;
             RefreshAllDisplays();
@@ -34,6 +36,8 @@ namespace EDIVE.Networking.UI
 
         private void OnDisable()
         {
+            if (_networkPlayerManager == null)
+                return;
             _networkPlayerManager.PlayerRegistered -= OnPlayerRegistered;
             _networkPlayerManager.PlayerUnregistered -= OnPlayerUnregistered;
         }

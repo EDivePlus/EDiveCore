@@ -128,6 +128,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         public override void StopServer()
         {
             base.StopServer();
+            // Next start gets fresh room and record
+            _relayInitialized = false;
+            _currentServerRecord = null;
             if (!_disposing)
                 DisposeAsync().Forget();
         }
@@ -155,6 +158,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             if (hostServer == null || _localEndpoints == null)
                 return;
 
+            hostServer.Endpoints.RemoveAll(e => Array.IndexOf(_localEndpoints, e) >= 0);
             hostServer.Endpoints.AddRange(_localEndpoints);
             hostServer.JoinCode = _joinCode;
         }
@@ -184,13 +188,21 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             while (!cancellationToken.IsCancellationRequested)
             {
                 _lastQueryTime = UnityEngine.Time.realtimeSinceStartup;
-                var response = await Lobby.QueryServersAsync(
-                    new QueryServersRequest { Count = _QueryCount, Skip = 0 },
-                    cancellationToken);
-                var records = response.IsSuccess && response.Result != null
-                    ? BuildRecords(response.Result)
-                    : Array.Empty<ServerRecord>();
-                SetServers(records);
+                // One failed query must not end search
+                try
+                {
+                    var response = await Lobby.QueryServersAsync(
+                        new QueryServersRequest { Count = _QueryCount, Skip = 0 },
+                        cancellationToken);
+                    var records = response.IsSuccess && response.Result != null
+                        ? BuildRecords(response.Result)
+                        : Array.Empty<ServerRecord>();
+                    SetServers(records);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Debug.LogException(e);
+                }
                 await UniTask.Delay(TimeSpan.FromSeconds(_QueryInterval), true, cancellationToken: cancellationToken);
             }
         }
@@ -299,7 +311,15 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 });
             }
 
+            var oldEndpoints = _localEndpoints;
             _localEndpoints = endpoints.ToArray();
+            // Re-register can change endpoints, push to host record
+            if (_currentServerRecord != null)
+            {
+                if (oldEndpoints != null)
+                    _currentServerRecord.Endpoints.RemoveAll(e => Array.IndexOf(oldEndpoints, e) >= 0);
+                _currentServerRecord.Endpoints.AddRange(_localEndpoints);
+            }
             Debug.Log($"[ServiceHubServerListAdapter] Server registered (join code: {_joinCode}).");
             return true;
         }

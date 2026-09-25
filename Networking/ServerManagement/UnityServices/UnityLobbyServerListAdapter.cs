@@ -43,6 +43,7 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         private Lobby _hostLobby;
         private float _lastQueryTime;
         private AServerEndpoint[] _localEndpoints;
+        private string _joinCode;
 
         public override void PopulateDependencies(HashSet<Type> dependencies)
         {
@@ -81,8 +82,18 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _searchCancellation = null;
         }
 
-        public override IEnumerable<AServerEndpoint> GetLocalServerEndpoints()
-            => _localEndpoints ?? Array.Empty<AServerEndpoint>();
+        public override void RegisterHostServer(ServerRecord hostServer)
+        {
+            base.RegisterHostServer(hostServer);
+            if (hostServer == null || _localEndpoints == null)
+                return;
+            hostServer.Endpoints.AddRange(_localEndpoints);
+            hostServer.JoinCode = _joinCode;
+        }
+
+        // Joins go through listed lobbies only
+        public override UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request)
+            => UniTask.FromResult<(bool, ServerRecord)>((false, null));
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
@@ -183,6 +194,13 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
                 RelayJoinCode = joinCode,
             });
             _localEndpoints = endpoints.ToArray();
+            _joinCode = joinCode;
+            // Host record may exist already
+            if (_currentServerRecord != null)
+            {
+                _currentServerRecord.Endpoints.AddRange(_localEndpoints);
+                _currentServerRecord.JoinCode = _joinCode;
+            }
         }
         
         private async UniTaskVoid HeartbeatTask(CancellationToken cancellationToken)
@@ -209,6 +227,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
             _localEndpoints = null;
+            _joinCode = null;
+            _currentServerRecord = null;
             if (_hostLobby != null)
             {
                 var lobbyId = _hostLobby.Id;

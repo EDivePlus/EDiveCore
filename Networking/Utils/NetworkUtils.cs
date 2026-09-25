@@ -143,6 +143,11 @@ namespace EDIVE.Networking.Utils
                 await udp.ReceiveAsync();
                 return true;
             }
+            catch (SocketException e) when (e.SocketErrorCode is SocketError.ConnectionReset or SocketError.ConnectionRefused)
+            {
+                // ICMP port unreachable
+                return false;
+            }
             catch
             {
                 return true;

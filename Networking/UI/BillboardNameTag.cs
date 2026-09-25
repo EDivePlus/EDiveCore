@@ -24,6 +24,7 @@ namespace EDIVE.Networking.UI
 
         private void LateUpdate()
         {
+            if (!_AttachRoot) return;
             // Update position in global space
             transform.position = _AttachRoot.position + _AttachOffset;
             

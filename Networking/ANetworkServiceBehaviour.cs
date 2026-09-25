@@ -33,12 +33,12 @@ namespace EDIVE.Networking
 
         protected void UnregisterService<TService>() where TService : class, IService
         {
-            if (this is not TService)
+            if (this is not TService targetType)
             {
                 Debug.LogError($"Service '{GetType()}' cannot be unregistered as '{typeof(TService)}'", this);
                 return;
             }
-            AppCore.Services.Unregister<TService>();
+            AppCore.Services.Unregister(targetType);
         }
 
         protected virtual void RegisterService() => RegisterService<T>();

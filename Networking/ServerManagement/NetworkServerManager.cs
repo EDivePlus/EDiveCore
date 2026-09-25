@@ -610,7 +610,8 @@ namespace EDIVE.Networking.ServerManagement
                     MaxPlayers = _ServerConfig.MaxPlayers,
                     CurrentPlayers = NetworkManager.main.playerCount,
                     LastUpdated = DateTime.UtcNow,
-                    JoinCode = JoinCode,
+                    // Adapters fill in, old value is from last server
+                    JoinCode = null,
                     Version = AppCore.CurrentVersion
                 };
 

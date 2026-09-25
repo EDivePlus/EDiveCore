@@ -209,6 +209,7 @@ namespace EDIVE.Networking
             }
 
             BeforeHostStarted?.Invoke();
+            _serverStartRequested = true;
             UniTask.Void(async () =>
             {
                 if (AppCore.Services.TryGet<TransportController>(out var transportController))

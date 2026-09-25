@@ -67,7 +67,8 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             _loadCts?.Cancel();
             _loadCts?.Dispose();
             _loadCts = null;
-            
+            // New token, allow reload
+            _loadInitialized = false;
             ShareTokenChanged?.Invoke(_ShareToken);
             TryStartLoad();
         }
