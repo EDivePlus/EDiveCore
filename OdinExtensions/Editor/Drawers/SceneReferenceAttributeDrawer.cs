@@ -48,7 +48,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     foreach (var guid in guids)
                     {
                         var path = AssetDatabase.GUIDToAssetPath(guid);
-                        _availableScenes.Add(AssetDatabase.LoadAssetAtPath<SceneAsset>(path));
+                        var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(path);
+                        if (sceneAsset != null)
+                            _availableScenes.Add(sceneAsset);
                     }
                 }
             }
@@ -106,7 +108,8 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             selector.SelectionConfirmed += selection =>
             {
                 var selected = selection.FirstOrDefault();
-                if (!isSceneValid && string.IsNullOrEmpty(selected))
+                // Invalid entry is display only
+                if (!isSceneValid && selected == sceneLabel)
                     return;
 
                 ValueEntry.SmartValue = selected;

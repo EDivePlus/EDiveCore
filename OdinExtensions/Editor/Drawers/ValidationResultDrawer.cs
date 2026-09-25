@@ -33,6 +33,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         protected override void Initialize()
         {
             _issueFixerTree?.Dispose();
+            _issueFixerTree = null;
+            if (ValueEntry.SmartValue == null || ValueEntry.SmartValue.Count == 0)
+                return;
             var fix = ValueEntry.SmartValue[0].Fix;
             var fixHasArguments = fix?.ArgType != null;
 
@@ -55,7 +58,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 _ => MessageType.None
             };
 
-            if (messageType != MessageType.None)
+            if (messageType != MessageType.None && result.Count > 0)
             {
                 DrawMessageBoxWithButton(ref result[0], messageType, result[0].OnContextClick);
             }

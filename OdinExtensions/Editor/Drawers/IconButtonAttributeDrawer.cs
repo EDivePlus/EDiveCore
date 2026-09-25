@@ -51,7 +51,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 string text = null;
                 if (Attribute.ShowLabel)
                 {
-                    text = !_labelResolver.HasError ? _labelResolver.GetValue() : label.text;
+                    text = !_labelResolver.HasError ? _labelResolver.GetValue() : label?.text;
                 }
 
                 var content = GUIHelper.TempContent($" {text}", icon.Highlighted, tooltip);

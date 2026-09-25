@@ -10,6 +10,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 {
     public class EnhancedFoldoutGroupAttributeDrawer : OdinGroupDrawer<EnhancedFoldoutGroupAttribute>
     {
+        private static GUIStyle _boldFoldoutStyle;
+        private static GUIStyle BoldFoldoutStyle => _boldFoldoutStyle ??= new GUIStyle(SirenixGUIStyles.Foldout) { fontStyle = FontStyle.Bold };
+
         private ValueResolver<Color> _colorResolver;
         private ValueResolver<string> _titleResolver;
         private ValueResolver<bool> _useIfResolver;
@@ -55,11 +58,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             GUI.backgroundColor = previousBgColor;
             SirenixEditorGUI.BeginBoxHeader();
 
-            var style = new GUIStyle(SirenixGUIStyles.Foldout);
-            if (Attribute.Bold)
-            {
-                style.fontStyle = FontStyle.Bold;
-            }
+            var style = Attribute.Bold ? BoldFoldoutStyle : SirenixGUIStyles.Foldout;
 
             var titleContent = Attribute.HideGroupTitle
                 ? GUIContent.none

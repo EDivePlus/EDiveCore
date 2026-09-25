@@ -110,9 +110,10 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         {
             var rangeConverter = new LogRangeConverter(Min, Center, Max);
             var rect = EditorGUILayout.GetControlRect(false);
-            var logValue = GUI.HorizontalSlider(rect, rangeConverter.ToNormalized(value), 0, 1);
-            value = rangeConverter.ToRange(logValue);
-            return value;
+            var normalized = rangeConverter.ToNormalized(value);
+            var logValue = GUI.HorizontalSlider(rect, normalized, 0, 1);
+            // Round trip drifts, keep value unless slider moved
+            return logValue.Equals(normalized) ? value : rangeConverter.ToRange(logValue);
         }
 
         public void DrawFloat(GUIContent label, float value, Action<float> onValueChanged, float clampMin = float.MinValue, float clampMax = float.MaxValue)
@@ -160,22 +161,37 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private readonly float _a;
         private readonly float _b;
         private readonly float _c;
-
+        private readonly float _min;
+        private readonly float _max;
+        private readonly bool _linear;
         public LogRangeConverter(float minValue, float centerValue, float maxValue)
         {
-            _a = (minValue * maxValue - centerValue * centerValue) / (minValue - 2 * centerValue + maxValue);
-            _b = (centerValue - minValue) * (centerValue - minValue) / (minValue - 2 * centerValue + maxValue);
+            _min = minValue;
+            _max = maxValue;
+            var denominator = minValue - 2 * centerValue + maxValue;
+            // Center at midpoint or outside range, curve undefined
+            _linear = Mathf.Abs(denominator) < 1e-6f || centerValue <= Mathf.Min(minValue, maxValue) || centerValue >= Mathf.Max(minValue, maxValue);
+            if (_linear)
+            {
+                _a = _b = _c = 0f;
+                return;
+            }
+            _a = (minValue * maxValue - centerValue * centerValue) / denominator;
+            _b = (centerValue - minValue) * (centerValue - minValue) / denominator;
             _c = 2 * Mathf.Log((maxValue - centerValue) / (centerValue - minValue));
         }
-
         public float ToRange(float value)
         {
+            if (_linear)
+                return Mathf.Lerp(_min, _max, value);
             return _a + _b * Mathf.Exp(_c * value);
         }
-
         public float ToNormalized(float value)
         {
-            return Mathf.Log((value - _a) / _b) / _c;
+            if (_linear)
+                return Mathf.InverseLerp(_min, _max, value);
+            var normalized = Mathf.Log((value - _a) / _b) / _c;
+            return float.IsNaN(normalized) ? (value <= _min ? 0f : 1f) : normalized;
         }
     }
 }

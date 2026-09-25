@@ -29,16 +29,16 @@ namespace EDIVE.OdinExtensions.Editor
             _timer = 0;
         }
         
+        // Called every state update, only rescan editors on change
         public static void AddProperty(InspectorProperty property)
         {
-            _currentProperties.Add(property);
-            RefreshEditors();
+            if (_currentProperties.Add(property))
+                RefreshEditors();
         }
-
         public static void RemoveProperty(InspectorProperty property)
         {
-            _currentProperties.Remove(property);
-            RefreshEditors();
+            if (_currentProperties.Remove(property))
+                RefreshEditors();
         }
 
         private static void RefreshEditors()

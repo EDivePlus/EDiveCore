@@ -18,6 +18,7 @@ namespace EDIVE.OdinExtensions.Editor
         public void Dispose()
         {
             EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+            KeepRefreshingUtility.RemoveProperty(Property);
         }
         
         private void OnPlayModeChanged(PlayModeStateChange obj)

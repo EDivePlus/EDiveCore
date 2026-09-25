@@ -31,10 +31,18 @@ namespace EDIVE.OdinExtensions.Attributes
 
         public bool HasColorDefined { get; private set; }
 
-        public EnhancedFoldoutGroupAttribute(string group, float r, float g, float b, float a = 1f, bool expanded = false, int order = 0)
+        // No expanded arg, keep remembered foldout state
+        public EnhancedFoldoutGroupAttribute(string group, float r, float g, float b, float a = 1f, int order = 0)
+            : base(group, (float) order)
+        {
+            DefaultColor = new Color(r, g, b, a);
+            HasColorDefined = true;
+        }
+
+        public EnhancedFoldoutGroupAttribute(string group, float r, float g, float b, float a, bool expanded, int order = 0)
             : base(group, expanded, order)
         {
-            DefaultColor= new Color(r, g, b, a);
+            DefaultColor = new Color(r, g, b, a);
             HasColorDefined = true;
         }
 

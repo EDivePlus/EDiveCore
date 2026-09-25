@@ -159,7 +159,8 @@ namespace EDIVE.OdinExtensions.Editor.Validators
 
         private static GenericMenu.MenuFunction CreateMenuFunction(Action onClick)
         {
-            return (GenericMenu.MenuFunction)Delegate.CreateDelegate(typeof(GenericMenu.MenuFunction), onClick.Target, onClick.Method);
+            // Wrap, CreateDelegate keeps only last target of multicast
+            return onClick == null ? null : () => onClick();
         }
     }
 }
