@@ -1,3 +1,4 @@
+using EDIVE.NativeUtils;
 using UnityEngine;
 
 namespace EDIVE.Rendering.Mirrors
@@ -20,18 +21,7 @@ namespace EDIVE.Rendering.Mirrors
         // Reused between calls. Read it before asking another volume.
         public Vector3[] GetWorldCorners()
         {
-            var min = _Center - _Size * 0.5f;
-            var max = _Center + _Size * 0.5f;
-            var matrix = transform.localToWorldMatrix;
-
-            for (var i = 0; i < 8; i++)
-            {
-                _corners[i] = matrix.MultiplyPoint3x4(new Vector3(
-                    (i & 1) == 0 ? min.x : max.x,
-                    (i & 2) == 0 ? min.y : max.y,
-                    (i & 4) == 0 ? min.z : max.z));
-            }
-
+            new Bounds(_Center, _Size).GetCorners(transform.localToWorldMatrix, _corners);
             return _corners;
         }
 

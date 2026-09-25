@@ -2,6 +2,7 @@
     "name": "EDIVE.Rendering.Mirrors",
     "rootNamespace": "",
     "references": [
+        "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Core.Editor",

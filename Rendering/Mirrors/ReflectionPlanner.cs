@@ -39,7 +39,7 @@ namespace EDIVE.Rendering.Mirrors
             if (surfaces == null || surfaces.Count == 0 || profile == null)
                 return;
 
-            Walk(renderCamera, reflectionCamera, surfaces, profile, cullEye, viewMargin, 1, null);
+            Walk(renderCamera, reflectionCamera, surfaces, profile, cullEye, viewMargin, 1, null, reflectionCamera.projectionMatrix);
         }
 
         private void Walk(
@@ -50,7 +50,8 @@ namespace EDIVE.Rendering.Mirrors
             Camera.MonoOrStereoscopicEye cullEye,
             float viewMargin,
             int depth,
-            MirrorSurface parentSurface)
+            MirrorSurface parentSurface,
+            Matrix4x4 baseProjection)
         {
             // One past the limit, so the last ring can blend out.
             if (depth > profile.Recursions + 1)
@@ -72,10 +73,10 @@ namespace EDIVE.Rendering.Mirrors
                 var mirrorNormal = -surface.ForwardTransform.forward;
                 var distance = Vector3.Distance(eyePosition, surface.ClosestPoint(eyePosition));
 
-                // Recursive darkening goes past the distance limit on purpose.
-                if (distance > surface.RenderDistance && !surface.UseDepthFalloff)
+                // Recursive darkening goes past the distance limit on purpose. The first bounce never does.
+                if (distance > surface.RenderDistance && (depth == 1 || !surface.UseDepthFalloff))
                 {
-                    _steps.Add(BuildFallbackStep(surface, profile, distance));
+                    _steps.Add(BuildFallbackStep(surface, depth, distance));
                     continue;
                 }
 
@@ -93,6 +94,9 @@ namespace EDIVE.Rendering.Mirrors
                 var newWorldToCamera = worldToCamera * reflection;
                 reflectionCamera.worldToCameraMatrix = newWorldToCamera;
 
+                // Parent left its oblique matrix here. Stacking another on it bends the far plane.
+                reflectionCamera.projectionMatrix = baseProjection;
+
                 // Frustum that just covers the mirror. Culling only.
                 var tightView = Matrix4x4.identity;
                 var tightProjection = Matrix4x4.identity;
@@ -102,14 +106,13 @@ namespace EDIVE.Rendering.Mirrors
 
                 // Clip behind the mirror. Children walk from this pair, so the winding rule holds.
                 var clipPlane = CameraSpacePlane(newWorldToCamera, mirrorPos, mirrorNormal, surface.ClippingPlaneOffset);
-                reflectionCamera.projectionMatrix = projection;
                 var obliqueProjection = reflectionCamera.CalculateObliqueMatrix(clipPlane);
                 reflectionCamera.projectionMatrix = obliqueProjection;
 
                 // Never the oblique one. Its near plane sits on the glass and swallows CullingNearOffset.
                 var cullingMatrix = renderCamera.orthographic
                     ? obliqueProjection * newWorldToCamera
-                    : hasTight ? tightProjection * tightView : projection * newWorldToCamera;
+                    : hasTight ? tightProjection * tightView : baseProjection * newWorldToCamera;
 
                 var step = new ReflectionStep
                 {
@@ -125,7 +128,7 @@ namespace EDIVE.Rendering.Mirrors
                     InvertCulling = depth % 2 != 0
                 };
 
-                Walk(renderCamera, reflectionCamera, surfaces, profile, cullEye, viewMargin, depth + 1, surface);
+                Walk(renderCamera, reflectionCamera, surfaces, profile, cullEye, viewMargin, depth + 1, surface, baseProjection);
 
                 RestoreScratch(reflectionCamera, eyePosition, eyeRotation, worldToCamera, projection);
 
@@ -134,12 +137,13 @@ namespace EDIVE.Rendering.Mirrors
             }
         }
 
-        private static ReflectionStep BuildFallbackStep(MirrorSurface surface, MirrorProfile profile, float distance)
+        // Real depth, so the viewer's own binding still wins over a deeper one.
+        private static ReflectionStep BuildFallbackStep(MirrorSurface surface, int depth, float distance)
         {
             return new ReflectionStep
             {
                 Surface = surface,
-                Depth = profile.Recursions + 1,
+                Depth = depth,
                 Distance = distance,
                 BeyondRange = true
             };

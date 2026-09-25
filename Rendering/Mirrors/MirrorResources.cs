@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EDIVE.NativeUtils;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -11,12 +12,19 @@ namespace EDIVE.Rendering.Mirrors
         public Camera SourceCamera { get; set; }
         public Camera.StereoscopicEye Eye { get; set; }
 
+        // What was last drawn in. A skipped frame must not show another mirror's image.
+        public MirrorSurface Owner { get; set; }
+        public int OwnerDepth { get; set; }
+
         public bool InUse { get; set; }
     }
 
     public sealed class MirrorResources : IDisposable
     {
         private const string CAMERA_NAME_PREFIX = "[Mirror] Reflection Camera";
+
+        // Every mirror's cameras. Render requests fire camera callbacks, so no mirror may serve another's camera.
+        private static readonly HashSet<Camera> ALL_REFLECTION_CAMERAS = new();
 
         private readonly Dictionary<Camera, Camera> _reflectionCameras = new();
         private readonly HashSet<Camera> _ownedCameras = new();
@@ -76,10 +84,11 @@ namespace EDIVE.Rendering.Mirrors
 
             _reflectionCameras[source] = camera;
             _ownedCameras.Add(camera);
+            ALL_REFLECTION_CAMERAS.Add(camera);
             return camera;
         }
 
-        public bool IsReflectionCamera(Camera camera) => _ownedCameras.Contains(camera);
+        public static bool IsReflectionCamera(Camera camera) => ALL_REFLECTION_CAMERAS.Contains(camera);
 
         public static void Configure(UniversalAdditionalCameraData data, MirrorProfile profile)
         {
@@ -109,6 +118,7 @@ namespace EDIVE.Rendering.Mirrors
                     ReleaseTexture(candidate.Texture);
                     candidate.Texture = CreateTexture(profile, wanted, source.cameraType != CameraType.SceneView,
                         $"{_ownerName}_{source.name}_{eye}");
+                    candidate.Owner = null;
                 }
 
                 candidate.InUse = true;
@@ -157,7 +167,8 @@ namespace EDIVE.Rendering.Mirrors
                 if (_reflectionCameras.TryGetValue(deadCamera, out var camera) && camera != null)
                 {
                     _ownedCameras.Remove(camera);
-                    DestroyObject(camera.gameObject);
+                    ALL_REFLECTION_CAMERAS.Remove(camera);
+                    camera.gameObject.SafeDestroy();
                 }
 
                 _reflectionCameras.Remove(deadCamera);
@@ -210,8 +221,9 @@ namespace EDIVE.Rendering.Mirrors
 
             foreach (var pair in _reflectionCameras)
             {
+                ALL_REFLECTION_CAMERAS.Remove(pair.Value);
                 if (pair.Value != null)
-                    DestroyObject(pair.Value.gameObject);
+                    pair.Value.gameObject.SafeDestroy();
             }
 
             _reflectionCameras.Clear();
@@ -245,18 +257,7 @@ namespace EDIVE.Rendering.Mirrors
                 return;
 
             texture.Release();
-            DestroyObject(texture);
-        }
-
-        private static void DestroyObject(UnityEngine.Object target)
-        {
-            if (target == null)
-                return;
-
-            if (Application.isPlaying)
-                UnityEngine.Object.Destroy(target);
-            else
-                UnityEngine.Object.DestroyImmediate(target);
+            texture.SafeDestroy();
         }
     }
 }

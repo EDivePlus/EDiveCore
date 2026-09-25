@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -173,7 +174,7 @@ namespace EDIVE.Rendering.Mirrors
         [HideInInspector]
         private Material _SourceMaterial;
 
-        private Material _materialInstance;
+        private MaterialSlotOverride _slot;
         private MeshFilter _meshFilter;
         private int _enabledFrame;
         private bool _valid;
@@ -183,7 +184,7 @@ namespace EDIVE.Rendering.Mirrors
         public bool UseDepthFalloff => _UseDepthFalloff;
         public float ClippingPlaneOffset => _ClippingPlaneOffset;
         public IReadOnlyList<MirrorSurface> LinkedSurfaces => _LinkedSurfaces;
-        public Material MaterialInstance => _materialInstance;
+        public Material MaterialInstance => _slot?.Instance;
 
         private void OnEnable()
         {
@@ -227,58 +228,47 @@ namespace EDIVE.Rendering.Mirrors
 
             _meshFilter = _MeshRenderer.GetComponent<MeshFilter>();
 
-            var shared = _MeshRenderer.sharedMaterials;
-            if (_MaterialIndex >= shared.Length)
+            if (!_MeshRenderer.TryGetSharedMaterial(_MaterialIndex, out _))
             {
-                Debug.LogError($"[Mirrors] {name} material index {_MaterialIndex} is out of range (renderer has {shared.Length}).", this);
+                Debug.LogError($"[Mirrors] {name} material index {_MaterialIndex} is out of range (renderer has {_MeshRenderer.sharedMaterials.Length}).", this);
                 return false;
             }
 
-            // Skip our own instances. Stops nesting on reload.
-            var slot = shared[_MaterialIndex];
-            if (slot != null && slot != _materialInstance && !slot.name.EndsWith(INSTANCE_SUFFIX))
-                _SourceMaterial = slot;
-
-            if (_SourceMaterial == null)
+            // Own copy, so mirrors sharing a material get their own reflection.
+            if (!MaterialSlotOverride.Ensure(ref _slot, _MeshRenderer, _MaterialIndex, INSTANCE_SUFFIX, _SourceMaterial))
             {
                 Debug.LogError($"[Mirrors] {name} has no material in slot {_MaterialIndex}.", this);
                 return false;
             }
 
-            // Own copy, so mirrors sharing a material get their own reflection.
-            _materialInstance = new Material(_SourceMaterial) { name = _SourceMaterial.name + INSTANCE_SUFFIX };
-            SetMaterialAt(_MaterialIndex, _materialInstance);
+            _SourceMaterial = _slot.Source;
             return true;
         }
 
-        private void RestoreSourceMaterial()
-        {
-            if (_MeshRenderer != null && _SourceMaterial != null)
-                SetMaterialAt(_MaterialIndex, _SourceMaterial);
-
-            if (_materialInstance == null)
-                return;
-
-            if (Application.isPlaying)
-                Destroy(_materialInstance);
-            else
-                DestroyImmediate(_materialInstance);
-
-            _materialInstance = null;
-        }
-
-        private void SetMaterialAt(int index, Material material)
-        {
-            var shared = _MeshRenderer.sharedMaterials;
-            if (index < 0 || index >= shared.Length)
-                return;
-
-            shared[index] = material;
-            _MeshRenderer.sharedMaterials = shared;
-        }
+        private void RestoreSourceMaterial() => MaterialSlotOverride.Release(ref _slot);
 
         // Read only. Safe to call from the recursion.
         public bool IsVisibleFrom(Camera cam, bool ignoreDistance)
+        {
+            if (!CanBeSeenFrom(cam.transform.position, ignoreDistance))
+                return false;
+
+            GeometryUtility.CalculateFrustumPlanes(cam, FRUSTUM_PLANES);
+            return GeometryUtility.TestPlanesAABB(FRUSTUM_PLANES, _MeshRenderer.bounds);
+        }
+
+        // Visible in either frustum. Stereo passes one per eye.
+        public bool IsVisibleFrom(Vector3 viewer, bool ignoreDistance, Plane[] planes, Plane[] otherPlanes)
+        {
+            if (!CanBeSeenFrom(viewer, ignoreDistance))
+                return false;
+
+            var bounds = _MeshRenderer.bounds;
+            return GeometryUtility.TestPlanesAABB(planes, bounds)
+                   || (otherPlanes != null && GeometryUtility.TestPlanesAABB(otherPlanes, bounds));
+        }
+
+        private bool CanBeSeenFrom(Vector3 viewer, bool ignoreDistance)
         {
             if (!_valid || !enabled || !gameObject.activeInHierarchy || _MeshRenderer == null)
                 return false;
@@ -288,14 +278,10 @@ namespace EDIVE.Rendering.Mirrors
                 return false;
 
             var forward = -ForwardTransform.forward;
-            if (Vector3.Dot(forward, cam.transform.position - ForwardTransform.position) < 0)
+            if (Vector3.Dot(forward, viewer - ForwardTransform.position) < 0)
                 return false;
 
-            if (!ignoreDistance && Vector3.Distance(ClosestPoint(cam.transform.position), cam.transform.position) > _RenderDistance)
-                return false;
-
-            GeometryUtility.CalculateFrustumPlanes(cam, FRUSTUM_PLANES);
-            return GeometryUtility.TestPlanesAABB(FRUSTUM_PLANES, _MeshRenderer.bounds);
+            return ignoreDistance || Vector3.Distance(ClosestPoint(viewer), viewer) <= _RenderDistance;
         }
 
         public Vector3 ClosestPoint(Vector3 position)
@@ -305,39 +291,14 @@ namespace EDIVE.Rendering.Mirrors
 
         public void SetReflectionTexture(Camera.StereoscopicEye eye, RenderTexture texture)
         {
-            if (_materialInstance == null || texture == null)
-                return;
-
-            _materialInstance.SetTexture(eye == Camera.StereoscopicEye.Left ? MIRROR_TEX_LEFT : MIRROR_TEX_RIGHT, texture);
-
-            if (_LinkedSurfaces == null)
-                return;
-
-            foreach (var child in _LinkedSurfaces)
-            {
-                if (child == null || child == this)
-                    continue;
-
-                child.SetReflectionTexture(eye, texture);
-            }
+            if (texture != null)
+                SetTextureAll(eye == Camera.StereoscopicEye.Left ? MIRROR_TEX_LEFT : MIRROR_TEX_RIGHT, texture);
         }
 
         // Shader finds its texel from a world position, not the screen.
         public void SetReflectionMatrix(Camera.StereoscopicEye eye, Matrix4x4 viewProjection)
         {
-            if (_materialInstance != null)
-                _materialInstance.SetMatrix(eye == Camera.StereoscopicEye.Left ? MIRROR_VP_LEFT : MIRROR_VP_RIGHT, viewProjection);
-
-            if (_LinkedSurfaces == null)
-                return;
-
-            foreach (var child in _LinkedSurfaces)
-            {
-                if (child == null || child == this)
-                    continue;
-
-                child.SetReflectionMatrix(eye, viewProjection);
-            }
+            SetMatrixAll(eye == Camera.StereoscopicEye.Left ? MIRROR_VP_LEFT : MIRROR_VP_RIGHT, viewProjection);
         }
 
         public void SetEye(Camera.StereoscopicEye eye)
@@ -347,78 +308,67 @@ namespace EDIVE.Rendering.Mirrors
 
         public void SetForceEye(int value)
         {
-            if (_materialInstance != null)
-                _materialInstance.SetFloat(MIRROR_EYE, value);
-
-            if (_LinkedSurfaces == null)
-                return;
-
-            foreach (var child in _LinkedSurfaces)
-            {
-                if (child == null || child == this)
-                    continue;
-
-                child.SetForceEye(value);
-            }
+            SetFloatAll(MIRROR_EYE, value);
         }
 
         public void SetFlipY(bool flip)
         {
-            if (_materialInstance != null)
-                _materialInstance.SetFloat(MIRROR_FLIP_Y, flip ? 1f : 0f);
-
-            if (_LinkedSurfaces == null)
-                return;
-
-            foreach (var child in _LinkedSurfaces)
-            {
-                if (child == null || child == this)
-                    continue;
-
-                child.SetFlipY(flip);
-            }
+            SetFloatAll(MIRROR_FLIP_Y, flip ? 1f : 0f);
         }
 
         // 0 shows the fallback, 1 shows the live reflection.
         public void SetBlend(float blend)
         {
-            if (_materialInstance != null)
-                _materialInstance.SetFloat(MIRROR_BLEND, Mathf.Clamp01(blend));
-
-            if (_LinkedSurfaces == null)
-                return;
-
-            foreach (var child in _LinkedSurfaces)
-            {
-                if (child == null || child == this)
-                    continue;
-
-                child.SetBlend(blend);
-            }
+            SetFloatAll(MIRROR_BLEND, Mathf.Clamp01(blend));
         }
 
         // On, the environment shows wherever the reflection drew nothing.
         public void SetBackground(bool background)
         {
-            if (_materialInstance != null)
-                _materialInstance.SetFloat(MIRROR_BACKGROUND, background ? 1f : 0f);
-
-            if (_LinkedSurfaces == null)
-                return;
-
-            foreach (var child in _LinkedSurfaces)
-            {
-                if (child == null || child == this)
-                    continue;
-
-                child.SetBackground(background);
-            }
+            SetFloatAll(MIRROR_BACKGROUND, background ? 1f : 0f);
         }
 
         public void ShowFallback()
         {
             SetBlend(0f);
         }
+
+        // Linked surfaces get the value directly. No recursion, so links may point both ways.
+        private void SetFloatAll(int id, float value)
+        {
+            SetFloat(id, value);
+            foreach (var child in _LinkedSurfaces)
+            {
+                if (child != null && child != this)
+                    child.SetFloat(id, value);
+            }
+        }
+
+        private void SetTextureAll(int id, Texture value)
+        {
+            SetTexture(id, value);
+            foreach (var child in _LinkedSurfaces)
+            {
+                if (child != null && child != this)
+                    child.SetTexture(id, value);
+            }
+        }
+
+        private void SetMatrixAll(int id, Matrix4x4 value)
+        {
+            SetMatrix(id, value);
+            foreach (var child in _LinkedSurfaces)
+            {
+                if (child != null && child != this)
+                    child.SetMatrix(id, value);
+            }
+        }
+
+        private void SetFloat(int id, float value) => _slot?.SetFloat(id, value);
+        private void SetTexture(int id, Texture value) => _slot?.SetTexture(id, value);
+        private void SetMatrix(int id, Matrix4x4 value) => _slot?.SetMatrix(id, value);
+        private void SetColor(int id, Color value) => _slot?.SetColor(id, value);
+        private void SetVector(int id, Vector4 value) => _slot?.SetVector(id, value);
 
         public float CalculateBlend(int depth, int recursions, float distance)
         {
@@ -440,39 +390,38 @@ namespace EDIVE.Rendering.Mirrors
 
         public void ApplyEnvironment()
         {
-            if (_materialInstance == null)
-                return;
+            // Block keeps old textures otherwise. The renderer rebinds the reflection next frame.
+            _slot?.ClearBlock();
 
-            _materialInstance.SetFloat(ENVIRONMENT, (float) _Environment);
-            _materialInstance.SetColor(ENVIRONMENT_COLOR, _EnvironmentColor);
-            _materialInstance.SetFloat(BOX_PROJECTION, _BoxProjection ? 1f : 0f);
-            _materialInstance.SetFloat(DEPTH_PROBE_STEPS, _DepthProbeSteps);
-            _materialInstance.SetTexture(DEPTH_PROBE, _DepthProbe);
-            _materialInstance.SetTexture(DEPTH_PROBE_DISTANCE, _DepthProbeDistance);
-            _materialInstance.SetVector(DEPTH_PROBE_POS, _DepthProbeBakedPos);
+            SetFloat(ENVIRONMENT, (float) _Environment);
+            SetColor(ENVIRONMENT_COLOR, _EnvironmentColor);
+            SetFloat(BOX_PROJECTION, _BoxProjection ? 1f : 0f);
+            SetFloat(DEPTH_PROBE_STEPS, _DepthProbeSteps);
+            SetTexture(DEPTH_PROBE, _DepthProbe);
+            SetTexture(DEPTH_PROBE_DISTANCE, _DepthProbeDistance);
+            SetVector(DEPTH_PROBE_POS, _DepthProbeBakedPos);
 
             // Zero W tells the shader to use the probe Unity picked.
             if (_FallbackProbe == null || _FallbackProbe.texture == null)
             {
-                _materialInstance.SetVector(FALLBACK_PROBE_POS, Vector4.zero);
+                SetVector(FALLBACK_PROBE_POS, Vector4.zero);
                 return;
             }
 
-            var probeTransform = _FallbackProbe.transform;
-            var center = (Vector4) (probeTransform.position + _FallbackProbe.center);
-            var half = (Vector4) _FallbackProbe.size * 0.5f;
-
-            var min = center - half;
-            var max = center + half;
-            center.w = 1f;
+            // Box projection wants the capture point, not the box centre.
+            var bounds = _FallbackProbe.bounds;
+            var position = (Vector4) _FallbackProbe.transform.position;
+            var min = (Vector4) bounds.min;
+            var max = (Vector4) bounds.max;
+            position.w = 1f;
             min.w = 1f;
             max.w = 1f;
 
-            _materialInstance.SetTexture(FALLBACK_CUBEMAP, _FallbackProbe.texture);
-            _materialInstance.SetVector(FALLBACK_CUBEMAP_HDR, _FallbackProbe.textureHDRDecodeValues);
-            _materialInstance.SetVector(FALLBACK_PROBE_POS, center);
-            _materialInstance.SetVector(FALLBACK_BOX_MIN, min);
-            _materialInstance.SetVector(FALLBACK_BOX_MAX, max);
+            SetTexture(FALLBACK_CUBEMAP, _FallbackProbe.texture);
+            SetVector(FALLBACK_CUBEMAP_HDR, _FallbackProbe.textureHDRDecodeValues);
+            SetVector(FALLBACK_PROBE_POS, position);
+            SetVector(FALLBACK_BOX_MIN, min);
+            SetVector(FALLBACK_BOX_MAX, max);
         }
 
         // Frustum that just covers the mirror, for culling. viewMargin widens it for a shared centre view.
@@ -637,18 +586,11 @@ namespace EDIVE.Rendering.Mirrors
                 return false;
 
             var bounds = _meshFilter.sharedMesh.bounds;
-            var boundsMin = bounds.min;
-            var boundsMax = bounds.max;
             var localToWorld = _MeshRenderer.transform.localToWorldMatrix;
 
             for (var i = 0; i < 8; i++)
             {
-                var corner = new Vector3(
-                    (i & 1) == 0 ? boundsMin.x : boundsMax.x,
-                    (i & 2) == 0 ? boundsMin.y : boundsMax.y,
-                    (i & 4) == 0 ? boundsMin.z : boundsMax.z);
-
-                var offset = localToWorld.MultiplyPoint3x4(corner) - eyePos;
+                var offset = localToWorld.MultiplyPoint3x4(bounds.GetCorner(i)) - eyePos;
                 var x = Vector3.Dot(offset, right);
                 var y = Vector3.Dot(offset, up);
 
@@ -735,12 +677,7 @@ namespace EDIVE.Rendering.Mirrors
         public void BakeDepthProbe()
         {
             var origin = GetDepthProbeOrigin();
-
-            var scenePath = gameObject.scene.path;
-            var folder = string.IsNullOrEmpty(scenePath) ? "Assets" : System.IO.Path.ChangeExtension(scenePath, null);
-            if (!UnityEditor.AssetDatabase.IsValidFolder(folder))
-                folder = System.IO.Path.GetDirectoryName(scenePath);
-            var assetPath = $"{folder}/MirrorDepthProbe-{name}";
+            var assetPath = GetDepthProbeAssetPrefix();
 
             var hidden = new List<MeshRenderer>();
             HideForBake(this, hidden);
@@ -794,6 +731,27 @@ namespace EDIVE.Rendering.Mirrors
             }
         }
 
+        // Rebake reuses the old path. New bakes get a free one, mirrors often share a name.
+        private string GetDepthProbeAssetPrefix()
+        {
+            const string colorSuffix = "-Color.asset";
+            var existing = _DepthProbe != null ? UnityEditor.AssetDatabase.GetAssetPath(_DepthProbe) : null;
+            if (!string.IsNullOrEmpty(existing) && existing.EndsWith(colorSuffix))
+                return existing[..^colorSuffix.Length];
+
+            var scenePath = gameObject.scene.path;
+            var folder = string.IsNullOrEmpty(scenePath) ? "Assets" : System.IO.Path.ChangeExtension(scenePath, null);
+            if (!UnityEditor.AssetDatabase.IsValidFolder(folder))
+                folder = System.IO.Path.GetDirectoryName(scenePath);
+            folder = folder.Replace('\\', '/');
+
+            var prefix = $"{folder}/MirrorDepthProbe-{name}";
+            var candidate = prefix;
+            for (var i = 1; System.IO.File.Exists(candidate + colorSuffix); i++)
+                candidate = $"{prefix}-{i}";
+            return candidate;
+        }
+
         private static void SetDepthProbe(MirrorSurface surface, Cubemap color, Cubemap distance, Vector4 bakedPos)
         {
             UnityEditor.Undo.RecordObject(surface, "Depth Probe");
@@ -815,7 +773,7 @@ namespace EDIVE.Rendering.Mirrors
 
         private void OnValidate()
         {
-            if (_materialInstance != null)
+            if (_slot)
                 ApplyEnvironment();
         }
 #endif

@@ -77,10 +77,7 @@ bool MirrorIsLeftEye()
 // Real screen position. The probe wants this, the mirror does not.
 float2 MirrorScreenUV(float4 positionCS)
 {
-    float y = (_ProjectionParams.x < 0) ? (_ScaledScreenParams.y - positionCS.y) : positionCS.y;
-    float2 uv = float2(positionCS.x, y) / _ScaledScreenParams.xy;
-    uv.y = 1.0 - uv.y;
-    return uv;
+    return GetNormalizedScreenSpaceUV(positionCS);
 }
 
 // The reflection may have been drawn for another view, so find the texel by world position.
@@ -161,14 +158,18 @@ half3 SampleMirrorProbe(float3 positionWS, half3 normalWS, half3 viewDirWS, half
 {
     half3 r = reflect(-viewDirWS, normalWS);
 
-#ifdef MIRROR_USE_URP_PROBES
+    half mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
+
     // Zero W means no probe was assigned, so use the one Unity picked.
+#ifdef MIRROR_USE_URP_PROBES
     UNITY_BRANCH if (_FallbackProbePos.w <= 0.0)
         return GlossyEnvironmentReflection(r, positionWS, perceptualRoughness, 1.0h, screenUV);
+#else
+    UNITY_BRANCH if (_FallbackProbePos.w <= 0.0)
+        return DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, r, mip), unity_SpecCube0_HDR);
 #endif
 
     r = MirrorBoxProject(r, positionWS, _FallbackProbePos, _FallbackBoxMin, _FallbackBoxMax);
-    half mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
     half4 encoded = SAMPLE_TEXTURECUBE_LOD(_FallbackCubemap, sampler_FallbackCubemap, r, mip);
     return DecodeHDREnvironment(encoded, _FallbackCubemapHDR);
 }
@@ -308,11 +309,11 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
     // With a background the environment fills what the reflection left empty.
     s.blend = _MirrorBlend * lerp(1.0h, coverage, _MirrorBackground);
 
-    // Depth probe replaces the fallback material.
+    // Depth probe replaces the fallback material. Zero W means not baked, keep the colour.
     float3 probeDir = reflect(-viewDirWS, s.normalWS);
     float3 probeDirDX = ddx(probeDir);
     float3 probeDirDY = ddy(probeDir);
-    UNITY_BRANCH if (_Environment > 1.5)
+    UNITY_BRANCH if (_Environment > 1.5 && _DepthProbePos.w > 0.0)
     {
         UNITY_BRANCH if (s.blend < 0.999)
         {
