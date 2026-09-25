@@ -24,7 +24,8 @@ namespace EDIVE.Localization
         {
             foreach (var modifier in _Modifiers)
             {
-                value = modifier.Apply(value);
+                if (modifier != null)
+                    value = modifier.Apply(value);
             }
             base.UpdateString(value);
         }

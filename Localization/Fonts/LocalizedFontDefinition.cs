@@ -27,7 +27,7 @@ namespace EDIVE.Localization.Fonts
 
         public FontPreset GetLanguageFontPreset(string languageID)
         {
-            return _LanguageOverrides.TryGetFirst(p => p.Languages.Contains(languageID), out var result) ? result.Preset : _DefaultPreset;
+            return _LanguageOverrides != null && _LanguageOverrides.TryGetFirst(p => p?.Languages != null && p.Languages.Contains(languageID), out var result) ? result.Preset : _DefaultPreset;
         }
 
         public bool IsMatching(TMP_FontAsset fontAsset, Material material)

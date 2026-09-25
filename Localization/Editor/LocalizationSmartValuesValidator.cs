@@ -34,8 +34,8 @@ namespace EDIVE.Localization.Editor
                         continue;
                     
                     var parameters = ParseParameters(entry.Value);
-                    
-                    if (!DoParametersMatch(parameters, canonicalParameters))
+                    // No project locale text, nothing to compare to
+                    if (canonicalEntry?.Value != null && !DoParametersMatch(parameters, canonicalParameters))
                     {
                         var item = GetError("Localization entry smart value parameters do not match between columns");
                         item = AppendEntryMetaData(ref item);

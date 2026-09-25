@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions;
@@ -51,6 +52,7 @@ namespace EDIVE.Localization.Editor
             {
                 _DefaultSheetsServiceProvider = source.SheetsServiceProvider;
                 _DefaultSpreadsheetId = source.SpreadsheetId;
+                _DefaultColumns.Clear();
                 _DefaultColumns.AddRange(source.Columns);
             }
             else
@@ -158,9 +160,14 @@ namespace EDIVE.Localization.Editor
                     for (var i = 0; i < collections.Count; i++)
                     {
                         var collection = collections[i];
-
-                        collection.ClearAllEntries();
-                        progressBarReporter.SetBatch(i, collections.Count);
+                        progressBarReporter.SetBatch(i, collection.Extensions.Count);
+                        // Only mirror tables linked to sheets
+                        var sheetExtensionCount = collection.Extensions.Count(e => e is GoogleSheetsExtension);
+                        if (sheetExtensionCount == 0)
+                            continue;
+                        // Several sheets feed one table, clear once up front
+                        if (sheetExtensionCount > 1)
+                            collection.ClearAllEntries();
 
                         for (var j = 0; j < collection.Extensions.Count; j++)
                         {
@@ -178,7 +185,7 @@ namespace EDIVE.Localization.Editor
 
                             // Now update the collection. We can pass in an optional ProgressBarReporter so that we can updates in the Editor.
                             googleSheets.PullIntoStringTableCollection(googleExtension.SheetId, googleExtension.TargetCollection as StringTableCollection, googleExtension.Columns,
-                                reporter: progressBarReporter);
+                                removeMissingEntries: sheetExtensionCount == 1, reporter: progressBarReporter);
                         }
                     }
                 }
@@ -210,7 +217,7 @@ namespace EDIVE.Localization.Editor
                     for (var i = 0; i < collections.Count; i++)
                     {
                         var collection = collections[i];
-                        progressBarReporter.SetBatch(i, collections.Count);
+                        progressBarReporter.SetBatch(i, collection.Extensions.Count);
 
                         for (var j = 0; j < collection.Extensions.Count; j++)
                         {
