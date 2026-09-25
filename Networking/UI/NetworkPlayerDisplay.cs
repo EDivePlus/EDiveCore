@@ -54,8 +54,9 @@ namespace EDIVE.Networking.UI
             if (_TeleportToButton) _TeleportToButton.interactable = canTeleport;
             
             _AdditionalComponents.ForEach(c => c.InitializeForPlayer(playerController));
-            
-            TryRegisterListeners();
+            // OnEnable registers otherwise
+            if (isActiveAndEnabled)
+                TryRegisterListeners();
             UpdateDisplay();
         }
 

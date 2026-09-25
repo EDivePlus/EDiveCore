@@ -23,7 +23,9 @@ namespace EDIVE.ServiceHub.RemoteContent
         [SerializeField]
         private float _SpawnHeight;
         
-        private readonly Dictionary<string, string> _shareTokenCache = new();
+        // Server gives no expiry, refresh after TTL
+        private const float SHARE_TOKEN_TTL = 30 * 60f;
+        private readonly Dictionary<string, (string Token, float CreatedAt)> _shareTokenCache = new();
 
         public ARemoteContentHandler FocusedHandler { get; private set; }
         public event Action<ARemoteContentHandler> FocusedHandlerChanged;
@@ -54,7 +56,12 @@ namespace EDIVE.ServiceHub.RemoteContent
                 return;
             }
 
-            if (!_shareTokenCache.TryGetValue(content.Id, out var shareToken))
+            string shareToken;
+            if (_shareTokenCache.TryGetValue(content.Id, out var cached) && UnityEngine.Time.realtimeSinceStartup - cached.CreatedAt < SHARE_TOKEN_TTL)
+            {
+                shareToken = cached.Token;
+            }
+            else
             {
                 var contentApi = AppCore.Services.Get<ServiceHubManager>().RemoteContent;
                 var shareResponse = await contentApi.CreateContentShareAsync(content.Id);
@@ -64,7 +71,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                     return;
                 }
                 shareToken = shareResponse.Result.Token;
-                _shareTokenCache[content.Id] = shareToken;
+                _shareTokenCache[content.Id] = (shareToken, UnityEngine.Time.realtimeSinceStartup);
             }
 
             var (position, rotation) = ComputeSpawnPose();

@@ -2,7 +2,6 @@
 // Created: 23.04.2025
 
 using System;
-using System.Threading;
 using EDIVE.Core;
 using EDIVE.Input.Controls;
 using EDIVE.Networking.UI;
@@ -39,7 +38,9 @@ namespace EDIVE.Networking.Players
         
         public NetworkUserInfo AuthUserInfo => _authUserInfo.value;
         
-        private CancellationTokenSource _cts;
+        private const float PING_SEND_INTERVAL = 1f;
+        private float _nextPingSendTime;
+        private int _lastSentPing = -1;
         
         private ControlsManager _controlsManager;
 
@@ -89,11 +90,6 @@ namespace EDIVE.Networking.Players
                 }
             }
 
-            if (asServer)
-            {
-                if (_cts == null || _cts.IsCancellationRequested)
-                    _cts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-            }
         }
 
         protected override void OnDespawned(bool asServer)
@@ -105,15 +101,11 @@ namespace EDIVE.Networking.Players
                 playerManager.UnregisterPlayer(this, asServer);
             }
 
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = null;
         }
 
         private void Update()
         {
-            if (!isOwner || !isSpawned) return;
-
+            if (!isOwner || !isSpawned || _controlsManager == null || _controlsManager.CurrentControls == null) return;
             _controlsPosition.value = _controlsManager.CurrentControls.Position;
             _controlsRotation.value = _controlsManager.CurrentControls.Rotation;
         }
@@ -123,8 +115,14 @@ namespace EDIVE.Networking.Players
             if (!isOwner || !isSpawned) return;
             if (!AppCore.Services.TryGet<MasterNetworkManager>(out var masterNetworkManager)) return;
             if (masterNetworkManager.StatisticsManager == null) return;
-            
-            ServerSetPlayerPing(masterNetworkManager.StatisticsManager.ping);
+            // Once per second and only on change
+            if (UnityEngine.Time.unscaledTime < _nextPingSendTime) return;
+            _nextPingSendTime = UnityEngine.Time.unscaledTime + PING_SEND_INTERVAL;
+
+            var ping = masterNetworkManager.StatisticsManager.ping;
+            if (ping == _lastSentPing) return;
+            _lastSentPing = ping;
+            ServerSetPlayerPing(ping);
         }
         
         [ServerRpc]

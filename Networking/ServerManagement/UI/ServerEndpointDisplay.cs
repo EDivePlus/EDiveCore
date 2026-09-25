@@ -46,8 +46,7 @@ namespace EDIVE.Networking.ServerManagement.UI
                 return;
             
             _serverEndpoint = serverEndpoint;
-            
-            SetActive(false);
+            SetActive(_serverManager != null && ReferenceEquals(_serverManager.ConnectedEndpoint, serverEndpoint));
             UpdateDisplay();
         }
 

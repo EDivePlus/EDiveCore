@@ -51,7 +51,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             {
                 var json = Encoding.UTF8.GetString(data);
                 response = JsonConvert.DeserializeObject<NetworkDiscoveryResponse>(json);
-                return true;
+                return response != null && !string.IsNullOrEmpty(response.InstanceID);
             }
             catch
             {

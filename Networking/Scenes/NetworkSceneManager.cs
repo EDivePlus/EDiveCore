@@ -37,6 +37,7 @@ namespace EDIVE.Networking.Scenes
         {
             _networkManager = NetworkManager.main;
             _networkManager.onServerConnectionState += OnServerConnectionState;
+            _networkManager.onClientConnectionState += OnClientConnectionState;
             _networkManager.Subscribe<ConnectionSceneRequest>(OnConnectionSceneRequest, asServer: true);
             return UniTask.CompletedTask;
         }
@@ -52,6 +53,7 @@ namespace EDIVE.Networking.Scenes
             if (_networkManager == null) return;
 
             _networkManager.onServerConnectionState -= OnServerConnectionState;
+            _networkManager.onClientConnectionState -= OnClientConnectionState;
             _networkManager.Unsubscribe<ConnectionSceneRequest>(OnConnectionSceneRequest, asServer: true);
 
             if (_networkManager.sceneModule == null) return;
@@ -273,6 +275,12 @@ namespace EDIVE.Networking.Scenes
                 _serverLoadedScenes.Clear();
                 _clientJoinedScenes.Clear();
             }
+        }
+
+        private void OnClientConnectionState(ConnectionState state)
+        {
+            if (state == ConnectionState.Disconnected)
+                _clientJoinedScenes.Clear();
         }
 
         private void HookServerSceneEvents()

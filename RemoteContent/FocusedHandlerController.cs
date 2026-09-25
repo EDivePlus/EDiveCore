@@ -40,7 +40,8 @@ namespace EDIVE.ServiceHub.RemoteContent
             if (AppCore.Services.TryGet<RemoteContentManager>(out var manager))
             {
                 manager.FocusedHandlerChanged -= OnFocusedHandlerChanged;
-                _AnyHandlerFocusedState.SetState(false);
+                if (_AnyHandlerFocusedState)
+                    _AnyHandlerFocusedState.SetState(false);
             }
             
             _DeleteActivation?.UnregisterActivationListener(OnDeleteActivated);
@@ -49,7 +50,8 @@ namespace EDIVE.ServiceHub.RemoteContent
         private void OnFocusedHandlerChanged(ARemoteContentHandler selected)
         {
             _currentHandle = selected;
-            _AnyHandlerFocusedState.SetState(_currentHandle != null);
+            if (_AnyHandlerFocusedState)
+                _AnyHandlerFocusedState.SetState(_currentHandle != null);
 
             if (_currentHandle == null)
                 return;
@@ -68,6 +70,8 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         private void OnDeleteActivated()
         {
+            if (_currentHandle == null)
+                return;
             if (AppCore.Services.TryGet<RemoteContentManager>(out var manager))
             {
                 manager.DespawnHandler(_currentHandle);

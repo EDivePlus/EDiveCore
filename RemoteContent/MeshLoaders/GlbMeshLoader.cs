@@ -42,10 +42,12 @@ namespace EDIVE.ServiceHub.RemoteContent.MeshLoaders
                 stream = new MemoryStream(data, writable: false);
 
                 var helperHost = parent.gameObject;
+                // No ?? on Unity objects, editor returns fake null
+                if (!helperHost.TryGetComponent<AsyncCoroutineHelper>(out var coroutineHelper))
+                    coroutineHelper = helperHost.AddComponent<AsyncCoroutineHelper>();
                 importOptions = new ImportOptions
                 {
-                    AsyncCoroutineHelper = helperHost.GetComponent<AsyncCoroutineHelper>()
-                        ?? helperHost.AddComponent<AsyncCoroutineHelper>(),
+                    AsyncCoroutineHelper = coroutineHelper,
                     DataLoader = new FileLoader(""),
                     ImportNormals = _ImportNormals,
                     ImportTangents = _ImportTangents,

@@ -66,11 +66,12 @@ namespace EDIVE.Networking.Players
 
         public void UnregisterPlayer(NetworkPlayerController player, bool asServer)
         {
-            CurrentPlayers.Remove(player);
+            var removed = CurrentPlayers.Remove(player);
             if (!asServer && LocalPlayer == player)
                 LocalPlayer = null;
-            
-            PlayerUnregistered?.Invoke(player);
+            // Host despawns twice
+            if (removed)
+                PlayerUnregistered?.Invoke(player);
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)

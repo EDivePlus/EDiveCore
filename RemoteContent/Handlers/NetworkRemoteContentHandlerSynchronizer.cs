@@ -26,8 +26,10 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         {
             _handler.ShareTokenChanged += OnHandlerShareTokenChanged;
             _shareToken.onChanged += OnSyncShareTokenChanged;
-
-            if (!string.IsNullOrEmpty(_handler.ShareToken))
+            // Late join, value already synced
+            if (!string.IsNullOrEmpty(_shareToken.value))
+                _handler.SetShareToken(_shareToken.value);
+            else if (!string.IsNullOrEmpty(_handler.ShareToken))
             {
                 if (isServer)
                     _shareToken.value = _handler.ShareToken;

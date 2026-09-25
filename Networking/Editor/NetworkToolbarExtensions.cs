@@ -56,12 +56,20 @@ namespace EDIVE.Networking.Utils
                 };
                 
                 dropdown.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
-                EditorApplication.playModeStateChanged += _ =>
+                // Unsub when toolbar element rebuilt
+                dropdown.RegisterCallback<UnityEngine.UIElements.AttachToPanelEvent>(_ =>
                 {
-                    dropdown.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
-                };
+                    EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+                    EditorApplication.playModeStateChanged += OnPlayModeChanged;
+                });
+                dropdown.RegisterCallback<UnityEngine.UIElements.DetachFromPanelEvent>(_ => EditorApplication.playModeStateChanged -= OnPlayModeChanged);
                 UpdateLabel();
                 return dropdown;
+
+                void OnPlayModeChanged(PlayModeStateChange _)
+                {
+                    dropdown.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
+                }
 
                 void UpdateLabel()
                 {

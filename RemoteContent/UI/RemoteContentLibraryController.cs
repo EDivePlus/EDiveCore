@@ -162,7 +162,8 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
             }
             finally
             {
-                if (this != null && isActiveAndEnabled)
+                // Cancelled = newer load owns indicator
+                if (this != null && isActiveAndEnabled && !ct.IsCancellationRequested)
                     _IsLoadingState?.SetState(false);
             }
         }
