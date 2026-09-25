@@ -29,7 +29,7 @@ namespace EDIVE.AssetTranslation
 
         public bool TryGetTranslator(Type type, out ADefinitionTranslator result)
         {
-            return _Translators.TryGetFirst(t => t.DefinitionType.IsAssignableFrom(type), out result);
+            return _Translators.TryGetFirst(t => t != null && t.DefinitionType.IsAssignableFrom(type), out result);
         }
         
         public bool TryGetTranslator<TTranslator>(out TTranslator result) where TTranslator : ADefinitionTranslator

@@ -140,6 +140,15 @@ namespace EDIVE.AppLoading.LoadItems
                 var dep = manualDependency.Definition;
                 if (dep == null || dep == this) continue;
                 if (!dep.CheckAvailability()) continue;
+
+                // Not loaded by this setup (disabled group, missing group), waiting would hang
+                if (!context.Contains(dep))
+                {
+                    if (!manualDependency.IsOptional)
+                        Debug.LogError($"[{name}] Dependency '{dep.name}' is not loaded by the active setup, skipped.", this);
+                    continue;
+                }
+
                 if (seen.Add(dep)) yield return dep;
             }
         }

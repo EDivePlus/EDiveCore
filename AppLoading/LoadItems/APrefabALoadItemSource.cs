@@ -34,8 +34,10 @@ namespace EDIVE.AppLoading.LoadItems
             }
 
             instance.name = instance.name.Replace("(Clone)", "");
-            var progressDict = new Dictionary<ILoadable, float>();
-            var loadableComponents = instance.GetLoadableComponents<ILoadable>();
+            var loadableComponents = instance.GetLoadableComponents<ILoadable>().Distinct().ToList();
+
+            // All start at 0, otherwise the first reporter alone reads as the whole progress
+            var progressDict = loadableComponents.ToDictionary(c => c, _ => 0f);
             await UniTask.WhenAll(loadableComponents.Select(c => c.Load(progress => UpdateProgress(c, progress))));
             return;
 
@@ -53,7 +55,7 @@ namespace EDIVE.AppLoading.LoadItems
             if (instance.scene != AppCore.Instance.RootScene)
                 SceneManager.MoveGameObjectToScene(instance, AppCore.Instance.RootScene);
 
-            if (_ApplyTransform && instance != null)
+            if (_ApplyTransform)
                 _Transform.ApplyTo(instance.transform);
         }
 

@@ -164,7 +164,7 @@ namespace EDIVE.AssetTranslation
 
         public bool Remove(TDefinition definition)
         {
-            if (!_Definitions.Remove(definition))
+            if (_Definitions == null || !_Definitions.Remove(definition))
                 return false;
 #if UNITY_EDITOR
             EditorUtility.SetDirty(this);
@@ -244,7 +244,7 @@ namespace EDIVE.AssetTranslation
 
             if (_RequireAllAssets)
             {
-                var allAssets = EditorAssetUtils.FindAllAssetsOfType<TDefinition>(_FilterFolders.ToArray());
+                var allAssets = EditorAssetUtils.FindAllAssetsOfType<TDefinition>(_FilterFolders?.ToArray() ?? Array.Empty<string>());
                 var missingAssets = allAssets.Except(definitions).ToList();
                 if (missingAssets.Count > 0)
                 {

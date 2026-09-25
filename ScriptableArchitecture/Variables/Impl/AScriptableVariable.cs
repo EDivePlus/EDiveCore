@@ -68,10 +68,11 @@ namespace EDIVE.ScriptableArchitecture.Variables.Impl
                 return;
             }
             
-            if (Equals(value, _value))
+            // GetValue, not _value, so an unread variable compares against its default
+            var prev = GetValue();
+            if (Equals(value, prev))
                 return;
-            
-            var prev = _value;
+
             _value = value;
             _initialized = true;
             OnValueChanged(prev, value);

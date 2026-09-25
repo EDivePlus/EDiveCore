@@ -61,8 +61,12 @@ namespace EDIVE.AddressableAssets
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
         }
 
+        // Only when leaving a mode. EnteredPlayMode fires after the first Awake and would drop fresh handles.
         private static void OnPlayModeChanged(PlayModeStateChange state)
         {
+            if (state is not (PlayModeStateChange.ExitingEditMode or PlayModeStateChange.ExitingPlayMode))
+                return;
+
             foreach (var handle in ACTIVE_HANDLES.ToList())
             {
                 if (handle.IsValid())

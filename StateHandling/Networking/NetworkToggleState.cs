@@ -49,7 +49,7 @@ namespace EDIVE.StateHandling.Networking
         [ObserversRpc]
         private void SetObserverToggleState(bool state, bool immediate)
         {
-            if (_ToggleState.State == state && !immediate)
+            if (_ToggleState == null || (_ToggleState.State == state && !immediate))
                 return;
             
             _ToggleState.StateChanged -= OnClientToggleStateChanged;

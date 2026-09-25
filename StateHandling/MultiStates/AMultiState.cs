@@ -58,9 +58,9 @@ namespace EDIVE.StateHandling.MultiStates
         public bool SetState(string state, bool immediate = false)
         {
             if (!TrySetStateInternal(state, immediate))
-                return true;
+                return false;
             _state = state;
-            return false;
+            return true;
         }
 
         public bool SetState(Enum stateID, bool immediate = false) { return SetState(stateID.ToString(), immediate); }

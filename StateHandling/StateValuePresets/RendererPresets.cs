@@ -44,9 +44,10 @@ namespace EDIVE.StateHandling.StateValuePresets
                 targetObject.materials = materials;
         }
 
+        // Shared outside play mode, instancing there leaks into the scene
         public override void CaptureFrom(Renderer targetObject)
         {
-            var materials = _UseSharedMaterial ? targetObject.sharedMaterials : targetObject.materials;
+            var materials = _UseSharedMaterial || !Application.isPlaying ? targetObject.sharedMaterials : targetObject.materials;
             if (_MaterialIndex >= materials.Length)
                 return;
             Value = materials[_MaterialIndex];

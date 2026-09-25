@@ -17,9 +17,12 @@ namespace EDIVE.AppLoading.Finalizers
 
         public virtual async UniTask<bool> TryFinalizeLoad()
         {
+            if (_Finalizers == null)
+                return false;
+
             foreach (var finalizer in _Finalizers)
             {
-                if (await finalizer.TryFinalizeLoad())
+                if (finalizer != null && await finalizer.TryFinalizeLoad())
                     return true;
             }
             return false;
