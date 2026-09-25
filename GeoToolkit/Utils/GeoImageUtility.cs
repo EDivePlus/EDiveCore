@@ -104,8 +104,8 @@ namespace EDIVE.GeoToolkit.Utils
             if (samplesPerPixel != 1)
                 throw new NotSupportedException($"Expected a single band raster, the TIFF has {samplesPerPixel}.");
 
-            // Indexed [north, east] to match what TerrainData.SetHeights expects, so rows are flipped as TIFF runs top down.
-            var result = new double[height, width];
+            // Indexed [east, north] like textures, rows flipped as TIFF runs top down
+            var result = new double[width, height];
             if (tiff.IsTiled())
                 ReadTiles(tiff, result, width, height, bitsPerSample, sampleFormat);
             else
@@ -131,7 +131,7 @@ namespace EDIVE.GeoToolkit.Utils
                     {
                         for (var x = 0; x < tileWidth && originX + x < width; x++)
                         {
-                            result[height - 1 - (originY + y), originX + x] = ReadSample(buffer, y * tileWidth + x, bitsPerSample, sampleFormat);
+                            result[originX + x, height - 1 - (originY + y)] = ReadSample(buffer, y * tileWidth + x, bitsPerSample, sampleFormat);
                         }
                     }
                 }
@@ -148,7 +148,7 @@ namespace EDIVE.GeoToolkit.Utils
 
                 for (var x = 0; x < width; x++)
                 {
-                    result[height - 1 - y, x] = ReadSample(buffer, x, bitsPerSample, sampleFormat);
+                    result[x, height - 1 - y] = ReadSample(buffer, x, bitsPerSample, sampleFormat);
                 }
             }
         }

@@ -56,9 +56,11 @@ namespace EDIVE.Procedural.SplineMesh
         [SerializeField]
         private Mesh _ResultMesh;
         
+        // Instance that created the result mesh, duplicates must not share it
         [HideInInspector]
         [SerializeField]
-        private int _ResultMeshHash;
+        [UnityEngine.Serialization.FormerlySerializedAs("_ResultMeshHash")]
+        private int _ResultMeshOwner;
 
         [NonSerialized]
         private readonly Dictionary<float, CurveSample> _sampleCache = new();
@@ -83,16 +85,15 @@ namespace EDIVE.Procedural.SplineMesh
         [Button]
         private void Recalculate()
         {
-            if (_SplineContainer == null)
+            if (_SplineContainer == null || _SourceMesh?.Mesh == null)
                 return;
-            
-            var newHash = HashCode.Combine(_SplineContainer, _SourceMesh, this);
-            if (_ResultMesh == null || newHash != _ResultMeshHash)
+            // Reuse own mesh, fill overwrites it
+            if (_ResultMesh == null || _ResultMeshOwner != GetInstanceID())
             {
                 _ResultMesh = new Mesh();
-                _ResultMesh.name = _SourceMesh.Mesh != null ? $"{_SourceMesh.Mesh.name} (modified)" : "Null";
-                _ResultMeshHash = newHash;
+                _ResultMeshOwner = GetInstanceID();
             }
+            _ResultMesh.name = $"{_SourceMesh.Mesh.name} (modified)";
 
             _ResultMesh = _Mode switch
             {
@@ -113,8 +114,24 @@ namespace EDIVE.Procedural.SplineMesh
         [Button]
         private void ForceNewMesh()
         {
+            if (_ResultMesh != null && _ResultMeshOwner == GetInstanceID() && !IsPersistent(_ResultMesh))
+            {
+                if (Application.isPlaying)
+                    Destroy(_ResultMesh);
+                else
+                    DestroyImmediate(_ResultMesh);
+            }
             _ResultMesh = null;
             Recalculate();
+        }
+
+        private static bool IsPersistent(UnityEngine.Object obj)
+        {
+#if UNITY_EDITOR
+            return EditorUtility.IsPersistent(obj);
+#else
+            return false;
+#endif
         }
 
         private Mesh FillOnce()

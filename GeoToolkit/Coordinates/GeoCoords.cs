@@ -37,12 +37,19 @@ namespace EDIVE.GeoToolkit.Coordinates
             return new GeoCoords(Convert(_Position, _CoordinateSystem, targetSystem), targetSystem);
         }
         
+        public bool TryConvertTo(CoordinateSystemType targetSystem, out GeoCoords result)
+        {
+            var success = TryConvert(_Position, _CoordinateSystem, targetSystem, out var position);
+            result = new GeoCoords(position, targetSystem);
+            return success;
+        }
+
         public double DistanceTo(GeoCoords other, DistanceMeasureAlgorithm alg)
         {
             const CoordinateSystemType conversionSystem = CoordinateSystemType.EPSG_4326;
-            var posA = ConvertTo(conversionSystem).Position;
-            var posB = other.ConvertTo(conversionSystem).Position;
-            return Distance(posA, posB, conversionSystem, alg);
+            if (!TryConvertTo(conversionSystem, out var a) || !other.TryConvertTo(conversionSystem, out var b))
+                return double.NaN;
+            return Distance(a.Position, b.Position, conversionSystem, alg);
         }
         
         public static double2 ConvertTo(double2 pos, string sourceSystem, string targetSystem)
@@ -50,24 +57,35 @@ namespace EDIVE.GeoToolkit.Coordinates
             return Convert(pos, CoordinateSystemTypeUtility.Parse(sourceSystem), CoordinateSystemTypeUtility.Parse(targetSystem));
         }
 
+        // NaN on failure, so bad result is visible
         public static double2 Convert(double2 pos, CoordinateSystemType sourceSystemType, CoordinateSystemType targetSystemType)
         {
+            return TryConvert(pos, sourceSystemType, targetSystemType, out var result) ? result : new double2(double.NaN, double.NaN);
+        }
+
+        public static bool TryConvert(double2 pos, CoordinateSystemType sourceSystemType, CoordinateSystemType targetSystemType, out double2 result)
+        {
+            result = pos;
             if (sourceSystemType == targetSystemType)
-                return pos;
+                return true;
 
             try
             {
                 var ctFact = new CoordinateTransformationFactory();
                 var transformation = ctFact.CreateFromCoordinateSystems(sourceSystemType.GetCoordinateSystem(), targetSystemType.GetCoordinateSystem());
-                var result = transformation.MathTransform.Transform(new[] {pos.x, pos.y});
-                return new double2(result[0], result[1]);
+                var transformed = transformation.MathTransform.Transform(new[] {pos.x, pos.y});
+                result = new double2(transformed[0], transformed[1]);
+                return true;
             }
             catch (Exception e)
             {
-                return pos;
+                Debug.LogError($"[GeoCoords] Convert {sourceSystemType} -> {targetSystemType} failed: {e.Message}");
+                result = new double2(double.NaN, double.NaN);
+                return false;
             }
         }
         
+        // NaN on failure
         public static double Distance(double2 posA, double2 posB, CoordinateSystemType targetSystem, DistanceMeasureAlgorithm alg)
         {
             // Calculate raw distance if coordinate system is unknown
@@ -77,8 +95,9 @@ namespace EDIVE.GeoToolkit.Coordinates
             // Convert to WGS84 for the CoordinateSharp library
             if (targetSystem != CoordinateSystemType.EPSG_4326)
             {
-                posA = Convert(posA, targetSystem, CoordinateSystemType.EPSG_4326);
-                posB = Convert(posB, targetSystem, CoordinateSystemType.EPSG_4326);
+                if (!TryConvert(posA, targetSystem, CoordinateSystemType.EPSG_4326, out posA) ||
+                    !TryConvert(posB, targetSystem, CoordinateSystemType.EPSG_4326, out posB))
+                    return double.NaN;
             }
 
             try
@@ -91,7 +110,8 @@ namespace EDIVE.GeoToolkit.Coordinates
             }
             catch (Exception e)
             {
-                return -1d;
+                Debug.LogError($"[GeoCoords] Distance failed: {e.Message}");
+                return double.NaN;
             }
         }
 

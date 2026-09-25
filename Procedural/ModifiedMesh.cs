@@ -99,6 +99,14 @@ namespace EDIVE.Procedural
         {
             // if the mesh is reversed by scale, we must change the culling of the faces by inversing all triangles.
             // the mesh is reverse only if the number of resersing axes is impair.
+            if (_Mesh == null)
+            {
+                _triangles = Array.Empty<int>();
+                _vertices = new List<MeshVertex>();
+                _minZ = 0f;
+                _length = 0f;
+                return;
+            }
             var reversed = _Scale.x < 0;
             if (_Scale.y < 0) reversed = !reversed;
             if (_Scale.z < 0) reversed = !reversed;
@@ -106,10 +114,15 @@ namespace EDIVE.Procedural
 
             // we transform the source mesh vertices according to rotation/translation/scale
             var i = 0;
-            _vertices = new List<MeshVertex>(_Mesh.vertexCount);
-            foreach (var vert in _Mesh.vertices)
+            var sourceVertices = _Mesh.vertices;
+            var sourceNormals = _Mesh.normals;
+            var hasNormals = sourceNormals.Length == sourceVertices.Length;
+            _vertices = new List<MeshVertex>(sourceVertices.Length);
+            var inverseScale = new Vector3(SafeInverse(_Scale.x), SafeInverse(_Scale.y), SafeInverse(_Scale.z));
+            foreach (var vert in sourceVertices)
             {
-                var transformed = new MeshVertex(vert, _Mesh.normals[i++]);
+                var transformed = new MeshVertex(vert, hasNormals ? sourceNormals[i] : Vector3.up);
+                i++;
                 if (_Rotation != Quaternion.identity)
                 {
                     transformed.Position = _Rotation * transformed.Position;
@@ -119,7 +132,8 @@ namespace EDIVE.Procedural
                 if (_Scale != Vector3.one)
                 {
                     transformed.Position = Vector3.Scale(transformed.Position, _Scale);
-                    transformed.Normal = Vector3.Scale(transformed.Normal, _Scale);
+                    // Normals scale by inverse
+                    transformed.Normal = Vector3.Scale(transformed.Normal, inverseScale).normalized;
                 }
 
                 if (_Position != Vector3.zero)
@@ -142,6 +156,8 @@ namespace EDIVE.Procedural
 
             _length = Math.Abs(maxZ - _minZ);
         }
+
+        private static float SafeInverse(float value) => value == 0f ? 0f : 1f / value;
 
         public bool Equals(ModifiedMesh other)
         {

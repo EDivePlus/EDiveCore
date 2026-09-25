@@ -43,7 +43,7 @@ namespace EDIVE.GeoToolkit.MapServices
             if (!TryBeginRequest(layerTitle, out var layer))
                 return null;
 
-            var imageSR = CoordinateSystemTypeUtility.Parse(coordinateSystem).ToEpsgCode();
+            var imageSR = CoordinateSystemTypeUtility.Parse(coordinateSystem).ToWkid();
             if (imageSR == 0)
             {
                 Debug.LogError($"[{name}] Cannot generate URL: '{coordinateSystem}' is not a supported coordinate system.", this);
@@ -51,7 +51,7 @@ namespace EDIVE.GeoToolkit.MapServices
             }
 
             // Unlike WMS, ArcGIS reprojects server side, so the area only has to be in a system we can name.
-            var bboxSR = bbox.CoordinateSystem.ToEpsgCode();
+            var bboxSR = bbox.CoordinateSystem.ToWkid();
             if (bboxSR == 0)
             {
                 Debug.LogError($"[{name}] Cannot generate URL: the area is in an unsupported coordinate system.", this);
@@ -119,7 +119,8 @@ namespace EDIVE.GeoToolkit.MapServices
 
             if (isImageServer)
             {
-                imageFormats = IMAGE_SERVER_FORMATS;
+                // Copy, ClearData clears the stored list
+                imageFormats = new List<string>(IMAGE_SERVER_FORMATS);
                 foreach (var rasterFunction in descriptor["rasterFunctionInfos"] ?? Enumerable.Empty<JToken>())
                 {
                     var functionName = rasterFunction.Value<string>("name");

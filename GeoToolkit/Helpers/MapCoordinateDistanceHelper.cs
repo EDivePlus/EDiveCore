@@ -49,7 +49,7 @@ namespace EDIVE.GeoToolkit.Maps
                 _Text.text = $"{Distance:F2} m";
             }
 
-            if (_Line != null)
+            if (_Line != null && _First != null && _Second != null)
             {
                 _Line.positionCount = 2;
                 _Line.SetPosition(0, _First.transform.TransformPoint(_Offset));

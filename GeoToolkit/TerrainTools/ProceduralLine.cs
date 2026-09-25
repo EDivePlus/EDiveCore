@@ -50,6 +50,20 @@ namespace EDIVE.GeoToolkit.TerrainTools
         public MeshRenderer MeshRenderer => _meshRenderer ? _meshRenderer : _meshRenderer = GetComponent<MeshRenderer>();
 
 
+        // Own mesh, never write into shared or imported one
+        private Mesh _ownedMesh;
+
+        private void OnDestroy()
+        {
+            if (_ownedMesh == null)
+                return;
+            if (Application.isPlaying)
+                Destroy(_ownedMesh);
+            else
+                DestroyImmediate(_ownedMesh);
+            _ownedMesh = null;
+        }
+
         public void SetData(List<Vector3> pointList)
         {
             points = pointList;
@@ -67,13 +81,16 @@ namespace EDIVE.GeoToolkit.TerrainTools
         {
             if (points == null) return;
             
-            var currentMesh = MeshFilter.sharedMesh;
-            var mesh = currentMesh ? currentMesh : new Mesh();
+            if (_ownedMesh == null || MeshFilter.sharedMesh != _ownedMesh)
+                _ownedMesh = new Mesh {name = $"{name}_ProceduralLine"};
+            var mesh = _ownedMesh;
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
             var uvs = new List<Vector2>();
 
-            var segmentUVWidth = 1 / (config.loop ? points.Count + 1 : points.Count);
+            var loop = config.loop && points.Count > 2;
+            var segmentCount = loop ? points.Count : points.Count - 1;
+            var segmentUVWidth = segmentCount > 0 ? 1f / segmentCount : 0f;
             var heightMult = 1 / (config.width + 2 * config.height);
             
             for (var i = 0; i < points.Count; i++)
@@ -83,15 +100,15 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 var nextP = points[(i + 1).PositiveModulo(points.Count)];
 
                 Vector3 direction;
-                if (!config.loop && points.Count == 1)
+                if (!loop && points.Count == 1)
                 { 
                     direction = Vector3.forward;
                 }
-                else if (!config.loop && i == 0)
+                else if (!loop && i == 0)
                 {
                     direction = (nextP - currentP).normalized;
                 }
-                else if (!config.loop && i == points.Count - 1)
+                else if (!loop && i == points.Count - 1)
                 {
                     direction = (currentP - prevP).normalized;
                 }
@@ -135,7 +152,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 
             }
 
-            if (config.loop && points.Count > 2)
+            if (loop && points.Count > 2)
             {
                 if (config.drawSides)
                 {
@@ -157,7 +174,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
             
             for (var i = 0; i < points.Count; i++)
             {
-                if (!config.loop && i == points.Count - 1) break;
+                if (!loop && i == points.Count - 1) break;
 
                 if (config.drawSides)
                 {
@@ -194,7 +211,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 }
             }
 
-            if (config.drawSides && !config.loop && points.Count > 0)
+            if (config.drawSides && !loop && points.Count > 0)
             {
                 const int af = 0;
                 const int bf = 1;

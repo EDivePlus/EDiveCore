@@ -77,11 +77,14 @@ namespace EDIVE.Procedural
             var scaledHalf = halfSize.MultiplyElementWise(scale);
             var offset = scaledHalf - halfSize;
             
+            var inverse = matrix.inverse;
             TEMP_VERTICES.Clear();
             original.GetVertices(TEMP_VERTICES);
             for (var i = 0; i < TEMP_VERTICES.Count; i++)
             {
-                TEMP_VERTICES[i] = SliceScalePoint(TEMP_VERTICES[i], sliceMin, sliceMax, offset, matrix);
+                var point = matrix.MultiplyPoint3x4(TEMP_VERTICES[i]);
+                point = SliceScalePoint(point, sliceMin, sliceMax, offset);
+                TEMP_VERTICES[i] = inverse.MultiplyPoint3x4(point);
             }
             target.SetVertices(TEMP_VERTICES);
             target.RecalculateNormals();
@@ -89,12 +92,6 @@ namespace EDIVE.Procedural
             target.RecalculateBounds();
         }
 
-        private static Vector3 SliceScalePoint(Vector3 point, Vector3 sliceMin, Vector3 sliceMax, Vector3 offsets, Matrix4x4 matrix)
-        {
-            point = matrix.MultiplyPoint3x4(point);
-            point = SliceScalePoint(point, sliceMin, sliceMax, offsets);
-            return matrix.inverse.MultiplyPoint3x4(point);
-        }
 
         private static Vector3 SliceScalePoint(Vector3 value, Vector3 sliceMin, Vector3 sliceMax, Vector3 offsets)
         {
@@ -128,15 +125,16 @@ namespace EDIVE.Procedural
         
         public static Bounds CalculateBounds(Mesh mesh, Matrix4x4 matrix)
         {
-            if (mesh == null || mesh.vertices == null || mesh.vertices.Length == 0)
+            if (mesh == null)
                 return new Bounds(Vector3.zero, Vector3.zero);
-            
-            var center = matrix.MultiplyPoint3x4(mesh.vertices[0]);
+            var vertices = mesh.vertices;
+            if (vertices.Length == 0)
+                return new Bounds(Vector3.zero, Vector3.zero);
+            var center = matrix.MultiplyPoint3x4(vertices[0]);
             var bounds = new Bounds(center, Vector3.zero);
-            
-            for (var i = 1; i < mesh.vertices.Length; i++)
+            for (var i = 1; i < vertices.Length; i++)
             {
-                var vert = matrix.MultiplyPoint3x4(mesh.vertices[i]);
+                var vert = matrix.MultiplyPoint3x4(vertices[i]);
                 bounds.Encapsulate(vert);
             }
 

@@ -61,23 +61,27 @@ namespace EDIVE.GeoToolkit.Coordinates
             {CoordinateSystemType.EPSG_5221, @"PROJCS[""S-JTSK (Ferro) / Krovak East North"",GEOGCS[""S-JTSK (Ferro)"",DATUM[""System_Jednotne_Trigonometricke_Site_Katastralni_Ferro"",SPHEROID[""Bessel 1841"",6377397.155,299.1528128,AUTHORITY[""EPSG"",""7004""]],TOWGS84[589,76,480,0,0,0,0],AUTHORITY[""EPSG"",""6818""]],PRIMEM[""Ferro"",-17.66666666666667,AUTHORITY[""EPSG"",""8909""]],UNIT[""degree"",0.0174532925199433,AUTHORITY[""EPSG"",""9122""]],AUTHORITY[""EPSG"",""4818""]],PROJECTION[""Krovak""],PARAMETER[""latitude_of_center"",49.5],PARAMETER[""longitude_of_center"",42.5],PARAMETER[""azimuth"",30.28813972222222],PARAMETER[""pseudo_standard_parallel_1"",78.5],PARAMETER[""scale_factor"",0.9999],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],UNIT[""metre"",1,AUTHORITY[""EPSG"",""9001""]],AXIS[""X"",EAST],AXIS[""y"",NORTH],AUTHORITY[""EPSG"",""5221""]]"},
             {CoordinateSystemType.EPSG_32633, @"PROJCS[""WGS 84 / UTM zone 33N"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS 84"",6378137,298.257223563,AUTHORITY[""EPSG"",""7030""]],AUTHORITY[""EPSG"",""6326""]],PRIMEM[""Greenwich"",0,AUTHORITY[""EPSG"",""8901""]],UNIT[""degree"",0.0174532925199433,AUTHORITY[""EPSG"",""9122""]],AUTHORITY[""EPSG"",""4326""]],PROJECTION[""Transverse_Mercator""],PARAMETER[""latitude_of_origin"",0],PARAMETER[""central_meridian"",15],PARAMETER[""scale_factor"",0.9996],PARAMETER[""false_easting"",500000],PARAMETER[""false_northing"",0],UNIT[""metre"",1,AUTHORITY[""EPSG"",""9001""]],AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH],AUTHORITY[""EPSG"",""32633""]]"},
             {CoordinateSystemType.EPSG_32634, @"PROJCS[""WGS 84 / UTM zone 34N"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS 84"",6378137,298.257223563,AUTHORITY[""EPSG"",""7030""]],AUTHORITY[""EPSG"",""6326""]],PRIMEM[""Greenwich"",0,AUTHORITY[""EPSG"",""8901""]],UNIT[""degree"",0.0174532925199433,AUTHORITY[""EPSG"",""9122""]],AUTHORITY[""EPSG"",""4326""]],PROJECTION[""Transverse_Mercator""],PARAMETER[""latitude_of_origin"",0],PARAMETER[""central_meridian"",21],PARAMETER[""scale_factor"",0.9996],PARAMETER[""false_easting"",500000],PARAMETER[""false_northing"",0],UNIT[""metre"",1,AUTHORITY[""EPSG"",""9001""]],AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH],AUTHORITY[""EPSG"",""32634""]]"},
-            {CoordinateSystemType.EPSG_102066, @"PROJCS[""S-JTSK_Ferro_Krovak_East_North"",GEOGCS[""GCS_S_JTSK_Ferro"",DATUM[""Jednotne_Trigonometricke_Site_Katastralni"",SPHEROID[""Bessel_1841"",6377397.155,299.1528128]],PRIMEM[""Ferro"",-17.66666666666667],UNIT[""Degree"",0.017453292519943295]],PROJECTION[""Krovak""],PARAMETER[""False_Easting"",0],PARAMETER[""False_Northing"",0],PARAMETER[""Pseudo_Standard_Parallel_1"",78.5],PARAMETER[""Scale_Factor"",0.9999],PARAMETER[""Azimuth"",30.28813975277778],PARAMETER[""Longitude_Of_Center"",42.5],PARAMETER[""Latitude_Of_Center"",49.5],PARAMETER[""X_Scale"",-1],PARAMETER[""Y_Scale"",1],PARAMETER[""XY_Plane_Rotation"",90],UNIT[""Meter"",1],AUTHORITY[""EPSG"",""102066""]]"},
+            {CoordinateSystemType.EPSG_102066, @"PROJCS[""S-JTSK_Ferro_Krovak_East_North"",GEOGCS[""GCS_S_JTSK_Ferro"",DATUM[""Jednotne_Trigonometricke_Site_Katastralni"",SPHEROID[""Bessel_1841"",6377397.155,299.1528128]],PRIMEM[""Ferro"",-17.66666666666667],UNIT[""Degree"",0.017453292519943295]],PROJECTION[""Krovak""],PARAMETER[""False_Easting"",0],PARAMETER[""False_Northing"",0],PARAMETER[""Pseudo_Standard_Parallel_1"",78.5],PARAMETER[""Scale_Factor"",0.9999],PARAMETER[""Azimuth"",30.28813975277778],PARAMETER[""Longitude_Of_Center"",42.5],PARAMETER[""Latitude_Of_Center"",49.5],PARAMETER[""X_Scale"",-1],PARAMETER[""Y_Scale"",1],PARAMETER[""XY_Plane_Rotation"",90],UNIT[""Meter"",1],AUTHORITY[""ESRI"",""102066""]]"},
         };
 
         public static CoordinateSystem GetCoordinateSystem(this CoordinateSystemType coordsSystemType)
         {
-            if (COORDINATE_SYSTEMS.TryGetValue(coordsSystemType, out var coordinateSystem))
+            // Cache is shared, conversions can run off main thread
+            lock (COORDINATE_SYSTEMS)
             {
+                if (COORDINATE_SYSTEMS.TryGetValue(coordsSystemType, out var coordinateSystem))
+                {
+                    return coordinateSystem;
+                }
+
+                if (!COORDINATE_SYSTEM_WKT.TryGetValue(coordsSystemType, out var wkt))
+                    return null;
+
+                var csFact = new CoordinateSystemFactory();
+                coordinateSystem = csFact.CreateFromWkt(wkt);
+                COORDINATE_SYSTEMS[coordsSystemType] = coordinateSystem;
                 return coordinateSystem;
             }
-
-            if (!COORDINATE_SYSTEM_WKT.TryGetValue(coordsSystemType, out var wkt))
-                return null;
-
-            var csFact = new CoordinateSystemFactory();
-            coordinateSystem = csFact.CreateFromWkt(wkt);
-            COORDINATE_SYSTEMS.Add(coordsSystemType, coordinateSystem);
-            return coordinateSystem;
         }
 
         public static string ToName(this CoordinateSystemType coordsSystemType)
@@ -95,7 +99,20 @@ namespace EDIVE.GeoToolkit.Coordinates
             return NORTH_FIRST_AXIS_ORDER.Contains(coordsSystemType);
         }
 
+        // ESRI codes, not in EPSG registry
+        public static bool IsEsriCode(this CoordinateSystemType coordsSystemType)
+        {
+            return coordsSystemType == CoordinateSystemType.EPSG_102066;
+        }
+
+        // Real EPSG code, 0 for ESRI-only systems
         public static int ToEpsgCode(this CoordinateSystemType coordsSystemType)
+        {
+            return coordsSystemType.IsEsriCode() ? 0 : coordsSystemType.ToWkid();
+        }
+
+        // ArcGIS well-known ID, EPSG or ESRI
+        public static int ToWkid(this CoordinateSystemType coordsSystemType)
         {
             return coordsSystemType switch
             {
@@ -124,6 +141,7 @@ namespace EDIVE.GeoToolkit.Coordinates
                 "EPSG:32633" => CoordinateSystemType.EPSG_32633,
                 "EPSG:32634" => CoordinateSystemType.EPSG_32634,
                 "EPSG:102066" => CoordinateSystemType.EPSG_102066,
+                "ESRI:102066" => CoordinateSystemType.EPSG_102066,
                 _ => CoordinateSystemType.Unknown
             };
         }
