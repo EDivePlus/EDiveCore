@@ -25,9 +25,9 @@ namespace EDIVE.Avatars.Networking
 
         protected virtual void Awake()
         {
-            var saveDataService = AppCore.Services.Get<ServiceHubManager>().SaveData;
-            if (saveDataService == null)
+            if (!AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub) || serviceHub.SaveData == null)
                 return;
+            var saveDataService = serviceHub.SaveData;
             LoadSaveData(saveDataService).Forget();
         }
 

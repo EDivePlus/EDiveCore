@@ -47,7 +47,8 @@ namespace EDIVE.Avatars.Networking
         public void SetPreset(UVDecalPreset preset)
         {
             Preset = preset;
-            _IsNullState.SetState(preset == null);
+            if (_IsNullState != null)
+                _IsNullState.SetState(preset == null);
             RefreshDisplay();
         }
 

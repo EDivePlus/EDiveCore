@@ -25,9 +25,11 @@ namespace EDIVE.Avatars.Networking
 
         private void OnActivated()
         {
-            if (AppCore.Services.TryGet<NetworkPlayerManager>(out var networkPlayerManager))
+            if (AppCore.Services.TryGet<NetworkPlayerManager>(out var networkPlayerManager) &&
+                networkPlayerManager.LocalPlayer != null &&
+                networkPlayerManager.LocalPlayer.TryGetComponent<NetworkAvatarPlayerController>(out var controller))
             {
-                networkPlayerManager.LocalPlayer.GetComponent<NetworkAvatarPlayerController>().SummonPlayersToMe();
+                controller.SummonPlayersToMe();
             }
         }
     }

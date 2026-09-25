@@ -26,10 +26,7 @@ namespace EDIVE.Avatars
 
         private void Awake()
         {
-            if (_CurrentDefinition == null)
-            {
-                RefreshDisplay();
-            }
+            RefreshDisplay();
         }
 
         [Button]
@@ -47,8 +44,8 @@ namespace EDIVE.Avatars
             if (_Selector != null) 
                 _Selector.SetDefinition(_CurrentDefinition);
             
-            if (_CurrentDefinition != null)
-                _Visual?.Apply(_CurrentDefinition.Visual);
+            if (_CurrentDefinition != null && _Visual != null)
+                _Visual.Apply(_CurrentDefinition.Visual);
         }
     }
 }

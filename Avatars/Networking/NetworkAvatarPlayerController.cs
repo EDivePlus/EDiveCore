@@ -15,6 +15,7 @@ using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.SaveData;
 using EDIVE.VisualPresets.Presets;
 using PurrNet;
+using PurrNet.Modules;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -50,7 +51,8 @@ namespace EDIVE.Avatars.Networking
             _avatar.onChanged += OnAvatarChanged;
             _customizationPreset.onChanged += OnSyncCustomizationChanged;
             _networkPlayerManager = AppCore.Services.Get<NetworkPlayerManager>();
-            _saveDataService = AppCore.Services.Get<ServiceHubManager>().SaveData;
+            if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+                _saveDataService = serviceHub.SaveData;
         }
 
         protected override void OnDestroy()
@@ -82,10 +84,13 @@ namespace EDIVE.Avatars.Networking
             
             var result = await _saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
 
+            if (result.Value == null || !isSpawned)
+                return;
             _saveData = result.Value;
-
-            _saveData.PlayerAvatar ??= _DefaultAvatars.RandomItem();
-            _saveData.CustomizationPreset ??= _saveData.PlayerAvatar.DefaultCustomizations;
+            if (_saveData.PlayerAvatar == null && _DefaultAvatars.Count > 0)
+                _saveData.PlayerAvatar = _DefaultAvatars.RandomItem();
+            if (_saveData.CustomizationPreset == null && _saveData.PlayerAvatar != null)
+                _saveData.CustomizationPreset = _saveData.PlayerAvatar.DefaultCustomizations;
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
                 SetAvatar(_saveData.PlayerAvatar);
 
@@ -218,8 +223,10 @@ namespace EDIVE.Avatars.Networking
                 return;
             }
             
+            var sceneFilter = GetScenePlayerFilter(request.SceneName);
             var targets = _networkPlayerManager.CurrentPlayers
                 .Where(p => p != null && p.owner.HasValue && p.owner.Value != sender)
+                .Where(p => sceneFilter == null || sceneFilter(p.owner.Value))
                 .ToList();
 
             var sceneName = request.SceneName;
@@ -233,6 +240,25 @@ namespace EDIVE.Avatars.Networking
             }
 
             Debug.Log($"[SUMMON] Requested teleport for {count} players in scene '{sceneName}' to sender {sender}.");
+        }
+
+        // Only players in the sender scene, null = no scene info, take all
+        private System.Func<PlayerID, bool> GetScenePlayerFilter(string sceneName)
+        {
+            if (string.IsNullOrEmpty(sceneName) || networkManager == null || networkManager.sceneModule == null)
+                return null;
+            if (!networkManager.TryGetModule<ScenePlayersModule>(true, out var scenePlayers))
+                return null;
+            var sceneIds = networkManager.sceneModule.sceneStates
+                .Where(s => s.Value.scene.IsValid() && s.Value.scene.name == sceneName)
+                .Select(s => s.Key)
+                .ToList();
+            if (sceneIds.Count == 0)
+            {
+                Debug.LogWarning($"[SUMMON] Scene '{sceneName}' not found on server, summoning all players.");
+                return null;
+            }
+            return player => sceneIds.Any(id => scenePlayers.IsPlayerInScene(player, id));
         }
 
         private static Vector3 ComputeCircleOffset(int index, int total, float radius)
