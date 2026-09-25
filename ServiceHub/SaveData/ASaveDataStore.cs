@@ -22,6 +22,11 @@ namespace EDIVE.ServiceHub.SaveData
             Context = domain;
         }
 
+        public virtual void Terminate() { }
+
+        // Drop queued remote writes
+        public virtual void ClearPending() { }
+
         public abstract UniTask<StoreReadResult> GetAsync(string key);
         public abstract UniTask SetAsync(ASaveDataObject saveDataObject);
         public abstract UniTask DeleteAsync(string key);

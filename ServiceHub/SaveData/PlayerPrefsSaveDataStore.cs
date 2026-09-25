@@ -13,7 +13,10 @@ namespace EDIVE.ServiceHub.SaveData
     {
         public override bool SupportsCheapTimestamp => true;
 
-        public string Prefix => $"servicehub.savedata.{Context.Key}.";
+        // Scoped per owner so users don't share local data
+        public string Prefix => string.IsNullOrEmpty(Context.OwnerId)
+            ? $"servicehub.savedata.{Context.Key}."
+            : $"servicehub.savedata.{Context.Key}.{Context.OwnerId}.";
 
         private string BuildKey(string key) => Prefix + (key ?? "");
 

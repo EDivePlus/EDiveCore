@@ -17,9 +17,6 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
         private readonly Dictionary<string, string> _syncBucket = new(StringComparer.Ordinal);
         private readonly object _syncBucketLock = new();
 
-        public override event Action<(string Key, DateTime? UpdatedAt)> SyncSuccess;
-        public override event Action<(string Key, string Error)> SyncFailure;
-
         protected abstract UniTask WaitForSync(CancellationToken ct);
 
         public override void Initialize(SaveDataService service, ServiceHubSaveDataStore store, SaveDataDomain domain)
@@ -36,13 +33,27 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
             }
         }
 
-        public override UniTask FlushAsync(CancellationToken ct = default) => FlushSyncBucket(ct);
+        public override async UniTask FlushAsync(CancellationToken ct = default)
+        {
+            await FlushSyncBucket(ct);
+            await base.FlushAsync(ct);
+        }
 
         public override void RemovePending(string key)
         {
+            base.RemovePending(key);
             lock (_syncBucketLock)
             {
                 _syncBucket.Remove(key);
+            }
+        }
+
+        public override void ClearPending()
+        {
+            base.ClearPending();
+            lock (_syncBucketLock)
+            {
+                _syncBucket.Clear();
             }
         }
 
@@ -81,12 +92,16 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
 
             var batch = new Dictionary<string, string>(StringComparer.Ordinal);
             var batchByteSize = 0;
-
+            var pending = new Dictionary<string, string>(snapshot, StringComparer.Ordinal);
             foreach (var (key, json) in snapshot)
             {
                 if (ct.IsCancellationRequested)
-                    RequeueUnflushed(snapshot);
-                
+                {
+                    RequeueUnflushed(batch);
+                    RequeueUnflushed(pending);
+                    return;
+                }
+                pending.Remove(key);
                 var jsonByteSize = Encoding.UTF8.GetByteCount(json);
                 
                 if (batch.Count > 0 && batchByteSize + jsonByteSize > SaveDataService.BATCH_MAX_SIZE)
@@ -120,10 +135,15 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
             {
                 var kvp = batch.First();
                 var result = await PutSaveDataAsync(Context, kvp.Key, kvp.Value, ct);
-                if (result.IsSuccess)
-                    SyncSuccess?.Invoke((kvp.Key, Normalize(result.Result?.Data?.UpdatedAt)));
-                else
-                    SyncFailure?.Invoke((kvp.Key, result.ErrorMessage));
+                if (result.IsSuccess && result.Result is { Status: 0 })
+                {
+                    RaiseSyncSuccess(kvp.Key, result.Result.Data?.UpdatedAt);
+                    return;
+                }
+                RaiseSyncFailure(kvp.Key, result.ErrorMessage ?? result.Result?.Message);
+                // Retry with backoff, not every sync tick
+                if (IsRetryable(result.StatusCode))
+                    QueueRetry(kvp.Key, kvp.Value);
                 return;
             }
             
@@ -135,30 +155,23 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                     ? response.Result?.Message ?? "Unknown error"
                     : response.ErrorMessage;
                 
-                batch.Keys.ForEach(k => SyncFailure?.Invoke((k, err)));
-                
-                lock (_syncBucketLock)
-                {
-                    batch.ForEach(kvp => _syncBucket.TryAdd(kvp.Key, kvp.Value));
-                }
+                batch.Keys.ForEach(k => RaiseSyncFailure(k, err));
+                // Retry one by one, single bad key drops alone
+                batch.ForEach(kvp => QueueRetry(kvp.Key, kvp.Value));
                 return;
             }
 
             var data = response.Result.Data;
 
             if (data.Saved != null)
-                data.Saved.ForEach(s => SyncSuccess?.Invoke((s.Key, Normalize(s.UpdatedAt))));
+                data.Saved.ForEach(s => RaiseSyncSuccess(s.Key, s.UpdatedAt));
 
             var errors = data.Errors;
             if (errors != null && errors.Count > 0)
             {
                 var failedKeys = errors.Keys.ToArray();
-                failedKeys.ForEach(k => SyncFailure?.Invoke((k, errors[k])));
-
-                lock (_syncBucketLock)
-                {
-                    failedKeys.ForEach(k => _syncBucket.TryAdd(k, batch[k]));
-                }
+                failedKeys.ForEach(k => RaiseSyncFailure(k, errors[k]));
+                failedKeys.Where(batch.ContainsKey).ForEach(k => QueueRetry(k, batch[k]));
             }
         }
     }

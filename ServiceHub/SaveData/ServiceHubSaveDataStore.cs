@@ -46,6 +46,24 @@ namespace EDIVE.ServiceHub.SaveData
             });
         }
 
+        public override void Terminate()
+        {
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+            _handlers?.ForEach(handler =>
+            {
+                handler.SyncSuccess -= OnSyncSuccess;
+                handler.Terminate();
+            });
+            _handlers = null;
+        }
+
+        public override void ClearPending()
+        {
+            _handlers?.ForEach(handler => handler.ClearPending());
+        }
+
         private void OnSyncSuccess((string Key, DateTime? UpdatedAt) result)
         {
             Context.OnRemoteWriteConfirmed(result.Key, result.UpdatedAt);

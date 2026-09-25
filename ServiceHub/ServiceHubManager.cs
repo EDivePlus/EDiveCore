@@ -78,6 +78,11 @@ namespace EDIVE.ServiceHub
 
             _ClientAuth.OnLoggingOutAsync += _ => _SaveData.User.FlushAsync();
             _ServerAuth.OnLoggingOutAsync += _ => _SaveData.Server.FlushAsync();
+            // Cached objects belong to previous identity
+            _ClientAuth.OnLoggedOut += _SaveData.User.ResetForIdentityChange;
+            _ClientAuth.OnLoginSucceeded += _ => _SaveData.User.ClearCache();
+            _ServerAuth.OnLoggedOut += _SaveData.Server.ResetForIdentityChange;
+            _ServerAuth.OnLoginSucceeded += _ => _SaveData.Server.ClearCache();
 
             if (AuthStorage.Client.IsValid())
                 await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);

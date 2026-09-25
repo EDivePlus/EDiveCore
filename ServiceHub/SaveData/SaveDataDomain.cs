@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using EDIVE.Http;
 using EDIVE.ServiceHub.Auth;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
@@ -29,11 +30,15 @@ namespace EDIVE.ServiceHub.SaveData
         public List<ASaveDataStore> Stores => _Stores;
         
         public AuthStorage Auth { get; private set; }
+
+        // Logged in identity, empty when logged out
+        public string OwnerId => Auth != null && Auth.IsValid() ? JwtUtils.GetClaim(Auth.GetAccessToken(), "sub") ?? "" : "";
         
         private Dictionary<string, ASaveDataObject> _objectCache;
         private Dictionary<string, ASaveDataObject> ObjectCache => _objectCache ??= new Dictionary<string, ASaveDataObject>(StringComparer.Ordinal);
         
         private ServiceHubSettings _settings;
+        private readonly Dictionary<string, UniTask<(ASaveDataObject Value, bool FromRemote)>> _pendingLoads = new(StringComparer.Ordinal);
 
         public SaveDataDomain() { }
         public SaveDataDomain(string key, IEnumerable<ASaveDataStore> stores = null, ISaveDataConflictResolver conflictResolver = null)
@@ -48,6 +53,19 @@ namespace EDIVE.ServiceHub.SaveData
             _settings = saveDataService.Settings;
             Auth = auth;
             _Stores.ForEach(store => store.Initialize(saveDataService, this));
+        }
+
+        // Identity gone, drop cache and queued writes
+        public void ResetForIdentityChange()
+        {
+            _Stores.ForEach(store => store?.ClearPending());
+            ClearCache();
+        }
+
+        public void Terminate()
+        {
+            _Stores.ForEach(store => store?.Terminate());
+            ClearCache();
         }
 
         public bool TryGetCached<T>(string key, out T value) where T : ASaveDataObject
@@ -69,11 +87,19 @@ namespace EDIVE.ServiceHub.SaveData
                 JsonConvert.PopulateObject(json, typed);
                 return typed;
             }
-
-            var created = JsonConvert.DeserializeObject<T>(json);
+            T created;
+            try
+            {
+                created = JsonConvert.DeserializeObject<T>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ServiceHub] {Key} save data '{key}' is corrupt, using fresh object.");
+                Debug.LogException(e);
+                created = null;
+            }
             if (created != null)
                 CacheObject(created);
-
             return created;
         }
 
@@ -99,6 +125,7 @@ namespace EDIVE.ServiceHub.SaveData
 
         public void ClearCache()
         {
+            _pendingLoads.Clear();
             foreach (var cached in ObjectCache.Values)
                 Untrack(cached);
             ObjectCache.Clear();
@@ -134,7 +161,35 @@ namespace EDIVE.ServiceHub.SaveData
         {
             if (TryGetCached<T>(key, out var cached))
                 return SaveDataResult<T>.Success(cached, false);
+            // Share one load per key, parallel loads would split into untracked copies
+            if (!_pendingLoads.TryGetValue(key, out var pending))
+            {
+                pending = LoadAsync<T>(key).Preserve();
+                _pendingLoads[key] = pending;
+            }
+            (ASaveDataObject Value, bool FromRemote) loaded;
+            try
+            {
+                loaded = await pending.AttachExternalCancellation(ct);
+            }
+            finally
+            {
+                _pendingLoads.Remove(key);
+            }
+            var (value, fromRemote) = loaded;
+            return value is T typed
+                ? SaveDataResult<T>.Success(typed, fromRemote)
+                : SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
+        }
 
+        private async UniTask<(ASaveDataObject Value, bool FromRemote)> LoadAsync<T>(string key) where T : ASaveDataObject, new()
+        {
+            var result = await LoadFromStoresAsync<T>(key);
+            return (result.Value, result.FromRemote);
+        }
+
+        private async UniTask<SaveDataResult<T>> LoadFromStoresAsync<T>(string key) where T : ASaveDataObject, new()
+        {
             var count = _Stores.Count;
             var peeks = new TimestampPeek[count];
             var fullReads = new StoreReadResult?[count];
@@ -173,7 +228,8 @@ namespace EDIVE.ServiceHub.SaveData
                 return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
 
             var value = ResolveCacheFromJson<T>(key, winnerRead.Json);
-
+            if (value == null)
+                return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
             for (var i = 0; i < count; i++)
             {
                 if (i == winnerIndex || _Stores[i] == null)

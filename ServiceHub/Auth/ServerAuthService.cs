@@ -57,7 +57,12 @@ namespace EDIVE.ServiceHub.Auth
 
             if (response.IsSuccess && response.Result?.Status == 0 && response.Result?.Data != null)
                 return true;
-
+            // Offline or server error, token not proven bad
+            if (!response.IsSuccess && response.StatusCode != 401 && response.StatusCode != 403)
+            {
+                Debug.LogWarning($"[ServiceHub] Server auth check unreachable ({response.StatusCode}), keeping token.");
+                return true;
+            }
             Debug.LogWarning("[ServiceHub] Server auth check failed — token is no longer valid. Logging out.");
             await LogoutAsync(cancellationToken);
             return false;
