@@ -1,7 +1,7 @@
 // Author: František Holubec
 // Created: 21.11.2025
 
-#if UNITY_SERVICES && UNITY_TRANSPORT
+#if UNITY_MULTIPLAYER && UNITY_TRANSPORT
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using PurrNet.UTP;

@@ -1,7 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 13.05.2026
 
-#if UNITY_SERVICES && UNITY_TRANSPORT
+#if UNITY_MULTIPLAYER && UNITY_TRANSPORT
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
