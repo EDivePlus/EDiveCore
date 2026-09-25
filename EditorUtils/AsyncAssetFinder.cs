@@ -35,7 +35,7 @@ namespace EDIVE.EditorUtils
 
         public void SearchAssetsAsync(bool force = false)
         {
-            if (force)
+            if (force && _searchRoutine != null)
             {
                 EditorCoroutineUtility.StopCoroutine(_searchRoutine);
                 _searchRoutine = null;

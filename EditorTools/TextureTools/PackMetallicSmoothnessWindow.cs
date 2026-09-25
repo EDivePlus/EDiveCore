@@ -42,7 +42,8 @@ namespace EDIVE.EditorTools.TextureTools
                 for (var x = 0; x < width; x++)
                 {
                     var metal = mTex.GetPixel(x, y);
-                    var smooth  = rTex.GetPixel(x, y).r;
+                    // Sizes may differ, sample by uv
+                    var smooth = rTex.GetPixelBilinear((x + 0.5f) / width, (y + 0.5f) / height).r;
                     if (_InvertSmoothness) 
                         smooth = 1f - smooth; // convert roughness to smoothness
                     packed.SetPixel(x, y, new Color(metal.r, metal.g, metal.b, smooth));
@@ -60,12 +61,17 @@ namespace EDIVE.EditorTools.TextureTools
             
             var bytes = extensionType == Extension.JPG  ? packed.EncodeToJPG(95) : packed.EncodeToPNG();
             File.WriteAllBytes(outputPath, bytes);
+            DestroyImmediate(mTex);
+            DestroyImmediate(rTex);
+            DestroyImmediate(packed);
             AssetDatabase.Refresh();
         }
 
         private static Texture2D GetReadable(Texture2D src)
         {
-            var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
+            // Match source space so raw values survive blit
+            var readWrite = UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsSRGBFormat(src.graphicsFormat) ? RenderTextureReadWrite.sRGB : RenderTextureReadWrite.Linear;
+            var rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.Default, readWrite);
             Graphics.Blit(src, rt);
             var prev = RenderTexture.active;
             RenderTexture.active = rt;

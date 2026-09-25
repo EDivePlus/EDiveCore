@@ -87,22 +87,33 @@ namespace EDIVE.EditorTools
 
             if (string.IsNullOrEmpty(path)) return;
 
+            var dataPath = Application.dataPath.Replace('\\', '/');
+            path = path.Replace('\\', '/');
+            if (!path.StartsWith(dataPath + "/"))
+            {
+                EditorUtility.DisplayDialog("Cubemap Builder Error", "Save the cubemap inside the Assets folder.", "Ok");
+                return;
+            }
+
             // Save the readable flag to restore it afterwards
             var readableFlags = _textures.Select(t => t.isReadable).ToArray();
 
             // Get the importer and mark the textures as readable
             var importers = texturePaths.Select(p => AssetImporter.GetAtPath(p) as TextureImporter).ToArray();
 
-            foreach (var importer in importers)
+            if (importers.Any(i => i == null))
             {
-                importer.isReadable = true;
+                EditorUtility.DisplayDialog("Cubemap Builder Error", "All textures must be imported texture assets.", "Ok");
+                return;
             }
 
-            AssetDatabase.Refresh();
-
-            foreach (var p in texturePaths)
+            // Importer changes apply only on SaveAndReimport
+            foreach (var importer in importers)
             {
-                AssetDatabase.ImportAsset(p);
+                if (importer.isReadable)
+                    continue;
+                importer.isReadable = true;
+                importer.SaveAndReimport();
             }
 
             // Build the cubemap texture
@@ -125,25 +136,22 @@ namespace EDIVE.EditorTools
             // Reset the read flags, and reimport everything
             for (var i = 0; i < 6; i++)
             {
+                if (importers[i].isReadable == readableFlags[i])
+                    continue;
                 importers[i].isReadable = readableFlags[i];
+                importers[i].SaveAndReimport();
             }
 
-            path = path.Remove(0, Application.dataPath.Length - 6);
+            path = "Assets" + path.Substring(dataPath.Length);
 
             AssetDatabase.ImportAsset(path);
 
             var cubeImporter = (TextureImporter) AssetImporter.GetAtPath(path);
             cubeImporter.textureShape = TextureImporterShape.TextureCube;
-            cubeImporter.sRGBTexture = false;
+            // LDR keeps source color space, HDR is linear
+            cubeImporter.sRGBTexture = !isHDR && importers[0].sRGBTexture;
             cubeImporter.generateCubemap = TextureImporterGenerateCubemap.FullCubemap;
-
-            foreach (var p in texturePaths)
-            {
-                AssetDatabase.ImportAsset(p);
-            }
-
-            AssetDatabase.ImportAsset(path);
-            AssetDatabase.Refresh();
+            cubeImporter.SaveAndReimport();
         }
     }
 }

@@ -78,10 +78,12 @@ namespace EDIVE.EditorUtils.SubAssets
                 Debug.LogError("Target is not sub asset!");
                 return;
             }
+            // Path is empty once destroyed
+            var assetPath = AssetDatabase.GetAssetPath(asset);
             Object.DestroyImmediate(asset, true);
             if (!Application.isPlaying)
             {
-                AssetDatabase.ForceReserializeAssets(new[] {AssetDatabase.GetAssetPath(asset)});
+                AssetDatabase.ForceReserializeAssets(new[] {assetPath});
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
             }
@@ -173,7 +175,8 @@ namespace EDIVE.EditorUtils.SubAssets
                 AnimatorOverrideController _ => ".overrideController",
                 Material _ => ".mat",
                 Cubemap _ => ".cubemap",
-                Texture _ => ".png",
+                // CreateAsset writes native data, png would be broken
+                Texture _ => ".asset",
                 ComputeShader _ => ".compute",
                 Shader _ => ".shader",
                 Flare _ => ".flare",
@@ -190,8 +193,7 @@ namespace EDIVE.EditorUtils.SubAssets
                 SpriteAtlas _ => ".spriteatlas",
                 TextAsset _ => ".txt",
                 GameObject _ => ".prefab",
-                ScriptableObject _ => ".asset",
-                _ => null
+                _ => ".asset"
             };
         }
 

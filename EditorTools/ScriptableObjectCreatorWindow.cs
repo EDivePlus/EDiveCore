@@ -161,11 +161,14 @@ namespace EDIVE.EditorTools
             if (!_previewObject) return;
 
             var dest = AssetDatabase.GenerateUniqueAssetPath(path);
-            AssetDatabase.CreateAsset(_previewObject, dest);
+            var created = _previewObject;
+            AssetDatabase.CreateAsset(created, dest);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            EditorGUIUtility.PingObject(this);
-            Selection.activeObject = _previewObject;
+            EditorGUIUtility.PingObject(created);
+            Selection.activeObject = created;
+            // Fresh preview, created one is an asset now
+            _previewObject = CreateInstance(created.GetType());
         }
 
         private void CreateAssetAtRoot()
