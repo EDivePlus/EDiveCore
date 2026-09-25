@@ -17,8 +17,8 @@ namespace EDIVE.XRTools.Editor
         {
 #if XR_HANDS
             // Clear subsystems cache
-            DomainReloadHandler.ClearFieldToNew(typeof(XRAllFingerShapesDebugUI)
-                .GetField("s_SubsystemsReuse", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
+            DomainReloadHandler.Clear(typeof(XRAllFingerShapesDebugUI)
+                .GetField("s_SubsystemsReuse", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static), newInstance: true);
             
             // Clear capture playback
             var playbackType = System.Type.GetType("UnityEditor.XR.Hands.Capture.XRHandCapturePlayback, Unity.XR.Hands.Editor");

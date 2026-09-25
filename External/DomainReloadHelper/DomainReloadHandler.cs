@@ -1,15 +1,21 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
+using Debug = UnityEngine.Debug;
 
 namespace EDIVE.External.DomainReloadHelper
 {
+    // Resets marked statics when play mode skips the domain reload, and again on the way back to edit mode.
     public static class DomainReloadHandler
     {
+        private const string LOG_PREFIX = "[" + nameof(DomainReloadHandler) + "] ";
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void OnRuntimeLoad()
         {
@@ -28,129 +34,231 @@ namespace EDIVE.External.DomainReloadHelper
 
         private static void ReloadDomain()
         {
-            Profiler.BeginSample("DomainReloadHandler");
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            Profiler.BeginSample(nameof(DomainReloadHandler));
+            var stopwatch = Stopwatch.StartNew();
 
             var executedMethods = 0;
             var clearedValues = 0;
 
-            var orderedMembers = TypeCache.GetFieldsWithAttribute<ClearOnReloadAttribute>()
-                .Where(FilterFields)
-                .Cast<MemberInfo>()
-                .Concat(TypeCache.GetMethodsWithAttribute<ExecuteOnReloadAttribute>())
-                .OrderBy(info => info.GetCustomAttribute<DomainReloadHelperAttribute>().Order);
-
-            foreach (var member in orderedMembers)
+            foreach (var member in DomainReloadMembers.Members)
             {
                 if (member is MethodInfo method)
                 {
-                    if (method.IsGenericMethod || !method.IsStatic) continue;
+                    if (TryExecute(method))
+                        executedMethods++;
+                    continue;
+                }
 
-                    method.Invoke(null, new object[] { });
-                    executedMethods++;
-                }
-                else if (member is FieldInfo field)
-                {
-                    var reloadAttribute = field.GetCustomAttribute<ClearOnReloadAttribute>();
-                    if (reloadAttribute == null)
-                        continue;
-
-                    if (reloadAttribute.AssignNewTypeInstance)
-                    {
-                        if (ClearFieldToNew(field)) 
-                            clearedValues++;
-                    }
-                    else
-                    {
-                        if (ClearField(field, reloadAttribute.ValueToAssign)) 
-                            clearedValues++;
-                    }
-                }
-                else if (member is EventInfo eventInfo)
-                {
-                    if (ClearEvent(eventInfo))
-                        clearedValues++;
-                }
+                var attribute = member.GetCustomAttribute<ClearOnReloadAttribute>();
+                if (Clear(member, attribute.Value, attribute.NewInstance))
+                    clearedValues++;
             }
 
             stopwatch.Stop();
-
-            Debug.Log($"[{nameof(DomainReloadHandler)}] Executed {executedMethods} methods and cleared {clearedValues} values in {stopwatch.ElapsedMilliseconds} ms");
+            Debug.Log($"{LOG_PREFIX}Executed {executedMethods} methods and cleared {clearedValues} values in {stopwatch.ElapsedMilliseconds} ms");
 
             Profiler.EndSample();
         }
 
-        private static bool FilterFields(FieldInfo field)
+        // Static field, property or event. Events always go back to null.
+        public static bool Clear(MemberInfo member, object value = null, bool newInstance = false)
         {
-            var filterValue = field != null && !field.FieldType.IsGenericParameter && field.IsStatic;
-            if (field != null && !filterValue)
-                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Inapplicable field {field.Name} to clear; must be static and non-generic.");
-            return filterValue;
-        }
-
-        public static bool ClearField(FieldInfo field, object valueToAssign = null)
-        {
-            if (field == null)
+            if (member == null)
                 return false;
+
+            if (!TryGetWriter(member, out var type, out var write))
+            {
+                Debug.LogWarning($"{LOG_PREFIX}{Describe(member)} has nothing to write to.");
+                return false;
+            }
+
+            if (member is EventInfo)
+            {
+                value = null;
+                newInstance = false;
+            }
+
             try
             {
-                var value = valueToAssign;
-                if (valueToAssign != null)
-                {
-                    value = Convert.ChangeType(valueToAssign, field.FieldType);
-                    if (value == null)
-                        Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to assign value of type {valueToAssign.GetType()} to field {field.Name} of type {field.FieldType}.");
-                }
-                
-                field.SetValue(null, value);
+                write(newInstance ? Activator.CreateInstance(type)
+                    : value == null || type.IsInstanceOfType(value) ? value
+                    : Convert.ChangeType(value, type));
                 return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name} in class {field.DeclaringType?.Name}.");
+                Debug.LogWarning($"{LOG_PREFIX}Unable to clear {Describe(member)}.");
                 return false;
             }
         }
-        
-        public static bool ClearFieldToNew(FieldInfo field)
+
+        // The field itself, a property setter, or the compiler backing field of an event or get-only property.
+        private static bool TryGetWriter(MemberInfo member, out Type type, out Action<object> write)
         {
-            if (field == null)
-                return false;
+            var field = member switch
+            {
+                FieldInfo memberField => memberField,
+                EventInfo eventInfo => GetStaticField(eventInfo.DeclaringType, eventInfo.Name),
+                PropertyInfo property when property.GetSetMethod(true) == null => GetStaticField(property.DeclaringType, $"<{property.Name}>k__BackingField"),
+                _ => null
+            };
+
+            if (field != null)
+            {
+                type = field.FieldType;
+                write = value => field.SetValue(null, value);
+                return true;
+            }
+
+            var setter = (member as PropertyInfo)?.GetSetMethod(true);
+            if (setter != null)
+            {
+                type = ((PropertyInfo) member).PropertyType;
+                write = value => setter.Invoke(null, new[] { value });
+                return true;
+            }
+
+            type = null;
+            write = null;
+            return false;
+        }
+
+        // One failing method must not stop the rest.
+        private static bool TryExecute(MethodInfo method)
+        {
             try
             {
-                var value = Activator.CreateInstance(field.FieldType);
-                field.SetValue(null, value);
+                method.Invoke(null, null);
                 return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear field {field.Name}.");
+                Debug.LogWarning($"{LOG_PREFIX}Unable to execute {Describe(method)}.");
                 return false;
             }
         }
 
-        public static bool ClearEvent(EventInfo eventInfo)
+        private static FieldInfo GetStaticField(Type type, string name)
         {
-            if (eventInfo == null || eventInfo.DeclaringType == null)
-                return false;
+            return type?.GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
+        }
+
+        internal static string Describe(MemberInfo member)
+        {
+            return $"{member.DeclaringType}.{member.Name}";
+        }
+    }
+
+    // Everything marked for reload, in execution order. Built once per domain.
+    internal static class DomainReloadMembers
+    {
+        private const BindingFlags DECLARED_MEMBERS = BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
+        private static List<MemberInfo> _members;
+
+        public static IReadOnlyList<MemberInfo> Members => _members ??= Collect();
+
+        private static List<MemberInfo> Collect()
+        {
+            var marked = TypeCache.GetFieldsWithAttribute<ClearOnReloadAttribute>()
+                .Cast<MemberInfo>()
+                .Concat(FindPropertiesAndEvents())
+                .Concat(TypeCache.GetMethodsWithAttribute<ExecuteOnReloadAttribute>())
+                .Where(IsApplicable)
+                .ToList();
+
+            return CloseGenerics(marked)
+                .OrderBy(member => member.GetCustomAttribute<DomainReloadHelperAttribute>().Order)
+                .ToList();
+        }
+
+        // TypeCache has no lookup for these. Only assemblies referencing the attribute can use it.
+        private static IEnumerable<MemberInfo> FindPropertiesAndEvents()
+        {
+            var helperAssembly = typeof(ClearOnReloadAttribute).Assembly;
+            return GetAssembliesUsing(helperAssembly.GetName().Name)
+                .SelectMany(GetLoadableTypes)
+                .SelectMany(type => type.GetProperties(DECLARED_MEMBERS).Cast<MemberInfo>().Concat(type.GetEvents(DECLARED_MEMBERS)))
+                .Where(member => member.IsDefined(typeof(ClearOnReloadAttribute), false));
+        }
+
+        // Instance members have no single value, generic methods no type arguments.
+        private static bool IsApplicable(MemberInfo member)
+        {
+            var isStatic = member switch
+            {
+                FieldInfo field => field.IsStatic,
+                PropertyInfo property => (property.GetMethod ?? property.SetMethod)?.IsStatic == true,
+                EventInfo eventInfo => eventInfo.AddMethod?.IsStatic == true,
+                MethodInfo method => method.IsStatic && !method.IsGenericMethod,
+                _ => false
+            };
+
+            if (!isStatic)
+                Debug.LogWarning($"[{nameof(DomainReloadMembers)}] Skipped {DomainReloadHandler.Describe(member)}, must be static and not a generic method.");
+            return isStatic;
+        }
+
+        // A static on a generic type exists once per closed type. The ones in use show up as base types.
+        private static IEnumerable<MemberInfo> CloseGenerics(List<MemberInfo> members)
+        {
+            var open = members.Where(member => member.DeclaringType?.ContainsGenericParameters == true).ToList();
+            if (open.Count == 0)
+                return members;
+
+            var closedTypes = FindClosedTypes(open.Select(member => member.DeclaringType).ToHashSet());
+            var closed = open.SelectMany(member => closedTypes[member.DeclaringType]
+                .Select(closedType => FindOnClosedType(member, closedType))
+                .Where(closedMember => closedMember != null));
+
+            return members.Except(open).Concat(closed);
+        }
+
+        private static ILookup<Type, Type> FindClosedTypes(HashSet<Type> definitions)
+        {
+            return definitions
+                .Select(definition => definition.Assembly.GetName().Name)
+                .Distinct()
+                .SelectMany(GetAssembliesUsing)
+                .Distinct()
+                .SelectMany(GetLoadableTypes)
+                .SelectMany(GetBaseTypes)
+                .Where(type => type.IsConstructedGenericType && !type.ContainsGenericParameters && definitions.Contains(type.GetGenericTypeDefinition()))
+                .Distinct()
+                .ToLookup(type => type.GetGenericTypeDefinition());
+        }
+
+        private static MemberInfo FindOnClosedType(MemberInfo member, Type closedType)
+        {
+            return closedType.GetMembers(DECLARED_MEMBERS)
+                .FirstOrDefault(candidate => candidate.MetadataToken == member.MetadataToken && candidate.Module == member.Module);
+        }
+
+        private static IEnumerable<Type> GetBaseTypes(Type type)
+        {
+            for (var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType)
+                yield return baseType;
+        }
+
+        // The assembly itself and every assembly referencing it.
+        private static IEnumerable<Assembly> GetAssembliesUsing(string assemblyName)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Where(assembly => assembly.GetName().Name == assemblyName
+                                   || assembly.GetReferencedAssemblies().Any(reference => reference.Name == assemblyName));
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        {
             try
             {
-                var eventField = eventInfo.DeclaringType.GetField(eventInfo.Name, BindingFlags.Static | BindingFlags.NonPublic);
-                if (eventField == null)
-                {
-                    Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to find backing field for event {eventInfo.Name}.");
-                    return false;
-                }
-
-                eventField.SetValue(null, null);
-                return true;
+                return assembly.GetTypes();
             }
-            catch
+            catch (ReflectionTypeLoadException e)
             {
-                Debug.LogWarning($"[{nameof(DomainReloadHandler)}] Unable to clear event {eventInfo.Name}.");
-                return false;
+                return e.Types.Where(type => type != null);
             }
         }
     }

@@ -5,50 +5,25 @@ using System;
 
 namespace EDIVE.External.DomainReloadHelper
 {
+    // Resets a static field, property or event when play mode skips the domain reload.
+    // Default value unless Value or NewInstance says otherwise. On a generic type, every closed type in use is reset.
+    //
+    //   [ClearOnReload] static Foo _instance;
+    //   [ClearOnReload(Value = 1)] static int _count;
+    //   [ClearOnReload(NewInstance = true)] static readonly List<Foo> CACHE = new();
+    //   [ClearOnReload] static event Action Changed;
     [System.Diagnostics.Conditional("UNITY_EDITOR")]
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Event)]
     public class ClearOnReloadAttribute : DomainReloadHelperAttribute
     {
-        public readonly object ValueToAssign;
-        public readonly bool AssignNewTypeInstance;
+        // Converted to the member type. Ignored on events.
+        public object Value { get; set; }
 
-        /// <summary>
-        ///     Marks field, property or event to be cleared on reload.
-        /// </summary>
-        public ClearOnReloadAttribute() : base(0)
-        {
-            ValueToAssign = null;
-            AssignNewTypeInstance = false;
-        }
+        // New object of the member type. Ignored on events.
+        public bool NewInstance { get; set; }
 
-        /// <summary>
-        ///     Marks field of property to be cleared and assigned given value on reload.
-        /// </summary>
-        /// <param name="valueToAssign">Explicit value which will be assigned to field/property on reload. Has to match field/property type. Has no effect on events.</param>
-        public ClearOnReloadAttribute(object valueToAssign) : base(0)
-        {
-            ValueToAssign = valueToAssign;
-            AssignNewTypeInstance = false;
-        }
+        public ClearOnReloadAttribute() { }
 
-        /// <summary>
-        ///     Marks field of property to be cleared or re-initialized on reload.
-        /// </summary>
-        /// <param name="assignNewTypeInstance">If true, field/property will be assigned a newly created object of its type on reload. Has no effect on events.</param>
-        public ClearOnReloadAttribute(bool assignNewTypeInstance = false) : base(0)
-        {
-            ValueToAssign = null;
-            AssignNewTypeInstance = assignNewTypeInstance;
-        }
-
-        /// <summary>
-        ///     Marks field of property to be cleared and assigned given value on reload.
-        /// </summary>
-        /// <param name="order">Execution order</param>
-        public ClearOnReloadAttribute(int order) : base(order)
-        {
-            ValueToAssign = null;
-            AssignNewTypeInstance = false;
-        }
+        public ClearOnReloadAttribute(int order) : base(order) { }
     }
 }

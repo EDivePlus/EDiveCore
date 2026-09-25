@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EDIVE.External.DomainReloadHelper;
 using UnityEditor;
 
 namespace EDIVE.Http.Editor
@@ -44,9 +45,15 @@ namespace EDIVE.Http.Editor
         public static event Action<NetworkRequestLog> OnLogUpdated;
         public static event Action OnLogsCleared;
 
+        // RestUtils events are cleared on reload, so subscribe again right after.
         [InitializeOnLoadMethod]
+        [ExecuteOnReload(1)]
         private static void Initialize()
         {
+            RestUtils.OnRequestStarted -= HandleRequestStarted;
+            RestUtils.OnRequestCompleted -= HandleRequestCompleted;
+            RestUtils.OnRequestCancelled -= HandleRequestCancelled;
+
             RestUtils.OnRequestStarted += HandleRequestStarted;
             RestUtils.OnRequestCompleted += HandleRequestCompleted;
             RestUtils.OnRequestCancelled += HandleRequestCancelled;

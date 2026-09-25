@@ -2,7 +2,8 @@
     "name": "EDIVE.Http.Editor",
     "rootNamespace": "",
     "references": [
-        "EDIVE.Http"
+        "EDIVE.Http",
+        "EDIVE.External.DomainReloadHelper"
     ],
     "includePlatforms": [
         "Editor"
