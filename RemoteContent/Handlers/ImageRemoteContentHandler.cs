@@ -21,6 +21,7 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
         private float _TargetSize = 1f;
 
         private Texture2D _texture;
+        private Material _material;
 
         public override bool IsValidFor(ContentItemInfo contentInfo) => contentInfo.MediaTypeKey == "image";
 
@@ -33,7 +34,12 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
                 throw new InvalidOperationException("Failed to decode image bytes");
 
             if (_QuadMesh != null)
-                _QuadMesh.material.mainTexture = _texture;
+            {
+                // Own copy, shared material stays clean
+                if (_material == null)
+                    _material = _QuadMesh.material;
+                _material.mainTexture = _texture;
+            }
             
             if (_MeshSliceScaler == null || _texture.width <= 0 || _texture.height <= 0)
                 return UniTask.CompletedTask;
@@ -53,6 +59,12 @@ namespace EDIVE.ServiceHub.RemoteContent.Handlers
             {
                 Destroy(_texture);
                 _texture = null;
+            }
+
+            if (_material != null)
+            {
+                Destroy(_material);
+                _material = null;
             }
         }
     }

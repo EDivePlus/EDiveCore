@@ -43,6 +43,7 @@ namespace EDIVE.Utils
             skinnedMeshRenderer.BakeMesh(bakedMesh);
 
             var vertices = bakedMesh.vertices;
+            EDIVE.NativeUtils.GameObjectExtensions.SafeDestroy(bakedMesh);
             if (vertices.Length == 0)
                 return _Renderer.bounds;
 
