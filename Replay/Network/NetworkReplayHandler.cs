@@ -57,7 +57,7 @@ namespace EDIVE.Replay.Network
         
         public bool IsLoadingRecord => _Proxy.IsLoadingRecord;
         
-        public void SaveCurrentRecord(AReplayRecordMeta meta = null) => _Proxy.SaveCurrentRecord();
+        public void SaveCurrentRecord(AReplayRecordMeta meta = null) => _Proxy.SaveCurrentRecord(meta);
         public void LoadRecord(AReplayRecordMeta meta) => _Proxy.LoadRecord(meta);
         public UniTask<IEnumerable<AReplayRecordMeta>> GetSavedRecords() => _Proxy.GetSavedRecords();
     }

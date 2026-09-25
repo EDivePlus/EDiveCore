@@ -121,7 +121,8 @@ namespace EDIVE.Replay
             SetRecordingTimeInternal(CurrentTime);
             foreach (var agent in CurrentAgents)
             {
-                agent.StartRecording(CurrentTime, cancellationToken);
+                if (agent.IsActive)
+                    agent.StartRecording(CurrentTime, cancellationToken);
             }
 
             StateChanged?.Invoke();
@@ -207,11 +208,13 @@ namespace EDIVE.Replay
                 }
 
                 _currentDuration = time;
+                // Snapshot is stale now
+                ReplayRecord = null;
             }
-
             foreach (var agent in CurrentAgents)
             {
-                agent.ApplyTime(CurrentTime);
+                if (agent.IsActive)
+                    agent.ApplyTime(CurrentTime);
             }
 
             TimeChanged?.Invoke();
@@ -236,6 +239,9 @@ namespace EDIVE.Replay
         {
             if (IsPlaybackPlaying)
                 StopPlaybackInternal();
+            // Loaded playback is stale, reload from fresh snapshot
+            if (ReplayRecord == null && PlaybackLoadState != PlaybackLoadState.NotLoaded)
+                UnloadPlayback();
             _playbackCancellationTokenSource = new CancellationTokenSource();
             PlaybackAsync(_playbackCancellationTokenSource.Token).Forget();
         }
@@ -258,7 +264,8 @@ namespace EDIVE.Replay
             }
 
             await LoadPlaybackAsync(ReplayRecord, cancellationToken);
-
+            if (cancellationToken.IsCancellationRequested)
+                return;
             StateChanged?.Invoke();
 
             ApplyPlaybackTime(CurrentTime);
@@ -273,7 +280,8 @@ namespace EDIVE.Replay
                 TimeChanged?.Invoke();
                 await UniTask.Yield(cancellationToken);
             }
-
+            if (cancellationToken.IsCancellationRequested)
+                return;
             ApplyPlaybackTime(ReplayRecord.Duration);
             StopPlaybackInternal(true);
         }
@@ -297,8 +305,8 @@ namespace EDIVE.Replay
 
         private void AssignCurrentRecord()
         {
-            // Todo check if should create record 
-            ReplayRecord = CreateRecord();
+            // Keep loaded or file record, else snapshot the recording
+            ReplayRecord ??= CreateRecord();
         }
 
         public void SetPlaybackTime(float newTime)
@@ -306,9 +314,13 @@ namespace EDIVE.Replay
             var stateChange = StopRecordingInternal();
             if (Scope == null)
                 return;
-
+            // Agents run own clocks, restart them at new time
+            var wasPlaying = StopPlaybackInternal();
             ApplyPlaybackTime(newTime);
-            if (stateChange) StateChanged?.Invoke();
+            if (wasPlaying)
+                StartPlayback();
+            else if (stateChange)
+                StateChanged?.Invoke();
         }
 
         private void ApplyPlaybackTime(float newTime)
@@ -328,7 +340,8 @@ namespace EDIVE.Replay
                 StateChanged?.Invoke();
             if (record == null || (ReplayRecord == record && IsPlaybackLoaded))
                 return;
-
+            if (PlaybackLoadState != PlaybackLoadState.NotLoaded)
+                UnloadPlayback();
             ReplayRecord = record;
 
             if (Scope == null)
@@ -381,10 +394,12 @@ namespace EDIVE.Replay
 
             PlaybackLoadState = PlaybackLoadState.NotLoaded;
             CurrentTime = 0f;
-
-            foreach (var agent in Scope.Agents)
+            if (Scope != null)
             {
-                agent.SetCurrentPlaybackParticipation(PlaybackParticipation.None);
+                foreach (var agent in Scope.Agents)
+                {
+                    agent.SetCurrentPlaybackParticipation(PlaybackParticipation.None);
+                }
             }
 
             foreach (var handler in _spawnedHandlers)
@@ -449,14 +464,22 @@ namespace EDIVE.Replay
 
         public void LoadRecord(AReplayRecordMeta meta)
         {
+            if (meta == null || IsLoadingRecord)
+                return;
             IsLoadingRecord = true;
             StateChanged?.Invoke();
             UniTask.Void(async () =>
             {
-                await LoadRecordingFromFileAsync(ReplayUtils.GetRecordingSaveFileName(meta.ID));
+                try
+                {
+                    await LoadRecordingFromFileAsync(ReplayUtils.GetRecordingSaveFileName(meta.ID));
+                }
+                finally
+                {
+                    IsLoadingRecord = false;
+                    StateChanged?.Invoke();
+                }
             });
-            IsLoadingRecord = false;
-            StateChanged?.Invoke();
         }
 
         public async UniTask<IEnumerable<AReplayRecordMeta>> GetSavedRecords()
@@ -504,7 +527,16 @@ namespace EDIVE.Replay
                 if (IsRecording)
                     StopRecording();
 
-                ReplayRecord ??= CreateRecord(meta);
+                if (ReplayRecord == null)
+                {
+                    ReplayRecord = CreateRecord(meta);
+                }
+                else if (meta != null && !ReferenceEquals(meta, ReplayRecord.Meta))
+                {
+                    // Apply given meta, keep id and duration of existing record
+                    meta.Stamp(ReplayRecord.ID, ReplayRecord.Duration, ReplayRecord.Meta?.RecordedAt ?? DateTime.Now);
+                    ReplayRecord = new ReplayRecord(meta, ReplayRecord.ObjectData);
+                }
 
                 if (ReplayRecord == null)
                 {
@@ -590,12 +622,23 @@ namespace EDIVE.Replay
                 return;
 
             EditorUtility.DisplayProgressBar("Serialization", "Serializing data...", 0f);
-            await UniTask.SwitchToThreadPool();
-
-            var data = await File.ReadAllBytesAsync(path);
-            ReplayRecord = await ReplayUtils.DeserializeAsync<ReplayRecord>(data);
-            Debug.Log($"Deserialized Record: {ReplayRecord.ID}");
-            EditorUtility.ClearProgressBar();
+            try
+            {
+                var data = await File.ReadAllBytesAsync(path);
+                var record = await ReplayUtils.DeserializeAsync<ReplayRecord>(data);
+                await UniTask.SwitchToMainThread();
+                if (record == null)
+                    return;
+                if (PlaybackLoadState != PlaybackLoadState.NotLoaded)
+                    UnloadPlayback();
+                ReplayRecord = record;
+                Debug.Log($"Deserialized Record: {ReplayRecord.ID}");
+            }
+            finally
+            {
+                await UniTask.SwitchToMainThread();
+                EditorUtility.ClearProgressBar();
+            }
         }
 #endif
     }

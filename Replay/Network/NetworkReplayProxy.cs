@@ -47,7 +47,7 @@ namespace EDIVE.Replay.Network
             _isRecording.value = _Handler.IsRecording;
             _playbackLoadState.value = _Handler.PlaybackLoadState;
             _playbackPlaying.value = _Handler.IsPlaybackPlaying;
-
+            _isLoadingRecord.value = _Handler.IsLoadingRecord;
             _currentDuration.value = _Handler.CurrentDuration;
             _currentTime.value = _Handler.CurrentTime;
             ObserversDispatchStateChanged();
@@ -115,7 +115,7 @@ namespace EDIVE.Replay.Network
         public bool IsLoadingRecord => _isLoadingRecord.value;
 
         [ServerRpc(requireOwnership: false)]
-        public void SaveCurrentRecord() => _Handler.SaveCurrentRecord();
+        public void SaveCurrentRecord(AReplayRecordMeta meta = null) => _Handler.SaveCurrentRecord(meta);
 
         [ServerRpc(requireOwnership: false)]
         public void LoadRecord(AReplayRecordMeta meta) => _Handler.LoadRecord(meta);

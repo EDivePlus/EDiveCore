@@ -35,8 +35,11 @@ namespace EDIVE.Replay.UI
             if (_DurationDisplay)
                 _DurationDisplay.SetTimeSpan(TimeSpan.FromSeconds(info.Duration));
             
-            if (_LoadButton) 
+            if (_LoadButton)
+            {
+                _LoadButton.onClick.RemoveListener(OnLoadClicked);
                 _LoadButton.onClick.AddListener(OnLoadClicked);
+            }
         }
 
         private void OnLoadClicked()

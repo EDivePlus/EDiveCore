@@ -53,6 +53,8 @@ namespace EDIVE.Replay.UI
             UniTask.Void(async () =>
             {
                 var records = await controller.GetSavedRecords();
+                if (this == null)
+                    return;
                 _currentRecords.Clear();
                 _currentRecords.AddRange(records);
                 _Scroller.ReloadData(_Scroller.NormalizedScrollPosition);

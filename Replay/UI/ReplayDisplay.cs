@@ -151,11 +151,6 @@ namespace EDIVE.Replay.UI
                 _replayController.StopPlayback();
                 _replayController.SetPlaybackTime(value);
             }
-            else if (_replayController.IsPlaybackLoaded)
-            {
-                _replayController.StopPlayback();
-                _replayController.SetPlaybackTime(value);
-            }
             else
             {
                 _replayController.SetRecordingTime(value, clearFollowingFrames: false);

@@ -132,6 +132,9 @@ namespace EDIVE.Replay.Agents
             {
                 _ReplayScope.UnregisterAgent(this);
             }
+
+            foreach (var component in _ComponentList)
+                component?.OnAgentTerminating();
             
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
@@ -235,7 +238,13 @@ namespace EDIVE.Replay.Agents
         
         public void SetCurrentPlaybackParticipation(PlaybackParticipation participation)
         {
+            var wasFound = CurrentPlaybackParticipation == PlaybackParticipation.Found;
             CurrentPlaybackParticipation = participation;
+            if (wasFound && participation == PlaybackParticipation.None && _ComponentList != null)
+            {
+                foreach (var component in _ComponentList)
+                    component?.OnPlaybackUnloaded();
+            }
             if (_ParticipationState) 
                 _ParticipationState.SetState(participation);
             

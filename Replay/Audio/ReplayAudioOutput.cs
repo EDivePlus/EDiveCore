@@ -23,6 +23,7 @@ namespace EDIVE.Replay.Audio
 
         public event Action<bool> PlayBackEnabledChanged;
         public event Action<AudioFrame> FedAudioFrame;
+        public event Action BufferCleared;
 
         private void Awake()
         {
@@ -43,6 +44,13 @@ namespace EDIVE.Replay.Audio
             
             if (AudioUtils.TryProcessAudioFrame(ref frame, _decodeFilters)) 
                 _bufferedAudioOutput.Feed(frame);
+        }
+
+        // Drop queued audio, used on seek
+        public void ClearBuffer()
+        {
+            _bufferedAudioOutput.Stop();
+            BufferCleared?.Invoke();
         }
 
         public void SetPlaybackEnabled(bool state)

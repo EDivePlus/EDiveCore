@@ -22,6 +22,28 @@ namespace EDIVE.Replay
         private readonly Dictionary<string, int> _maxDynamicIds = new();
 
         public event Action<ReplayAgent> AgentRegistered;
+
+#if UNITY_EDITOR
+        // No domain reload, runtime state survives play sessions
+        private void OnEnable()
+        {
+            UnityEditor.EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private void OnDisable()
+        {
+            UnityEditor.EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        }
+
+        private void OnPlayModeStateChanged(UnityEditor.PlayModeStateChange change)
+        {
+            if (change != UnityEditor.PlayModeStateChange.ExitingEditMode)
+                return;
+            _agents.Clear();
+            _maxDynamicIds.Clear();
+        }
+#endif
         public event Action<ReplayAgent> AgentUnregistered;
         
         public void RegisterAgent(ReplayAgent agent)

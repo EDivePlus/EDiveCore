@@ -22,6 +22,7 @@ namespace EDIVE.Replay.Audio
             if (!asServer) return;
             _replayAudioOutput.FedAudioFrame += OnFedAudioFrame;
             _replayAudioOutput.PlayBackEnabledChanged += OnPlaybackEnabledChanged;
+            _replayAudioOutput.BufferCleared += OnBufferCleared;
         }
 
         protected override void OnDespawned(bool asServer)
@@ -29,6 +30,18 @@ namespace EDIVE.Replay.Audio
             if (!asServer) return;
             _replayAudioOutput.FedAudioFrame -= OnFedAudioFrame;
             _replayAudioOutput.PlayBackEnabledChanged -= OnPlaybackEnabledChanged;
+            _replayAudioOutput.BufferCleared -= OnBufferCleared;
+        }
+
+        private void OnBufferCleared()
+        {
+            ObserversClearBuffer();
+        }
+
+        [ObserversRpc]
+        private void ObserversClearBuffer()
+        {
+            _replayAudioOutput.ClearBuffer();
         }
 
         private void OnFedAudioFrame(AudioFrame frame)
