@@ -78,7 +78,7 @@ namespace EDIVE.Audio
 
         public static AudioClip TrimSilence(AudioClip clip, float min)
         {
-            var samples = new float[clip.samples];
+            var samples = new float[clip.samples * clip.channels];
             clip.GetData(samples, 0);
             return TrimSilence(new List<float>(samples), min, clip.channels, clip.frequency);
         }
@@ -91,16 +91,22 @@ namespace EDIVE.Audio
                 if (Mathf.Abs(samples[i]) > min)
                     break;
             }
-            samples.RemoveRange(0, i);
-            for (i = samples.Count - 1; i > 0; i--)
+            channels = Mathf.Max(1, channels);
+            // Cut on whole channel frames
+            samples.RemoveRange(0, i - i % channels);
+            for (i = samples.Count - 1; i >= 0; i--)
             {
                 if (Mathf.Abs(samples[i]) > min)
                     break;
             }
-
-            samples.RemoveRange(i, samples.Count - i);
-            var clip = AudioClip.Create("TempClip", samples.Count, channels, hz, stream);
-            clip.SetData(samples.ToArray(), 0);
+            var keep = (i / channels + 1) * channels;
+            if (i < 0)
+                keep = 0;
+            keep = Mathf.Min(keep, samples.Count - samples.Count % channels);
+            samples.RemoveRange(keep, samples.Count - keep);
+            var clip = AudioClip.Create("TempClip", Mathf.Max(1, samples.Count / channels), channels, hz, stream);
+            if (samples.Count > 0)
+                clip.SetData(samples.ToArray(), 0);
 
             return clip;
         }
@@ -118,10 +124,8 @@ namespace EDIVE.Audio
 
         private static void ConvertAndWrite(FileStream fileStream, AudioClip clip)
         {
-            var samples = new float[clip.samples];
-
+            var samples = new float[clip.samples * clip.channels];
             clip.GetData(samples, 0);
-
             var intData = new short[samples.Length];
             //converting in 2 float[] steps to Int16[], //then Int16[] to Byte[]
 

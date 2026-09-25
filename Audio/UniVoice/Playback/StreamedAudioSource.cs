@@ -307,6 +307,10 @@ namespace EDIVE.Audio.Playback
             frameStopwatch.Reset();
         }
 
+        private void OnDestroy()
+        {
+            DestroyClip();
+        }
         private void ReinitClip(int sampleLenPerCh, int channels, int frequency)
         {
             DestroyClip();

@@ -31,13 +31,16 @@ namespace EDIVE.Environment.SceneSetup
         public event Action<SceneSetupDefinition> CurrentSetupChanged;
         
         private bool _switchInProgress;
+        // Last request made during switch, run after
+        private SceneSetupDefinition _queuedSetup;
         private MasterNetworkManager _networkManager;
         private readonly List<ASceneSpawnPlace> _spawnPlaces = new();
         private readonly List<SceneSetupController> _sceneControllers = new();
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
-            NetworkManager.main.onLocalPlayerReceivedID += OnClientAuthenticated;
+            if (NetworkManager.main != null)
+                NetworkManager.main.onLocalPlayerReceivedID += OnClientAuthenticated;
             _networkManager = AppCore.Services.Get<MasterNetworkManager>();
             _networkManager.ConnectionStateChanged += OnConnectionStateChanged;
             return UniTask.CompletedTask;
@@ -121,7 +124,8 @@ namespace EDIVE.Environment.SceneSetup
             }
             if (_switchInProgress)
             {
-                Debug.LogWarning($"[SceneSetupManager] SetCurrentSetupAsync aborted: switch already in progress (requested={definition.name})", this);
+                Debug.Log($"[SceneSetupManager] Switch in progress, queued {definition.name}", this);
+                _queuedSetup = definition;
                 return;
             }
 
@@ -158,6 +162,14 @@ namespace EDIVE.Environment.SceneSetup
                 _switchInProgress = false;
                 
                 Debug.Log($"[SceneSetupManager] Scene setup change to {definition.name} completed");
+            }
+
+            if (_queuedSetup != null && this != null)
+            {
+                var next = _queuedSetup;
+                _queuedSetup = null;
+                if (next != CurrentSetup)
+                    await SetCurrentSetupAsync(next);
             }
         }
 

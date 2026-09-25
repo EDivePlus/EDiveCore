@@ -14,7 +14,8 @@ namespace EDIVE.Environment.SceneSetup
 
         public void ApplyDefinition(SceneSetupDefinition definition)
         {
-            _Visual?.Apply(definition.Visual);
+            if (_Visual != null && definition != null)
+                _Visual.Apply(definition.Visual);
         }
         
         private void OnEnable()

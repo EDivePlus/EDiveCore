@@ -22,9 +22,9 @@ namespace EDIVE.Audio
             }
 
             var callbacks = new UnityEngine.Android.PermissionCallbacks();
-            UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.Microphone, callbacks);
             callbacks.PermissionGranted += _ => callback?.Invoke(true);
             callbacks.PermissionDenied += _ => callback?.Invoke(false);
+            UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.Microphone, callbacks);
 #else
             callback?.Invoke(true);
 #endif

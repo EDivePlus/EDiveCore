@@ -50,6 +50,13 @@ namespace EDIVE.Audio.VoiceRecording
             return UniTask.CompletedTask;
         }
               
+        protected override void OnDestroy()
+        {
+            // Flush wav file
+            StopRecording();
+            base.OnDestroy();
+        }
+
         protected override void PopulateDependencies(HashSet<Type> dependencies)
         {
             base.PopulateDependencies(dependencies);
@@ -106,11 +113,12 @@ namespace EDIVE.Audio.VoiceRecording
         [Button]
         public void StopRecording()
         {
+            if (!Recording)
+                return;
             DebugLite.Log("[VoiceRecordingManager] Stopping recording");
-            
             Recording = false;
-            _recordingCancellation.Cancel();
-            _recordingCancellation.Dispose();
+            _recordingCancellation?.Cancel();
+            _recordingCancellation?.Dispose();
             _recordingCancellation = null;
             
             _audioManager.LocalRawAudioFrameReady -= OnRawAudioFrameReady;
@@ -118,6 +126,7 @@ namespace EDIVE.Audio.VoiceRecording
             
             DebugLite.Log("[VoiceRecordingManager] Saving voice recording.");
             _wavFileWriter?.Dispose();
+            _wavFileWriter = null;
             RecordingStateChanged?.Invoke(Recording);
             DebugLite.Log("[VoiceRecordingManager] Recording stopped");
         }

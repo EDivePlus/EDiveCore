@@ -28,9 +28,12 @@ namespace EDIVE.Environment.SceneSetup
         public void SetDefinition(SceneSetupDefinition definition)
         {
             _Definition = definition;
+            if (definition == null)
+                return;
             if (_IDText)
                 _IDText.text = definition.UniqueID;
-            _Visual?.Apply(definition.Visual);
+            if (_Visual != null)
+                _Visual.Apply(definition.Visual);
         }
         
         private void OnEnable()

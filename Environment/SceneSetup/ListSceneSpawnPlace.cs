@@ -25,6 +25,8 @@ namespace EDIVE.Environment.SceneSetup
 
             var index = ((int)player.id.value).PositiveModulo(_Locations.Count);
             var location = _Locations[index];
+            if (location == null)
+                return false;
             position = location.position;
             rotation = location.rotation;
             return true;

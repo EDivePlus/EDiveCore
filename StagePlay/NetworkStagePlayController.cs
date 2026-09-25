@@ -34,35 +34,38 @@ namespace EDIVE.StagePlay
 
         protected override void OnSpawned()
         {
-            OnLocalDefinitionChanged(_controller.Definition, _controller.CurrentState);
+            // Don't push local state on spawn, late joiner would reset everyone
+            BindState(_controller.CurrentState);
             _controller.DefinitionChanged += OnLocalDefinitionChanged;
-
             _definition.onChanged += OnSyncDefinitionChanged;
             _currentSegment.onChanged += OnSyncCurrentSegmentChanged;
+            if (!isServer)
+            {
+                OnSyncDefinitionChanged(_definition.value);
+                OnSyncCurrentSegmentChanged(_currentSegment.value);
+            }
         }
-
         protected override void OnDespawned()
         {
             _controller.DefinitionChanged -= OnLocalDefinitionChanged;
-            if (_currentState != null)
-                _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
-
+            BindState(null);
             _definition.onChanged -= OnSyncDefinitionChanged;
             _currentSegment.onChanged -= OnSyncCurrentSegmentChanged;
         }
-
+        private void BindState(StagePlayState state)
+        {
+            if (_currentState != null)
+                _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
+            _currentState = state;
+            if (_currentState != null)
+                _currentState.CurrentSegmentChanged += OnLocalCurrentSegmentChanged;
+        }
         private void OnLocalDefinitionChanged(StagePlayDefinition definition, StagePlayState state)
         {
             SetDefinition(definition);
-
-            if (_currentState != null)
-                _currentState.CurrentSegmentChanged -= OnLocalCurrentSegmentChanged;
-
-            if (state == null)
-                return;
-            SetCurrentSegment(state.CurrentSegmentIndex);
-            _currentState = state;
-            _currentState.CurrentSegmentChanged += OnLocalCurrentSegmentChanged;
+            BindState(state);
+            if (state != null)
+                SetCurrentSegment(state.CurrentSegmentIndex);
         }
 
         private void OnLocalCurrentSegmentChanged(int segment)
@@ -94,6 +97,8 @@ namespace EDIVE.StagePlay
             _controller.DefinitionChanged -= OnLocalDefinitionChanged;
             _controller.SetDefinition(next);
             _controller.DefinitionChanged += OnLocalDefinitionChanged;
+            // SetDefinition makes new state
+            BindState(_controller.CurrentState);
         }
     }
 }
