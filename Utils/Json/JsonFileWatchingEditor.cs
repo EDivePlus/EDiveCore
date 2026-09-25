@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -23,6 +24,7 @@ namespace EDIVE.Utils.Json
         public string FilePath { get; }
         private FileSystemWatcher _fileWatcher;
         private JsonSerializerSettings _jsonSerializerSettings;
+        private SynchronizationContext _mainContext;
 
         // Last content read or written. The watcher also fires for our own saves.
         private string _lastJson;
@@ -34,6 +36,7 @@ namespace EDIVE.Utils.Json
 
             FilePath = filePath;
             _jsonSerializerSettings = jsonSerializerSettings;
+            _mainContext = SynchronizationContext.Current;
             LoadData();
             SetupFileWatcher();
         }
@@ -123,9 +126,13 @@ namespace EDIVE.Utils.Json
             _fileWatcher.EnableRaisingEvents = true;
         }
 
+        // Watcher fires on its own thread
         private void OnFileChanged(object sender, FileSystemEventArgs e)
         {
-            ReloadData();
+            if (_mainContext != null)
+                _mainContext.Post(_ => ReloadData(), null);
+            else
+                ReloadData();
         }
 
         public void ReloadData()
