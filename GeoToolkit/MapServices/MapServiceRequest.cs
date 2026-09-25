@@ -11,7 +11,9 @@ using EDIVE.OdinExtensions.Attributes;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using Unity.Mathematics;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Serialization;

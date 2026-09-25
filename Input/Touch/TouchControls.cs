@@ -2,7 +2,9 @@
 // Created: 2026-05-07
 
 using System.Runtime.InteropServices;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;

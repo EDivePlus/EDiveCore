@@ -14,7 +14,9 @@ using Sirenix.OdinInspector;
 using TriangleNet.Geometry;
 using TriangleNet.Meshing;
 using Unity.Mathematics;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using Polygon = TriangleNet.Geometry.Polygon;
 

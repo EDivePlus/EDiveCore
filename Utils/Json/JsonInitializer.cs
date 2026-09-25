@@ -3,7 +3,9 @@
 
 using EDIVE.Utils.Json.TypeNames;
 using Newtonsoft.Json;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 #if JSON_UNITY_CONVERTERS

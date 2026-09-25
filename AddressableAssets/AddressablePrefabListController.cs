@@ -6,7 +6,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
