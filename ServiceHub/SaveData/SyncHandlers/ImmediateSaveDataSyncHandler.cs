@@ -1,7 +1,6 @@
 ﻿// Author: Michal Petr
 // Created: 16.06.2026
 
-using System;
 using Cysharp.Threading.Tasks;
 
 namespace EDIVE.ServiceHub.SaveData.SyncHandlers
@@ -10,21 +9,26 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
     {
         protected override SaveDataDirtyFlag HandledFlags => SaveDataDirtyFlag.Immediate;
 
-        public override event Action<(string Key, DateTime? UpdatedAt)> SyncSuccess;
-        public override event Action<(string Key, string Error)> SyncFailure;
-
         protected override void ScheduleSync(string key, string json)
         {
+            // No auth yet, send once it is back
             if (!Context.Auth.IsValid())
+            {
+                QueueRetry(key, json);
                 return;
-
+            }
+            var ct = _cts.Token;
             UniTask.Void(async () =>
             {
-                var result = await PutSaveDataAsync(Context, key, json, _cts.Token);
-                if (result.IsSuccess)
-                    SyncSuccess?.Invoke((key, Normalize(result.Result?.Data?.UpdatedAt)));
-                else
-                    SyncFailure?.Invoke((key, result.ErrorMessage));
+                var result = await PutSaveDataAsync(Context, key, json, ct);
+                if (result.IsSuccess && result.Result is { Status: 0 })
+                {
+                    RaiseSyncSuccess(key, result.Result.Data?.UpdatedAt);
+                    return;
+                }
+                RaiseSyncFailure(key, result.ErrorMessage ?? result.Result?.Message);
+                if (IsRetryable(result.StatusCode))
+                    QueueRetry(key, json);
             });
         }
     }

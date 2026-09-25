@@ -52,7 +52,7 @@ namespace EDIVE.ServiceHub
         {
             if (_DisplayNameText) _DisplayNameText.text = userInfo.Name;
             if (_EmailText) _EmailText.text = userInfo.Email;
-            if (_RolesText) _RolesText.text = string.Join(", ", userInfo.Roles);
+            if (_RolesText) _RolesText.text = userInfo.Roles != null ? string.Join(", ", userInfo.Roles) : "";
             if (_UserIdText) _UserIdText.text = userInfo.Id;
             
             if (_ProfilePictureDisplay) _ProfilePictureDisplay.SetProfilePictureFromName(!string.IsNullOrEmpty(userInfo.Name) ? userInfo.Name : "?");

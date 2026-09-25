@@ -46,5 +46,13 @@ namespace EDIVE.ServiceHub.SaveData
             _User.Initialize(this, AuthStorage.Client);
             _Server.Initialize(this, AuthStorage.Server);
         }
+
+        private void OnDestroy()
+        {
+            if (Settings == null)
+                return;
+            _User.Terminate();
+            _Server.Terminate();
+        }
     }
 }

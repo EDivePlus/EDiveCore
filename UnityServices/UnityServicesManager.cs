@@ -13,9 +13,18 @@ namespace EDIVE.UnityServices
     {
         public async UniTask Load(Action<float> progressCallback)
         {
-            await Unity.Services.Core.UnityServices.InitializeAsync();
-            if (!AuthenticationService.Instance.IsSignedIn)
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            // Offline or no project, don't block app load
+            try
+            {
+                await Unity.Services.Core.UnityServices.InitializeAsync();
+                if (!AuthenticationService.Instance.IsSignedIn)
+                    await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[UnityServices] Init failed, continuing without services.");
+                Debug.LogException(e);
+            }
         }
     }
 }

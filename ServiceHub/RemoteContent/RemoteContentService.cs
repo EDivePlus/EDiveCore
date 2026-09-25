@@ -18,7 +18,11 @@ namespace EDIVE.ServiceHub.RemoteContent
     {
         private ServiceHubSettings _settings;
 
-        private readonly Dictionary<string, RemoteContentResult> _remoteContentCache = new();
+        // LRU byte cache, oldest dropped past cap
+        private const long MAX_CACHE_BYTES = 128L * 1024 * 1024;
+        private readonly Dictionary<string, LinkedListNode<(string Token, RemoteContentResult Result)>> _remoteContentCache = new();
+        private readonly LinkedList<(string Token, RemoteContentResult Result)> _remoteContentCacheOrder = new();
+        private long _remoteContentCacheBytes;
         private readonly object _remoteContentCacheLock = new();
 
         private string ContentBaseUrl => $"{_settings.ServiceBaseUrl}/content";
@@ -68,8 +72,12 @@ namespace EDIVE.ServiceHub.RemoteContent
 
             lock (_remoteContentCacheLock)
             {
-                if (_remoteContentCache.TryGetValue(shareToken, out var cached))
-                    return NetworkResponse<RemoteContentResult>.Success(200, cached);
+                if (_remoteContentCache.TryGetValue(shareToken, out var cachedNode))
+                {
+                    _remoteContentCacheOrder.Remove(cachedNode);
+                    _remoteContentCacheOrder.AddFirst(cachedNode);
+                    return NetworkResponse<RemoteContentResult>.Success(200, cachedNode.Value.Result);
+                }
             }
 
             var response = await RestUtils.GetBytesAsync(
@@ -87,11 +95,32 @@ namespace EDIVE.ServiceHub.RemoteContent
             }
 
             var result = new RemoteContentResult(response.Result);
+            AddToCache(shareToken, result);
+            return NetworkResponse<RemoteContentResult>.Success(response.StatusCode, result);
+        }
+
+        private void AddToCache(string shareToken, RemoteContentResult result)
+        {
+            var size = result.Bytes?.LongLength ?? 0;
+            if (size > MAX_CACHE_BYTES)
+                return;
             lock (_remoteContentCacheLock)
             {
-                _remoteContentCache[shareToken] = result;
+                if (_remoteContentCache.Remove(shareToken, out var oldNode))
+                {
+                    _remoteContentCacheOrder.Remove(oldNode);
+                    _remoteContentCacheBytes -= oldNode.Value.Result.Bytes?.LongLength ?? 0;
+                }
+                _remoteContentCache[shareToken] = _remoteContentCacheOrder.AddFirst((shareToken, result));
+                _remoteContentCacheBytes += size;
+                while (_remoteContentCacheBytes > MAX_CACHE_BYTES && _remoteContentCacheOrder.Last != null)
+                {
+                    var last = _remoteContentCacheOrder.Last;
+                    _remoteContentCacheOrder.RemoveLast();
+                    _remoteContentCache.Remove(last.Value.Token);
+                    _remoteContentCacheBytes -= last.Value.Result.Bytes?.LongLength ?? 0;
+                }
             }
-            return NetworkResponse<RemoteContentResult>.Success(response.StatusCode, result);
         }
 
         [Button]

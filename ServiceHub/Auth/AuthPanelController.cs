@@ -27,6 +27,7 @@ namespace EDIVE.ServiceHub.Auth
         {
             _clientAuth.OnLoginSucceeded += OnClientLoginSucceeded;
             _clientAuth.OnLoginFailed += OnClientLoginFailed;
+            _clientAuth.OnLoggedOut += RefreshUI;
             _LogoutButton.onClick.AddListener(LogOut);
             RefreshUI();
         }
@@ -35,6 +36,7 @@ namespace EDIVE.ServiceHub.Auth
         {
             _clientAuth.OnLoginSucceeded -= OnClientLoginSucceeded;
             _clientAuth.OnLoginFailed -= OnClientLoginFailed;
+            _clientAuth.OnLoggedOut -= RefreshUI;
             _LogoutButton.onClick.RemoveListener(LogOut);
         }
 
