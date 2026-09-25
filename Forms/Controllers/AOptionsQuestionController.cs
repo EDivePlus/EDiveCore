@@ -21,21 +21,22 @@ namespace EDIVE.Forms.Controllers
         // Todo add dynamic/external OptionHandlerBundles - use Scriptable List maybe?
         public IEnumerable<AOptionHandlerBundle> FilteredHandlerBundles => _HandlerBundles.Where(b => b != null);
         
-        public event Action CorrectAnswerSelected;
+        // All correct options picked, or valid pick when no correct options
+        public event Action AnswerCompleted;
 
         private readonly List<IQuestionOption> _selectedOptions = new();
 
         protected override void Initialize()
         {
-            base.Initialize();
             _selectedOptions.Clear();
-
             foreach (var handlerBundle in FilteredHandlerBundles)
             {
                 handlerBundle.Initialize(Question);
                 handlerBundle.SelectionChanged += OnSelectionChanged;
             }
             RefreshState();
+            // Phases after bundles, they react to phase
+            base.Initialize();
         }
 
         public override void Terminate()
@@ -62,6 +63,16 @@ namespace EDIVE.Forms.Controllers
         {
             if (selected)
             {
+                // Single choice, swap selection
+                if (Question.SelectionLimits.y <= 1)
+                {
+                    foreach (var other in _selectedOptions)
+                    {
+                        if (other != option)
+                            SetSelected(other, false, false);
+                    }
+                    _selectedOptions.Clear();
+                }
                 if (!_selectedOptions.Contains(option))
                     _selectedOptions.Add(option);
             }
@@ -77,10 +88,26 @@ namespace EDIVE.Forms.Controllers
 
         protected virtual AFormAnswer CreateAnswer(List<IQuestionOption> selectedOptions)
         {
-            if (selectedOptions.Any(o => o.IsCorrect))
-                CorrectAnswerSelected?.Invoke();
+            if (IsAnswerComplete(selectedOptions))
+                AnswerCompleted?.Invoke();
             return new OptionFormAnswer(selectedOptions.Select(o => o.ID), CollectMetadata());
         }
+
+        private bool IsAnswerComplete(List<IQuestionOption> selectedOptions)
+        {
+            var correct = Question.BaseOptions.Where(o => o.IsCorrect).ToList();
+            if (correct.Count == 0)
+                return IsSelectionCountValid(selectedOptions.Count) && selectedOptions.Count > 0;
+            return correct.All(selectedOptions.Contains);
+        }
+
+        private bool IsSelectionCountValid(int count)
+        {
+            var limits = Question.SelectionLimits;
+            return count >= limits.x && (limits.y <= 0 || count <= limits.y);
+        }
+
+        public override bool IsAnswerValid() => IsSelectionCountValid(_selectedOptions.Count);
 
         public override void SetAnswer(AFormAnswer answer)
         {
@@ -99,7 +126,7 @@ namespace EDIVE.Forms.Controllers
 
         protected virtual IEnumerable<IFormAnswerMetadata> CollectMetadata()
         {
-            return _HandlerBundles.SelectMany(h => h.CollectMetadata());
+            return FilteredHandlerBundles.SelectMany(h => h.CollectMetadata());
         }
 
         public void SetSelected(IQuestionOption option, bool selected, bool notify = true)
@@ -129,16 +156,26 @@ namespace EDIVE.Forms.Controllers
                 return;
             }
             
-            if (duration <= 0f)
+            // Already done, e.g. restored answer
+            if (IsAnswerComplete(_selectedOptions))
                 return;
-            
-            var correctAnswerTcs = new UniTaskCompletionSource();
-            CorrectAnswerSelected += OnCorrectAnswer;
-            await UniTask.WhenAny(correctAnswerTcs.Task, UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: cancellationToken));
-            CorrectAnswerSelected -= OnCorrectAnswer;
-            
+
+            var completedTcs = new UniTaskCompletionSource();
+            AnswerCompleted += OnAnswerCompleted;
+            try
+            {
+                // 0 = no time limit, wait for answer
+                if (duration <= 0f)
+                    await completedTcs.Task.AttachExternalCancellation(cancellationToken);
+                else
+                    await UniTask.WhenAny(completedTcs.Task, UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: cancellationToken));
+            }
+            finally
+            {
+                AnswerCompleted -= OnAnswerCompleted;
+            }
             return;
-            void OnCorrectAnswer() => correctAnswerTcs.TrySetResult();
+            void OnAnswerCompleted() => completedTcs.TrySetResult();
         }
     }
 }

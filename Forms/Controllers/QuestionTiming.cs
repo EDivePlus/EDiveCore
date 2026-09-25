@@ -26,6 +26,7 @@ namespace EDIVE.Forms.Controllers
         [ShowIf(nameof(_EnableTiming))]
         [SerializeField]
         [MinValue(0f)]
+        [Tooltip("0 = no limit")]
         private float _AnsweringDuration = 20f;
 
         [ShowIf(nameof(_EnableTiming))]

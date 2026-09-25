@@ -30,7 +30,7 @@ namespace EDIVE.MenuScreen
         
         private void OnOpenButtonClicked()
         {
-            if (_FrameToOpen == null)
+            if (_FrameToOpen == null || _FrameToOpen.Controller == null)
                 return;
             
             _FrameToOpen.Controller.OpenFrame(_FrameToOpen);

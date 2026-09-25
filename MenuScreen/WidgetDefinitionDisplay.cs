@@ -30,7 +30,8 @@ namespace EDIVE.MenuScreen
 
         private void OnDestroy()
         {
-            _OpenButton?.onClick.RemoveListener(OnOpenButtonClicked);
+            if (_OpenButton != null)
+                _OpenButton.onClick.RemoveListener(OnOpenButtonClicked);
         }
 
         public void SetDefinition(WidgetDefinition definition)
@@ -39,7 +40,8 @@ namespace EDIVE.MenuScreen
                 return;
             
             Definition = definition;
-            _Switcher.Apply(definition.Visual);
+            if (_Switcher != null)
+                _Switcher.Apply(definition.Visual);
             if (_TooltipTrigger)
                 _TooltipTrigger.SetPreset(definition.Visual);
         }

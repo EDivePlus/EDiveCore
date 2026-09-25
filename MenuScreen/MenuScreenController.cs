@@ -33,7 +33,7 @@ namespace EDIVE.MenuScreen
         private void Awake()
         {
             SetupPinnedDisplays();
-            _FrameRoot.GetComponentsInChildren<MenuScreenFrame>().ForEach(persistentFrame =>
+            _FrameRoot.GetComponentsInChildren<MenuScreenFrame>(true).ForEach(persistentFrame =>
             {
                 if (persistentFrame.IsPersistent)
                 {
@@ -54,6 +54,8 @@ namespace EDIVE.MenuScreen
 
         public void OpenWidget(WidgetDefinition definition, IViewContext context = null)
         {
+            if (definition == null || definition.ViewSource == null)
+                return;
             OpenView(definition.ViewSource, context);
         }
 
@@ -90,7 +92,10 @@ namespace EDIVE.MenuScreen
         
         public void OpenFrame(MenuScreenFrame frame, IViewContext context = null)
         {
-            CollapseCurrentFrame();
+            if (frame == null)
+                return;
+            if (CurrentFrame != frame)
+                CollapseCurrentFrame();
             CurrentFrame = frame;
             CurrentFrame.gameObject.SetActive(true);
             frame.Open(context);
@@ -134,8 +139,8 @@ namespace EDIVE.MenuScreen
         
         private void OnWidgetDisplayClicked(WidgetDefinition definition)
         {
-            // todo get rid of pattern matching ?
-            if (CurrentFrame != null && CurrentFrame.ViewSource is AddressablePrefabViewSource currentRef && Equals(currentRef, definition.ViewSource))
+            // All view sources override Equals
+            if (CurrentFrame != null && Equals(CurrentFrame.ViewSource, definition.ViewSource))
             {
                 CollapseCurrentFrame();
                 return;

@@ -92,7 +92,7 @@ namespace EDIVE.Forms.Controllers
                 await RunPhase(QuestionPhase.Summary, cancellationToken);
                 
                 if (FormController)
-                    FormController.ShowNextQuestion();
+                    FormController.ShowNextQuestion(true);
             }
             catch (OperationCanceledException) { }
         }
@@ -106,11 +106,20 @@ namespace EDIVE.Forms.Controllers
 
         protected virtual async UniTask PhaseTaskAsync(QuestionPhase phase, float duration, CancellationToken cancellationToken)
         {
+            // Answering 0 = no limit, wait for manual next
+            if (phase == QuestionPhase.Answering && duration <= 0f)
+            {
+                await UniTask.WaitUntilCanceled(cancellationToken);
+                return;
+            }
             if (duration > 0f)
                 await UniTask.Delay(TimeSpan.FromSeconds(duration), cancellationToken: cancellationToken);
         }
 
         public abstract void SetAnswer(AFormAnswer answer);
+
+        // Blocks manual next when false
+        public virtual bool IsAnswerValid() => true;
 
         private void OnDestroy()
         {
@@ -134,7 +143,8 @@ namespace EDIVE.Forms.Controllers
             }
 
             Question = tQuestion;
-            Visual.Apply(tQuestion.Visual);
+            if (Visual != null)
+                Visual.Apply(tQuestion.Visual);
             Initialize();
         }
 

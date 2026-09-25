@@ -117,14 +117,23 @@ namespace EDIVE.Forms
         [Button]
         public void EndForm()
         {
+            Terminate();
+            CurrentQuestionController = null;
             SaveAnswersToFile();
             SetFormState(FormStateType.Completed);
             UpdateUIDisplay();
         }
         
         [Button]
-        public void ShowNextQuestion()
+        public void ShowNextQuestion() => ShowNextQuestion(false);
+
+        public void ShowNextQuestion(bool force)
         {
+            if (!force && CurrentQuestionController != null && !CurrentQuestionController.IsAnswerValid())
+            {
+                Debug.LogWarning($"Answer for '{CurrentQuestion?.ID}' is not valid, select more options.");
+                return;
+            }
             if (CurrentQuestionIndex + 1 >= _Definition.Questions.Count)
             {
                 EndForm();
@@ -164,9 +173,11 @@ namespace EDIVE.Forms
                 CurrentQuestionController.Terminate();
             }
 
+            CurrentQuestionController = null;
             CurrentQuestionIndex = questionIndex;
             if (questionIndex < 0 || questionIndex >= _Definition.Questions.Count)
             {
+                CurrentQuestion = null;
                 UpdateUIDisplay();
                 CurrentQuestionChanged?.Invoke(CurrentQuestionIndex, CurrentQuestion);
                 return false;
@@ -195,7 +206,7 @@ namespace EDIVE.Forms
         public void SetAnswerForQuestion(string questionID, AFormAnswer answer)
         {
             CurrentAnswers.Set(questionID, answer);
-            if (CurrentQuestion != null && CurrentQuestion.ID == questionID)
+            if (CurrentQuestion != null && CurrentQuestion.ID == questionID && CurrentQuestionController != null)
             {
                 CurrentQuestionController.AnswerChanged -= OnCurrentAnswerChanged;
                 CurrentQuestionController.SetAnswer(answer);
