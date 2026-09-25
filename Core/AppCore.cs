@@ -89,10 +89,18 @@ namespace EDIVE.Core
 
             Instance._isLoaded = true;
             Instance._loadedCompletionSource?.TrySetResult();
+            Instance._loadedCompletionSource = null;
         }
 
         public static UniTask AwaitLoaded()
         {
+            if (!HasInstance)
+                return UniTask.Never(CancellationToken.None);
+
+            if (IsLoaded)
+                return UniTask.CompletedTask;
+
+            Instance._loadedCompletionSource ??= new UniTaskCompletionSource();
             return Instance._loadedCompletionSource.Task;
         }
 

@@ -81,7 +81,11 @@ namespace EDIVE.Networking.Players
 
         public UniTask<NetworkPlayerController> AwaitLocalPlayerController()
         {
-            return LocalPlayer != null ? UniTask.FromResult(LocalPlayer) : _localPlayerRequest.Task;
+            if (LocalPlayer != null)
+                return UniTask.FromResult(LocalPlayer);
+
+            _localPlayerRequest ??= new UniTaskCompletionSource<NetworkPlayerController>();
+            return _localPlayerRequest.Task;
         }
         
         public bool TryGetPlayerController(PlayerID clientID, out NetworkPlayerController playerController)
