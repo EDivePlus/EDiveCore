@@ -21,7 +21,7 @@ namespace EDIVE.Localization.View
 
         private void LocalizationChanged(Locale newLocale)
         {
-            RefreshVisual();
+            SetLocale(newLocale);
         }
     }
 }

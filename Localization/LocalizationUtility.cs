@@ -86,13 +86,9 @@ namespace EDIVE.Localization
         {
             if (localizedString.IsEmpty)
                 return "";
+            // Reuse existing variables, Add throws on a second call
             foreach (var p in parameters)
-            {
-                localizedString.Add(p.Key, new StringVariable()
-                {
-                    Value = p.Value
-                });
-            }
+                localizedString.SetParameter<string, StringVariable>(p.Key, p.Value);
 
 #if UNITY_WEBGL
             var loadOperation = localizedString.GetLocalizedStringAsync();

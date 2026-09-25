@@ -103,7 +103,7 @@ namespace EDIVE.Localization.Fonts
 
             public LocalizedFontDefinition GetMatchingPreset(TMP_Text text)
             {
-                if (_AutoDetectPreset)
+                if (_AutoDetectPreset && _AvailablePresets != null)
                 {
                     foreach (var availablePreset in _AvailablePresets)
                     {

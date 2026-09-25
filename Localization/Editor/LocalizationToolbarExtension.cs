@@ -68,8 +68,17 @@ namespace EDIVE.Localization.Editor
                     selector.ShowInPopup(dropdown.worldBound.MinWidth(200));
                 };
                 
-                settings.OnSelectedLocaleChanged += UpdateLabel;
-                UpdateLabel(settings.GetSelectedLocale());
+                if (settings)
+                {
+                    // Unsub when toolbar element rebuilt
+                    dropdown.RegisterCallback<UnityEngine.UIElements.AttachToPanelEvent>(_ =>
+                    {
+                        settings.OnSelectedLocaleChanged -= UpdateLabel;
+                        settings.OnSelectedLocaleChanged += UpdateLabel;
+                    });
+                    dropdown.RegisterCallback<UnityEngine.UIElements.DetachFromPanelEvent>(_ => settings.OnSelectedLocaleChanged -= UpdateLabel);
+                }
+                UpdateLabel(settings ? settings.GetSelectedLocale() : null);
                 return dropdown;
 
                 void UpdateLabel(Locale locale)

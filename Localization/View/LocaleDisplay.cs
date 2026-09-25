@@ -20,8 +20,8 @@ namespace EDIVE.Localization.View
 
         protected virtual void Awake()
         {
-            RefreshVisual();
             CurrentLocale = _DefaultLocale;
+            RefreshVisual();
         }
 
         public void SetLocale(Locale locale)
@@ -34,7 +34,7 @@ namespace EDIVE.Localization.View
 
         protected void RefreshVisual()
         {
-            if (_DefaultLocale == null)
+            if (CurrentLocale == null)
                 return;
             
             if (_LocaleNameText != null) 
