@@ -52,7 +52,8 @@ namespace EDIVE.XRTools.GazeValidation
             if (_hoverCount <= 0)
             {
                 _hoverCount = 0;
-                _SelectedState.SetState(false);
+                if (SelectOnHover)
+                    _SelectedState.SetState(false);
                 HoverStateChanged?.Invoke(this, false);
             }
         }

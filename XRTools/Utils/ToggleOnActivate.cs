@@ -29,6 +29,8 @@ namespace EDIVE.XRTools.Utils
         [Button]
         private void Toggle()
         {
+            if (_ToggleState == null)
+                return;
             _ToggleState.State = !_ToggleState.State;
         }
     }

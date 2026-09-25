@@ -190,11 +190,13 @@ namespace EDIVE.XRTools
             _SetCustomPoseActivation?.UnregisterActivationListener(SetCustomPose);
             _ResetCustomPoseActivation?.UnregisterActivationListener(ResetCustomPose);
             _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
-            if (_AutoFollowCondition != null)
+            if (_FollowMode == FollowMode.Automatic && _AutoFollowCondition != null)
             {
                 _AutoFollowCondition.StateChanged -= OnAutoFollowConditionChanged;
                 _AutoFollowCondition.TerminateObserving();
             }
+            _repositionTween?.Kill();
+            _repositionTween = null;
         }
 
         private void Start()
@@ -359,7 +361,7 @@ namespace EDIVE.XRTools
                 ResolveSpace(out var sp, out var sr);
                 followTarget.position = sp + sr * _localPosition;
                 followTarget.rotation = sr * _localRotation;
-            }).SetEase(Ease.InOutQuad);
+            }).SetEase(Ease.InOutQuad).SetLink(gameObject);
         }
 
         private void FollowCamera()

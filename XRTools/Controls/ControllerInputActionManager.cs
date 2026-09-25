@@ -123,33 +123,49 @@ namespace EDIVE.XRTools.Controls
 
             [SerializeField]
             private List<InputActionReference> _GrabDisabledActions = new List<InputActionReference>();
+
+            // Only re-enable what grab disabled
+            private readonly List<InputAction> _disabledByGrab = new List<InputAction>();
             
             public void Enable()
             {
-                _GrabAction.action.performed += OnGrabPerformed;
-                _GrabAction.action.canceled += OnGrabCanceled;
+                var grabAction = GetInputAction(_GrabAction);
+                if (grabAction == null)
+                    return;
+                grabAction.performed += OnGrabPerformed;
+                grabAction.canceled += OnGrabCanceled;
             }
 
             private void OnGrabPerformed(InputAction.CallbackContext obj)
             {
                 foreach (var grabDisabledAction in _GrabDisabledActions)
                 {
-                    grabDisabledAction.action.Disable();
+                    var action = GetInputAction(grabDisabledAction);
+                    if (action == null || !action.enabled)
+                        continue;
+                    action.Disable();
+                    _disabledByGrab.Add(action);
                 }
             }
             
             private void OnGrabCanceled(InputAction.CallbackContext obj)
             {
-                foreach (var grabDisabledAction in _GrabDisabledActions)
+                foreach (var action in _disabledByGrab)
                 {
-                    grabDisabledAction.action.Enable();
+                    action.Enable();
                 }
+                _disabledByGrab.Clear();
             }
 
             public void Disable()
             {
-                _GrabAction.action.performed -= OnGrabPerformed;
-                _GrabAction.action.canceled -= OnGrabCanceled;
+                var grabAction = GetInputAction(_GrabAction);
+                if (grabAction != null)
+                {
+                    grabAction.performed -= OnGrabPerformed;
+                    grabAction.canceled -= OnGrabCanceled;
+                }
+                OnGrabCanceled(default);
             }
             
         }
@@ -392,8 +408,8 @@ namespace EDIVE.XRTools.Controls
             if (attachController != null)
             {
                 manipulateAttachTransform = attachController.useManipulationInput &&
-                    (attachController.manipulationInput.inputSourceMode == XRInputValueReader.InputSourceMode.InputActionReference && attachController.manipulationInput.inputActionReference != null) ||
-                    (attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.InputActionReference && attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.Unused);
+                    ((attachController.manipulationInput.inputSourceMode == XRInputValueReader.InputSourceMode.InputActionReference && attachController.manipulationInput.inputActionReference != null) ||
+                     (attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.InputActionReference && attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.Unused));
             }
 
             if (selectionRegion == NearFarInteractor.Region.Far)

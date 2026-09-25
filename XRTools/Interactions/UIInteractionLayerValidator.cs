@@ -18,6 +18,11 @@ namespace EDIVE.XRTools.Interactions
                 return;
             
             var raycaster = Object.GetComponentInParent<TrackedDeviceGraphicRaycaster>();
+            if (raycaster == null)
+            {
+                result.AddError("UI Interaction Layer needs FilteredTrackedDeviceGraphicRaycaster in parents");
+                return;
+            }
             if (raycaster is not FilteredTrackedDeviceGraphicRaycaster)
             {
                 result.AddError("UI Interaction Layer must be used with FilteredTrackedDeviceGraphicRaycaster")

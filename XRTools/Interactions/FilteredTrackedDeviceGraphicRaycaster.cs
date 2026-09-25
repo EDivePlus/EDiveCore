@@ -15,6 +15,8 @@ namespace EDIVE.XRTools.Interactions
         [SerializeField]
         private InteractionLayerMask _InteractionLayers = 1;
         
+        private readonly List<RaycastResult> _tempResults = new();
+
         public InteractionLayerMask InteractionLayers
         {
             get => _InteractionLayers;
@@ -26,14 +28,15 @@ namespace EDIVE.XRTools.Interactions
             if (eventData is not TrackedDeviceEventData trackedEventData || trackedEventData.interactor is not IXRInteractor xrInteractor)
                 return;
             
-            var tempResults = new List<RaycastResult>();
-            base.Raycast(eventData, tempResults);
+            _tempResults.Clear();
+            base.Raycast(eventData, _tempResults);
 
-            foreach (var tempResult in tempResults)
+            foreach (var tempResult in _tempResults)
             {
                 if (CheckRaycastResult(tempResult, xrInteractor)) 
                     resultAppendList.Add(tempResult);
             }
+            _tempResults.Clear();
         }
         
         private bool CheckRaycastResult(RaycastResult raycastResult, IXRInteractor xrInteractor)

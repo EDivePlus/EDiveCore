@@ -77,7 +77,10 @@ namespace EDIVE.XRTools.HandGestures
         private void OnDisable()
         {
             _jointsUpdatedHandle?.Dispose();
+            _jointsUpdatedHandle = null;
             _holdHandle?.Dispose();
+            _holdHandle = null;
+            _isDetected = false;
             SetPerforming(false);
         }
         
