@@ -47,7 +47,7 @@ namespace EDIVE.Procedural.SplineMesh
             if (_SplineContainer == null || _SplineContainer.Splines.Count == 0)
                 return;
             
-            var spline = _SplineContainer.Splines[Mathf.Clamp(_SplineIndex, 0, _SplineContainer.Splines.Count)];
+            var spline = _SplineContainer.Splines[Mathf.Clamp(_SplineIndex, 0, _SplineContainer.Splines.Count - 1)];
 
             var knotIndex = _KnotIndex.PositiveModulo(spline.Count);
             var containerTransform = _SplineContainer.transform;

@@ -76,10 +76,11 @@ namespace EDIVE.GeoToolkit.Utils
             return false;
         }
         
-        public static List<T> GetAllOfType<T>(this IGeoJSONObject geoJsonObject, Predicate<T> filter = null) where T : IGeoJSONObject
+        // includePolygonRings false: skip rings inside polygons (e.g. for line queries)
+        public static List<T> GetAllOfType<T>(this IGeoJSONObject geoJsonObject, Predicate<T> filter = null, bool includePolygonRings = true) where T : IGeoJSONObject
         {
             var containers = new List<T>();
-            geoJsonObject.GetAllOfType(ref containers);
+            geoJsonObject.GetAllOfType(ref containers, includePolygonRings);
             if (filter != null)
             {
                 containers = containers.Where(container => filter(container)).ToList();
@@ -87,35 +88,38 @@ namespace EDIVE.GeoToolkit.Utils
             return containers;
         }
 
-        private static void GetAllOfType<T>(this IGeoJSONObject geoJsonObject, ref List<T> containers) where T : IGeoJSONObject
+        private static void GetAllOfType<T>(this IGeoJSONObject geoJsonObject, ref List<T> containers, bool includePolygonRings) where T : IGeoJSONObject
         {
-            if (geoJsonObject is T typedGeoJsonObject) containers.Add(typedGeoJsonObject);
+            // Geometries add themselves in GetAllSubGeometries
+            if (geoJsonObject is T typedGeoJsonObject && geoJsonObject is not IGeometryObject) containers.Add(typedGeoJsonObject);
             
             switch (geoJsonObject)
             {
                 case FeatureCollection featureCollection:
                     foreach (var feature in featureCollection.Features) 
-                        feature.GetAllOfType<T>(ref containers);
+                        feature.GetAllOfType(ref containers, includePolygonRings);
                     break;
                 case Feature feature:
-                    var featureGeometries = feature.Geometry.GetAllSubGeometries<T>();
+                    if (feature.Geometry == null)
+                        break;
+                    var featureGeometries = feature.Geometry.GetAllSubGeometries<T>(includePolygonRings);
                     containers.AddRange(featureGeometries);
                     break;
                 case IGeometryObject geometryCollection:
-                    var subGeometries = geometryCollection.GetAllSubGeometries<T>();
+                    var subGeometries = geometryCollection.GetAllSubGeometries<T>(includePolygonRings);
                     containers.AddRange(subGeometries);
                     break;
             }
         } 
         
-        public static List<T> GetAllSubGeometries<T>(this IGeometryObject geometryObject)
+        public static List<T> GetAllSubGeometries<T>(this IGeometryObject geometryObject, bool includePolygonRings = true)
         {
             var geometries = new List<T>();
-            geometryObject.GetAllSubGeometries(ref geometries);
+            geometryObject.GetAllSubGeometries(ref geometries, includePolygonRings);
             return geometries;
         }
         
-        private static void GetAllSubGeometries<T>(this IGeometryObject geometryObject, ref List<T> geometries)
+        private static void GetAllSubGeometries<T>(this IGeometryObject geometryObject, ref List<T> geometries, bool includePolygonRings)
         {
             if (geometryObject is T typedGeometryObject) geometries.Add(typedGeometryObject);
             
@@ -123,23 +127,25 @@ namespace EDIVE.GeoToolkit.Utils
             {
                 case GeometryCollection geometryCollection:
                     foreach (var geometry in geometryCollection.Geometries) 
-                        geometry.GetAllSubGeometries(ref geometries);
+                        geometry.GetAllSubGeometries(ref geometries, includePolygonRings);
                     break;
                 case MultiLineString multiLineString:
                     foreach (var geometry in multiLineString.Coordinates) 
-                        geometry.GetAllSubGeometries(ref geometries);
+                        geometry.GetAllSubGeometries(ref geometries, includePolygonRings);
                     break;
                 case MultiPoint multiPoint:
                     foreach (var geometry in multiPoint.Coordinates) 
-                        geometry.GetAllSubGeometries(ref geometries);
+                        geometry.GetAllSubGeometries(ref geometries, includePolygonRings);
                     break;
                 case MultiPolygon multiPolygon:
                     foreach (var geometry in multiPolygon.Coordinates) 
-                        geometry.GetAllSubGeometries(ref geometries);
+                        geometry.GetAllSubGeometries(ref geometries, includePolygonRings);
                     break;
                 case Polygon polygon:
+                    if (!includePolygonRings)
+                        break;
                     foreach (var geometry in polygon.Coordinates) 
-                        geometry.GetAllSubGeometries(ref geometries);
+                        geometry.GetAllSubGeometries(ref geometries, includePolygonRings);
                     break;
                 case LineString _:
                 case Point _:

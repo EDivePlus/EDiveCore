@@ -45,6 +45,8 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 size = new Vector3(_Size.x, terrainHeight, _Size.z)
             };
 
+            // Terrain wants [north, east], holes too
+            heightMap = heightMap.Transpose();
             if (_DrawHoles)
             {
                 var holeMap = heightMap.Resize2D(heightmapResolution - 1, heightmapResolution - 1)
@@ -68,7 +70,7 @@ namespace EDIVE.GeoToolkit.TerrainTools
 
             heightMap.Remap(terrainMin, terrainMax, 0, 1);
             heightMap.Clamp(0, 1);
-            heightMap = heightMap.Transpose().ExtendByOne();
+            heightMap = heightMap.ExtendByOne();
             if (heightMap.GetLength(0) == 0 || heightMap.GetLength(1) == 0)
             {
                 Debug.LogError("Invalid Terrain");

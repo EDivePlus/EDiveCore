@@ -27,8 +27,8 @@ namespace EDIVE.GeoToolkit.Coordinates
             var eagerLoad = new EagerLoad(false);
             var coord = MilitaryGridReferenceSystem.MGRStoLatLong(mgrs, eagerLoad);
             var position = new double2(coord.Longitude.DecimalDegree, coord.Latitude.DecimalDegree);
-            if (targetSystem != CoordinateSystemType.EPSG_4326)
-                position = GeoCoords.Convert(position, CoordinateSystemType.EPSG_4326, targetSystem);
+            if (!GeoCoords.TryConvert(position, CoordinateSystemType.EPSG_4326, targetSystem, out position))
+                return false;
 
             result = new GeoCoords(position, targetSystem);
             return true;

@@ -96,6 +96,7 @@ namespace EDIVE.Procedural.MeshScaling
             var newHash = HashCode.Combine(container, _OriginalMesh);
             if (_targetMesh == null || newHash != _slicedMeshHash || force)
             {
+                ReleaseTargetMesh();
                 _targetMesh = UnityEngine.Object.Instantiate(_OriginalMesh);
                 _targetMesh.hideFlags = HideFlags.DontSave;
                 _targetMesh.name = $"{_OriginalMesh.name} (sliced)";
@@ -121,6 +122,24 @@ namespace EDIVE.Procedural.MeshScaling
             return  modified;
         }
 
+        private void ReleaseTargetMesh()
+        {
+            if (_targetMesh == null)
+                return;
+#if UNITY_EDITOR
+            // Saved asset, keep
+            if (UnityEditor.EditorUtility.IsPersistent(_targetMesh))
+            {
+                _targetMesh = null;
+                return;
+            }
+#endif
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(_targetMesh);
+            else
+                UnityEngine.Object.DestroyImmediate(_targetMesh);
+            _targetMesh = null;
+        }
 #if UNITY_EDITOR
         private void SaveTargetMesh()
         {

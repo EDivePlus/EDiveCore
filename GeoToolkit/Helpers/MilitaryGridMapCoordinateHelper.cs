@@ -50,7 +50,8 @@ namespace EDIVE.GeoToolkit.Maps
                 {
                     var pos = _Map.ConvertToMapCoordinates(coords);
                     transform.position = transform.position.WithXZ(pos.x, pos.z);
-                    _Text.text = value;
+                    if (_Text)
+                        _Text.text = value;
                 }
             }
         }

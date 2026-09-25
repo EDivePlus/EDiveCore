@@ -78,11 +78,10 @@ namespace EDIVE.GeoToolkit.MapServices
                     var partData = _parts[x, y];
                     var partArray = GeoImageUtility.LoadGrayScale(partData.Data);
 
-                    // TIFFs come back [north, east], so accept the transposed order too.
+                    // All formats load [east, north]
                     var partWidth = partArray.GetLength(0);
                     var partHeight = partArray.GetLength(1);
-                    if ((partWidth != partData.Dimensions.x || partHeight != partData.Dimensions.y) &&
-                        (partWidth != partData.Dimensions.y || partHeight != partData.Dimensions.x))
+                    if (partWidth != partData.Dimensions.x || partHeight != partData.Dimensions.y)
                         throw new InvalidOperationException($"Image part [{x},{y}] is {partWidth}x{partHeight}, expected {partData.Dimensions.x}x{partData.Dimensions.y}.");
 
                     for (var xP = 0; xP < partData.Dimensions.x; xP++)

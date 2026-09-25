@@ -65,7 +65,8 @@ namespace EDIVE.GeoToolkit.TerrainTools
         [ShowInInspector]
         [PropertyOrder(-10)]
         [SuffixLabel("%", true)]
-        private double XYDeformationDiffPercentage => (1 - (1 / AreaSizeMultiplier.x * AreaSizeMultiplier.y)) * 100;
+        // How much X and Y scale differ, 0 = no stretch
+        private double XYDeformationDiffPercentage => (1 - math.cmin(AreaSizeMultiplier) / math.cmax(AreaSizeMultiplier)) * 100;
         
         [PropertySpace]
         [SerializeField]
@@ -186,14 +187,15 @@ namespace EDIVE.GeoToolkit.TerrainTools
         [Button("Generate")]
         public void GenerateTerrain()
         {
+            // Old run disposes its own source
             downloadCts?.Cancel();
-            downloadCts?.Dispose();
             downloadCts = new CancellationTokenSource();
-            GenerateTerrainAsync(downloadCts.Token).Forget();
+            GenerateTerrainAsync(downloadCts).Forget();
         }
 
-        private async UniTaskVoid GenerateTerrainAsync(CancellationToken cancellationToken)
+        private async UniTaskVoid GenerateTerrainAsync(CancellationTokenSource cts)
         {
+            var cancellationToken = cts.Token;
             try
             {
                 PathUtility.EnsureAssetsPathExists(TerrainDataFolder);
@@ -254,8 +256,9 @@ namespace EDIVE.GeoToolkit.TerrainTools
             finally
             {
                 EditorUtility.ClearProgressBar();
-                downloadCts?.Dispose();
-                downloadCts = null;
+                if (downloadCts == cts)
+                    downloadCts = null;
+                cts.Dispose();
             }
         }
 
@@ -686,7 +689,8 @@ namespace EDIVE.GeoToolkit.TerrainTools
                 for (var y = 0; y < tileGridSize.y; y++)
                 {
                     var result = MapServiceTextureResult.Load(folder, $"HeightMap{x}{y}", new int2(resolution, resolution), heightMapRasterData.Request.SizeLimit);
-                    var heightMap = result.GetGrayScale2DArray().ToFloat();
+                    // Terrain wants [north, east]
+                    var heightMap = result.GetGrayScale2DArray().ToFloat().Transpose();
                     heightMaps[x, y] = heightMap;
                 }
             }
@@ -758,8 +762,8 @@ namespace EDIVE.GeoToolkit.TerrainTools
         [Button]
         public void ClearFailedProgress()
         {
+            // Running task disposes it
             downloadCts?.Cancel();
-            downloadCts?.Dispose();
             downloadCts = null;
             EditorUtility.ClearProgressBar();
         }

@@ -410,9 +410,9 @@ namespace EDIVE.GeoToolkit.TerrainTools
         {
             var gridPrototype = terrainList
                 .GroupBy(t => t.transform.position.x)
+                .OrderBy(g => g.Key)
                 .Select(g => g
-                    .GroupBy(t => t.transform.position.z)
-                    .SelectMany(ts => ts)
+                    .OrderBy(t => t.transform.position.z)
                     .ToList())
                 .ToList();
 

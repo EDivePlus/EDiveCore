@@ -52,7 +52,7 @@ namespace EDIVE.GeoToolkit.Maps
                 return;
             }
 
-            var geoLines = geoJsonObject.GetAllOfType<LineString>();
+            var geoLines = geoJsonObject.GetAllOfType<LineString>(includePolygonRings: false);
             for (var i = 0; i < geoLines.Count; i++)
             {
                 var geoLine = geoLines[i];

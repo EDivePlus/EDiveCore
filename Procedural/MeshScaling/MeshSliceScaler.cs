@@ -64,7 +64,8 @@ namespace EDIVE.Procedural.MeshScaling
             {
                 if (component == null)
                     continue;
-                component.TryCalculateBounds(transform, out var componentBounds);
+                if (!component.TryCalculateBounds(transform, out var componentBounds))
+                    continue;
                 if (!hasBounds)
                 {
                     bounds = componentBounds;
