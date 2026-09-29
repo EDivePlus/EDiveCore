@@ -140,6 +140,26 @@ half4 SampleMirror(float2 uv, half blurScale)
     return c;
 }
 
+// MirrorBlurTaps for probes. The tap spacing becomes an angle along the screen axes.
+// Returns the tap count, 1 when there is no blur.
+int MirrorProbeBlur(half blurScale, float3 dirDX, float3 dirDY, out float3 axisX, out float3 axisY)
+{
+    float angle = 0.0;
+#ifdef _BLUR_ON
+    angle = _Blur * 0.01 * blurScale * 2.0 * atan(1.0 / abs(UNITY_MATRIX_P._m11));
+#endif
+    axisX = SafeNormalize(dirDX) * angle;
+    axisY = SafeNormalize(dirDY) * angle;
+    return angle > 1e-5 ? 9 : 1;
+}
+
+float3 MirrorProbeTap(uint i, int taps, float3 dir, float3 axisX, float3 axisY, out half weight)
+{
+    float2 o = taps > 1 ? float2(i % 3u, i / 3u) - 1.0 : 0;
+    weight = taps == 1 ? 1.0h : (o.x == 0 && o.y == 0 ? kMirrorBlurCenter : (o.x * o.y == 0 ? kMirrorBlurEdge : kMirrorBlurCorner));
+    return dir + axisX * o.x + axisY * o.y;
+}
+
 half3 MirrorBoxProject(half3 dirWS, float3 positionWS, float4 probePos, float4 boxMin, float4 boxMax)
 {
     UNITY_BRANCH if (_BoxProjection > 0.5 && probePos.w > 0.0)
@@ -154,24 +174,36 @@ half3 MirrorBoxProject(half3 dirWS, float3 positionWS, float4 probePos, float4 b
     return dirWS;
 }
 
-half3 SampleMirrorProbe(float3 positionWS, half3 normalWS, half3 viewDirWS, half perceptualRoughness, float2 screenUV)
+half3 SampleMirrorProbeTap(float3 positionWS, half3 r, half perceptualRoughness, half mip, float2 screenUV)
 {
-    half3 r = reflect(-viewDirWS, normalWS);
-
-    half mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
-
     // Zero W means no probe was assigned, so use the one Unity picked.
-#ifdef MIRROR_USE_URP_PROBES
     UNITY_BRANCH if (_FallbackProbePos.w <= 0.0)
+    {
+#ifdef MIRROR_USE_URP_PROBES
         return GlossyEnvironmentReflection(r, positionWS, perceptualRoughness, 1.0h, screenUV);
 #else
-    UNITY_BRANCH if (_FallbackProbePos.w <= 0.0)
         return DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, r, mip), unity_SpecCube0_HDR);
 #endif
+    }
+    else
+    {
+        r = MirrorBoxProject(r, positionWS, _FallbackProbePos, _FallbackBoxMin, _FallbackBoxMax);
+        return DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(_FallbackCubemap, sampler_FallbackCubemap, r, mip), _FallbackCubemapHDR);
+    }
+}
 
-    r = MirrorBoxProject(r, positionWS, _FallbackProbePos, _FallbackBoxMin, _FallbackBoxMax);
-    half4 encoded = SAMPLE_TEXTURECUBE_LOD(_FallbackCubemap, sampler_FallbackCubemap, r, mip);
-    return DecodeHDREnvironment(encoded, _FallbackCubemapHDR);
+half3 SampleMirrorProbe(float3 positionWS, half3 r, half perceptualRoughness, int taps, float3 blurX, float3 blurY, float2 screenUV)
+{
+    half mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
+
+    half3 color = 0;
+    for (int i = 0; i < taps; i++)
+    {
+        half weight;
+        half3 tap = normalize(MirrorProbeTap(i, taps, r, blurX, blurY, weight));
+        color += SampleMirrorProbeTap(positionWS, tap, perceptualRoughness, mip, screenUV) * weight;
+    }
+    return color;
 }
 
 static const int   kDepthProbeRefine = 5;
@@ -179,7 +211,8 @@ static const float kDepthProbeStart  = 0.1;
 
 // Marches the ray until it passes behind a baked surface.
 // The mip comes from the smooth reflection derivatives, the hit direction jumps at edges.
-half3 SampleDepthProbe(float3 positionWS, float3 dirWS, float3 dirDX, float3 dirDY)
+// Blur taps share one march and spread around the hit.
+half3 SampleDepthProbe(float3 positionWS, float3 dirWS, float3 dirDX, float3 dirDY, int taps, float3 blurX, float3 blurY)
 {
     float3 origin = positionWS - _DepthProbePos.xyz;
     // Steps grow with distance.
@@ -222,7 +255,15 @@ half3 SampleDepthProbe(float3 positionWS, float3 dirWS, float3 dirDX, float3 dir
     }
 
     float3 hitDir = normalize(origin + dirWS * t);
-    return _DepthProbe.SampleGrad(sampler_DepthProbe, hitDir, dirDX, dirDY).rgb;
+
+    half3 color = 0;
+    for (int k = 0; k < taps; k++)
+    {
+        half weight;
+        float3 tap = MirrorProbeTap(k, taps, hitDir, blurX, blurY, weight);
+        color += _DepthProbe.SampleGrad(sampler_DepthProbe, tap, dirDX, dirDY).rgb * weight;
+    }
+    return color;
 }
 
 struct MirrorSurface
@@ -278,11 +319,20 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
     // Probe wants a real screen position.
     float2 screenUV = MirrorScreenUV(positionCS);
 
-    // Blur is for the live reflection. A mask keeps polished spots sharp.
+    // A mask keeps polished spots sharp.
     half blurScale = 1.0h;
 #ifdef _MASKMAP
     blurScale = 1.0h - mask.a;
 #endif
+
+    // Probe blur runs along these, so derivatives are taken outside the branches.
+    // Only the background is blurred. It fades out with the reflection, so the fallback stays sharp.
+    float3 probeDir = reflect(-viewDirWS, s.normalWS);
+    float3 probeDirDX = ddx(probeDir);
+    float3 probeDirDY = ddy(probeDir);
+    float3 blurX, blurY;
+    int taps = MirrorProbeBlur(blurScale * _MirrorBackground * _MirrorBlend, probeDirDX, probeDirDY, blurX, blurY);
+
     half fresnel = pow(1.0h - saturate(dot(s.normalWS, viewDirWS)), _FresnelPower);
 
     // Live reflection, skipped when faded out. Alpha is 0 where nothing was drawn.
@@ -299,7 +349,7 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
     // Fallback. The environment is a colour or a probe, split into diffuse and specular by metalness.
     half3 environment = _FallbackEnvColor.rgb;
     UNITY_BRANCH if (_Environment > 0.5 && _Environment < 1.5)
-        environment = SampleMirrorProbe(positionWS, s.normalWS, viewDirWS, 1.0h - mask.a * _Smoothness, screenUV);
+        environment = SampleMirrorProbe(positionWS, probeDir, 1.0h - mask.a * _Smoothness, taps, blurX, blurY, screenUV);
 
     half metallic = _Metallic * mask.r;
     half3 f0 = lerp(half3(0.04h, 0.04h, 0.04h), _FallbackColor.rgb, metallic);
@@ -310,14 +360,11 @@ MirrorSurface GetMirrorSurface(float2 uv, float4 positionCS, float3 positionWS, 
     s.blend = _MirrorBlend * lerp(1.0h, coverage, _MirrorBackground);
 
     // Depth probe replaces the fallback material. Zero W means not baked, keep the colour.
-    float3 probeDir = reflect(-viewDirWS, s.normalWS);
-    float3 probeDirDX = ddx(probeDir);
-    float3 probeDirDY = ddy(probeDir);
     UNITY_BRANCH if (_Environment > 1.5 && _DepthProbePos.w > 0.0)
     {
         UNITY_BRANCH if (s.blend < 0.999)
         {
-            half3 probe = SampleDepthProbe(positionWS, probeDir, probeDirDX, probeDirDY) * _ReflectionTint.rgb;
+            half3 probe = SampleDepthProbe(positionWS, probeDir, probeDirDX, probeDirDY, taps, blurX, blurY) * _ReflectionTint.rgb;
             s.cameraReflection = lerp(probe, s.cameraReflection, s.blend);
         }
         s.blend = 1.0h;
