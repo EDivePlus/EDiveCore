@@ -48,6 +48,12 @@ namespace EDIVE.Rendering.Mirrors
         [MinValue(0)]
         private int _MaterialIndex;
 
+        [SerializeField]
+        [Tooltip("Copied for each mirror. Empty takes the slot's material.")]
+        [FormerlySerializedAs("_SourceMaterial")]
+        [OnValueChanged(nameof(Rebuild))]
+        private Material _MaterialTemplate;
+
         [PropertySpace]
         [SerializeField]
         [Tooltip("Defaults to this transform. -Z faces out.")]
@@ -170,10 +176,6 @@ namespace EDIVE.Rendering.Mirrors
 
         private readonly Vector3[] _frustumCorners = new Vector3[4];
 
-        [SerializeField]
-        [HideInInspector]
-        private Material _SourceMaterial;
-
         private MaterialSlotOverride _slot;
         private MeshFilter _meshFilter;
         private int _enabledFrame;
@@ -234,14 +236,17 @@ namespace EDIVE.Rendering.Mirrors
                 return false;
             }
 
+            if (_MaterialTemplate != null && _MeshRenderer.TryGetSharedMaterial(_MaterialIndex, out var current) && current != _MaterialTemplate)
+                _MeshRenderer.SetSharedMaterial(_MaterialIndex, _MaterialTemplate);
+
             // Own copy, so mirrors sharing a material get their own reflection.
-            if (!MaterialSlotOverride.Ensure(ref _slot, _MeshRenderer, _MaterialIndex, INSTANCE_SUFFIX, _SourceMaterial))
+            if (!MaterialSlotOverride.Ensure(ref _slot, _MeshRenderer, _MaterialIndex, INSTANCE_SUFFIX, _MaterialTemplate))
             {
                 Debug.LogError($"[Mirrors] {name} has no material in slot {_MaterialIndex}.", this);
                 return false;
             }
 
-            _SourceMaterial = _slot.Source;
+            _MaterialTemplate = _slot.Source;
             return true;
         }
 
