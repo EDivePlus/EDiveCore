@@ -14,7 +14,8 @@
         "EDIVE.StateHandling",
         "EDIVE.ScriptableArchitecture",
         "EDIVE.DataStructures",
-        "EDIVE.Utils.Cysharp",
+        "EDIVE.R3Utils",
+        "EDIVE.MemoryPackUtils",
         "EDIVE.Core",
         "EDIVE.UIElements.RecyclableScroller",
         "EDIVE.Utils.Activations"

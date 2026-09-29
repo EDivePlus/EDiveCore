@@ -6,7 +6,7 @@
         "Unity.TextMeshPro",
         "EDIVE.Core",
         "EDIVE.AppLoading",
-        "EDIVE.External.ParrelSync",
+        "EDIVE.ParrelSyncUtils",
         "EDIVE.OdinExtensions",
         "EDIVE.AddressableAssets",
         "EDIVE.Utils",

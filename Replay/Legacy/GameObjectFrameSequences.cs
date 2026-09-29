@@ -2,8 +2,8 @@
 // Created: 04.07.2025
 
 using System;
+using EDIVE.MemoryPackUtils;
 using EDIVE.Replay.Components;
-using EDIVE.Utils.Cysharp;
 using MemoryPack;
 using Newtonsoft.Json;
 using UnityEngine;

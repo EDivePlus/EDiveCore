@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using EDIVE.MemoryPackUtils;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
-using EDIVE.Utils.Cysharp;
 using MemoryPack;
 using Newtonsoft.Json;
 using UnityEngine;

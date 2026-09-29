@@ -3,7 +3,7 @@
 
 #if UNITY_EDITOR && PARREL_SYNC
 using System;
-using EDIVE.External.ParrelSync;
+using EDIVE.ParrelSyncUtils;
 using UnityEngine;
 
 namespace EDIVE.Networking.Utils

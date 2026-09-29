@@ -1,0 +1,23 @@
+﻿{
+  "name": "EDIVE.MemoryPackUtils",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.OdinExtensions",
+    "EDIVE.NativeUtils"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.cysharp.memorypack",
+      "expression": "",
+      "define": "MEMORY_PACK"
+    }
+  ],
+  "noEngineReferences": false
+}

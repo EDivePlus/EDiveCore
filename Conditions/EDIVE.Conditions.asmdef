@@ -3,7 +3,7 @@
   "rootNamespace": "",
   "references": [
     "EDIVE.OdinExtensions",
-    "EDIVE.Utils.Cysharp"
+    "EDIVE.R3Utils"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

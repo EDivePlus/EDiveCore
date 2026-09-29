@@ -1,0 +1,25 @@
+﻿{
+  "name": "EDIVE.R3Utils",
+  "rootNamespace": "",
+  "references": [
+    "EDIVE.OdinExtensions",
+    "R3.Unity"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "R3"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.cysharp.r3",
+      "expression": "",
+      "define": "R3"
+    }
+  ],
+  "noEngineReferences": false
+}

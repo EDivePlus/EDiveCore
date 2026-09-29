@@ -4,10 +4,10 @@
 using System.IO;
 using Cysharp.Threading.Tasks;
 using EDIVE.AssetTranslation;
+using EDIVE.MemoryPackUtils;
 using EDIVE.NativeUtils;
 using EDIVE.Replay.Agents;
 using EDIVE.Replay.Components;
-using EDIVE.Utils.Cysharp;
 using MemoryPack;
 using MemoryPack.Compression;
 using Newtonsoft.Json;

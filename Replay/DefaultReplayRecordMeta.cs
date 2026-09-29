@@ -2,7 +2,7 @@
 // Created: 29.06.2026
 
 using System;
-using EDIVE.Utils.Cysharp;
+using EDIVE.MemoryPackUtils;
 using MemoryPack;
 using Newtonsoft.Json;
 

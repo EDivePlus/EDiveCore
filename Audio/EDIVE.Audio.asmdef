@@ -17,7 +17,6 @@
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions",
         "EDIVE.Replay",
-        "EDIVE.Utils.Cysharp",
         "EDIVE.Utils.Activations",
         "EDIVE.Utils.Actions",
         "EDIVE.Conditions"
