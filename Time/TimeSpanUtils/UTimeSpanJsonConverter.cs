@@ -4,7 +4,7 @@
 using System;
 using EDIVE.Utils.Json;
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     [Serializable]
     public class UTimeSpanJsonConverter : AWrapperJsonConverter<UTimeSpan, TimeSpan>

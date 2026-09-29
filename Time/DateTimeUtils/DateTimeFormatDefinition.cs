@@ -10,7 +10,7 @@ using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Time.DateTimeUtils
+namespace EDIVE.TimeHandling.DateTimeUtils
 {
     public class DateTimeFormatDefinition : ADateTimeFormatDefinition
     {

@@ -7,7 +7,7 @@ using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Time.DateTimeUtils
+namespace EDIVE.TimeHandling.DateTimeUtils
 {
     public class CurrentDateTimeDisplay : DateTimeDisplay
     {

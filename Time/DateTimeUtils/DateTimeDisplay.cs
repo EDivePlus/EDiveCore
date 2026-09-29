@@ -8,7 +8,7 @@ using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 
-namespace EDIVE.Time.DateTimeUtils
+namespace EDIVE.TimeHandling.DateTimeUtils
 {
     public class DateTimeDisplay : MonoBehaviour
     {

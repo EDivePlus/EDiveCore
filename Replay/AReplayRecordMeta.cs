@@ -2,7 +2,7 @@
 // Created: 29.06.2026
 
 using System;
-using EDIVE.Time.DateTimeUtils;
+using EDIVE.TimeHandling.DateTimeUtils;
 using MemoryPack;
 using Newtonsoft.Json;
 using UnityEngine;

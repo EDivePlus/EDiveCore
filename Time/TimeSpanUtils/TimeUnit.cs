@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     public enum TimeUnit
     {

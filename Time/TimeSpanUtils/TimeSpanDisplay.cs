@@ -8,7 +8,7 @@ using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     public class TimeSpanDisplay : MonoBehaviour
     {

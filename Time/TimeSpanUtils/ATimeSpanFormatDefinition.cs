@@ -9,7 +9,7 @@ using UnityEngine;
 using Sirenix.Utilities.Editor;
 #endif
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     public abstract class ATimeSpanFormatDefinition : ScriptableObject
     {

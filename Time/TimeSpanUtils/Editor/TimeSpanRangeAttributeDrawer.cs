@@ -8,7 +8,7 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
-namespace EDIVE.Time.TimeSpanUtils.Editor
+namespace EDIVE.TimeHandling.TimeSpanUtils.Editor
 {
     [DrawerPriority(DrawerPriorityLevel.WrapperPriority)]
     public sealed class TimeSpanRangeAttributeDrawer : OdinAttributeDrawer<TimeSpanRangeAttribute, TimeSpan>

@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     public class TimeSpanFormatDefinition : ATimeSpanFormatDefinition
     {

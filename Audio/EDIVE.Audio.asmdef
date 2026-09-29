@@ -13,7 +13,7 @@
         "EDIVE.Networking",
         "PurrNet.Runtime",
         "EDIVE.Utils",
-        "EDIVE.Time",
+        "EDIVE.TimeHandling",
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions",
         "EDIVE.Replay",

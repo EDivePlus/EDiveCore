@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     /// <summary>
     /// Unity serializable wrapper for TimeSpan, usually necessary for fields in Monobehaviour or ScriptableObject

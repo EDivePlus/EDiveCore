@@ -4,7 +4,7 @@
 using System;
 using DG.Tweening;
 using EDIVE.StateHandling.MultiStates;
-using EDIVE.Time.TimeSpanUtils;
+using EDIVE.TimeHandling.TimeSpanUtils;
 using EDIVE.UIElements.ProgressBars;
 using Sirenix.OdinInspector;
 using UnityEngine;

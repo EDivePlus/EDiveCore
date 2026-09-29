@@ -9,7 +9,7 @@ using UnityEngine;
 using Sirenix.Utilities.Editor;
 #endif
 
-namespace EDIVE.Time.DateTimeUtils
+namespace EDIVE.TimeHandling.DateTimeUtils
 {
     public abstract class ADateTimeFormatDefinition : ScriptableObject
     {

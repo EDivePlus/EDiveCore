@@ -4,7 +4,7 @@
 using System.Collections;
 using EDIVE.Core;
 using EDIVE.StateHandling.ToggleStates;
-using EDIVE.Time.TimeSpanUtils;
+using EDIVE.TimeHandling.TimeSpanUtils;
 using EDIVE.Utils.Activations;
 using Sirenix.OdinInspector;
 using UnityEngine;

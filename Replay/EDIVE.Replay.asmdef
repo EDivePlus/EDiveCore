@@ -10,7 +10,7 @@
         "EDIVE.AssetTranslation",
         "EDIVE.EditorUtils",
         "EDIVE.NativeUtils",
-        "EDIVE.Time",
+        "EDIVE.TimeHandling",
         "EDIVE.StateHandling",
         "EDIVE.ScriptableArchitecture",
         "EDIVE.DataStructures",

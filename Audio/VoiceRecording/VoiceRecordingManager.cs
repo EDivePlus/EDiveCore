@@ -9,7 +9,7 @@ using EDIVE.AppLoading;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
-using EDIVE.Time.TimeSpanUtils;
+using EDIVE.TimeHandling.TimeSpanUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
 

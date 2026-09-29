@@ -4,7 +4,7 @@
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.StateHandling.MultiStates;
-using EDIVE.Time.DateTimeUtils;
+using EDIVE.TimeHandling.DateTimeUtils;
 using EDIVE.Utils.Activations;
 using TMPro;
 using UnityEngine;

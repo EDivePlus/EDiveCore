@@ -11,7 +11,7 @@
     "PurrNet.Runtime",
     "EDIVE.Http",
     "Unity.TextMeshPro",
-    "EDIVE.Time",
+    "EDIVE.TimeHandling",
     "EDIVE.OdinExtensions",
     "EDIVE.NativeUtils",
     "UnityGLTFScripts",

@@ -29,7 +29,7 @@
         "Unity.Collections",
         "EDIVE.EditorUtils",
         "EDIVE.Console",
-        "EDIVE.Time",
+        "EDIVE.TimeHandling",
         "EDIVE.Input",
         "EDIVE.Configuration",
         "EDIVE.ServiceHub",

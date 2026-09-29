@@ -8,7 +8,7 @@
         "EDIVE.AppLoading",
         "EDIVE.Http",
         "EDIVE.OdinExtensions",
-        "EDIVE.Time",
+        "EDIVE.TimeHandling",
         "EDIVE.StateHandling",
         "EDIVE.Conditions",
         "EDIVE.Console",

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace EDIVE.Time.TimeSpanUtils
+namespace EDIVE.TimeHandling.TimeSpanUtils
 {
     [Conditional("UNITY_EDITOR")]
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]

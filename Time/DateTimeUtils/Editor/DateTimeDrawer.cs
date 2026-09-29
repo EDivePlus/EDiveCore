@@ -1,5 +1,5 @@
 ﻿#if UNITY_EDITOR
-using EDIVE.Time.DateTimeUtils;
+using EDIVE.TimeHandling.DateTimeUtils;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector.Editor;
 using UnityEngine;

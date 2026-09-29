@@ -2,7 +2,7 @@
 // Created: 04.12.2025
 
 using System;
-using EDIVE.Time.TimeSpanUtils;
+using EDIVE.TimeHandling.TimeSpanUtils;
 using EDIVE.UIElements.RecyclableScroller;
 using TMPro;
 using UnityEngine;

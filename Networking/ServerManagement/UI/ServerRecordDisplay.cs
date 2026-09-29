@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Core;
-using EDIVE.Time.DateTimeUtils;
+using EDIVE.TimeHandling.DateTimeUtils;
 using EDIVE.Utils.Activations;
 using Sirenix.OdinInspector;
 using TMPro;
