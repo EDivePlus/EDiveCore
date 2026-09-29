@@ -47,6 +47,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
 
         // Triplanar projection
         [KeywordEnum(World, Object)] _ProjectionSpace("Projection Space", Float) = 0
+        [ToggleUI] _ScaleInvariant("Scale Invariant", Float) = 0.0
         _Tiling("Tiling", Vector) = (1, 1, 1, 0)
         _ProjectionOffset("Offset", Vector) = (0, 0, 0, 0)
         _BlendSharpness("Blend Sharpness", Range(1.0, 64.0)) = 8.0
@@ -121,6 +122,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             half _Parallax;
             half _BaseMapStrength;
             float _BlendSharpness;
+            float _ScaleInvariant;
             float _Surface;
         CBUFFER_END
 
@@ -132,11 +134,20 @@ Shader "EDIVE/TriPlanar Projection Lit"
             half3 weights;
         };
 
+        // Keeps object rotation but ignores its scale
+        float3 GetProjectionScale()
+        {
+            float4x4 m = GetObjectToWorldMatrix();
+            float3 scale = float3(length(m._m00_m10_m20), length(m._m01_m11_m21), length(m._m02_m12_m22));
+            return _ScaleInvariant > 0.5 ? scale : float3(1, 1, 1);
+        }
+
         void GetProjectionSpace(float3 positionWS, float3 normalWS, out float3 position, out float3 normal)
         {
         #if defined(_PROJECTIONSPACE_OBJECT)
-            position = TransformWorldToObject(positionWS);
-            normal = normalize(mul(normalWS, (float3x3)GetObjectToWorldMatrix()));
+            float3 scale = GetProjectionScale();
+            position = TransformWorldToObject(positionWS) * scale;
+            normal = normalize(mul(normalWS, (float3x3)GetObjectToWorldMatrix()) / scale);
         #else
             position = positionWS;
             normal = normalWS;
@@ -146,7 +157,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         float3 WorldToProjectionDir(float3 dirWS)
         {
         #if defined(_PROJECTIONSPACE_OBJECT)
-            return TransformWorldToObjectDir(dirWS, false);
+            return TransformWorldToObjectDir(dirWS, false) * GetProjectionScale();
         #else
             return dirWS;
         #endif
@@ -155,7 +166,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         half3 ProjectionToWorldNormal(half3 normal)
         {
         #if defined(_PROJECTIONSPACE_OBJECT)
-            return TransformObjectToWorldNormal(normal);
+            return TransformObjectToWorldNormal(normal * GetProjectionScale());
         #else
             return normal;
         #endif

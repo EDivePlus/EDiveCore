@@ -13,6 +13,7 @@ namespace EDIVE.Rendering.TriPlanar
         private static readonly GUIContent BASE_MAP_STRENGTH = EditorGUIUtility.TrTextContent("Base Map Strength", "0 = color only.");
         private static readonly GUIContent PROJECTION_HEADER = EditorGUIUtility.TrTextContent("Triplanar Projection");
         private static readonly GUIContent SPACE = EditorGUIUtility.TrTextContent("Space", "World space, or local space so the texture follows the object.");
+        private static readonly GUIContent SCALE_INVARIANT = EditorGUIUtility.TrTextContent("Scale Invariant", "Ignore object scale so the texture doesn't stretch.");
         private static readonly GUIContent TILING = EditorGUIUtility.TrTextContent("Tiling", "Repeats per unit, per axis.");
         private static readonly GUIContent OFFSET = EditorGUIUtility.TrTextContent("Offset", "Shifts the projection origin.");
         private static readonly GUIContent BLEND_SHARPNESS = EditorGUIUtility.TrTextContent("Blend Sharpness", "Higher is sharper.");
@@ -25,6 +26,7 @@ namespace EDIVE.Rendering.TriPlanar
 
         private const string BASE_MAP_STRENGTH_PROP = "_BaseMapStrength";
         private const string PROJECTION_SPACE_PROP = "_ProjectionSpace";
+        private const string SCALE_INVARIANT_PROP = "_ScaleInvariant";
         private const string TILING_PROP = "_Tiling";
         private const string PROJECTION_OFFSET_PROP = "_ProjectionOffset";
         private const string BLEND_SHARPNESS_PROP = "_BlendSharpness";
@@ -47,6 +49,7 @@ namespace EDIVE.Rendering.TriPlanar
 
         private MaterialProperty _baseMapStrength;
         private MaterialProperty _projectionSpace;
+        private MaterialProperty _scaleInvariant;
         private MaterialProperty _tiling;
         private MaterialProperty _projectionOffset;
         private MaterialProperty _blendSharpness;
@@ -66,6 +69,7 @@ namespace EDIVE.Rendering.TriPlanar
 
             _baseMapStrength = FindProperty(BASE_MAP_STRENGTH_PROP, properties, false);
             _projectionSpace = FindProperty(PROJECTION_SPACE_PROP, properties, false);
+            _scaleInvariant = FindProperty(SCALE_INVARIANT_PROP, properties, false);
             _tiling = FindProperty(TILING_PROP, properties, false);
             _projectionOffset = FindProperty(PROJECTION_OFFSET_PROP, properties, false);
             _blendSharpness = FindProperty(BLEND_SHARPNESS_PROP, properties, false);
@@ -129,6 +133,8 @@ namespace EDIVE.Rendering.TriPlanar
             EditorGUILayout.LabelField(PROJECTION_HEADER, EditorStyles.boldLabel);
 
             Draw(_projectionSpace, SPACE);
+            if (_projectionSpace != null && Mathf.Approximately(_projectionSpace.floatValue, 1f))
+                Draw(_scaleInvariant, SCALE_INVARIANT, 1);
             DrawVector3(_tiling, TILING);
             DrawVector3(_projectionOffset, OFFSET);
             Draw(_blendSharpness, BLEND_SHARPNESS);
@@ -143,10 +149,10 @@ namespace EDIVE.Rendering.TriPlanar
             DrawVector3(_detailOffset, DETAIL_OFFSET);
         }
 
-        private void Draw(MaterialProperty property, GUIContent label)
+        private void Draw(MaterialProperty property, GUIContent label, int indent = 0)
         {
             if (property != null)
-                materialEditor.ShaderProperty(property, label);
+                materialEditor.ShaderProperty(property, label, indent);
         }
         
         private void DrawVector3(MaterialProperty property, GUIContent label)
