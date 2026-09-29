@@ -112,31 +112,97 @@ namespace EDIVE.SerializedTypeMigration.Editor
         public static List<string> Apply(MigrationMap map, IReadOnlyList<string> files)
         {
             var changed = new List<string>();
+            var rewrites = Rewrite(map, files);
+            if (rewrites.Count == 0)
+                return changed;
 
+            // unsaved edits would be lost on unload, save them and migrate the saved file
+            if (SaveOpenAssets(rewrites.Select(rewrite => rewrite.AssetPath).ToHashSet()))
+                rewrites = Rewrite(map, rewrites.Select(rewrite => rewrite.Path).ToList());
+            if (rewrites.Count == 0)
+                return changed;
+
+            var reopen = ReleaseOpenAssets(rewrites.Select(rewrite => rewrite.AssetPath).ToHashSet());
             AssetDatabase.StartAssetEditing();
             try
             {
-                // binary is never written
-                foreach (var file in ReadAll(files, "Migrating serialized types", new MigrationReport()).Where(file => file.IsYaml))
+                foreach (var rewrite in rewrites)
                 {
-                    var result = SerializedTypeYaml.Rewrite(file.Text, map.Resolve, out var rewritten);
-                    if (rewritten == 0)
-                        continue;
-
-                    SerializedTypeYaml.WriteFile(file.Path, result, file.HasBom);
-                    changed.Add(ToAssetPath(file.Path) ?? file.Path);
+                    SerializedTypeYaml.WriteFile(rewrite.Path, rewrite.Text, rewrite.HasBom);
+                    changed.Add(rewrite.AssetPath);
                 }
             }
             finally
             {
                 AssetDatabase.StopAssetEditing();
 
-                // also on cancel, files written so far must reimport
+                // also on failure, files written so far must reimport
                 foreach (var path in changed.Where(path => path.StartsWith("Assets/") || path.StartsWith("Packages/")))
                     AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+
+                reopen?.Invoke();
             }
 
             return changed;
+        }
+
+        // binary is never written
+        private static List<(string Path, string AssetPath, string Text, bool HasBom)> Rewrite(MigrationMap map, IReadOnlyList<string> files)
+        {
+            var rewrites = new List<(string Path, string AssetPath, string Text, bool HasBom)>();
+            foreach (var file in ReadAll(files, "Migrating serialized types", new MigrationReport()).Where(file => file.IsYaml))
+            {
+                var result = SerializedTypeYaml.Rewrite(file.Text, map.Resolve, out var rewritten);
+                if (rewritten > 0)
+                    rewrites.Add((file.Path, ToAssetPath(file.Path) ?? file.Path, result, file.HasBom));
+            }
+            return rewrites;
+        }
+
+        // unloading an affected scene unloads all of them, so every dirty scene is saved then
+        private static bool SaveOpenAssets(HashSet<string> assetPaths)
+        {
+            var saved = false;
+            var scenes = Enumerable.Range(0, SceneManager.sceneCount).Select(SceneManager.GetSceneAt).ToList();
+            if (scenes.Any(scene => assetPaths.Contains(scene.path)))
+            {
+                foreach (var scene in scenes.Where(scene => scene.isDirty && !string.IsNullOrEmpty(scene.path)))
+                    saved |= EditorSceneManager.SaveScene(scene);
+            }
+
+            var stage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (stage != null && stage.scene.isDirty && assetPaths.Contains(stage.assetPath))
+            {
+                PrefabUtility.SaveAsPrefabAsset(stage.prefabContentsRoot, stage.assetPath);
+                stage.ClearDirtiness();
+                saved = true;
+            }
+            return saved;
+        }
+
+        // unity prompts when an open scene or prefab changes on disk
+        private static Action ReleaseOpenAssets(HashSet<string> assetPaths)
+        {
+            var setup = EditorSceneManager.GetSceneManagerSetup().Where(scene => !string.IsNullOrEmpty(scene.path)).ToArray();
+            if (setup.Length > 0 && !setup.Any(scene => scene.isActive))
+                setup[0].isActive = true;
+            var stagePath = PrefabStageUtility.GetCurrentPrefabStage()?.assetPath;
+            var sceneAffected = setup.Any(scene => assetPaths.Contains(scene.path));
+            if (!sceneAffected && (stagePath == null || !assetPaths.Contains(stagePath)))
+                return null;
+
+            if (sceneAffected)
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            else
+                StageUtility.GoToMainStage();
+
+            return () =>
+            {
+                if (sceneAffected)
+                    EditorSceneManager.RestoreSceneManagerSetup(setup);
+                if (stagePath != null)
+                    PrefabStageUtility.OpenPrefab(stagePath);
+            };
         }
 
         private readonly struct AssetFile
@@ -240,18 +306,15 @@ namespace EDIVE.SerializedTypeMigration.Editor
             if (EditorSettings.serializationMode != SerializationMode.ForceText)
                 return "Asset Serialization must be Force Text.";
 
-            // unsaved editor state would overwrite the rewritten files on next save
+            // Apply saves dirty scenes and prefabs itself, an untitled one has nowhere to go
             for (var i = 0; i < SceneManager.sceneCount; i++)
             {
                 var scene = SceneManager.GetSceneAt(i);
-                if (scene.isDirty)
-                    return $"Scene '{scene.name}' has unsaved changes. Save or discard first.";
+                if (scene.isDirty && string.IsNullOrEmpty(scene.path))
+                    return "Save the untitled scene first.";
             }
 
-            var stage = PrefabStageUtility.GetCurrentPrefabStage();
-            return stage != null && stage.scene.isDirty
-                ? $"Prefab '{stage.prefabContentsRoot.name}' has unsaved changes. Save or discard first."
-                : null;
+            return null;
         }
     }
 }
