@@ -14,7 +14,6 @@
         "UniTask",
         "R3.Unity",
         "Unity.XR.CoreUtils",
-        "EDIVE.External.ToolbarExtensions",
         "Unity.TextMeshPro",
         "EDIVE.DataStructures",
         "Unity.Mathematics",

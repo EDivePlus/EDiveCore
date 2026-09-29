@@ -1,11 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 08.04.2025
 
-#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
-#if UNITY_EDITOR
+#if UNITY_EDITOR && UNITY_6000_3_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,20 +12,13 @@ using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 using UnityEngine;
-
-#if UNITY_6_TOOLBAR
 using EDIVE.EditorUtils;
 using UnityEditor.Toolbars;
-#else
-using UnityEditor;
-using EDIVE.External.ToolbarExtensions;
-#endif
 
 namespace EDIVE.ParrelSyncUtils
 {
     public class ParrelSyncToolbarExtensions
     {
-#if UNITY_6_TOOLBAR
         [MainToolbarElement("EDive/Parrel Sync", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = 10)]
         public static MainToolbarElement CreateToolbarButton()
         {
@@ -62,37 +51,7 @@ namespace EDIVE.ParrelSyncUtils
                 return dropdown;
             });
         }
-#else
-        [InitializeOnLoadMethod]
-        private static void InitializeToolbar()
-        {
-            ToolbarExtender.AddToRightToolbar(OnToolbarGUI, -1000);
-        }
 
-        private static void OnToolbarGUI()
-        {
-            GUILayout.Space(2);
-            var buttonLabel = ClonesManager.IsClone()
-                ? GUIHelper.TempContent($" {ParrelSyncUtility.SelfArgumentsBundle.Data.Name}", FontAwesomeEditorIcons.CloneSolid.Active, "Parrel Sync (Clone)")
-                : GUIHelper.TempContent(" Master", FontAwesomeEditorIcons.CrownSolid.Active, "Parrel Sync (Master)");
-
-            if (ClonesManager.IsClone())
-            {
-                GUILayout.Label(buttonLabel,ToolbarStyles.ToolbarButton, GUILayout.ExpandWidth(false));
-            }
-            else
-            {
-                if (GUILayout.Button(buttonLabel, ToolbarStyles.ToolbarDropdown, GUILayout.ExpandWidth(false)))
-                {
-                    var dropdown = new ParrelSyncToolbarDropdown();
-                    OdinEditorWindow.InspectObjectInDropDown(dropdown, new Vector2(0, 20), 420);
-                }
-            }
-
-            GUILayout.Space(2);
-        }
-#endif
-        
         [Serializable]
         private class ParrelSyncToolbarDropdown
         {

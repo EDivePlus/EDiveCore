@@ -4,7 +4,6 @@
     "references": [
         "Unity.TextMeshPro",
         "EDIVE.OdinExtensions",
-        "EDIVE.External.ToolbarExtensions",
         "EDIVE.NativeUtils",
         "Unity.EditorCoroutines.Editor",
         "EDIVE.Core"

@@ -7,7 +7,6 @@
         "EDIVE.Utils",
         "Newtonsoft.Json.UnityConverters",
         "EDIVE.AppLoading",
-        "EDIVE.External.ToolbarExtensions",
         "EDIVE.Utils.Json",
         "EDIVE.EditorUtils"
     ],

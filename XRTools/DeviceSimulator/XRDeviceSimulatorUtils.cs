@@ -1,22 +1,8 @@
 ﻿// Author: František Holubec
 // Created: 15.05.2025
-
-#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
 using UnityEngine;
 using UnityEngine.Scripting;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
-using EDIVE.OdinExtensions;
-
-#if UNITY_EDITOR && !UNITY_6_TOOLBAR
-using UnityEditor;
-using Sirenix.Utilities.Editor;
-using EDIVE.External.ToolbarExtensions;
-#endif
-
-
 
 namespace EDIVE.XRTools.DeviceSimulator
 {
@@ -99,29 +85,5 @@ namespace EDIVE.XRTools.DeviceSimulator
 
             return null;
         }
-
-#if UNITY_EDITOR && !UNITY_6_TOOLBAR
-        [InitializeOnLoadMethod]
-        private static void InitializeToolbar()
-        {
-            XRDeviceSimulatorSettings.Instance.hideFlags = HideFlags.DontSaveInEditor;
-            ToolbarExtender.AddToRightToolbar(OnToolbarGUI, -90);
-        }
-
-        private static void OnToolbarGUI()
-        {
-            GUILayout.Space(2);
-            var enabled = XRDeviceSimulatorSettings.Instance.automaticallyInstantiateSimulatorPrefab;
-            var icon = enabled ? FontAwesomeEditorIcons.CheckToSlotSolid : FontAwesomeEditorIcons.XmarkToSlotSolid;
-            var tooltip = enabled ? "Disable Device Simulator" : "Enable Device Simulator";
-
-            if (GUILayout.Button(GUIHelper.TempContent(icon.Highlighted, tooltip), ToolbarStyles.ToolbarButtonBiggerIcon, GUILayout.Width(30)))
-            {
-                XRDeviceSimulatorSettings.Instance.automaticallyInstantiateSimulatorPrefab = !enabled;
-            }
-            GUILayout.Space(2);
-        }
-#endif
-
     }
 }

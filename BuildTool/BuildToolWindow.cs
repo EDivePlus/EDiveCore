@@ -1,8 +1,4 @@
-﻿#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.BuildTool.ApplicationConfigs;
@@ -19,10 +15,8 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-#if UNITY_6_TOOLBAR
+#if UNITY_6000_3_OR_NEWER
 using UnityEditor.Toolbars;
-#else
-using EDIVE.External.ToolbarExtensions;
 #endif
 
 namespace EDIVE.BuildTool
@@ -38,27 +32,11 @@ namespace EDIVE.BuildTool
 
         private static EditorIcon BuildToolIcon => FontAwesomeEditorIcons.HammerSolid;
         
-#if UNITY_6_TOOLBAR
+#if UNITY_6000_3_OR_NEWER
         [MainToolbarElement("EDive/Build Tool", defaultDockPosition = MainToolbarDockPosition.Left, defaultDockIndex = -90)]
         public static MainToolbarElement CreateBuildToolButton()
         {
             return new MainToolbarButton(new MainToolbarContent(BuildToolIcon.Raw, "Build Tool"), OpenWindow);
-        }
-#else
-        [InitializeOnLoadMethod]
-        private static void InitializeToolbar()
-        {
-            ToolbarExtender.AddToLeftToolbar(OnToolbarGUI, -400);
-        }
-
-        private static void OnToolbarGUI()
-        {
-            GUILayout.Space(2);
-            if (GUILayout.Button(new GUIContent(null, BuildToolIcon.Highlighted, "Build Tool"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
-            {
-                OpenWindow();
-            }
-            GUILayout.Space(2);
         }
 #endif
         

@@ -7,7 +7,6 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Core",
         "EDIVE.OdinExtensions.Editor",
-        "EDIVE.External.ToolbarExtensions",
         "EDIVE.EditorUtils",
         "EDIVE.EditorTools",
         "EDIVE.DataStructures",

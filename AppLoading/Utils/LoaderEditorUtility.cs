@@ -1,8 +1,4 @@
-﻿#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using System.IO;
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
@@ -11,13 +7,9 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-#if UNITY_6_TOOLBAR
+#if UNITY_6000_3_OR_NEWER
 using UnityEditor.Toolbars;
 using UnityEngine.UIElements;
-#else
-using Sirenix.Utilities;
-using Sirenix.Utilities.Editor;
-using EDIVE.External.ToolbarExtensions;
 #endif
 
 namespace EDIVE.AppLoading.Utils
@@ -28,12 +20,9 @@ namespace EDIVE.AppLoading.Utils
         private static void InitializeToolbar()
         {
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
-#if !UNITY_6_TOOLBAR
-            ToolbarExtender.AddToLeftToolbar(PlayRootSceneToolbarGUI, 1000);
-#endif
         }
 
-#if UNITY_6_TOOLBAR
+#if UNITY_6000_3_OR_NEWER
         [MainToolbarElement("EDive/Play Root Scene", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = -1)]
         public static MainToolbarElement CreateToolbarButton()
         {
@@ -74,17 +63,6 @@ namespace EDIVE.AppLoading.Utils
                 };
                 return button;
             });
-        }
-        
-#else
-        private static void PlayRootSceneToolbarGUI()
-        {
-            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
-            if (GUILayout.Button(GUIHelper.TempContent(FontAwesomeEditorIcons.RocketSolid.Highlighted, "Play Root scene"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
-            {
-                EditorHelper.ExecuteNextFrame(() => TryPlayRootScene());
-            }
-            EditorGUI.EndDisabledGroup();
         }
 #endif
         

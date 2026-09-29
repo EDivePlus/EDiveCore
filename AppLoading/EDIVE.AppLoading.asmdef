@@ -13,7 +13,6 @@
         "EDIVE.Core",
         "EDIVE.EditorUtils",
         "EDIVE.NativeUtils",
-        "EDIVE.External.ToolbarExtensions",
         "EDIVE.AddressableAssets",
         "EDIVE.AssetTranslation",
         "EDIVE.DataStructures",

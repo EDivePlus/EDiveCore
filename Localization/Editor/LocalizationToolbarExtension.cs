@@ -1,7 +1,4 @@
-﻿#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
+﻿#if UNITY_EDITOR && UNITY_6000_3_OR_NEWER 
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.OdinExtensions;
@@ -16,19 +13,13 @@ using UnityEngine.Localization;
 using UnityEngine.Localization.Components;
 using UnityEngine.Localization.Settings;
 using Object = UnityEngine.Object;
-
-#if UNITY_6_TOOLBAR
 using EDIVE.EditorUtils;
 using UnityEditor.Toolbars;
-#else
-using EDIVE.External.ToolbarExtensions;
-#endif
 
 namespace EDIVE.Localization.Editor
 {
     public static class LocalizationToolbarExtension
     {
-#if UNITY_6_TOOLBAR
         [MainToolbarElement("EDive/Locale Selector", defaultDockPosition = MainToolbarDockPosition.Right, defaultDockIndex = 100)]
         public static MainToolbarElement CreatePlayRootSceneButton()
         {
@@ -78,57 +69,6 @@ namespace EDIVE.Localization.Editor
                 }
             });
         }
-#else  
-        [InitializeOnLoadMethod]
-        private static void InitializeToolbar()
-        {
-            ToolbarExtender.AddToRightToolbar(OnToolbarGUI, 95);
-        }
-        
-        private static void OnToolbarGUI()
-        {
-            var activeLocalizationSettings = LocalizationEditorSettings.ActiveLocalizationSettings;
-            if (!activeLocalizationSettings)
-                return;
-            
-            GUILayout.Space(2);
-            var dropdownRect = GUILayoutUtility.GetRect(0, 18).MinWidth(200);
-            var currentLocale = activeLocalizationSettings.GetSelectedLocale();
-            var code = currentLocale == null ? "--" : currentLocale.Identifier.Code.ToUpperInvariant();
-            var content = new GUIContent($" {code}", FontAwesomeEditorIcons.LanguageSolid.Highlighted, "Refresh Language");
-            if (GUILayout.Button(content, ToolbarStyles.ToolbarButton, GUILayout.Width(45)))
-            {
-                RefreshAll();
-            }
-
-            if (GUILayout.Button(new GUIContent(null, FontAwesomeEditorIcons.CaretDownSolid.Active, "Language Selector"), ToolbarStyles.ToolbarButton, GUILayout.Width(15)))
-            {
-                var locales = activeLocalizationSettings.GetAvailableLocales().Locales
-                    .Prepend(null)
-                    .Select(l => new LocaleWrapper(l));
-
-                var selector = new GenericSelector<LocaleWrapper>(null, false, x => x.Name, locales);
-                selector.SelectionTree.DefaultMenuStyle.Height = 22;
-                selector.SelectionTree.Config.DrawSearchToolbar = true;
-                selector.SelectionTree.Config.AutoFocusSearchBar = true;
-                selector.EnableSingleClickToSelect();
-
-                selector.SelectionConfirmed += selection =>
-                {
-                    var selected = selection.FirstOrDefault();
-                    if (selected != null)
-                    {
-                        activeLocalizationSettings.SetSelectedLocale(selected.Locale);
-                        ToolbarExtender.RepaintToolbar();
-                        RefreshAll();
-                    }
-                };
-
-                selector.ShowInPopup(dropdownRect);
-            }
-            GUILayout.Space(2);
-        }
-#endif
         
         private static void RefreshAll()
         {
@@ -170,3 +110,4 @@ namespace EDIVE.Localization.Editor
         }
     }
 }
+#endif

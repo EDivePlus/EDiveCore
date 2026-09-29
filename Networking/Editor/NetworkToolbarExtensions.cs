@@ -1,31 +1,20 @@
 ﻿// Author: František Holubec
 // Created: 31.03.2025
 
-#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
-#if UNITY_EDITOR
+#if UNITY_EDITOR && UNITY_6000_3_OR_NEWER
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 
-#if UNITY_6_TOOLBAR
 using System.Linq;
 using Sirenix.Utilities;
 using UnityEditor.Toolbars;
 using EDIVE.OdinExtensions;
 using EDIVE.EditorUtils;
-#else
-using System;
-using UnityEngine;
-using EDIVE.External.ToolbarExtensions;
-#endif
 
 namespace EDIVE.Networking.Utils
 {
     public static class NetworkToolbarExtensions
     {
-#if UNITY_6_TOOLBAR
         [MainToolbarElement("EDive/Network State", defaultDockPosition = MainToolbarDockPosition.Middle, defaultDockIndex = -5)]
         public static MainToolbarElement CreatePlayRootSceneButton()
         {
@@ -69,28 +58,6 @@ namespace EDIVE.Networking.Utils
                 }
             });
         }
-#else
-        [InitializeOnLoadMethod]
-        private static void InitializeToolbar()
-        {
-            ToolbarExtender.AddToLeftToolbar(NetworkToolbarGUI, 990);
-        }
-
-        private static void NetworkToolbarGUI()
-        {
-            EditorGUI.BeginDisabledGroup(EditorApplication.isPlayingOrWillChangePlaymode);
-            EditorGUILayout.BeginVertical(GUILayout.Width(70));
-            EditorGUI.BeginChangeCheck();
-            var newMode = EnumSelector<NetworkRuntimeMode>.DrawEnumField(null, NetworkUtils.EditorRuntimeMode, ToolbarStyles.ToolbarDropdown);
-            if (EditorGUI.EndChangeCheck())
-            {
-                NetworkUtils.EditorRuntimeMode = newMode;
-            }
-            EditorGUILayout.EndVertical();
-            EditorGUI.EndDisabledGroup();
-            GUILayout.Space(1);
-        }
-#endif
     }
 }
 #endif

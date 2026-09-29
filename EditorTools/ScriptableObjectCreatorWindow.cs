@@ -1,7 +1,3 @@
-#if UNITY_6000_3_OR_NEWER
-#define UNITY_6_TOOLBAR
-#endif
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +11,6 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEditor.Toolbars;
 using UnityEngine;
-#if UNITY_6_TOOLBAR
-#else
-using EDIVE.External.ToolbarExtensions;
-#endif
 
 namespace EDIVE.EditorTools
 {
@@ -33,30 +25,12 @@ namespace EDIVE.EditorTools
         private Vector2 _scroll;
 
         private static EditorIcon MainIcon => FontAwesomeEditorIcons.FolderPlusSolid;
-
         
-#if UNITY_6_TOOLBAR
+#if UNITY_6000_3_OR_NEWER
         [MainToolbarElement("EDive/Scriptable Object Creator", defaultDockPosition = MainToolbarDockPosition.Left, defaultDockIndex = -100)]
         public static MainToolbarElement CreateToolbarButton()
         {
             return new MainToolbarButton(new MainToolbarContent(MainIcon.Raw, "Create Scriptable Object"), OpenWindow);
-        }
-#else
-        [InitializeOnLoadMethod]
-        private static void InitializeToolbar()
-        {
-            ToolbarExtender.AddToRightToolbar(OnToolbarGUI, 1000);
-        }
-
-        private static void OnToolbarGUI()
-        {
-            GUILayout.Space(2);
-            if (GUILayout.Button(new GUIContent(null, MainIcon.Highlighted, "Create Scriptable Object"), ToolbarStyles.ToolbarButton, GUILayout.Width(30)))
-            {
-                OpenWindow();
-            }
-
-            GUILayout.Space(2);
         }
 #endif
 

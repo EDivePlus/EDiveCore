@@ -4,8 +4,7 @@
     "references": [
         "EDIVE.Networking",
         "EDIVE.EditorUtils",
-        "EDIVE.OdinExtensions",
-        "EDIVE.External.ToolbarExtensions"
+        "EDIVE.OdinExtensions"
     ],
     "includePlatforms": [
         "Editor"
