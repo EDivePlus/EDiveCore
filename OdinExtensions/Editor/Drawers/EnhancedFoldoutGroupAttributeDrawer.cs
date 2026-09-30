@@ -83,7 +83,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
                     GUILayout.BeginVertical(GUILayout.ExpandHeight(true));
                     GUILayout.FlexibleSpace();
+                    GUILayout.BeginHorizontal();
                     child.Draw(child.Label);
+                    GUILayout.EndHorizontal();
                     GUILayout.FlexibleSpace();
                     GUILayout.EndVertical();
                 }
