@@ -9,7 +9,7 @@ using UnityEditor.Build.Reporting;
 using UnityEditor.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
 
-namespace EDIVE.OpenXRUtils
+namespace EDIVE.ExternalUtils.OpenXR
 {
     public class OpenXRValidationRuleFixer : IPreprocessBuildWithReport
     {

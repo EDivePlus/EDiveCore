@@ -18,7 +18,7 @@ namespace EDIVE.XRTools.DeviceSimulator
             if (_Toggle == null)
                 return;
 
-            _Toggle.SetIsOnWithoutNotify(XRDeviceSimulatorUtils.RuntimeSimulatorEnabled);
+            _Toggle.SetIsOnWithoutNotify(XRDeviceSimulatorUtils.SimulatorEnabled);
             _Toggle.onValueChanged.RemoveListener(OnToggleChanged);
             _Toggle.onValueChanged.AddListener(OnToggleChanged);
         }
@@ -31,7 +31,7 @@ namespace EDIVE.XRTools.DeviceSimulator
 
         private void OnToggleChanged(bool value)
         {
-            XRDeviceSimulatorUtils.RuntimeSimulatorEnabled = value;
+            XRDeviceSimulatorUtils.SimulatorEnabled = value;
         }
     }
 }

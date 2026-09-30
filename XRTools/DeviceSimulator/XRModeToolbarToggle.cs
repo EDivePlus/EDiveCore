@@ -1,17 +1,16 @@
 // Author: František Holubec
 // Created: 11.09.2026
 
-#if UNITY_6000_3_OR_NEWER && XR_INTERACTION_TOOLKIT
+#if UNITY_6000_3_OR_NEWER && XR_INTERACTION_TOOLKIT && UNITY_EDITOR
 using System;
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
-using EDIVE.XRTools.DeviceSimulator;
 using UnityEditor;
 using UnityEditor.Toolbars;
 using UnityEditor.XR.Management;
 using UnityEngine.XR.Management;
 
-namespace EDIVE.OpenXRUtils
+namespace EDIVE.XRTools.DeviceSimulator
 {
     public static class XRModeToolbarToggle
     {
@@ -30,13 +29,13 @@ namespace EDIVE.OpenXRUtils
         {
             get
             {
-                if (XRDeviceSimulatorUtils.AutoInstantiateSimulator)
+                if (XRDeviceSimulatorUtils.SimulatorEnabled)
                     return XRMode.Simulator;
                 return XRSettings != null && XRSettings.InitManagerOnStart ? XRMode.Headset : XRMode.Desktop;
             }
             set
             {
-                XRDeviceSimulatorUtils.AutoInstantiateSimulator = value == XRMode.Simulator;
+                XRDeviceSimulatorUtils.SimulatorEnabled = value == XRMode.Simulator;
                 if (XRSettings != null)
                     XRSettings.InitManagerOnStart = value == XRMode.Headset;
             }

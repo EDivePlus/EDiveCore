@@ -23,10 +23,11 @@
         "EDIVE.Conditions",
         "EDIVE.EditorUtils",
         "EDIVE.External.DomainReloadHelper",
-        "Unity.XR.Hands.Samples.Gestures",
         "EDIVE.View",
         "EDIVE.Input",
-        "EDIVE.Utils.Activations"
+        "EDIVE.Utils.Activations",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -42,6 +43,11 @@
             "name": "com.unity.xr.interaction.toolkit",
             "expression": "",
             "define": "XR_INTERACTION_TOOLKIT"
+        },
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "3.5.0",
+            "define": "XR_INTERACTION_TOOLKIT_3_5"
         },
         {
             "name": "com.unity.xr.hands",

@@ -3,10 +3,6 @@
 
 #if UNITY_EDITOR
 using EDIVE.External.DomainReloadHelper;
-#if XR_HANDS
-using UnityEngine.XR.Hands.Samples.Gestures.DebugTools;
-#endif
-
 
 namespace EDIVE.XRTools.Editor
 {
@@ -16,10 +12,6 @@ namespace EDIVE.XRTools.Editor
         private static void ClearToolkitDomain()
         {
 #if XR_HANDS
-            // Clear subsystems cache
-            DomainReloadHandler.Clear(typeof(XRAllFingerShapesDebugUI)
-                .GetField("s_SubsystemsReuse", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static), newInstance: true);
-            
             // Clear capture playback
             var playbackType = System.Type.GetType("UnityEditor.XR.Hands.Capture.XRHandCapturePlayback, Unity.XR.Hands.Editor");
             if (playbackType != null)

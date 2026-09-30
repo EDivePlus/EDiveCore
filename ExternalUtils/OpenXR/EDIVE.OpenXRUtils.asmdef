@@ -5,8 +5,6 @@
         "Unity.XR.OpenXR",
         "EDIVE.NativeUtils",
         "EDIVE.EditorUtils",
-        "Unity.XR.Management",
-        "Unity.XR.Management.Editor",
         "EDIVE.OdinExtensions",
         "EDIVE.XRTools"
     ],
