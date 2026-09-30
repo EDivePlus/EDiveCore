@@ -27,7 +27,9 @@
         "EDIVE.Input",
         "EDIVE.Utils.Activations",
         "Unity.XR.Management",
-        "Unity.XR.Management.Editor"
+        "Unity.XR.Management.Editor",
+        "EDIVE.UIElements",
+        "EDIVE.Utils.Actions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
