@@ -26,11 +26,26 @@ namespace EDIVE.Rendering.UVDecals
         [SerializeField]
         [ListDrawerSettings(ShowFoldout = false, ListElementLabelName = nameof(UVDecalPreset.EditorLabel))]
         private List<UVDecalPreset> _Decals = new();
-
+        
+        [ShowInInspector]
+        [ReadOnly]
+        [ListDrawerSettings(ShowFoldout = false, ListElementLabelName = nameof(UVDecalPreset.EditorLabel))]
+        [Tooltip("Decals fed in from code, e.g. generated textures. Not serialized, drawn after Decals.")]
+        private readonly List<UVDecalPreset> _runtimeDecals = new();
+        
         private readonly List<UVDecal> _resolved = new();
 
         public IReadOnlyList<UVDecalArea> Areas => _Areas;
         public IReadOnlyList<UVDecalPreset> Decals => _Decals;
+        public IReadOnlyList<UVDecalPreset> RuntimeDecals => _runtimeDecals;
+
+        public void SetRuntimeDecals(IEnumerable<UVDecalPreset> decals)
+        {
+            _runtimeDecals.Clear();
+            if (decals != null)
+                _runtimeDecals.AddRange(decals);
+            Rebuild();
+        }
 
         public void SetDecals(IEnumerable<UVDecalPreset> decals)
         {
@@ -91,7 +106,14 @@ namespace EDIVE.Rendering.UVDecals
             }
 #endif
 
-            foreach (var preset in _Decals)
+            AppendResolved(_Decals);
+            AppendResolved(_runtimeDecals);
+            _Painter.SetExtraDecals(_resolved);
+        }
+
+        private void AppendResolved(List<UVDecalPreset> presets)
+        {
+            foreach (var preset in presets)
             {
                 if (preset == null || preset._Texture == null) continue;
 
@@ -104,8 +126,6 @@ namespace EDIVE.Rendering.UVDecals
 
                 _resolved.Add(Resolve(area, preset));
             }
-
-            _Painter.SetExtraDecals(_resolved);
         }
         
         private static UVDecal Resolve(in UVDecalArea area, in UVDecalPreset preset)

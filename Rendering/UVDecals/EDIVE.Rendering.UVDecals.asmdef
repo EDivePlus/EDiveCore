@@ -3,7 +3,8 @@
   "rootNamespace": "",
   "references": [
     "EDIVE.NativeUtils",
-    "EDIVE.OdinExtensions"
+    "EDIVE.OdinExtensions",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
