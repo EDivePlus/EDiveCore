@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using EDIVE.Input.Controls;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
@@ -10,6 +11,7 @@ using EDIVE.XRTools.DeviceSimulator;
 using Sirenix.OdinInspector;
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 namespace EDIVE.XRTools.Controls
@@ -47,6 +49,29 @@ namespace EDIVE.XRTools.Controls
         [ShowInInspector, Sirenix.OdinInspector.ReadOnly]
         private RigHeightMode _heightMode;
 
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        // XRI simulator resets the rig offset on every scene load
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (XRDeviceSimulatorUtils.SimulatorEnabled)
+                ReapplyHeightModeAsync().Forget();
+        }
+
+        private async UniTaskVoid ReapplyHeightModeAsync()
+        {
+            await UniTask.Yield(destroyCancellationToken);
+            SetHeightMode(_heightMode);
+        }
+
         public override void RequestTeleport(Vector3 position, Quaternion? rotation = null)
         {
             _TeleportationProvider.QueueTeleportRequest(new TeleportRequest
@@ -77,11 +102,7 @@ namespace EDIVE.XRTools.Controls
 
             var offsetObject = _XROrigin.CameraFloorOffsetObject;
             if (offsetObject != null)
-            {
-                var local = offsetObject.transform.localPosition;
-                local.y = setting.EyeHeight;
-                offsetObject.transform.localPosition = local;
-            }
+                offsetObject.transform.localPosition = new Vector3(0f, setting.EyeHeight, 0f);
         }
 
         [Serializable]
