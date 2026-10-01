@@ -222,6 +222,8 @@ namespace EDIVE.XRTools
         {
             await UniTask.WaitUntil(XRUtils.IsHeadTracked, cancellationToken: destroyCancellationToken);
             await UniTask.NextFrame(cancellationToken: destroyCancellationToken);
+            // a pose captured before tracking is relative to the spawn pose, not the player
+            ResetCustomPose();
             Reposition(true);
         }
 
