@@ -41,6 +41,7 @@ namespace EDIVE.XRTools.ActionWheel
 
         public override void OnShow()
         {
+            base.OnShow();
             RefreshState();
         }
 

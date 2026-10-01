@@ -2,11 +2,16 @@
 // Created: 17.09.2026
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using EDIVE.NativeUtils;
+using EDIVE.Tweening;
+using EDIVE.UIElements.Layout;
 using EDIVE.XRTools.Controls;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace EDIVE.XRTools.ActionWheel
 {
@@ -28,24 +33,33 @@ namespace EDIVE.XRTools.ActionWheel
         [SerializeField]
         [Range(0f, 1f)]
         private float _HoverThreshold = 0.5f;
-        
+
+        [SerializeField]
+        private TweenAnimationController _ShowAnimation;
+
+        [SerializeField]
+        private TweenAnimationController _HideAnimation;
+
         private Hand _activeHand;
         private AActionWheelWedge[] _wedges;
         private AActionWheelWedge _hoveredWedge;
         private Canvas _canvas;
+        private RadialLayout _layout;
 
         private Vector2 ThumbstickPosition => _activeHand?.ThumbstickPosition ?? Vector2.zero;
+        private IEnumerable<AActionWheelWedge> VisibleWedges => _wedges.Where(wedge => wedge.gameObject.activeSelf);
 
         private void Awake()
         {
             _canvas = GetComponent<Canvas>();
             _canvas.enabled = false;
-            _wedges = GetComponentsInChildren<AActionWheelWedge>();
+            _wedges = GetComponentsInChildren<AActionWheelWedge>(true);
+            _layout = GetComponentInChildren<RadialLayout>(true);
         }
 
         private void OnDisable()
         {
-            Hide();
+            Hide(true);
         }
 
         private void Update()
@@ -60,7 +74,7 @@ namespace EDIVE.XRTools.ActionWheel
 
                 var selectedWedge = _hoveredWedge;
                 Hide();
-                if (selectedWedge != null)
+                if (selectedWedge != null && selectedWedge.CanExecute)
                     selectedWedge.ExecuteActions();
                 return;
             }
@@ -76,18 +90,46 @@ namespace EDIVE.XRTools.ActionWheel
             _activeHand = hand;
             transform.SetParent(hand.Anchor, false);
             transform.SetLocalPositionAndRotation(_PositionOffset, Quaternion.Euler(_RotationOffset));
+            RefreshWedgeVisibility();
             _canvas.enabled = true;
-            _wedges.ForEach(wedge => wedge.OnShow());
+            VisibleWedges.ForEach(wedge => wedge.OnShow());
+
+            if (_HideAnimation != null)
+                _HideAnimation.Kill();
+            if (_ShowAnimation != null)
+                _ShowAnimation.Play();
+
             hand.RequestThumbstickControl(this);
         }
 
-        private void Hide()
+        private void Hide(bool immediate = false)
         {
             SetHoveredWedge(null);
             _activeHand?.ReleaseThumbstickControl(this);
-            _wedges.ForEach(wedge => wedge.OnHide());
+            VisibleWedges.ForEach(wedge => wedge.OnHide());
             _activeHand = null;
-            _canvas.enabled = false;
+
+            if (_ShowAnimation != null)
+                _ShowAnimation.Kill();
+
+            if (immediate || _HideAnimation == null)
+            {
+                if (_HideAnimation != null)
+                    _HideAnimation.Kill();
+                _canvas.enabled = false;
+                return;
+            }
+
+            _HideAnimation.Play().OnComplete(() => _canvas.enabled = false);
+        }
+
+        private void RefreshWedgeVisibility()
+        {
+            foreach (var wedge in _wedges)
+                wedge.gameObject.SetActive(wedge.IsVisible);
+
+            if (_layout != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform) _layout.transform);
         }
 
         private void UpdateHover()

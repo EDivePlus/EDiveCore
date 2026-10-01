@@ -29,7 +29,8 @@
         "Unity.XR.Management",
         "Unity.XR.Management.Editor",
         "EDIVE.UIElements",
-        "EDIVE.Utils.Actions"
+        "EDIVE.Utils.Actions",
+        "EDIVE.Tweening"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
