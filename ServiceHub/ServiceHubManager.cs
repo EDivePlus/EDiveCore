@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
+using EDIVE.ServiceHub.Connectivity;
 using EDIVE.ServiceHub.Lobby;
 using EDIVE.ServiceHub.Probe;
 using EDIVE.ServiceHub.RemoteContent;
@@ -52,6 +53,11 @@ namespace EDIVE.ServiceHub
         [EnhancedBoxGroup("Modules")]
         private ProbeService _Probe;
 
+        [SerializeField]
+        [Required]
+        [EnhancedBoxGroup("Modules")]
+        private ConnectivityService _Connectivity;
+
         public ServiceHubSettings Settings => _Settings;
         public ClientAuthService ClientAuth => _ClientAuth;
         public ServerAuthService ServerAuth => _ServerAuth;
@@ -59,6 +65,7 @@ namespace EDIVE.ServiceHub
         public RemoteContentService RemoteContent => _RemoteContent;
         public LobbyService Lobby => _Lobby;
         public ProbeService Probe => _Probe;
+        public ConnectivityService Connectivity => _Connectivity;
 
         public bool HasValidSetup => !string.IsNullOrEmpty(Settings.AppSecret);
 
@@ -106,6 +113,7 @@ namespace EDIVE.ServiceHub
             yield return _RemoteContent;
             yield return _Lobby;
             yield return _Probe;
+            yield return _Connectivity;
         }
     }
 }
