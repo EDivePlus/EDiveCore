@@ -247,6 +247,9 @@ namespace EDIVE.XRTools
                 FollowCamera();
             else
                 HoldInReferenceFrame();
+
+            // colliders match UI pose for interactor physics raycast
+            Physics.SyncTransforms();
         }
 
         private void SampleReferenceFrame()
