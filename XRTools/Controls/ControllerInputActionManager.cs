@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using EDIVE.XRTools.Interactions;
 using Unity.XR.CoreUtils.Bindings;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using UnityEngine.XR.Interaction.Toolkit.Attachment;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
-using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 
 namespace EDIVE.XRTools.Controls
@@ -19,15 +17,14 @@ namespace EDIVE.XRTools.Controls
     /// and the input actions used by them.
     /// </summary>
     /// <remarks>
-    /// If the teleport ray input is engaged, the Ray Interactor used for distant manipulation is disabled
-    /// and the Ray Interactor used for teleportation is enabled. If the Ray Interactor is selecting and it
-    /// is configured to allow for attach transform manipulation, all locomotion input actions are disabled
-    /// (teleport ray, move, and turn controls) to prevent input collision with the manipulation inputs used
-    /// by the ray interactor.
+    /// If the teleport ray input is engaged, the active Near-Far Interactor is disabled and the Ray Interactor
+    /// used for teleportation is enabled. If the Near-Far Interactor is selecting far and it is configured to allow
+    /// for attach transform manipulation, all locomotion input actions are disabled (teleport ray, move, and turn controls)
+    /// to prevent input collision with the manipulation inputs.
+    /// <br />
+    /// Only one Near-Far Interactor from the list is active at a time, the first one by default.
     /// <br />
     /// A typical hierarchy also includes an XR Interaction Group component to mediate between interactors.
-    /// The interaction group ensures that the Direct and Ray Interactors cannot interact at the same time,
-    /// with the Direct Interactor taking priority over the Ray Interactor.
     /// </remarks>
     public class ControllerInputActionManager : MonoBehaviour
     {
@@ -35,12 +32,8 @@ namespace EDIVE.XRTools.Controls
         [Header("Interactors")]
 
         [SerializeField]
-        [Tooltip("The interactor used for distant/ray manipulation. Use this or Near-Far Interactor, not both.")]
-        XRRayInteractor m_RayInteractor;
-
-        [SerializeField]
-        [Tooltip("Near-Far Interactor used for distant/ray manipulation. Use this or Ray Interactor, not both.")]
-        NearFarInteractor m_NearFarInteractor;
+        [Tooltip("Only one is active, first by default.")]
+        private List<NearFarInteractor> _NearFarInteractors = new List<NearFarInteractor>();
 
         [SerializeField]
         [Tooltip("The interactor used for teleportation.")]
@@ -102,14 +95,6 @@ namespace EDIVE.XRTools.Controls
         [SerializeField]
         [Tooltip("Thumbstick of this controller. After control is released, locomotion stays disabled until the stick is centered.")]
         private InputActionReference _Thumbstick;
-
-        [Space]
-        [Header("Mediation Events")]
-
-        [SerializeField]
-        [Tooltip("Event fired when the active ray interactor changes between interaction and teleport.")]
-        UnityEvent<IXRRayProvider> m_RayInteractorChanged;
-        
 
         [SerializeField]
         private List<GrabRecord> _GrabRecords= new List<GrabRecord>();
@@ -206,6 +191,11 @@ namespace EDIVE.XRTools.Controls
         bool m_PostponedNearRegionLocomotion;
         bool m_HoveringScrollableUI;
         bool m_ThumbstickReserved;
+        NearFarInteractor m_ActiveNearFarInteractor;
+        NearFarInteractor m_RequestedNearFarInteractor;
+
+        NearFarInteractor DefaultNearFarInteractor => _NearFarInteractors.Count > 0 ? _NearFarInteractors[0] : null;
+        NearFarInteractor RequestedNearFarInteractor => m_RequestedNearFarInteractor != null ? m_RequestedNearFarInteractor : DefaultNearFarInteractor;
 
         // 75% of default 0.5 press threshold
         const float k_SqrStickReleaseThreshold = 0.375f * 0.375f;
@@ -216,19 +206,11 @@ namespace EDIVE.XRTools.Controls
 
         void SetupInteractorEvents()
         {
-            if (m_NearFarInteractor != null)
+            if (m_ActiveNearFarInteractor != null)
             {
-                m_NearFarInteractor.uiHoverEntered.AddListener(OnUIHoverEntered);
-                m_NearFarInteractor.uiHoverExited.AddListener(OnUIHoverExited);
-                m_BindingsGroup.AddBinding(m_NearFarInteractor.selectionRegion.Subscribe(OnNearFarSelectionRegionChanged));
-            }
-
-            if (m_RayInteractor != null)
-            {
-                m_RayInteractor.selectEntered.AddListener(OnRaySelectEntered);
-                m_RayInteractor.selectExited.AddListener(OnRaySelectExited);
-                m_RayInteractor.uiHoverEntered.AddListener(OnUIHoverEntered);
-                m_RayInteractor.uiHoverExited.AddListener(OnUIHoverExited);
+                m_ActiveNearFarInteractor.uiHoverEntered.AddListener(OnUIHoverEntered);
+                m_ActiveNearFarInteractor.uiHoverExited.AddListener(OnUIHoverExited);
+                m_BindingsGroup.AddBinding(m_ActiveNearFarInteractor.selectionRegion.Subscribe(OnNearFarSelectionRegionChanged));
             }
 
             var teleportModeAction = GetInputAction(m_TeleportMode);
@@ -272,18 +254,10 @@ namespace EDIVE.XRTools.Controls
         {
             m_BindingsGroup.Clear();
 
-            if (m_NearFarInteractor != null)
+            if (m_ActiveNearFarInteractor != null)
             {
-                m_NearFarInteractor.uiHoverEntered.RemoveListener(OnUIHoverEntered);
-                m_NearFarInteractor.uiHoverExited.RemoveListener(OnUIHoverExited);
-            }
-
-            if (m_RayInteractor != null)
-            {
-                m_RayInteractor.selectEntered.RemoveListener(OnRaySelectEntered);
-                m_RayInteractor.selectExited.RemoveListener(OnRaySelectExited);
-                m_RayInteractor.uiHoverEntered.RemoveListener(OnUIHoverEntered);
-                m_RayInteractor.uiHoverExited.RemoveListener(OnUIHoverExited);
+                m_ActiveNearFarInteractor.uiHoverEntered.RemoveListener(OnUIHoverEntered);
+                m_ActiveNearFarInteractor.uiHoverExited.RemoveListener(OnUIHoverExited);
             }
 
             var teleportModeAction = GetInputAction(m_TeleportMode);
@@ -330,13 +304,8 @@ namespace EDIVE.XRTools.Controls
             if (m_TeleportInteractor != null)
                 m_TeleportInteractor.gameObject.SetActive(true);
 
-            if (m_RayInteractor != null)
-                m_RayInteractor.gameObject.SetActive(false);
-
-            if (m_NearFarInteractor != null && m_NearFarInteractor.selectionRegion.Value != NearFarInteractor.Region.Near)
-                m_NearFarInteractor.gameObject.SetActive(false);
-
-            m_RayInteractorChanged?.Invoke(m_TeleportInteractor);
+            if (m_ActiveNearFarInteractor != null && m_ActiveNearFarInteractor.selectionRegion.Value != NearFarInteractor.Region.Near)
+                m_ActiveNearFarInteractor.gameObject.SetActive(false);
         }
 
         void OnCancelTeleport(InputAction.CallbackContext context)
@@ -347,13 +316,8 @@ namespace EDIVE.XRTools.Controls
             // OnAfterInteractionEvents will handle deactivating its GameObject.
             m_PostponedDeactivateTeleport = true;
 
-            if (m_RayInteractor != null)
-                m_RayInteractor.gameObject.SetActive(true);
-
-            if (m_NearFarInteractor != null)
-                m_NearFarInteractor.gameObject.SetActive(true);
-
-            m_RayInteractorChanged?.Invoke(m_RayInteractor);
+            if (m_ActiveNearFarInteractor != null)
+                m_ActiveNearFarInteractor.gameObject.SetActive(true);
         }
 
         /// <summary>
@@ -375,6 +339,20 @@ namespace EDIVE.XRTools.Controls
         public void ReleaseThumbstickControl(object requester)
         {
             m_ThumbstickRequesters.Remove(requester);
+        }
+
+        /// <summary>
+        /// Switches to a Near-Far Interactor from the list, null goes back to the first one. Switch waits until nothing is held.
+        /// </summary>
+        public void RequestNearFarInteractor(NearFarInteractor interactor)
+        {
+            if (interactor != null && !_NearFarInteractors.Contains(interactor))
+            {
+                Debug.LogWarning($"{interactor} is not a Near-Far Interactor of this controller.", this);
+                return;
+            }
+
+            m_RequestedNearFarInteractor = interactor;
         }
 
         void OnStartLocomotion(InputAction.CallbackContext context)
@@ -404,7 +382,7 @@ namespace EDIVE.XRTools.Controls
             }
 
             var manipulateAttachTransform = false;
-            var attachController = m_NearFarInteractor.interactionAttachController as InteractionAttachController;
+            var attachController = m_ActiveNearFarInteractor.interactionAttachController as InteractionAttachController;
             if (attachController != null)
             {
                 manipulateAttachTransform = attachController.useManipulationInput &&
@@ -439,24 +417,6 @@ namespace EDIVE.XRTools.Controls
             }
         }
 
-        void OnRaySelectEntered(SelectEnterEventArgs args)
-        {
-            if (m_RayInteractor.manipulateAttachTransform)
-            {
-                // Disable locomotion and turn actions
-                DisableAllLocomotionActions();
-            }
-        }
-
-        void OnRaySelectExited(SelectExitEventArgs args)
-        {
-            if (m_RayInteractor.manipulateAttachTransform)
-            {
-                // Re-enable the locomotion and turn actions
-                UpdateLocomotionActions();
-            }
-        }
-
         void OnUIHoverEntered(UIHoverEventArgs args)
         {
             m_HoveringScrollableUI = m_UIScrollingEnabled && args.deviceModel.isScrollable;
@@ -486,14 +446,15 @@ namespace EDIVE.XRTools.Controls
                 grabRecord.Enable();
             }
             
-            if (m_RayInteractor != null && m_NearFarInteractor != null)
-            {
-                Debug.LogWarning("Both Ray Interactor and Near-Far Interactor are assigned. Only one should be assigned, not both. Clearing Ray Interactor.", this);
-                m_RayInteractor = null;
-            }
-
             if (m_TeleportInteractor != null)
                 m_TeleportInteractor.gameObject.SetActive(false);
+
+            m_ActiveNearFarInteractor = RequestedNearFarInteractor;
+            foreach (var interactor in _NearFarInteractors)
+            {
+                if (interactor != null)
+                    interactor.gameObject.SetActive(interactor == m_ActiveNearFarInteractor);
+            }
 
             // Allow the actions to be refreshed when this component is re-enabled.
             // See comments in Start for why we wait until Start to enable/disable actions.
@@ -543,8 +504,8 @@ namespace EDIVE.XRTools.Controls
             if (m_PostponedNearRegionLocomotion)
             {
                 var hasStickInput = false;
-                if (m_NearFarInteractor != null &&
-                    m_NearFarInteractor.interactionAttachController is InteractionAttachController attachController
+                if (m_ActiveNearFarInteractor != null &&
+                    m_ActiveNearFarInteractor.interactionAttachController is InteractionAttachController attachController
                     && attachController != null)
                 {
                     hasStickInput = HasStickInput(attachController);
@@ -568,6 +529,29 @@ namespace EDIVE.XRTools.Controls
                 UpdateLocomotionActions();
                 UpdateUIActions();
             }
+
+            // Switch waits for release, otherwise held object drops
+            if (RequestedNearFarInteractor != m_ActiveNearFarInteractor && (m_ActiveNearFarInteractor == null || !m_ActiveNearFarInteractor.hasSelection))
+                SwitchNearFarInteractor();
+        }
+
+        void SwitchNearFarInteractor()
+        {
+            TeardownInteractorEvents();
+
+            var visible = m_ActiveNearFarInteractor == null || m_ActiveNearFarInteractor.gameObject.activeSelf;
+            if (m_ActiveNearFarInteractor != null)
+                m_ActiveNearFarInteractor.gameObject.SetActive(false);
+
+            m_ActiveNearFarInteractor = RequestedNearFarInteractor;
+            if (m_ActiveNearFarInteractor != null)
+                m_ActiveNearFarInteractor.gameObject.SetActive(visible);
+
+            SetupInteractorEvents();
+
+            m_HoveringScrollableUI = false;
+            UpdateLocomotionActions();
+            UpdateUIActions();
         }
 
         void UpdateLocomotionActions()
