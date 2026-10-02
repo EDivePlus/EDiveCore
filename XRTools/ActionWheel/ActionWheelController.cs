@@ -15,9 +15,18 @@ using UnityEngine.UI;
 
 namespace EDIVE.XRTools.ActionWheel
 {
+    public enum ActionWheelMode
+    {
+        Toggle,
+        Hold
+    }
+
     [RequireComponent(typeof(Canvas))]
     public class ActionWheelController : MonoBehaviour
     {
+        [SerializeField]
+        private ActionWheelMode _Mode = ActionWheelMode.Toggle;
+
         [SerializeField]
         private Hand _LeftHand;
 
@@ -46,7 +55,6 @@ namespace EDIVE.XRTools.ActionWheel
         private Canvas _canvas;
         private RadialLayout _layout;
 
-        private Vector2 ThumbstickPosition => _activeHand?.ThumbstickPosition ?? Vector2.zero;
         private IEnumerable<AActionWheelWedge> VisibleWedges => _wedges.Where(wedge => wedge.gameObject.activeSelf);
 
         private void Awake()
@@ -57,32 +65,70 @@ namespace EDIVE.XRTools.ActionWheel
             _layout = GetComponentInChildren<RadialLayout>(true);
         }
 
+        private void OnEnable()
+        {
+            Subscribe(_LeftHand);
+            Subscribe(_RightHand);
+        }
+
         private void OnDisable()
         {
+            Unsubscribe(_LeftHand);
+            Unsubscribe(_RightHand);
             Hide(true);
         }
 
-        private void Update()
+        private void Subscribe(Hand hand)
         {
-            if (_activeHand != null)
-            {
-                if (_activeHand.IsPressed)
-                {
-                    UpdateHover();
-                    return;
-                }
+            hand.Pressed += OnPressed;
+            hand.Released += OnReleased;
+            hand.ThumbstickChanged += OnThumbstickChanged;
+            hand.Bind();
+        }
 
-                var selectedWedge = _hoveredWedge;
+        private void Unsubscribe(Hand hand)
+        {
+            hand.Unbind();
+            hand.Pressed -= OnPressed;
+            hand.Released -= OnReleased;
+            hand.ThumbstickChanged -= OnThumbstickChanged;
+        }
+
+        private void OnPressed(Hand hand)
+        {
+            if (_activeHand == null)
+                Show(hand);
+            else if (_Mode == ActionWheelMode.Toggle && hand == _activeHand)
                 Hide();
-                if (selectedWedge != null && selectedWedge.CanExecute)
-                    selectedWedge.ExecuteActions();
-                return;
-            }
+        }
 
-            if (_LeftHand.IsPressed)
-                Show(_LeftHand);
-            else if (_RightHand.IsPressed)
-                Show(_RightHand);
+        private void OnReleased(Hand hand)
+        {
+            if (_Mode == ActionWheelMode.Hold && hand == _activeHand)
+                HideAndExecute();
+        }
+
+        private void OnThumbstickChanged(Hand hand, Vector2 value)
+        {
+            if (hand != _activeHand)
+                return;
+
+            var previousHovered = _hoveredWedge;
+            SetHoveredWedge(value.magnitude >= _HoverThreshold ? FindWedge(value) : null);
+
+            if (_Mode == ActionWheelMode.Toggle && previousHovered != null && _hoveredWedge == null)
+            {
+                SetHoveredWedge(previousHovered);
+                HideAndExecute();
+            }
+        }
+
+        private void HideAndExecute()
+        {
+            var selectedWedge = _hoveredWedge;
+            Hide();
+            if (selectedWedge != null && selectedWedge.CanExecute)
+                selectedWedge.ExecuteActions();
         }
 
         private void Show(Hand hand)
@@ -132,12 +178,6 @@ namespace EDIVE.XRTools.ActionWheel
                 LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform) _layout.transform);
         }
 
-        private void UpdateHover()
-        {
-            var thumbstick = ThumbstickPosition;
-            SetHoveredWedge(thumbstick.magnitude >= _HoverThreshold ? FindWedge(thumbstick) : null);
-        }
-
         private AActionWheelWedge FindWedge(Vector2 direction)
         {
             var angle = Mathf.Atan2(-direction.x, direction.y) * Mathf.Rad2Deg;
@@ -174,8 +214,47 @@ namespace EDIVE.XRTools.ActionWheel
             private ControllerInputActionManager _InputActionManager;
 
             public Transform Anchor => _Anchor;
-            public bool IsPressed => _Anchor != null && _ThumbstickClick != null && _ThumbstickClick.action.IsPressed();
-            public Vector2 ThumbstickPosition => _Thumbstick != null ? _Thumbstick.action.ReadValue<Vector2>() : Vector2.zero;
+
+            public event Action<Hand> Pressed;
+            public event Action<Hand> Released;
+            public event Action<Hand, Vector2> ThumbstickChanged;
+
+            public void Bind()
+            {
+                if (_Anchor == null)
+                    return;
+
+                if (_ThumbstickClick != null)
+                {
+                    _ThumbstickClick.action.performed += OnClickPerformed;
+                    _ThumbstickClick.action.canceled += OnClickCanceled;
+                }
+
+                if (_Thumbstick != null)
+                {
+                    _Thumbstick.action.performed += OnThumbstick;
+                    _Thumbstick.action.canceled += OnThumbstick;
+                }
+            }
+
+            public void Unbind()
+            {
+                if (_ThumbstickClick != null)
+                {
+                    _ThumbstickClick.action.performed -= OnClickPerformed;
+                    _ThumbstickClick.action.canceled -= OnClickCanceled;
+                }
+
+                if (_Thumbstick != null)
+                {
+                    _Thumbstick.action.performed -= OnThumbstick;
+                    _Thumbstick.action.canceled -= OnThumbstick;
+                }
+            }
+
+            private void OnClickPerformed(InputAction.CallbackContext _) => Pressed?.Invoke(this);
+            private void OnClickCanceled(InputAction.CallbackContext _) => Released?.Invoke(this);
+            private void OnThumbstick(InputAction.CallbackContext context) => ThumbstickChanged?.Invoke(this, context.ReadValue<Vector2>());
 
             public void RequestThumbstickControl(object requester)
             {
