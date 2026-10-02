@@ -142,7 +142,16 @@ namespace EDIVE.ServiceHub.Lobby
             if (string.IsNullOrEmpty(request.AppSecret))
                 request.AppSecret = Settings.AppSecret;
 
-            var response = await RestUtils.PostAsync<ApiResponse<List<LobbyServerResponse>>, QueryServersRequest>(
+            var response = await PostQueryAsync(request, cancellationToken);
+            // Transport error (stale keep-alive, reset). Query is read-only, safe to retry.
+            if (!response.IsSuccess && response.StatusCode == 0)
+                response = await PostQueryAsync(request, cancellationToken);
+            return ApiResponseHelper.UnwrapApi(response, "QueryServers");
+        }
+
+        private UniTask<NetworkResponse<ApiResponse<List<LobbyServerResponse>>>> PostQueryAsync(QueryServersRequest request, CancellationToken cancellationToken)
+        {
+            return RestUtils.PostAsync<ApiResponse<List<LobbyServerResponse>>, QueryServersRequest>(
                 QueryUrl,
                 request,
                 authToken: null,
@@ -150,7 +159,6 @@ namespace EDIVE.ServiceHub.Lobby
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, "QueryServers");
         }
     }
 }

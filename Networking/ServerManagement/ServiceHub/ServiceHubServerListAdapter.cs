@@ -194,10 +194,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     var response = await Lobby.QueryServersAsync(
                         new QueryServersRequest { Count = _QueryCount, Skip = 0 },
                         cancellationToken);
-                    var records = response.IsSuccess && response.Result != null
-                        ? BuildRecords(response.Result)
-                        : Array.Empty<ServerRecord>();
-                    SetServers(records);
+                    // Keep last list on failed poll
+                    if (response.IsSuccess && response.Result != null)
+                        SetServers(BuildRecords(response.Result));
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {

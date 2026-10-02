@@ -12,7 +12,10 @@ namespace EDIVE.ServiceHub
         {
             if (!response.IsSuccess && response.Result == null)
             {
-                Debug.LogError($"[ServiceHub] {scope} request failed: {response.ErrorMessage}");
+                if (response.StatusCode == 0)
+                    Debug.LogWarning($"[ServiceHub] {scope} request failed (no response): {response.ErrorMessage}");
+                else
+                    Debug.LogError($"[ServiceHub] {scope} request failed: {response.ErrorMessage}");
                 return NetworkResponse<T>.Error(response.StatusCode, response.ErrorMessage);
             }
 
