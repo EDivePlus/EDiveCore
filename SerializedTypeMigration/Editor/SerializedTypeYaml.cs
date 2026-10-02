@@ -7,9 +7,10 @@ using System.Text.RegularExpressions;
 
 namespace EDIVE.SerializedTypeMigration.Editor
 {
-    // Unity writes a managed reference type in two single line forms:
+    // Unity writes a managed reference type in two forms:
     //   owned:    type: {class: X, ns: Y, asm: Z}
     //   override: propertyPath: managedReferences[id]  +  value: <asm> <full name>
+    // long values fold onto deeper indented next lines
     public static class SerializedTypeYaml
     {
         private const string YAML_HEADER = "%YAML";
@@ -19,10 +20,12 @@ namespace EDIVE.SerializedTypeMigration.Editor
             @"type:\s*\{\s*class:\s*(?<class>'(?:[^']|'')*'|[^,}]*?)\s*,\s*ns:\s*(?<ns>[^,}]*?)\s*,\s*asm:\s*(?<asm>[^,}]*?)\s*\}",
             RegexOptions.Compiled);
 
-        // only bare managedReferences[id] is a type, managedReferences[id].Field is data
+        // only bare managedReferences[id] is a type, managedReferences[id].Field is data. plain value continues on deeper lines
         private static readonly Regex OVERRIDE_ENTRY = new(
-            @"(?<prefix>propertyPath:\s*'?managedReferences\[-?\d+\]'?\s*\r?\n\s*value:[ \t]*)(?<value>'(?:[^']|'')*'|[^\r\n]*)",
+            @"(?<prefix>propertyPath:[ \t]*'?managedReferences\[-?\d+\]'?[ \t]*\r?\n(?<indent>[ \t]*)value:[ \t]*)(?<value>'(?:[^']|'')*'|[^\r\n]*(?:\r?\n\k<indent>[ \t]+[^\r\n]*)*)",
             RegexOptions.Compiled);
+
+        private static readonly Regex LINE_FOLD = new(@"[ \t]*\r?\n[ \t]*", RegexOptions.Compiled);
 
         private static readonly char[] QUOTE_TRIGGERS = { ',', '{', '}', '[', ']', '\'', '"', '#', ':', '&', '*', '!', '|', '>', '%', '@', '`' };
 
@@ -79,13 +82,17 @@ namespace EDIVE.SerializedTypeMigration.Editor
             File.WriteAllText(path, content, hasBom ? WITH_BOM : WITHOUT_BOM);
 
         private static SerializedTypeIdentity FromTypeEntry(Match match) =>
-            new(Unquote(match.Groups["class"].Value), match.Groups["ns"].Value, match.Groups["asm"].Value);
+            new(ReadScalar(match.Groups["class"].Value), match.Groups["ns"].Value, match.Groups["asm"].Value);
 
         private static SerializedTypeIdentity FromOverrideEntry(Match match) =>
-            SerializedTypeIdentity.FromOverrideValue(Unquote(match.Groups["value"].Value));
+            SerializedTypeIdentity.FromOverrideValue(ReadScalar(match.Groups["value"].Value));
 
-        private static string Unquote(string value) =>
-            value.Length >= 2 && value[0] == '\'' && value[^1] == '\'' ? value[1..^1].Replace("''", "'") : value;
+        // folded line break reads as one space
+        private static string ReadScalar(string value)
+        {
+            var text = value.Length >= 2 && value[0] == '\'' && value[^1] == '\'' ? value[1..^1].Replace("''", "'") : value;
+            return LINE_FOLD.Replace(text, " ");
+        }
 
         private static string Quote(string value) =>
             string.IsNullOrEmpty(value) || value.IndexOfAny(QUOTE_TRIGGERS) < 0 ? value : $"'{value.Replace("'", "''")}'";

@@ -16,6 +16,13 @@ namespace EDIVE.SerializedTypeMigration.Tests
             return result;
         }
 
+        // like MigrationMap.Resolve with no hops: generic names come back recomposed
+        private static SerializedTypeIdentity Recompose(SerializedTypeIdentity id)
+        {
+            var name = GenericTypeName.Parse(id.Class);
+            return name == null ? id : new SerializedTypeIdentity(GenericTypeName.Compose(name.Open, name.Arguments), id.Namespace, id.Assembly);
+        }
+
         [Test]
         public void Read_PlainTriple()
         {
@@ -76,6 +83,43 @@ namespace EDIVE.SerializedTypeMigration.Tests
         }
 
         [Test]
+        public void Read_PrefabOverrideValue_Folded()
+        {
+            const string folded =
+                "    - propertyPath: 'managedReferences[123]'\n" +
+                "      value: 'Assembly-CSharp EDIVE.Tests.Boxed`1[[UnityEngine.Transform,\n" +
+                "        UnityEngine.CoreModule]]'\n" +
+                "      objectReference: {fileID: 0}\n";
+            const string single =
+                "    - propertyPath: 'managedReferences[123]'\n" +
+                "      value: 'Assembly-CSharp EDIVE.Tests.Boxed`1[[UnityEngine.Transform, UnityEngine.CoreModule]]'\n";
+
+            Assert.AreEqual(SerializedTypeYaml.Read(single).Single(), SerializedTypeYaml.Read(folded).Single());
+        }
+
+        [Test]
+        public void Read_PlainPrefabOverrideValue_Folded()
+        {
+            const string yaml =
+                "    - propertyPath: managedReferences[123]\n" +
+                "      value: Assembly-CSharp\n" +
+                "        EDIVE.Tests.StablePayload\n" +
+                "      objectReference: {fileID: 0}\n";
+
+            Assert.AreEqual(new SerializedTypeIdentity("StablePayload", "EDIVE.Tests", "Assembly-CSharp"), SerializedTypeYaml.Read(yaml).Single());
+        }
+
+        [Test]
+        public void Read_TripleFolded()
+        {
+            const string yaml =
+                "      type: {class: 'Boxed`1[[UnityEngine.Transform,\n" +
+                "        UnityEngine.CoreModule]]', ns: EDIVE.Tests, asm: Some.Asm}";
+
+            Assert.AreEqual("Boxed`1[[UnityEngine.Transform, UnityEngine.CoreModule]]", SerializedTypeYaml.Read(yaml).Single().Class);
+        }
+
+        [Test]
         public void Read_IgnoresOverrideFieldValues()
         {
             const string yaml =
@@ -102,6 +146,23 @@ namespace EDIVE.SerializedTypeMigration.Tests
                 "      value: Assembly-CSharp EDIVE.Tests.StablePayload\r\n";
 
             Assert.AreEqual(yaml, Unchanged(yaml));
+        }
+
+        [Test]
+        public void Rewrite_FoldedIsByteIdenticalWhenNothingMoves()
+        {
+            const string yaml =
+                "      type: {class: 'Boxed`1[[UnityEngine.Transform,\r\n" +
+                "        UnityEngine.CoreModule]]', ns: EDIVE.Tests, asm: Some.Asm}\r\n" +
+                "    - propertyPath: 'managedReferences[9]'\r\n" +
+                "      value: 'Some.Asm EDIVE.Tests.Boxed`1[[UnityEngine.Transform,\r\n" +
+                "        UnityEngine.CoreModule]]'\r\n" +
+                "      objectReference: {fileID: 0}\r\n";
+
+            var result = SerializedTypeYaml.Rewrite(yaml, Recompose, out var rewritten);
+
+            Assert.AreEqual(0, rewritten, "unity folds long values, folding alone is no migration");
+            Assert.AreEqual(yaml, result);
         }
 
         [Test]
@@ -174,6 +235,25 @@ namespace EDIVE.SerializedTypeMigration.Tests
                 _ => Id("New`1[[System.Int32, mscorlib]]", "New.Ns", "New.Asm"), out _);
 
             StringAssert.Contains("value: 'New.Asm New.Ns.New`1[[System.Int32, mscorlib]]'", result);
+        }
+
+        [Test]
+        public void Rewrite_FoldedPrefabOverrideValue()
+        {
+            const string yaml =
+                "    - propertyPath: 'managedReferences[123]'\n" +
+                "      value: 'Old.Asm Old.Ns.Old`1[[UnityEngine.Transform,\n" +
+                "        UnityEngine.CoreModule]]'\n" +
+                "      objectReference: {fileID: 0}\n";
+
+            var result = SerializedTypeYaml.Rewrite(yaml,
+                id => id.Open().Class == "Old`1" ? Id("New`1" + id.GenericArguments, "New.Ns", "New.Asm") : id, out var rewritten);
+
+            Assert.AreEqual(1, rewritten);
+            Assert.AreEqual(
+                "    - propertyPath: 'managedReferences[123]'\n" +
+                "      value: 'New.Asm New.Ns.New`1[[UnityEngine.Transform, UnityEngine.CoreModule]]'\n" +
+                "      objectReference: {fileID: 0}\n", result);
         }
 
         [Test]
