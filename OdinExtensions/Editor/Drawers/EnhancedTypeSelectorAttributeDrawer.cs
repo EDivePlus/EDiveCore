@@ -30,6 +30,11 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private bool _showInInlineEditors;
 
+        protected override bool CanDrawAttributeValueProperty(InspectorProperty property)
+        {
+            return property.ChildResolver is not ICollectionResolver;
+        }
+
         protected override void Initialize()
         {
             if (Attribute.OnTypeChanged != null)
