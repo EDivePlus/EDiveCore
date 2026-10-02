@@ -14,9 +14,11 @@ using Sirenix.OdinInspector;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.XR.Interaction.Toolkit;
 
 namespace EDIVE.XRTools
 {
+    [DefaultExecutionOrder(XRInteractionUpdateOrder.k_XRBodyTransformer + 1)]
     public class SmoothCameraFollower : MonoBehaviour
     {
         private enum FollowMode
@@ -232,13 +234,21 @@ namespace EDIVE.XRTools
             SetFollowing(_AutoFollowCondition != null && _AutoFollowCondition.Evaluate());
         }
 
+        // after rig moves, before UI raycast. LateUpdate = UI hits stale pose while moving
         private void Update()
         {
             SampleReferenceFrame();
+
+            // the reposition tween drives the world pose directly
+            if (_repositionTween.IsActive() && _repositionTween.IsPlaying())
+                return;
+
+            if (_isFollowing)
+                FollowCamera();
+            else
+                HoldInReferenceFrame();
         }
 
-        // sample in Update: an interpolated rigidbody frame updates its
-        // transform after Update, so a LateUpdate read would lag a frame.
         private void SampleReferenceFrame()
         {
             var space = _ReferenceFrame?.Value;
@@ -250,18 +260,6 @@ namespace EDIVE.XRTools
             _frameSamplePosition = space.position;
             _frameSampleRotation = space.rotation;
             _hasFrameSample = true;
-        }
-
-        private void LateUpdate()
-        {
-            // the reposition tween drives the world pose directly
-            if (_repositionTween.IsActive() && _repositionTween.IsPlaying())
-                return;
-
-            if (_isFollowing)
-                FollowCamera();
-            else
-                HoldInReferenceFrame();
         }
 
         public void SetFollowing(bool following)
