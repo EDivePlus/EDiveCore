@@ -4,14 +4,12 @@
 using System.Threading.Tasks;
 using EDIVE.NativeUtils;
 using EDIVE.ServiceHub.Auth;
-using PurrNet;
 using PurrNet.Authentication;
 using PurrNet.Transports;
 using UnityEngine;
 
 namespace EDIVE.Networking.ServiceHub
 {
-    [RegisterNetworkType(typeof(AuthenticationRequest<string>))]
     public class ServiceHubAuthenticator : AuthenticationBehaviour<string>
     {
         protected override Task<AuthenticationRequest<string>> GetClientPayload()
