@@ -82,6 +82,7 @@ namespace EDIVE.XRTools.ActionWheel
         {
             hand.Pressed += OnPressed;
             hand.Released += OnReleased;
+            hand.CancelPressed += OnCancelPressed;
             hand.ThumbstickChanged += OnThumbstickChanged;
             hand.Bind();
         }
@@ -91,6 +92,7 @@ namespace EDIVE.XRTools.ActionWheel
             hand.Unbind();
             hand.Pressed -= OnPressed;
             hand.Released -= OnReleased;
+            hand.CancelPressed -= OnCancelPressed;
             hand.ThumbstickChanged -= OnThumbstickChanged;
         }
 
@@ -106,6 +108,12 @@ namespace EDIVE.XRTools.ActionWheel
         {
             if (_Mode == ActionWheelMode.Hold && hand == _activeHand)
                 HideAndExecute();
+        }
+
+        private void OnCancelPressed(Hand hand)
+        {
+            if (hand == _activeHand)
+                Hide();
         }
 
         private void OnThumbstickChanged(Hand hand, Vector2 value)
@@ -208,6 +216,9 @@ namespace EDIVE.XRTools.ActionWheel
             private InputActionReference _Thumbstick;
 
             [SerializeField]
+            private InputActionReference _Cancel;
+
+            [SerializeField]
             private Transform _Anchor;
 
             [SerializeField]
@@ -217,6 +228,7 @@ namespace EDIVE.XRTools.ActionWheel
 
             public event Action<Hand> Pressed;
             public event Action<Hand> Released;
+            public event Action<Hand> CancelPressed;
             public event Action<Hand, Vector2> ThumbstickChanged;
 
             public void Bind()
@@ -235,6 +247,9 @@ namespace EDIVE.XRTools.ActionWheel
                     _Thumbstick.action.performed += OnThumbstick;
                     _Thumbstick.action.canceled += OnThumbstick;
                 }
+
+                if (_Cancel != null)
+                    _Cancel.action.performed += OnCancelPerformed;
             }
 
             public void Unbind()
@@ -250,10 +265,14 @@ namespace EDIVE.XRTools.ActionWheel
                     _Thumbstick.action.performed -= OnThumbstick;
                     _Thumbstick.action.canceled -= OnThumbstick;
                 }
+
+                if (_Cancel != null)
+                    _Cancel.action.performed -= OnCancelPerformed;
             }
 
             private void OnClickPerformed(InputAction.CallbackContext _) => Pressed?.Invoke(this);
             private void OnClickCanceled(InputAction.CallbackContext _) => Released?.Invoke(this);
+            private void OnCancelPerformed(InputAction.CallbackContext _) => CancelPressed?.Invoke(this);
             private void OnThumbstick(InputAction.CallbackContext context) => ThumbstickChanged?.Invoke(this, context.ReadValue<Vector2>());
 
             public void RequestThumbstickControl(object requester)
