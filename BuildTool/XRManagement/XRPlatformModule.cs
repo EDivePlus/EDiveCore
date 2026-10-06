@@ -40,7 +40,7 @@ namespace EDIVE.BuildTool.XRManagement
             
             var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);
-            var pluginsSettings = buildTargetSettings != null ? buildTargetSettings.AssignedSettings : null;
+            var pluginsSettings = buildTargetSettings != null ? buildTargetSettings.Manager : null;
             if (pluginsSettings == null)
             {
                 Debug.LogWarning($"[XRPlatformModule] No XR settings for {buildTargetGroup}, loaders not applied.");
@@ -62,7 +62,7 @@ namespace EDIVE.BuildTool.XRManagement
             
             var buildTargetGroup = context.PlatformConfig.BuildTargetGroup;
             var buildTargetSettings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(buildTargetGroup);
-            var pluginsSettings = buildTargetSettings != null ? buildTargetSettings.AssignedSettings : null;
+            var pluginsSettings = buildTargetSettings != null ? buildTargetSettings.Manager : null;
             if (pluginsSettings == null || data._PrevLoaders == null)
                 yield break;
             pluginsSettings.activeLoaders.ToList().ForEach(l => pluginsSettings.TryRemoveLoader(l));
