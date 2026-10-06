@@ -50,6 +50,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         [ToggleUI] _ScaleInvariant("Scale Invariant", Float) = 0.0
         _Tiling("Tiling", Vector) = (1, 1, 1, 0)
         _ProjectionOffset("Offset", Vector) = (0, 0, 0, 0)
+        _PlaneRotation("Plane Rotation", Vector) = (0, 0, 0, 0)
         _BlendSharpness("Blend Sharpness", Range(1.0, 64.0)) = 8.0
 
         // Set by material GUI
@@ -107,6 +108,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         CBUFFER_START(UnityPerMaterial)
             float4 _Tiling;
             float4 _ProjectionOffset;
+            float4 _PlaneRotation;
             float4 _DetailTiling;
             float4 _DetailOffset;
             half4 _BaseColor;
@@ -172,13 +174,26 @@ Shader "EDIVE/TriPlanar Projection Lit"
         #endif
         }
 
+        float2 RotatePlane(float2 v, float degrees)
+        {
+            float s, c;
+            sincos(radians(degrees), s, c);
+            return float2(c * v.x - s * v.y, s * v.x + c * v.y);
+        }
+
+        TriplanarUV ProjectPlanes(float3 p)
+        {
+            TriplanarUV uv;
+            uv.x = RotatePlane(p.zy, _PlaneRotation.x);
+            uv.y = RotatePlane(p.xz, _PlaneRotation.y);
+            uv.z = RotatePlane(p.xy, _PlaneRotation.z);
+            uv.weights = 0;
+            return uv;
+        }
+
         TriplanarUV GetTriplanarUV(float3 position, float3 normal, float3 tiling)
         {
-            float3 p = (position - _ProjectionOffset.xyz) * tiling;
-            TriplanarUV uv;
-            uv.x = p.zy;
-            uv.y = p.xz;
-            uv.z = p.xy;
+            TriplanarUV uv = ProjectPlanes((position - _ProjectionOffset.xyz) * tiling);
             float3 weights = pow(abs(normal), _BlendSharpness);
             uv.weights = half3(weights / (weights.x + weights.y + weights.z));
             return uv;
@@ -187,11 +202,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         // Shares base weights
         TriplanarUV GetDetailUV(float3 position, TriplanarUV baseUV)
         {
-            float3 p = (position - _ProjectionOffset.xyz - _DetailOffset.xyz) * _DetailTiling.xyz;
-            TriplanarUV uv;
-            uv.x = p.zy;
-            uv.y = p.xz;
-            uv.z = p.xy;
+            TriplanarUV uv = ProjectPlanes((position - _ProjectionOffset.xyz - _DetailOffset.xyz) * _DetailTiling.xyz);
             uv.weights = baseUV.weights;
             return uv;
         }
@@ -214,10 +225,11 @@ Shader "EDIVE/TriPlanar Projection Lit"
         #if defined(_PARALLAXMAP)
             half3 v = half3(normalize(WorldToProjectionDir(viewDirWS)));
             half3 facing = half3(sign(normal.x), sign(normal.y), sign(normal.z));
+            float3 rotation = _PlaneRotation.xyz;
 
-            float2 offsetX = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(v.z, v.y, v.x * facing.x), _Parallax, uv.x);
-            float2 offsetY = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(v.x, v.z, v.y * facing.y), _Parallax, uv.y);
-            float2 offsetZ = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(v.x, v.y, v.z * facing.z), _Parallax, uv.z);
+            float2 offsetX = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(RotatePlane(v.zy, rotation.x), v.x * facing.x), _Parallax, uv.x);
+            float2 offsetY = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(RotatePlane(v.xz, rotation.y), v.y * facing.y), _Parallax, uv.y);
+            float2 offsetZ = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(RotatePlane(v.xy, rotation.z), v.z * facing.z), _Parallax, uv.z);
 
             uv.x += offsetX;
             uv.y += offsetY;
@@ -227,9 +239,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             float3 baseTiling = _Tiling.xyz;
             baseTiling = abs(baseTiling) < 1e-6 ? float3(1, 1, 1) : baseTiling;
             float3 ratio = _DetailTiling.xyz / baseTiling;
-            detailUV.x += offsetX * ratio.zy;
-            detailUV.y += offsetY * ratio.xz;
-            detailUV.z += offsetZ * ratio.xy;
+            detailUV.x += RotatePlane(RotatePlane(offsetX, -rotation.x) * ratio.zy, rotation.x);
+            detailUV.y += RotatePlane(RotatePlane(offsetY, -rotation.y) * ratio.xz, rotation.y);
+            detailUV.z += RotatePlane(RotatePlane(offsetZ, -rotation.z) * ratio.xy, rotation.z);
         #endif
         }
 
@@ -285,6 +297,11 @@ Shader "EDIVE/TriPlanar Projection Lit"
             normalX = ApplyDetailNormal(normalX, detailUV.x, detailMask);
             normalY = ApplyDetailNormal(normalY, detailUV.y, detailMask);
             normalZ = ApplyDetailNormal(normalZ, detailUV.z, detailMask);
+
+            float3 rotation = _PlaneRotation.xyz;
+            normalX.xy = half2(RotatePlane(normalX.xy, -rotation.x));
+            normalY.xy = half2(RotatePlane(normalY.xy, -rotation.y));
+            normalZ.xy = half2(RotatePlane(normalZ.xy, -rotation.z));
 
             normalX = half3(normalX.xy + normal.zy, abs(normalX.z) * normal.x);
             normalY = half3(normalY.xy + normal.xz, abs(normalY.z) * normal.y);

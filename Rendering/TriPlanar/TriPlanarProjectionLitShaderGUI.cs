@@ -16,6 +16,7 @@ namespace EDIVE.Rendering.TriPlanar
         private static readonly GUIContent SCALE_INVARIANT = EditorGUIUtility.TrTextContent("Scale Invariant", "Ignore object scale so the texture doesn't stretch.");
         private static readonly GUIContent TILING = EditorGUIUtility.TrTextContent("Tiling", "Repeats per unit, per axis.");
         private static readonly GUIContent OFFSET = EditorGUIUtility.TrTextContent("Offset", "Shifts the projection origin.");
+        private static readonly GUIContent PLANE_ROTATION = EditorGUIUtility.TrTextContent("Plane Rotation", "Rotates the texture on the X, Y and Z facing sides, in degrees.");
         private static readonly GUIContent BLEND_SHARPNESS = EditorGUIUtility.TrTextContent("Blend Sharpness", "Higher is sharper.");
 
         private static readonly GUIContent DETAIL_HEADER = EditorGUIUtility.TrTextContent("Detail Inputs", "Overlaid at its own tiling.");
@@ -29,6 +30,7 @@ namespace EDIVE.Rendering.TriPlanar
         private const string SCALE_INVARIANT_PROP = "_ScaleInvariant";
         private const string TILING_PROP = "_Tiling";
         private const string PROJECTION_OFFSET_PROP = "_ProjectionOffset";
+        private const string PLANE_ROTATION_PROP = "_PlaneRotation";
         private const string BLEND_SHARPNESS_PROP = "_BlendSharpness";
         private const string DETAIL_MASK_PROP = "_DetailMask";
         private const string DETAIL_ALBEDO_MAP_PROP = "_DetailAlbedoMap";
@@ -40,7 +42,7 @@ namespace EDIVE.Rendering.TriPlanar
 
         private const string DETAIL_MULX2_KEYWORD = "_DETAIL_MULX2";
         private const string DETAIL_SCALED_KEYWORD = "_DETAIL_SCALED";
-        
+
         private static readonly int DETAIL_ALBEDO_MAP_ID = Shader.PropertyToID(DETAIL_ALBEDO_MAP_PROP);
         private static readonly int DETAIL_ALBEDO_MAP_SCALE_ID = Shader.PropertyToID(DETAIL_ALBEDO_MAP_SCALE_PROP);
         private static readonly int DETAIL_NORMAL_MAP_ID = Shader.PropertyToID(DETAIL_NORMAL_MAP_PROP);
@@ -52,6 +54,7 @@ namespace EDIVE.Rendering.TriPlanar
         private MaterialProperty _scaleInvariant;
         private MaterialProperty _tiling;
         private MaterialProperty _projectionOffset;
+        private MaterialProperty _planeRotation;
         private MaterialProperty _blendSharpness;
 
         private MaterialProperty _detailMask;
@@ -72,6 +75,7 @@ namespace EDIVE.Rendering.TriPlanar
             _scaleInvariant = FindProperty(SCALE_INVARIANT_PROP, properties, false);
             _tiling = FindProperty(TILING_PROP, properties, false);
             _projectionOffset = FindProperty(PROJECTION_OFFSET_PROP, properties, false);
+            _planeRotation = FindProperty(PLANE_ROTATION_PROP, properties, false);
             _blendSharpness = FindProperty(BLEND_SHARPNESS_PROP, properties, false);
 
             _detailMask = FindProperty(DETAIL_MASK_PROP, properties, false);
@@ -137,6 +141,7 @@ namespace EDIVE.Rendering.TriPlanar
                 Draw(_scaleInvariant, SCALE_INVARIANT, 1);
             DrawVector3(_tiling, TILING);
             DrawVector3(_projectionOffset, OFFSET);
+            DrawVector3(_planeRotation, PLANE_ROTATION);
             Draw(_blendSharpness, BLEND_SHARPNESS);
         }
 
@@ -154,7 +159,7 @@ namespace EDIVE.Rendering.TriPlanar
             if (property != null)
                 materialEditor.ShaderProperty(property, label, indent);
         }
-        
+
         private void DrawVector3(MaterialProperty property, GUIContent label)
         {
             if (property == null)
