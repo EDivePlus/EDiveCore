@@ -1,0 +1,19 @@
+{
+    "name": "EDIVE.View.ViewTree",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
