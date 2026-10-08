@@ -1,0 +1,22 @@
+{
+    "name": "EDIVE.View.ViewTree.Editor",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.View.ViewTree",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.EditorUtils",
+        "EDIVE.OdinExtensions.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
