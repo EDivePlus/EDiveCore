@@ -10,7 +10,8 @@
         "Unity.TextMeshPro",
         "EDIVE.StateHandling",
         "EDIVE.Utils",
-        "EDIVE.Core"
+        "EDIVE.Core",
+        "EDIVE.Utils.DrivenValues"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

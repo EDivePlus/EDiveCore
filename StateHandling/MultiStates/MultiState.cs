@@ -9,6 +9,7 @@ using Sirenix.Utilities;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using EDIVE.Utils.DrivenValues;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 using UnityEditor;
@@ -48,6 +49,16 @@ namespace EDIVE.StateHandling.MultiStates
         public override void AddState(string id)
         {
             _StatePresets.Add(new MultiStateRecord(id));
+        }
+
+        public override void PopulateDrivenValues(DrivenValuesCollection values)
+        {
+            foreach (var statePreset in _StatePresets)
+            {
+                if (statePreset == null) continue;
+                foreach (var objectPreset in statePreset.ObjectPresets)
+                    objectPreset?.PopulateDrivenValues(values);
+            }
         }
 
         public override bool RemoveState(string id)

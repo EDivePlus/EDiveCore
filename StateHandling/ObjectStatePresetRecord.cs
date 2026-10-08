@@ -9,6 +9,7 @@ using Sirenix.Utilities;
 using UnityEngine;
 
 #if UNITY_EDITOR
+using EDIVE.Utils.DrivenValues;
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
@@ -76,6 +77,16 @@ namespace EDIVE.StateHandling
         }
 
 #if UNITY_EDITOR
+        public void PopulateDrivenValues(DrivenValuesCollection values)
+        {
+            values.Add(_Target);
+            foreach (var preset in _ValuePresets)
+            {
+                if (preset != null)
+                    values.Add(_Target, preset.Title);
+            }
+        }
+
         public void SetDirty()
         {
             if (_Target == null)

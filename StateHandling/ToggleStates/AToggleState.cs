@@ -1,5 +1,6 @@
 using System;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Utils.DrivenValues;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ using UnityEditor;
 
 namespace EDIVE.StateHandling.ToggleStates
 {
-    public abstract class AToggleState : MonoBehaviour
+    public abstract class AToggleState : MonoBehaviour, IValueDriver
     {
         [PropertyOrder(-10)]
         [SerializeField]
@@ -67,5 +68,9 @@ namespace EDIVE.StateHandling.ToggleStates
             if(_SetDefaultStateOnAwake)
                 SetState(DefaultState);
         }
+
+#if UNITY_EDITOR
+        public abstract void PopulateDrivenValues(DrivenValuesCollection values);
+#endif
     }
 }

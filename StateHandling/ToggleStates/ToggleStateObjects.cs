@@ -2,6 +2,10 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using EDIVE.Utils.DrivenValues;
+#endif
+
 namespace EDIVE.StateHandling.ToggleStates
 {
     public class ToggleStateObjects : AToggleState
@@ -32,5 +36,15 @@ namespace EDIVE.StateHandling.ToggleStates
                 target.SetActive(active);
             }
         }
+
+#if UNITY_EDITOR
+        public override void PopulateDrivenValues(DrivenValuesCollection values)
+        {
+            foreach (var target in _OnTargets)
+                values.Add(target, "Active");
+            foreach (var target in _OffTargets)
+                values.Add(target, "Active");
+        }
+#endif
     }
 }

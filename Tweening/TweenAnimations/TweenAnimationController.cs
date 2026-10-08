@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Utils.DrivenValues;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -13,7 +14,7 @@ using EDIVE.EditorUtils;
 
 namespace EDIVE.Tweening
 {
-    public class TweenAnimationController : MonoBehaviour, ITweenAnimationPlayer, ITweenTargetProvider, ITweenReferencesHolder
+    public class TweenAnimationController : MonoBehaviour, ITweenAnimationPlayer, ITweenTargetProvider, ITweenReferencesHolder, IValueDriver
     {
         [UsedImplicitly]
         [SerializeField]
@@ -271,6 +272,11 @@ namespace EDIVE.Tweening
         public void PopulateTargets(TweenTargetCollection targets)
         {
             _Sequence.PopulateTargets(targets);
+        }
+
+        public void PopulateDrivenValues(DrivenValuesCollection values)
+        {
+            TweenEditorUtils.PopulateDrivenValues(this, values);
         }
 
         [OnInspectorGUI]

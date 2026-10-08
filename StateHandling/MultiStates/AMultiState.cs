@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.Utils.DrivenValues;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -12,7 +13,7 @@ using UnityEditor;
 
 namespace EDIVE.StateHandling.MultiStates
 {
-    public abstract class AMultiState : MonoBehaviour
+    public abstract class AMultiState : MonoBehaviour, IValueDriver
     {
         [PropertyOrder(-10)]
         [SerializeField]
@@ -82,6 +83,7 @@ namespace EDIVE.StateHandling.MultiStates
 #if UNITY_EDITOR
         public abstract void AddState(string id);
         public abstract bool RemoveState(string id);
+        public abstract void PopulateDrivenValues(DrivenValuesCollection values);
         
         [UsedImplicitly]
         private bool ValidateDefaultState(string value, ref string errorMessage, ref InfoMessageType? messageType)

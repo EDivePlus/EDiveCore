@@ -1,15 +1,9 @@
 {
-    "name": "EDIVE.StateHandling",
+    "name": "EDIVE.Utils.DrivenValues",
     "rootNamespace": "",
     "references": [
-        "Unity.TextMeshPro",
-        "EDIVE.DataStructures",
-        "EDIVE.EditorUtils",
-        "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
-        "EDIVE.Utils",
-        "EDIVE.Utils.DrivenValues",
-        "PurrNet.Runtime"
+        "EDIVE.OdinExtensions.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

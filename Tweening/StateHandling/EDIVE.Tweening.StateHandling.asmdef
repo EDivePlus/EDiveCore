@@ -5,7 +5,8 @@
         "EDIVE.OdinExtensions",
         "EDIVE.StateHandling",
         "EDIVE.Tweening",
-        "EDIVE.NativeUtils"
+        "EDIVE.NativeUtils",
+        "EDIVE.Utils.DrivenValues"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

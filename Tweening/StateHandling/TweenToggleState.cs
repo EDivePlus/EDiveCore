@@ -3,6 +3,10 @@ using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using EDIVE.Utils.DrivenValues;
+#endif
+
 namespace EDIVE.Tweening.StateHandling
 {
     public class TweenToggleState : AToggleState
@@ -28,5 +32,13 @@ namespace EDIVE.Tweening.StateHandling
         }
 
         private ITweenAnimationPlayer GetAnim(bool state) => state ? _EnableAnimation : _DisableAnimation;
+
+#if UNITY_EDITOR
+        public override void PopulateDrivenValues(DrivenValuesCollection values)
+        {
+            TweenEditorUtils.PopulateDrivenValues(_EnableAnimation, values);
+            TweenEditorUtils.PopulateDrivenValues(_DisableAnimation, values);
+        }
+#endif
     }
 }

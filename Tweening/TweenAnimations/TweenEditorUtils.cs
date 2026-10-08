@@ -5,6 +5,7 @@ using DG.Tweening;
 using EDIVE.EditorUtils;
 using EDIVE.OdinExtensions;
 using EDIVE.Tweening.Segments;
+using EDIVE.Utils.DrivenValues;
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
@@ -81,6 +82,24 @@ namespace EDIVE.Tweening
                 }
             }
             return result;
+        }
+
+        public static void PopulateDrivenValues<T>(T animation, DrivenValuesCollection values) where T : ITweenTargetProvider, ITweenReferencesHolder
+        {
+            if (animation == null)
+                return;
+
+            var targets = new TweenTargetCollection();
+            animation.PopulateTargets(targets);
+            foreach (var target in targets.Targets.Keys)
+                values.Add(target);
+
+            var references = animation.GetReferencesDictionary();
+            if (references == null)
+                return;
+
+            foreach (var target in references.Values)
+                values.Add(target);
         }
 
         public static IEnumerable<ValueDropdownItem<ITweenSegment>> GetAllSequenceSegments(InspectorProperty property)
