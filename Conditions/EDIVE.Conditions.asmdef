@@ -3,7 +3,8 @@
   "rootNamespace": "",
   "references": [
     "EDIVE.OdinExtensions",
-    "EDIVE.R3Utils"
+    "EDIVE.R3Utils",
+    "EDIVE.NativeUtils"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
