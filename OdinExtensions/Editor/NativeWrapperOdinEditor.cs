@@ -27,6 +27,7 @@ namespace EDIVE.OdinExtensions.Editor
         private MethodInfo _sceneGUIMethod;
         private MethodInfo _hasFrameBoundsMethod;
         private MethodInfo _getFrameBoundsMethod;
+        private bool _isTreePrepared;
         
         protected abstract Type BaseType { get; }
         protected abstract Type BaseEditorType { get; }
@@ -37,14 +38,6 @@ namespace EDIVE.OdinExtensions.Editor
         protected override void OnEnable()
         {
             base.OnEnable();
-            if (BaseEditorDrawMode != BaseEditorDrawMode.OdinEditor)
-            {
-                foreach (var property in Tree.EnumerateTree())
-                {
-                    if (property.Info.TypeOfOwner.IsAssignableFrom(BaseType))
-                        property.State.Visible = false;
-                }
-            }
 
             // Created right away, native editors register scene handles and overlays in their OnEnable
             CreateUnityEditor();
@@ -97,17 +90,49 @@ namespace EDIVE.OdinExtensions.Editor
                 CreateUnityEditor();
                 if (_unityEditor != null)
                     _unityEditor.OnInspectorGUI();
-                
+
                 GUILayout.Space(4);
             }
 
-            base.OnInspectorGUI();
+            // Not base.OnInspectorGUI, it falls back to the default inspector when the target has no Odin members,
+            // which draws the base members twice and skips the root drawers with validation
+            DrawTree();
         }
 
+        // Odin draws validation and members added on top of the base type, the native editor draws the rest
         protected override void DrawTree()
         {
             Tree.DrawMonoScriptObjectField = false;
+            if (HideBaseFields && BaseEditorDrawMode != BaseEditorDrawMode.OdinEditor)
+            {
+                // Properties are created lazily, the first draw needs them before hiding, later draws update the tree themselves
+                if (!_isTreePrepared)
+                {
+                    Tree.UpdateTree();
+                    _isTreePrepared = true;
+                }
+
+                foreach (var property in Tree.RootProperty.Children)
+                {
+                    if (IsBaseMember(property))
+                        property.State.Visible = false;
+                }
+            }
             base.DrawTree();
+        }
+
+        // Declared on the base type or above, groups count by their members
+        private bool IsBaseMember(InspectorProperty property)
+        {
+            if (property.Info.PropertyType != PropertyType.Group)
+                return property.Info.TypeOfOwner != null && property.Info.TypeOfOwner.IsAssignableFrom(BaseType);
+
+            foreach (var child in property.Children)
+            {
+                if (!IsBaseMember(child))
+                    return false;
+            }
+            return true;
         }
 
         // Unity calls these on the wrapper only, forwarded to the native editor
