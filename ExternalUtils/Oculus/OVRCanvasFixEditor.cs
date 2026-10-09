@@ -1,6 +1,7 @@
 ﻿#if UNITY_EDITOR
 using System;
 using System.Linq;
+using EDIVE.EditorUtils.EditorPriority;
 using EDIVE.OdinExtensions.Editor;
 using Meta.XR.Editor.UserInterface;
 using UnityEditor;
@@ -10,8 +11,9 @@ namespace EDIVE.OculusUtils
 {
 #if UNITY_TEXTMESHPRO
     [CustomEditor(typeof(TMPro.TextMeshPro), true)]
+    [EditorPriority(10)]
     [CanEditMultipleObjects]
-    public class OVRTextFixEditor : TMPro.EditorUtilities.TMP_EditorPanel
+    public class OVRTextFixEditor : NativeWrapperOdinEditor<TMPro.TextMeshPro, TMPro.EditorUtilities.TMP_EditorPanel>
     {
         public override void OnInspectorGUI()
         {
@@ -27,6 +29,7 @@ namespace EDIVE.OculusUtils
 #endif
 
     [CustomEditor(typeof(Canvas))]
+    [EditorPriority(10)]
     [CanEditMultipleObjects]
     public class OVRCanvasFixEditor : NativeWrapperOdinEditor<Canvas>
     {
