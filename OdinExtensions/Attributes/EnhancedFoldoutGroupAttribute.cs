@@ -96,6 +96,7 @@ namespace EDIVE.OdinExtensions.Attributes
                 attr.DefaultColor = DefaultColor;
             }
 
+            UseIf = attr.UseIf = UseIf ?? attr.UseIf;
             Bold = attr.Bold = Bold || attr.Bold;
             HideGroupTitle = attr.HideGroupTitle = HideGroupTitle || attr.HideGroupTitle;
             TitleWidth = attr.TitleWidth = Mathf.Max(TitleWidth, attr.TitleWidth);

@@ -58,30 +58,43 @@ namespace EDIVE.OdinExtensions.Attributes
         {
         }
 
+        // Odin keeps the first member's attribute and merges the others into it, unmerged settings only work on that first member
         protected override void CombineValuesWith(PropertyGroupAttribute other)
         {
-            if (other is EnhancedBoxGroupAttribute attr)
-            {
-                if (!ShowLabel || !attr.ShowLabel)
-                {
-                    ShowLabel = false;
-                    attr.ShowLabel = false;
-                }
+            // Odin merges LabelText
+            base.CombineValuesWith(other);
 
-                CenterLabel |= attr.CenterLabel;
-                
-                if (attr.HasColorDefined) 
-                    Color = attr.Color;
-                
-                if (HasColorDefined) 
-                    attr.Color = Color;
-                
-                Bold = attr.Bold = Bold || attr.Bold;
-                HideGroupTitle = attr.HideGroupTitle = HideGroupTitle || attr.HideGroupTitle;
-                TitleWidth = attr.TitleWidth = Mathf.Max(TitleWidth, attr.TitleWidth);
-                SpaceBefore = attr.SpaceBefore = Mathf.Max(SpaceBefore, attr.SpaceBefore);
-                SpaceAfter = attr.SpaceAfter = Mathf.Max(SpaceAfter, attr.SpaceAfter);
+            if (other is not EnhancedBoxGroupAttribute attr)
+                return;
+
+            if (!ShowLabel || !attr.ShowLabel)
+            {
+                ShowLabel = false;
+                attr.ShowLabel = false;
             }
+
+            CenterLabel |= attr.CenterLabel;
+
+            // Color string and RGB DefaultColor move together
+            if (attr.HasColorDefined)
+            {
+                DefaultColor = attr.DefaultColor;
+                Color = attr.Color;
+            }
+
+            if (HasColorDefined)
+            {
+                attr.Color = Color;
+                attr.DefaultColor = DefaultColor;
+            }
+
+            UseIf = attr.UseIf = UseIf ?? attr.UseIf;
+            Alignment = attr.Alignment = Alignment != ContentAlignment.Left ? Alignment : attr.Alignment;
+            Bold = attr.Bold = Bold || attr.Bold;
+            HideGroupTitle = attr.HideGroupTitle = HideGroupTitle || attr.HideGroupTitle;
+            TitleWidth = attr.TitleWidth = Mathf.Max(TitleWidth, attr.TitleWidth);
+            SpaceBefore = attr.SpaceBefore = Mathf.Max(SpaceBefore, attr.SpaceBefore);
+            SpaceAfter = attr.SpaceAfter = Mathf.Max(SpaceAfter, attr.SpaceAfter);
         }
     }
 }
