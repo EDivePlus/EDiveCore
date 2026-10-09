@@ -1,0 +1,23 @@
+{
+    "name": "EDIVE.OdinExtensions.NativeEditors",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.OdinExtensions.Editor",
+        "EDIVE.EditorUtils",
+        "Unity.TextMeshPro",
+        "Unity.TextMeshPro.Editor",
+        "UnityEngine.UI",
+        "UnityEditor.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
