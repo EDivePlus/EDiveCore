@@ -22,6 +22,10 @@ namespace EDIVE.EditorUtils
                 throw new Exception("Unity CustomEditor internals changed.");
         }
 
+        public static Type GetInspectedType(CustomEditor attribute) => (Type) INSPECTED_TYPE_FIELD.GetValue(attribute);
+
+        public static bool IsForChildClasses(CustomEditor attribute) => (bool) ALLOW_CHILDREN_FIELD.GetValue(attribute);
+
         public static Type GetCustomEditorType(Type inspectedType, Type excludeEditorType = null)
         {
             Type bestMatch = null;
