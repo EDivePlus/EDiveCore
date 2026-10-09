@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EDIVE.Conditions
+namespace EDIVE.NativeUtils
 {
     public enum ComparisonType
     {
@@ -18,10 +18,15 @@ namespace EDIVE.Conditions
 
     public static class ComparisonTypeExtension
     {
-        public static bool CompareValues<TVal>(this ComparisonType comparison, TVal a, TVal b, IComparer<TVal> comparer = null) where TVal : IComparable<TVal>
+        public static bool CompareValues<TVal>(this ComparisonType comparison, TVal a, TVal b, IComparer<TVal> comparer = null)
         {
             comparer ??= Comparer<TVal>.Default;
-            var compareValue = comparer.Compare(a, b);
+            return comparison.Matches(comparer.Compare(a, b));
+        }
+
+        // Matches the result of a Compare call
+        public static bool Matches(this ComparisonType comparison, int compareValue)
+        {
             return comparison switch
             {
                 ComparisonType.EqualsTo => compareValue == 0,

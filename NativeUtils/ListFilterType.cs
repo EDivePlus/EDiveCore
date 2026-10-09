@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EDIVE.Conditions
+namespace EDIVE.NativeUtils
 {
     public enum ListFilterType
     {
