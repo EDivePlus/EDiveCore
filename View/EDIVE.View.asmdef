@@ -6,7 +6,9 @@
         "EDIVE.Core",
         "EDIVE.NativeUtils",
         "EDIVE.AppLoading",
-        "EDIVE.DataStructures"
+        "EDIVE.DataStructures",
+        "EDIVE.OdinExtensions",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
