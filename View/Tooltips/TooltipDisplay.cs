@@ -7,7 +7,7 @@ using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EDIVE.UIElements.Tooltips
+namespace EDIVE.View.Tooltips
 {
     public class TooltipDisplay : MonoBehaviour
     {

@@ -1,7 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 09.03.2026
 
-namespace EDIVE.UIElements.Tooltips
+namespace EDIVE.View.Tooltips
 {
     public enum TooltipPlacement
     {
