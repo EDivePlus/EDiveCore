@@ -1,0 +1,19 @@
+﻿{
+    "name": "EDIVE.View.Tooltips",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.View.ViewTree",
+        "EDIVE.StateHandling",
+        "EDIVE.VisualPresets",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

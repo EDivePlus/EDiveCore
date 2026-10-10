@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using EDIVE.VisualPresets.Presets;
 using UnityEngine;
 
-namespace EDIVE.UIElements.Tooltips
+namespace EDIVE.View.Tooltips
 {
     public class TooltipManager : MonoBehaviour
     {

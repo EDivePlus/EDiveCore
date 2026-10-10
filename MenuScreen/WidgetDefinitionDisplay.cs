@@ -2,7 +2,7 @@
 // Created: 03.03.2026
 
 using System;
-using EDIVE.UIElements.Tooltips;
+using EDIVE.View.Tooltips;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
 using UnityEngine.UI;
