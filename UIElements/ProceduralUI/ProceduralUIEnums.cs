@@ -24,7 +24,7 @@ namespace EDIVE.UIElements.ProceduralUI
         Chamfer = 1
     }
 
-    // How outline, shadow, frame and glow wrap a sharp corner
+    // How outline, shadow and frame wrap a sharp corner
     public enum CornerJoin
     {
         [IconLabelText(FontAwesomeEditorIconType.CircleRegular, "Round")]
@@ -55,6 +55,23 @@ namespace EDIVE.UIElements.ProceduralUI
         Inside,
         Center,
         Outside
+    }
+
+    public static class EdgePlacementExtensions
+    {
+        // How far a band of the given width reaches past the edge; matches PlacementOuterExtent in ProceduralShape.cginc
+        public static float OuterExtent(this EdgePlacement placement, float width) => placement switch
+        {
+            EdgePlacement.Center => width * 0.5f,
+            EdgePlacement.Outside => width,
+            _ => 0f
+        };
+    }
+
+    public enum ShadowMode
+    {
+        Outer,
+        Inner
     }
 
     public enum GradientType

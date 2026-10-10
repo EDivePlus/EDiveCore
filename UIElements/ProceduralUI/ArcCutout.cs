@@ -58,9 +58,6 @@ namespace EDIVE.UIElements.ProceduralUI
         public bool IsEmpty => FilledSweep <= 0f;
         public float ShaderCornerRadius => _CornerRadius;
 
-        // Rides the top bit of the encoded fill; matches DecodeFill in ProceduralShape.cginc
-        public float ShaderSharpCenterFlag => _SharpCenter ? 8388608f : 0f;
-
         private float Sweep => Mathf.Clamp(_MaxAngle - _MinAngle, 0f, FULL_SWEEP);
         private float FilledSweep => Sweep * Mathf.Clamp01(_Value);
 
