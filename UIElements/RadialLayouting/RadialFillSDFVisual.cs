@@ -11,7 +11,7 @@ namespace EDIVE.UIElements.Layout
     public class RadialFillSDFVisual : IRadialElementVisual
     {
         [SerializeField]
-        private SDFGraphic _Graphic;
+        private SDFArc _Arc;
 
         [SerializeField]
         [Range(-180f, 180f)]
@@ -22,22 +22,22 @@ namespace EDIVE.UIElements.Layout
 
         public void Apply(RadialLayoutElement element, in RadialSliceInfo info)
         {
-            if (_Graphic == null) return;
+            if (_Arc == null) return;
             if (element.transform.parent is not RectTransform layoutRect) return;
 
             var width = Mathf.Max(0f, info.Width - _AngularPadding * 2f);
             var halfWidth = width * 0.5f;
 
             // Layout angles grow counter-clockwise from the top, arc angles grow clockwise
-            var arc = _Graphic.Arc;
+            var arc = _Arc.Arc;
             var minAngle = -(info.CenterAngle + halfWidth);
             var maxAngle = -(info.CenterAngle - halfWidth);
-            if (!_Graphic.ArcEnabled || !Mathf.Approximately(arc.MinAngle, minAngle) || !Mathf.Approximately(arc.MaxAngle, maxAngle))
+            if (!_Arc.enabled || !Mathf.Approximately(arc.MinAngle, minAngle) || !Mathf.Approximately(arc.MaxAngle, maxAngle))
             {
                 arc.MinAngle = minAngle;
                 arc.MaxAngle = maxAngle;
-                _Graphic.Arc = arc;
-                _Graphic.ArcEnabled = true;
+                _Arc.Arc = arc;
+                _Arc.enabled = true;
             }
 
             var rad = (90f + info.CenterAngle) * Mathf.Deg2Rad;
@@ -45,8 +45,8 @@ namespace EDIVE.UIElements.Layout
             var tangDir = new Vector2(-radialDir.y, radialDir.x);
             var localOffset = (Vector3) (tangDir * _Offset.x + radialDir * _Offset.y);
 
-            _Graphic.rectTransform.position = layoutRect.TransformPoint(localOffset);
-            _Graphic.rectTransform.rotation = layoutRect.rotation;
+            _Arc.transform.position = layoutRect.TransformPoint(localOffset);
+            _Arc.transform.rotation = layoutRect.rotation;
         }
     }
 }

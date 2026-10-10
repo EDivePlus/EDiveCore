@@ -65,14 +65,20 @@ float ChamferCornerDistance(float2 q, float c, float join)
     return min(min(edgeX, edgeY), SegmentDistance(q, vertexX, vertexY));
 }
 
-// corners: x = top right, y = bottom right, z = top left, w = bottom left
+// corners: x = top right, y = bottom right, z = top left, w = bottom left; already clamped to the half size
 float ShapeDistance(float2 p, float2 halfSize, float4 corners, float style, float join)
 {
     float2 side = p.x > 0.0 ? corners.xy : corners.zw;
     float c = p.y > 0.0 ? side.x : side.y;
-    c = min(c, min(halfSize.x, halfSize.y));
     float2 q = abs(p) - halfSize;
-    return style < 0.5 ? RoundCornerDistance(q, c, join) : ChamferCornerDistance(q, c, join);
+    // A ternary would run both corner functions
+    float d;
+    [branch]
+    if (style < 0.5)
+        d = RoundCornerDistance(q, c, join);
+    else
+        d = ChamferCornerDistance(q, c, join);
+    return d;
 }
 
 // Three 16-bit values from two floats, matching VertexPacking.PackTriple
@@ -91,16 +97,14 @@ float FixedToSignedPixel(float q) { return q / 16.0 - 2048.0; }
 // 16-bit turn fraction, matching VertexPacking.FixedAngle
 float FixedToAngle(float q) { return q / 65535.0 * SHAPE_TWO_PI; }
 
-// Grid vertex index over subdivision count: x + y * 32 + n * 1024, matching VertexPacking.PackGrid
+// Vertex position over its quad in 1/255 steps: x + y * 256, matching VertexPacking.PackGrid
 float2 DecodeGrid(float code)
 {
-    float n = floor(code / 1024.0);
-    code -= n * 1024.0;
-    float y = floor(code / 32.0);
-    return float2(code - y * 32.0, y) / n;
+    float y = floor(code / 256.0);
+    return float2(code - y * 256.0, y) / 255.0;
 }
 
-// Geometry shared by both shaders, matching AProceduralGraphic.PackGeometry.
+// Geometry shared by every layer, matching SDFGraphic.BuildGeometryVertex.
 // uv is the vertex position over the rect, size is in px, arc is apex (xy) and start / end angle (zw).
 void DecodeGeometry(float4 uv0, float4 uv1, out float2 uv, out float2 size, out float4 roundness, out float4 arc, out float cornerRadius)
 {
@@ -139,18 +143,6 @@ half4 PackedToWorkingSpace(half4 color)
     return color;
 }
 
-// Outline, shadow and gradient color from four floats, matching VertexPacking.PackColors
-void UnpackColors(float4 packed, out half4 outline, out half4 shadow, out half4 gradient)
-{
-    float3 x = UnpackBytes(packed.x);
-    float3 y = UnpackBytes(packed.y);
-    float3 z = UnpackBytes(packed.z);
-    float3 w = UnpackBytes(packed.w);
-    outline = PackedToWorkingSpace(half4(x.x, x.y, x.z, y.x) / 255.0);
-    shadow = PackedToWorkingSpace(half4(y.y, y.z, z.x, z.y) / 255.0);
-    gradient = PackedToWorkingSpace(half4(z.z, w.x, w.y, w.z) / 255.0);
-}
-
 // One color from two floats, matching VertexPacking.PackColor
 half4 UnpackColor(float2 packed)
 {
@@ -158,40 +150,26 @@ half4 UnpackColor(float2 packed)
     return PackedToWorkingSpace(half4(rgb, packed.y) / 255.0);
 }
 
-// fill = radialSize * 100 + mode * 4096 + fillAlpha * 32768 + sharpApex * 8388608
+// fill = radialSize * 100 + mode * 4096 + hasTexture * 32768, matching SDFGraphic.BuildFillVertex
 // mode: 0 = none, 1 = vertical, 2 = horizontal, 3 = radial cover, 4 = radial fit, 5 = ellipse
-void DecodeFill(float raw, out float mode, out float radialSize, out float fillAlpha, out float sharpApex)
+void DecodeFill(float raw, out float mode, out float radialSize, out float hasTexture)
 {
-    sharpApex = floor(raw / 8388608.0);
-    raw -= sharpApex * 8388608.0;
-    fillAlpha = floor(raw / 32768.0);
-    raw -= fillAlpha * 32768.0;
+    hasTexture = floor(raw / 32768.0);
+    raw -= hasTexture * 32768.0;
     mode = floor(raw / 4096.0);
     radialSize = (raw - mode * 4096.0) / 100.0;
-    fillAlpha /= 255.0;
 }
 
-// Blend factor from the fill color toward the gradient color; uv spans the rect from 0 to 1
+// Blend factor from the fill color toward the gradient color; uv spans the rect from 0 to 1.
+// Branch free: callers skip it for mode 0, and flow control nested in their branch crashes the D3D compiler.
 float GradientFactor(float mode, float2 uv, float2 size, float radialSize)
 {
-    if (mode < 0.5)
-        return 0.0;
-    if (mode < 1.5)
-        return saturate(1.0 - uv.y);
-    if (mode < 2.5)
-        return saturate(uv.x);
-
-    float t;
-    if (mode > 4.5)
-    {
-        t = length(uv - 0.5) * 2.0;
-    }
-    else
-    {
-        float refDim = mode < 3.5 ? max(size.x, size.y) : min(size.x, size.y);
-        t = length((uv - 0.5) * size) / (refDim * 0.5);
-    }
-    return saturate(t / max(radialSize, 0.0001));
+    float2 centered = uv - 0.5;
+    float axial = mode < 1.5 ? 1.0 - uv.y : uv.x;
+    float refDim = mode < 3.5 ? max(size.x, size.y) : min(size.x, size.y);
+    float radial = mode > 4.5 ? length(centered) * 2.0 : length(centered * size) / (refDim * 0.5);
+    radial /= max(radialSize, 0.0001);
+    return saturate(mode < 2.5 ? axial : radial);
 }
 
 // Gradient of a field over shape space, from screen space derivatives of the field and of the shape position
@@ -243,62 +221,78 @@ float JoinedMax(float a, float b, float r, float cosTheta, float join)
     return min(max(q.x, q.y), 0.0) + outside - r;
 }
 
-// Sector with its apex at the origin sweeping clockwise from north between two angles in radians.
-// The apex is rounded by r. Sweeps past a half turn are handled as the complement of the remaining wedge.
-float SectorDistance(float2 p, float startAngle, float endAngle, float r)
-{
-    float halfSweep = (endAngle - startAngle) * 0.5;
-    float center = (startAngle + endAngle) * 0.5;
-    float2 up = float2(sin(center), cos(center));
-    float2 q = float2(dot(p, float2(up.y, -up.x)), dot(p, up));
-
-    float sgn = 1.0;
-    if (halfSweep > SHAPE_HALF_PI)
-    {
-        q = -q;
-        halfSweep = SHAPE_PI - halfSweep;
-        sgn = -1.0;
-    }
-
-    // Shrinking the wedge by r moves the apex along the bisector; growing it back rounds the apex
-    float2 sc = float2(sin(halfSweep), cos(halfSweep));
-    q.y -= r / max(sc.x, 0.0001);
-    q.x = abs(q.x);
-    float m = length(q - sc * max(dot(q, sc), 0.0));
-    float d = m * sign(sc.y * q.x - sc.x * q.y);
-    return sgn * (d - r);
-}
-
 // arc: xy = apex in sdf space, zw = start and end angle; edge padding is already folded into the apex.
 bool ArcIsFull(float4 arc)
 {
     return arc.w - arc.z >= SHAPE_TWO_PI - 0.0001;
 }
 
-// sharpApex keeps the apex unrounded while the corners against the shape still use cornerRadius
-float ArcSector(float2 p, float4 arc, float cornerRadius, float sharpApex)
+// Per vertex part of the sector: a wedge sweeping clockwise from north between the arc angles, apex rounded by r.
+// Sweeps past a half turn are the complement of the remaining wedge, so the direction flips and the sign turns negative.
+// Shrinking the wedge by r moves the apex along the bisector; growing it back rounds the apex.
+//   sectorA: xy = shifted apex, zw = bisector direction
+//   sectorB: xy = sin and cos of the half sweep, z = apex radius, w = sign
+void PrepareSector(float4 arc, float r, out float4 sectorA, out float4 sectorB)
 {
-    return SectorDistance(p - arc.xy, arc.z, arc.w, sharpApex > 0.5 ? 0.0 : cornerRadius);
+    float halfSweep = (arc.w - arc.z) * 0.5;
+    float center = (arc.z + arc.w) * 0.5;
+    float2 up;
+    sincos(center, up.x, up.y);
+    float sgn = 1.0;
+    if (halfSweep > SHAPE_HALF_PI)
+    {
+        up = -up;
+        halfSweep = SHAPE_PI - halfSweep;
+        sgn = -1.0;
+    }
+    float2 sc;
+    sincos(halfSweep, sc.x, sc.y);
+    sectorA = float4(arc.xy + up * (r / max(sc.x, 0.0001)), up);
+    sectorB = float4(sc, r, sgn);
 }
 
-// Cuts the shape by the sector; the corners between them are rounded by cornerRadius or joined with the corner join.
-// edgeCos comes from EdgeCosine of the same two fields and must be computed outside any branch.
-float ApplyArc(float shape, float sector, float4 arc, float cornerRadius, float join, float edgeCos)
+// Per pixel part of the sector, see PrepareSector
+float SectorDistance(float2 p, float4 sectorA, float4 sectorB)
 {
-    if (ArcIsFull(arc))
-        return shape;
-
-    return JoinedMax(shape, sector, cornerRadius, edgeCos, join);
+    float2 d = p - sectorA.xy;
+    float2 up = sectorA.zw;
+    float2 q = float2(abs(dot(d, float2(up.y, -up.x))), dot(d, up));
+    float2 sc = sectorB.xy;
+    float m = length(q - sc * max(dot(q, sc), 0.0));
+    return sectorB.w * (m * sign(sc.y * q.x - sc.x * q.y) - sectorB.z);
 }
 
-// shadow = round(shadowSize) + round(shadowBlur) * 4096, negated and offset by 1 when inset.
+// shadow = round(shadowSize) + round(shadowBlur) * 4096.
 // Rounded first: perspective interpolation drifts the value slightly and floor would turn 0 into a 4096 px shadow.
-void DecodeShadow(float raw, out float shadowSize, out float shadowBlur, out bool inset)
+void DecodeShadow(float raw, out float shadowSize, out float shadowBlur)
 {
-    inset = raw < -0.5;
-    float info = round(max(inset ? -raw - 1.0 : raw, 0.0));
+    float info = round(max(raw, 0.0));
     shadowBlur = floor(info / 4096.0);
     shadowSize = info - shadowBlur * 4096.0;
+}
+
+// layer = frameWidth + framePlacement * 4096 + frameMode * 16384 + cornerShape * 32768 + sharpApex * 262144 + layer * 524288,
+// matching SDFGraphic.EncodeLayer. Layers: 0 = fill, 1 = outer shadow, 2 = inner shadow, 3 = outline, 4 = solid fill
+void DecodeLayer(float raw, out float layer, out float sharpApex, out float cornerShape, out bool frameMode, out float framePlacement, out float frameWidth)
+{
+    raw = round(raw);
+    layer = floor(raw / 524288.0);
+    raw -= layer * 524288.0;
+    sharpApex = floor(raw / 262144.0);
+    raw -= sharpApex * 262144.0;
+    cornerShape = floor(raw / 32768.0);
+    raw -= cornerShape * 32768.0;
+    float frame = floor(raw / 16384.0);
+    raw -= frame * 16384.0;
+    frameMode = frame > 0.5;
+    framePlacement = floor(raw / 4096.0);
+    frameWidth = raw - framePlacement * 4096.0;
+}
+
+// Placement: 0 = inside, 1 = center, 2 = outside. How far a band of the given width reaches past the edge.
+float PlacementOuterExtent(float placement, float width)
+{
+    return placement < 0.5 ? 0.0 : placement < 1.5 ? width * 0.5 : width;
 }
 
 // Shadow offset, 12 bits per axis in 1/4 px steps; matches VertexPacking.PackOffsets
