@@ -1,4 +1,5 @@
 ﻿#import <UIKit/UIKit.h>
+#include "UnityInterface.h"
 
 // Define the struct to hold both safe area insets and window size
 typedef struct __attribute__((packed)) SafeAreaData {
@@ -15,7 +16,7 @@ extern "C" {
 
 SafeAreaData GetIOSSafeAreaData() {
     SafeAreaData data = {0, 0, 0, 0, 0, 0};
-    UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+    UIWindow *window = UnityGetMainWindow();
 
     if (window) {
         data.top = (Float32)window.safeAreaInsets.top;
@@ -24,8 +25,6 @@ SafeAreaData GetIOSSafeAreaData() {
         data.right = (Float32)window.safeAreaInsets.right;
         data.width = (Float32)window.bounds.size.width;
         data.height = (Float32)window.bounds.size.height;
-    } else {
-        NSLog(@"[iOS SafeArea] No windows found.");
     }
 
     return data;

@@ -1,14 +1,13 @@
 using System;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
-
-#if UNITY_IOS
-using System.Runtime.InteropServices;
-#endif
+using UnityEngine.UI;
 
 namespace EDIVE.View
 {
     [ExecuteAlways]
+    [DisallowMultipleComponent]
     [RequireComponent(typeof(RectTransform))]
     public class SafeAreaController : MonoBehaviour
     {
@@ -22,66 +21,136 @@ namespace EDIVE.View
             All = Left | Right | Top | Bottom
         }
 
+        [Flags]
+        private enum SafeAreaAlignment
+        {
+            None = 0,
+            CenterHorizontally = 1 << 0,
+            CenterVertically = 1 << 1
+        }
+
+        [EnhancedInfoBox("World Space canvas. Safe area not applied.", ShowIf = nameof(IsWorldSpace))]
+        [EnhancedInfoBox("Layout group on parent or size fitter here also drives this rect. Move it to a child.", InfoMessageType.Warning, ShowIf = nameof(HasLayoutConflict))]
         [SerializeField]
         private SafeAreaUpdateSide _UpdateSides = SafeAreaUpdateSide.All;
 
-        private Rect _currentSafeArea = new(0, 0, 0, 0);
-        private Vector2Int _currentScreenSize = new(0, 0);
-        private ScreenOrientation _currentOrientation;
-        private Canvas _canvas;
+        [Tooltip("Same inset on both sides. Keeps content centered.")]
+        [SerializeField]
+        private SafeAreaAlignment _Alignment = SafeAreaAlignment.None;
 
-        private void Awake()
+        private RectTransform _rectTransform;
+        private Canvas _canvas;
+        private DrivenRectTransformTracker _tracker;
+        private bool _isDriven;
+
+        private RectTransform RectTransform => _rectTransform ? _rectTransform : _rectTransform = (RectTransform) transform;
+
+        private void OnEnable()
         {
             _canvas = GetComponentInParent<Canvas>(true);
             Refresh();
         }
 
-        private void Update()
+        // Driven anchors save as zero, so fill parent when off
+        private void OnDisable()
         {
-            if (CheckSafeAreaChange())
-                Refresh();
+            SetDriven(false);
+            RectTransform.anchorMin = Vector2.zero;
+            RectTransform.anchorMax = Vector2.one;
         }
 
-        private bool CheckSafeAreaChange()
+        private void OnTransformParentChanged()
         {
-            var newSafeArea = GetSafeArea();
-            return _currentSafeArea != newSafeArea || _currentScreenSize.x != Screen.width || _currentScreenSize.y != Screen.height || _currentOrientation != Screen.orientation;
+            _canvas = GetComponentInParent<Canvas>(true);
+        }
+
+        private void Update()
+        {
+            Refresh();
         }
 
         [Button]
         private void Refresh()
         {
-            _currentSafeArea = GetSafeArea();
-            _currentScreenSize = new Vector2Int(Screen.width, Screen.height);
-            _currentOrientation = Screen.orientation;
-
-            // Convert safe area rectangle from absolute pixels to normalized anchor coordinates
-            var anchorMin = _currentSafeArea.position;
-            var anchorMax = _currentSafeArea.position + _currentSafeArea.size;
-
-            float canvasWidth = Screen.width;
-            float canvasHeight = Screen.height;
-            
-            if (_canvas)
+            if (!TryGetAnchors(out var anchorMin, out var anchorMax))
             {
-                var pixelRect = _canvas.pixelRect;
-                canvasWidth = pixelRect.width;
-                canvasHeight = pixelRect.height;
+                SetDriven(false);
+                return;
             }
 
-            anchorMin.x /= canvasWidth;
-            anchorMin.y /= canvasHeight;
-            anchorMax.x /= canvasWidth;
-            anchorMax.y /= canvasHeight;
+            SetDriven(true);
+            var rectTransform = RectTransform;
+            if (rectTransform.anchorMin != anchorMin) rectTransform.anchorMin = anchorMin;
+            if (rectTransform.anchorMax != anchorMax) rectTransform.anchorMax = anchorMax;
+        }
+
+        private bool TryGetAnchors(out Vector2 anchorMin, out Vector2 anchorMax)
+        {
+            anchorMin = Vector2.zero;
+            anchorMax = Vector2.one;
+
+            if (!_canvas || IsWorldSpace() || transform.parent is not RectTransform parent)
+                return false;
+
+            var parentRect = parent.rect;
+            if (parentRect.width <= 0 || parentRect.height <= 0)
+                return false;
+
+            // Safe area screen corners -> parent local -> anchors, clamped to parent
+            var rootCanvas = _canvas.rootCanvas;
+            var canvasCamera = rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : rootCanvas.worldCamera;
+            var safeArea = SafeAreaUtility.GetSafeArea();
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, safeArea.min, canvasCamera, out var localMin);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, safeArea.max, canvasCamera, out var localMax);
+
+            anchorMin = Vector2.Max((localMin - parentRect.min) / parentRect.size, Vector2.zero);
+            anchorMax = Vector2.Min((localMax - parentRect.min) / parentRect.size, Vector2.one);
 
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Left)) anchorMin.x = 0;
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Bottom)) anchorMin.y = 0;
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Right)) anchorMax.x = 1;
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Top)) anchorMax.y = 1;
 
-            var targetRect = GetComponent<RectTransform>();
-            targetRect.anchorMin = anchorMin;
-            targetRect.anchorMax = anchorMax;
+            if (HasAlignment(SafeAreaAlignment.CenterHorizontally))
+            {
+                var inset = Mathf.Max(anchorMin.x, 1 - anchorMax.x);
+                anchorMin.x = inset;
+                anchorMax.x = 1 - inset;
+            }
+
+            if (HasAlignment(SafeAreaAlignment.CenterVertically))
+            {
+                var inset = Mathf.Max(anchorMin.y, 1 - anchorMax.y);
+                anchorMin.y = inset;
+                anchorMax.y = 1 - inset;
+            }
+
+            return true;
+        }
+
+        private void SetDriven(bool driven)
+        {
+            if (_isDriven == driven) return;
+            _isDriven = driven;
+            _tracker.Clear();
+            if (driven) _tracker.Add(this, RectTransform, DrivenTransformProperties.Anchors);
+        }
+
+        private bool IsWorldSpace()
+        {
+            var canvas = _canvas ? _canvas : GetComponentInParent<Canvas>(true);
+            return canvas && canvas.rootCanvas.renderMode == RenderMode.WorldSpace;
+        }
+
+        private bool HasLayoutConflict()
+        {
+            if (GetComponent<ILayoutSelfController>() != null)
+                return true;
+
+            if (GetComponent<ILayoutIgnorer>() is { ignoreLayout: true })
+                return false;
+
+            return transform.parent && transform.parent.GetComponent<ILayoutGroup>() != null;
         }
 
         private bool ShouldUpdateSide(SafeAreaUpdateSide side)
@@ -89,57 +158,9 @@ namespace EDIVE.View
             return (_UpdateSides & side) != 0;
         }
 
-        [Button]
-        private void SetWholeScreen()
+        private bool HasAlignment(SafeAreaAlignment alignment)
         {
-            var targetRect = GetComponent<RectTransform>();
-            targetRect.anchorMin = Vector2.zero;
-            targetRect.anchorMax = Vector2.one;
-            targetRect.offsetMin = Vector2.zero;
-            targetRect.offsetMax = Vector2.zero;
+            return (_Alignment & alignment) != 0;
         }
-
-        private static Rect GetSafeArea()
-        {
-#if UNITY_IOS && !UNITY_EDITOR
-            return GetIOSSafeArea();
-#else
-            return Screen.safeArea;
-#endif
-        }
-
-#if UNITY_IOS
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public struct SafeAreaData
-        {
-            public float top;
-            public float bottom;
-            public float left;
-            public float right;
-            public float width;
-            public float height;
-        }
-
-        [DllImport("__Internal")]
-        private static extern SafeAreaData GetIOSSafeAreaData();
-
-        // Unity can sometimes return invalid SafeArea for iOS, so we need this hack to get the correct one
-        private static Rect GetIOSSafeArea()
-        {
-            var data = GetIOSSafeAreaData();
-            var widthMultiplier = Screen.width / data.width;
-            var heightMultiplier = Screen.height / data.height;
-
-            var rect = new Rect
-            {
-                xMin = data.left * widthMultiplier,
-                yMin = data.bottom * heightMultiplier,
-                xMax = Screen.width - (data.right * widthMultiplier),
-                yMax = Screen.height - (data.top * heightMultiplier),
-            };
-            return rect;
-        }
-#endif
     }
 }
-
