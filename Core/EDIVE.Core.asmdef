@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "EDIVE.Core",
     "rootNamespace": "",
     "references": [
@@ -6,7 +6,8 @@
         "UniTask",
         "EDIVE.NativeUtils",
         "Unity.TextMeshPro",
-        "EDIVE.OdinExtensions"
+        "EDIVE.OdinExtensions",
+        "EDIVE.Utils.Actions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
