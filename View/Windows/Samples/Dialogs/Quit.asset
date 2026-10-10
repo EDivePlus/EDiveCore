@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1fe707d7e624cb24c9a4daa1165e31bb, type: 3}
+  m_Name: Quit
+  m_EditorClassIdentifier: EDIVE.View.Windows::EDIVE.View.Windows.Dialog.DialogSetup
+  _Visual:
+    _Records:
+    - rid: 2509196797838885108
+    - rid: 2509196797838885109
+  _Buttons:
+  - _Visual:
+      _Records:
+      - rid: 2509196797838885110
+    _Result:
+      rid: 2509196797838885111
+  - _Visual:
+      _Records:
+      - rid: 2509196797838885112
+    _Result:
+      rid: -2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 2509196797838885108
+      type: {class: StringVisualPresetRecord, ns: EDIVE.VisualPresets.Presets, asm: EDIVE.VisualPresets}
+      data:
+        _VisualID: {fileID: 11400000, guid: cb560e47146e3f24190cc9826339d4a8, type: 2}
+        _Text: Quit
+    - rid: 2509196797838885109
+      type: {class: StringVisualPresetRecord, ns: EDIVE.VisualPresets.Presets, asm: EDIVE.VisualPresets}
+      data:
+        _VisualID: {fileID: 11400000, guid: ef586a4d04efc70418cb75e9e80f2239, type: 2}
+        _Text: Quit the application?
+    - rid: 2509196797838885110
+      type: {class: StringVisualPresetRecord, ns: EDIVE.VisualPresets.Presets, asm: EDIVE.VisualPresets}
+      data:
+        _VisualID: {fileID: 11400000, guid: f27aab92c1e5fc244a488305c4ccfe3f, type: 2}
+        _Text: Quit
+    - rid: 2509196797838885111
+      type: {class: ActionDialogResult, ns: EDIVE.View.Windows.Dialog, asm: EDIVE.View.Windows}
+      data:
+        _Action:
+          rid: 2509196797838885113
+    - rid: 2509196797838885112
+      type: {class: StringVisualPresetRecord, ns: EDIVE.VisualPresets.Presets, asm: EDIVE.VisualPresets}
+      data:
+        _VisualID: {fileID: 11400000, guid: f27aab92c1e5fc244a488305c4ccfe3f, type: 2}
+        _Text: Cancel
+    - rid: 2509196797838885113
+      type: {class: AppQuitAction, ns: EDIVE.Core, asm: EDIVE.Core}
+      data: 

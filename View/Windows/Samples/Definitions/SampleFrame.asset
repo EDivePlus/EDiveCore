@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0a4688002b0bad4facdef0f0e220424, type: 3}
+  m_Name: SampleFrame
+  m_EditorClassIdentifier: EDIVE.View.Windows::EDIVE.View.Windows.WindowDefinition
+  _Prefab: {fileID: 3839106383967289899, guid: 2ca521780107b0b43a57d64bc607254e, type: 3}
+  _PrefabReference:
+    _Address: 
+  _Layer: {fileID: 11400000, guid: dcb2645ccdb952f408f426dc4a8c7d01, type: 2}
+  _Modal: 0
+  _CloseOnBackdrop: 0
+  _Opaque: 1
+  _KeepAfterClose: 0
