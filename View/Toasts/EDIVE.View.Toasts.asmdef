@@ -1,0 +1,22 @@
+﻿{
+    "name": "EDIVE.View.Toasts",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.View.ViewTree",
+        "EDIVE.VisualPresets",
+        "EDIVE.Tweening",
+        "EDIVE.OdinExtensions",
+        "UniTask",
+        "UniTask.DOTween",
+        "DOTween.Modules"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
