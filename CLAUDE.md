@@ -35,7 +35,7 @@ Check here first before writing a helper. If EDIVE has it, use it.
 - EditorUtils: `EditorAssetUtils.FindAllAssetsOfType`, `DefinesUtility`, `SubAssetUtility`, `MainToolbarUtility`.
 
 ## UI
-- Shapes: `SDFGraphic` (ProceduralUI). Use for nice shapes only (rounded rect, circle, pill, outline, shadow, arc), plain `Image` otherwise. `CornerRoundness.Circle/Uniform`, `GradientFill`, `FillMode.Filled/NoFill`. Vertex alpha comes from graphic `color`. `GlowGraphic`/`GlowModifier` for glow.
+- Shapes: `SDFGraphic` (ProceduralUI). Use for nice shapes only (rounded rect, circle, pill, outline, shadow, arc), plain `Image` otherwise. `CornerRoundness.Circle/Uniform`, `GradientFill`, `FillMode.Filled/NoFill`. `Graphic.color` is the fill color, its alpha also fades effects with Use Graphic Alpha. Button tint and CanvasGroup tint/fade the whole graphic. Effects are sibling components drawn in the same mesh: `SDFShadow` (Outer/Inner), `SDFOutline`. `SDFArc` component cuts the shape to a sector. Canvas needs only TexCoord1+2.
 - Icons: `FontSymbolTMPTextUI` + `FontSymbol(definition, char)`. Material Symbols in `Assets/_Shared/Entities/FontSymbols/` (`MaterialSymbols_Round_Filled`, `_Standard`). Dynamic TMP font.
 - Selectables: `EnhancedButton`, `EnhancedToggle` (drives an `AToggleState` from `isOn`), `EnhancedKnob`. `SelectableAdditionalData` -> `TweenSelectableTransition` + preset for animated states.
 - Other: `TabGroupController`/`TabHandler`, `AProgressBar`, `RadialLayout`/`RadialLayoutElement`, `RecyclableScroller`, `TooltipTrigger`/`TooltipManager`, `ColorPickerController`, `RoundedRectRaycastTarget`.

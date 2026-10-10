@@ -9,18 +9,18 @@ namespace EDIVE.UIElements.ProgressBars
     public class SDFArcProgressBar : AProgressBar
     {
         [SerializeField]
-        private SDFGraphic _Graphic;
+        private SDFArc _Arc;
 
         [SerializeField]
         private Vector2 _FillRange = new(0, 1);
 
         public override float Progress
         {
-            get => _Graphic == null ? 0f : Mathf.InverseLerp(_FillRange.x, _FillRange.y, _Graphic.ArcValue);
+            get => _Arc == null ? 0f : Mathf.InverseLerp(_FillRange.x, _FillRange.y, _Arc.Value);
             set
             {
-                if (_Graphic)
-                    _Graphic.ArcValue = Mathf.Lerp(_FillRange.x, _FillRange.y, value);
+                if (_Arc)
+                    _Arc.Value = Mathf.Lerp(_FillRange.x, _FillRange.y, value);
             }
         }
     }

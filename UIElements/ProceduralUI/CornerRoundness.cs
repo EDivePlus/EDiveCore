@@ -82,7 +82,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
         private enum Corner { TopLeft, TopRight, BottomRight, BottomLeft }
 
-        // The owning graphic or modifier decides between round and chamfered corners
+        // The owning graphic decides between round and chamfered corners
         private ShapeStyle Style => (Property.Tree.WeakTargets[0] as IShapeStyleProvider)?.ShapeStyle ?? ShapeStyle.Round;
 
         protected override void Initialize()

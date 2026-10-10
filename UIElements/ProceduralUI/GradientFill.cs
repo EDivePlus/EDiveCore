@@ -15,9 +15,6 @@ namespace EDIVE.UIElements.ProceduralUI
         private const float MIN_RADIAL_SIZE = 0.01f;
 
         [SerializeField]
-        private Color _Color;
-
-        [SerializeField]
         private GradientType _GradientType;
 
         [SerializeField]
@@ -49,13 +46,11 @@ namespace EDIVE.UIElements.ProceduralUI
 
         public static GradientFill Default => new()
         {
-            _Color = Color.white,
             _GradientColor = Color.white,
             _GradientQuality = 8,
             _RadialSize = 1f
         };
 
-        public Color Color { get => _Color; set => _Color = value; }
         public GradientType GradientType { get => _GradientType; set => _GradientType = value; }
         public Color GradientColor { get => _GradientColor; set => _GradientColor = value; }
         public int GradientQuality { get => Mathf.Clamp(_GradientQuality, MIN_QUALITY, MAX_QUALITY); set => _GradientQuality = Mathf.Clamp(value, MIN_QUALITY, MAX_QUALITY); }
@@ -70,20 +65,12 @@ namespace EDIVE.UIElements.ProceduralUI
         private bool IsGradient => _GradientType == GradientType.Gradient;
         private bool ShowGradientColor => _GradientType is GradientType.Vertical or GradientType.Horizontal or GradientType.Radial;
 
-        // The vertex carries the tinted fill color with the tint alpha alone; fill alpha travels in the shader data
-        public Color GetVertexColor(Color tint) => new(_Color.r * tint.r, _Color.g * tint.g, _Color.b * tint.b, tint.a);
-
-        public Color GetGradientColor(Color tint)
-        {
-            var c = _GradientType == GradientType.None ? _Color : _GradientColor;
-            return new Color(c.r * tint.r, c.g * tint.g, c.b * tint.b, c.a);
-        }
-
-        // Matches DecodeFill in ProceduralShape.cginc: radialSize * 100 + mode * 4096 + fillAlpha * 32768
+        // Matches DecodeFill in ProceduralShape.cginc: radialSize * 100 + mode * 4096.
+        // The fill color is Graphic.color in the vertex; a keyed gradient is baked into the vertex colors instead.
         public float EncodeShaderFill()
         {
             if (_GradientType == GradientType.Gradient)
-                return 255f * 32768f;
+                return 0f;
 
             var mode = _GradientType switch
             {
@@ -93,41 +80,15 @@ namespace EDIVE.UIElements.ProceduralUI
                 _ => 0
             };
             var size = Mathf.Round(VertexPacking.ClampRadialSize(RadialSize) * 100f);
-            Color32 fill = _Color;
-            return size + mode * 4096f + fill.a * 32768f;
+            return size + mode * 4096f;
         }
 
-        public Color Evaluate(float fx, float fy, float width, float height, Color tint)
+        // Vertex color of a subdivided keyed gradient; Graphic.color multiplies the keys
+        public Color Evaluate(float fx, float fy, Color color)
         {
-            switch (_GradientType)
-            {
-                case GradientType.Radial:
-                {
-                    float t;
-                    if (_RadialMode == RadialMode.Ellipse)
-                    {
-                        var dx = fx - 0.5f;
-                        var dy = fy - 0.5f;
-                        t = Mathf.Sqrt(dx * dx + dy * dy) * 2f;
-                    }
-                    else
-                    {
-                        var refDim = _RadialMode == RadialMode.CircleCover ? Mathf.Max(width, height) : Mathf.Min(width, height);
-                        var dx = (fx - 0.5f) * width;
-                        var dy = (fy - 0.5f) * height;
-                        t = Mathf.Sqrt(dx * dx + dy * dy) / (refDim * 0.5f);
-                    }
-                    return Color.Lerp(_Color * tint, _GradientColor * tint, Mathf.Clamp01(t / RadialSize));
-                }
-                case GradientType.Gradient:
-                {
-                    var angle = _GradientAngle * Mathf.Deg2Rad;
-                    var t = Mathf.Clamp01((fx - 0.5f) * Mathf.Cos(angle) + (fy - 0.5f) * Mathf.Sin(angle) + 0.5f);
-                    return (_Gradient?.Evaluate(t) ?? Color.white) * tint;
-                }
-                default:
-                    return _Color * tint;
-            }
+            var angle = _GradientAngle * Mathf.Deg2Rad;
+            var t = Mathf.Clamp01((fx - 0.5f) * Mathf.Cos(angle) + (fy - 0.5f) * Mathf.Sin(angle) + 0.5f);
+            return (_Gradient?.Evaluate(t) ?? Color.white) * color;
         }
     }
 }
