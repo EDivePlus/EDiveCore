@@ -1,0 +1,29 @@
+﻿{
+    "name": "EDIVE.View.Windows",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.View.ViewTree",
+        "EDIVE.Tweening",
+        "EDIVE.OdinExtensions",
+        "EDIVE.AddressableAssets",
+        "EDIVE.VisualPresets",
+        "EDIVE.Utils.Actions",
+        "UniTask",
+        "UniTask.Addressables",
+        "UniTask.DOTween",
+        "DOTween.Modules",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
