@@ -142,6 +142,7 @@ namespace EDIVE.XRTools
         private Vector3 _positionVelocity;
         private Vector3 _rotationVelocity;
         private Tween _repositionTween;
+        private readonly DisposableGroup _listeners = new();
         private bool _hasAnchorFrame;
         private Quaternion _anchorFrame = Quaternion.identity;
         private bool _hasAnchorPosition;
@@ -165,19 +166,15 @@ namespace EDIVE.XRTools
 
         private void OnEnable()
         {
-            _RepositionAction?.RegisterActivationListener(Reposition);
-            _SetCustomPoseActivation?.RegisterActivationListener(SetCustomPose);
-            _ResetCustomPoseActivation?.RegisterActivationListener(ResetCustomPose);
+            _listeners.Add(_RepositionAction.RegisterDisposable(Reposition));
+            _listeners.Add(_SetCustomPoseActivation.RegisterDisposable(SetCustomPose));
+            _listeners.Add(_ResetCustomPoseActivation.RegisterDisposable(ResetCustomPose));
             switch (_FollowMode)
             {
-                case FollowMode.Manual: _ToggleFollowActivation?.RegisterActivationListener(ToggleFollow); 
+                case FollowMode.Manual: _listeners.Add(_ToggleFollowActivation.RegisterDisposable(ToggleFollow)); 
                     break;
                 case FollowMode.Automatic:
-                    if (_AutoFollowCondition != null)
-                    {
-                        _AutoFollowCondition.InitializeObserving();
-                        _AutoFollowCondition.StateChanged += OnAutoFollowConditionChanged;
-                    }
+                    _listeners.Add(_AutoFollowCondition.ObserveDisposable(OnAutoFollowConditionChanged));
                     if (_started)
                         OnAutoFollowConditionChanged();
                     break;
@@ -188,15 +185,7 @@ namespace EDIVE.XRTools
 
         private void OnDisable()
         {
-            _RepositionAction?.UnregisterActivationListener(Reposition);
-            _SetCustomPoseActivation?.UnregisterActivationListener(SetCustomPose);
-            _ResetCustomPoseActivation?.UnregisterActivationListener(ResetCustomPose);
-            _ToggleFollowActivation?.UnregisterActivationListener(ToggleFollow);
-            if (_FollowMode == FollowMode.Automatic && _AutoFollowCondition != null)
-            {
-                _AutoFollowCondition.StateChanged -= OnAutoFollowConditionChanged;
-                _AutoFollowCondition.TerminateObserving();
-            }
+            _listeners.Clear();
             _repositionTween?.Kill();
             _repositionTween = null;
         }

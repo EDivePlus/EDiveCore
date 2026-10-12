@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 21.10.2025
 
+using System;
 using EDIVE.StateHandling.ToggleStates;
 using UnityEngine;
 
@@ -16,24 +17,20 @@ namespace EDIVE.Conditions.StateHandling
         
         [SerializeField]
         private AToggleState _ToggleState;
+
+        private IDisposable _conditionObserver;
         
         private void OnEnable()
         {
             RefreshState();
-            if (_ObserveCondition && _Condition != null)
-            {
-                _Condition.StateChanged += RefreshState;
-                _Condition.InitializeObserving();
-            }
+            if (_ObserveCondition)
+                _conditionObserver = _Condition.ObserveDisposable(RefreshState);
         }
 
         private void OnDisable()
         {
-            if (_ObserveCondition && _Condition != null)
-            {
-                _Condition.StateChanged -= RefreshState;
-                _Condition.TerminateObserving();
-            }
+            _conditionObserver?.Dispose();
+            _conditionObserver = null;
         }
         
         private void RefreshState()

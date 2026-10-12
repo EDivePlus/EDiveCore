@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 06.06.2025
 
+using System;
 using EDIVE.Conditions;
 using UnityEngine;
 
@@ -11,13 +12,11 @@ namespace EDIVE.ScriptableArchitecture
         [SerializeReference]
         private ICondition _Condition;
 
+        private IDisposable _conditionObserver;
+
         private void OnEnable()
         {
-            if (_Condition != null)
-            {
-                _Condition.InitializeObserving();
-                _Condition.StateChanged += OnConditionStateChanged;
-            }
+            _conditionObserver = _Condition.ObserveDisposable(OnConditionStateChanged);
             
             if (_Condition?.Evaluate() ?? true)
                 AssignReferences();
@@ -33,11 +32,8 @@ namespace EDIVE.ScriptableArchitecture
 
         private void OnDisable()
         {
-            if (_Condition != null)
-            {
-                _Condition.TerminateObserving();
-                _Condition.StateChanged -= OnConditionStateChanged;
-            }
+            _conditionObserver?.Dispose();
+            _conditionObserver = null;
             UnassignReferences();
         }
         

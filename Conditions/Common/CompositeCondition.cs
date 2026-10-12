@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EDIVE.NativeUtils;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Sirenix.OdinInspector;
@@ -27,6 +28,8 @@ namespace EDIVE.Conditions
         [ListDrawerSettings(ShowFoldout = false, OnBeginListElementGUI = "DrawConditionTitle")]
         private List<TCondition> _Conditions = new();
 
+        private readonly DisposableGroup _observers = new();
+
         protected override IEnumerable<TCondition> GetEvaluationCollection() => _Conditions ?? Enumerable.Empty<TCondition>();
         protected override bool EvaluationMethod(TCondition value) => value.Evaluate();
         
@@ -34,18 +37,13 @@ namespace EDIVE.Conditions
         {
             foreach (var condition in GetEvaluationCollection().AsValueEnumerable().Where(c => c != null))
             {
-                condition.StateChanged += OnConditionStateChanged;
-                condition.InitializeObserving();
+                _observers.Add(condition.ObserveDisposable(OnConditionStateChanged));
             }
         }
 
         public override void TerminateObserving()
         {
-            foreach (var condition in GetEvaluationCollection().AsValueEnumerable().Where(c => c != null))
-            {
-                condition.StateChanged -= OnConditionStateChanged;
-                condition.TerminateObserving();
-            }
+            _observers.Clear();
         }
         
         private void OnConditionStateChanged() => InvokeStateChanged();
