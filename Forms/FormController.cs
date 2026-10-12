@@ -69,18 +69,18 @@ namespace EDIVE.Forms
 
         private void OnEnable()
         {
-            _StartActivation?.RegisterActivationListener(StartForm);
-            _NextActivation?.RegisterActivationListener(ShowNextQuestion);
-            _PreviousActivation?.RegisterActivationListener(ShowPreviousQuestion);
-            _RestartActivation?.RegisterActivationListener(Initialize);
+            _StartActivation?.Register(StartForm);
+            _NextActivation?.Register(ShowNextQuestion);
+            _PreviousActivation?.Register(ShowPreviousQuestion);
+            _RestartActivation?.Register(Initialize);
         }
 
         private void OnDisable()
         {
-            _StartActivation?.UnregisterActivationListener(StartForm);
-            _NextActivation?.UnregisterActivationListener(ShowNextQuestion);
-            _PreviousActivation?.UnregisterActivationListener(ShowPreviousQuestion);
-            _RestartActivation?.UnregisterActivationListener(Initialize);
+            _StartActivation?.Unregister(StartForm);
+            _NextActivation?.Unregister(ShowNextQuestion);
+            _PreviousActivation?.Unregister(ShowPreviousQuestion);
+            _RestartActivation?.Unregister(Initialize);
         }
         
         [Button]

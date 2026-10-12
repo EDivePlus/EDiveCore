@@ -36,12 +36,12 @@ namespace EDIVE.Avatars.Networking
 
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(OnActivated);
+            _Activation?.Register(OnActivated);
         }
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(OnActivated);
+            _Activation?.Unregister(OnActivated);
         }
 
         public void SetPreset(UVDecalPreset preset)

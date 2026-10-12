@@ -28,14 +28,14 @@ namespace EDIVE.StagePlay
 
         private void OnEnable()
         {
-            _IncrementSegmentActivation?.RegisterActivationListener(IncrementCurrentSegment);
-            _ResetActivation?.RegisterActivationListener(ResetState);
+            _IncrementSegmentActivation?.Register(IncrementCurrentSegment);
+            _ResetActivation?.Register(ResetState);
         }
 
         private void OnDisable()
         {
-            _IncrementSegmentActivation?.UnregisterActivationListener(IncrementCurrentSegment);
-            _ResetActivation?.UnregisterActivationListener(ResetState);
+            _IncrementSegmentActivation?.Unregister(IncrementCurrentSegment);
+            _ResetActivation?.Unregister(ResetState);
         }
 
         private void Awake()

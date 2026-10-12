@@ -83,14 +83,14 @@ namespace EDIVE.StagePlay
                 if (selector != null)
                     selector.DefinitionSelected += OnDefinitionSelected;
             }
-            _HomeActivation?.RegisterActivationListener(OnHomeActivated);
-            _ToggleActivation?.RegisterActivationListener(ToggleTablet);
+            _HomeActivation?.Register(OnHomeActivated);
+            _ToggleActivation?.Register(ToggleTablet);
         }
 
         private void OnDisable()
         {
-            _ToggleActivation?.UnregisterActivationListener(ToggleTablet);
-            _HomeActivation?.UnregisterActivationListener(OnHomeActivated);
+            _ToggleActivation?.Unregister(ToggleTablet);
+            _HomeActivation?.Unregister(OnHomeActivated);
             foreach (var selector in _Selectors)
             {
                 if (selector != null)

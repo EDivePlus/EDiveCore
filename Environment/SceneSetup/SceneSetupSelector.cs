@@ -38,12 +38,12 @@ namespace EDIVE.Environment.SceneSetup
         
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(ChangeSceneSetup);
+            _Activation?.Register(ChangeSceneSetup);
         }
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(ChangeSceneSetup);
+            _Activation?.Unregister(ChangeSceneSetup);
         }
 
         private void ChangeSceneSetup()

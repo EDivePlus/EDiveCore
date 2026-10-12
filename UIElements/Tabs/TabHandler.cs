@@ -20,12 +20,12 @@ namespace EDIVE.UIElements.Tabs
 
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(OnButtonClicked);
+            _Activation?.Register(OnButtonClicked);
         }
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(OnButtonClicked);
+            _Activation?.Unregister(OnButtonClicked);
         }
 
         private void OnButtonClicked()

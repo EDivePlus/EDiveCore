@@ -32,12 +32,12 @@ namespace EDIVE.Audio.VoiceRecording
         private void OnEnable()
         {
             HideRecordingUI();
-            _ToggleRecordingActivation?.RegisterActivationListener(ToggleRecording);
+            _ToggleRecordingActivation?.Register(ToggleRecording);
         }
         
         private void OnDisable()
         {
-            _ToggleRecordingActivation?.UnregisterActivationListener(ToggleRecording);
+            _ToggleRecordingActivation?.Unregister(ToggleRecording);
             if (_voiceRecordingManager != null)
                 _voiceRecordingManager.RecordingStateChanged -= OnVoiceRecordingStateChanged;
         }

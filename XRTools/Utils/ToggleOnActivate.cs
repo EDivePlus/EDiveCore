@@ -18,12 +18,12 @@ namespace EDIVE.XRTools.Utils
 
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(Toggle);
+            _Activation?.Register(Toggle);
         }
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(Toggle);
+            _Activation?.Unregister(Toggle);
         }
         
         [Button]

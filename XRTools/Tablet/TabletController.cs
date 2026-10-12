@@ -54,13 +54,13 @@ namespace EDIVE.XRTools.Tablet
         protected override void OnEnable()
         {
             base.OnEnable();
-            _FocusAction?.RegisterActivationListener(ToggleTablet);
+            _FocusAction?.Register(ToggleTablet);
         }
 
         protected override void OnDisable()
         {
             base.OnDisable();
-            _FocusAction?.UnregisterActivationListener(ToggleTablet);
+            _FocusAction?.Unregister(ToggleTablet);
             _animTween?.Kill();
         }
 

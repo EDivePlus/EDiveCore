@@ -74,14 +74,14 @@ namespace EDIVE.StagePlay.UI
         
         private void OnEnable()
         {
-            _ScrollToCurrentActivation?.RegisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleAutoScrollActivation?.RegisterActivationListener(ToggleAutoScroll);
+            _ScrollToCurrentActivation?.Register(OnScrollToCurrentActivated);
+            _ToggleAutoScrollActivation?.Register(ToggleAutoScroll);
         }
 
         private void OnDisable()
         {
-            _ScrollToCurrentActivation?.UnregisterActivationListener(OnScrollToCurrentActivated);
-            _ToggleAutoScrollActivation?.UnregisterActivationListener(ToggleAutoScroll);
+            _ScrollToCurrentActivation?.Unregister(OnScrollToCurrentActivated);
+            _ToggleAutoScrollActivation?.Unregister(ToggleAutoScroll);
         }
 
         private void OnDestroy()
