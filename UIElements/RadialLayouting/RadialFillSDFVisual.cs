@@ -2,7 +2,7 @@
 // Created: 23.09.2026
 
 using System;
-using EDIVE.UIElements.ProceduralUI;
+using EDIVE.UIElements.SDFShapes;
 using UnityEngine;
 
 namespace EDIVE.UIElements.Layout

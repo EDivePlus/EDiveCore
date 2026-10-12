@@ -1,10 +1,10 @@
-// Author: Michal Petr
+﻿// Author: Michal Petr
 // Created: 22.09.2026
 
 using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     public enum FillMode
     {
@@ -59,7 +59,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
     public static class EdgePlacementExtensions
     {
-        // How far a band of the given width reaches past the edge; matches PlacementOuterExtent in ProceduralShape.cginc
+        // How far a band of the given width reaches past the edge; matches PlacementOuterExtent in SDFShape.cginc
         public static float OuterExtent(this EdgePlacement placement, float width) => placement switch
         {
             EdgePlacement.Center => width * 0.5f,
@@ -74,13 +74,26 @@ namespace EDIVE.UIElements.ProceduralUI
         Inner
     }
 
-    public enum GradientType
+    public enum PaintType
     {
-        None,
-        Vertical,
-        Horizontal,
+        [IconLabelText(FontAwesomeEditorIconType.SquareSolid, "Solid")]
+        Solid,
+
+        [IconLabelText(FontAwesomeEditorIconType.ArrowsLeftRightSolid, "Linear")]
+        Linear,
+
+        [IconLabelText(FontAwesomeEditorIconType.BullseyeSolid, "Radial")]
         Radial,
-        Gradient
+
+        [IconLabelText(FontAwesomeEditorIconType.ArrowRightRotateSolid, "Angular")]
+        Angular
+    }
+
+    public enum TextureFit
+    {
+        Stretch,
+        Cover,
+        Fit
     }
 
     public enum RadialMode

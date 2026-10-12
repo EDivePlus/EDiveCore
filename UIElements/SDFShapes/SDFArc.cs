@@ -4,7 +4,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     // Cuts the SDFGraphic on the same object to a sector; fill and effects follow the cut
     [ExecuteAlways]

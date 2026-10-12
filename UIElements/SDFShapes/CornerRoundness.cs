@@ -1,4 +1,4 @@
-// Author: Michal Petr
+﻿// Author: Michal Petr
 // Created: 22.09.2026
 
 using System;
@@ -11,7 +11,7 @@ using Sirenix.Utilities.Editor;
 using UnityEditor;
 #endif
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     [Serializable]
     public struct CornerRoundness

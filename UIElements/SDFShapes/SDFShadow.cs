@@ -4,10 +4,13 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     public class SDFShadow : ASDFEffect
     {
+        // Matches SHADOW_FILL_OVERLAP in SDFShape.shader, covers the fill antialiasing
+        private const float FILL_OVERLAP = 1f;
+
         [EnumToggleButtons]
         [SerializeField]
         private ShadowMode _Mode;
@@ -78,15 +81,29 @@ namespace EDIVE.UIElements.ProceduralUI
         internal override float GetReach(in SDFEffectContext context) =>
             _Mode == ShadowMode.Inner ? 0f : context.OutlineReach + SizeRounded + BlurRounded + OffsetReach;
 
-        // Inner shadow fades out size past its start, the offset can push it further in
-        internal override float GetHoleInset(in SDFEffectContext context) =>
-            _Mode == ShadowMode.Inner ? context.OutlineInnerReach + SizeRounded + OffsetReach + HOLE_MARGIN : -1f;
+        // Inner shadow fades out size past its start, the offset can push it further in.
+        // Outer shadow under an opaque fill is cut off there, so its middle is empty.
+        internal override float GetHoleInset(in SDFEffectContext context)
+        {
+            if (_Mode == ShadowMode.Inner)
+                return context.OutlineInnerReach + SizeRounded + OffsetReach + HOLE_MARGIN;
+            return HidesUnderFill(context) ? FILL_OVERLAP + HOLE_MARGIN : -1f;
+        }
 
-        // size + blur * 4096, offset, power + start * 256
+        // On a frame the outer shadow wraps the inner edge too, the inner shadow stays in the frame
+        internal override float GetFrameHoleInset(in SDFEffectContext context) =>
+            _Mode == ShadowMode.Inner ? HOLE_MARGIN : context.OutlineReach + SizeRounded + BlurRounded + OffsetReach + HOLE_MARGIN;
+
+        // size + blur * 4096, offset, power + start * 256; negative when hidden under the fill
         internal override Vector3 PackData(in SDFEffectContext context)
         {
             var start = _Mode == ShadowMode.Inner ? context.OutlineInnerReach : context.OutlineReach;
-            return new Vector3(SizeRounded + BlurRounded * 4096f, VertexPacking.PackOffsets(_Offset), VertexPacking.ClampShadowPower(_Power) + start * 256f);
+            var powerStart = VertexPacking.ClampShadowPower(_Power) + start * 256f;
+            return new Vector3(SizeRounded + BlurRounded * 4096f, VertexPacking.PackOffsets(_Offset), HidesUnderFill(context) ? -powerStart : powerStart);
         }
+
+        // Faded panels show nothing under the fill, like a group fade. Fill edges pulled in further keep the shadow.
+        private bool HidesUnderFill(in SDFEffectContext context) =>
+            _Mode == ShadowMode.Outer && context.HasOpaqueFill && context.FillInset <= FILL_OVERLAP;
     }
 }
