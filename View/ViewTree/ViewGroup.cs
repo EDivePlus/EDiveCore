@@ -91,6 +91,18 @@ namespace EDIVE.View.ViewTree
 
         internal void RemoveChild(AViewNode child) => _children.Remove(child);
 
+        internal ViewState GetStateForChild(AViewNode child)
+        {
+            var cap = GetChildCap(child);
+            return cap < StateInTree ? cap : StateInTree;
+        }
+
+        // Extra cap for one child, e.g. only the selected page of a switch is shown
+        protected virtual ViewState GetChildCap(AViewNode child) => ViewState.Focused;
+
+        // Call when GetChildCap results change
+        protected void RefreshChildCaps() => RefreshChildren();
+
         private protected override void RefreshChildren()
         {
             var children = ListPool<AViewNode>.Get();
