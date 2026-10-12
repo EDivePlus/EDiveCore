@@ -18,7 +18,7 @@ namespace EDIVE.EyeTracking
         public Observable<EyeGazeFrame> RawEyeGazeStream => _rawEyeGazeStream;
         public Observable<EyeGazeFrame> FrameEyeGazeStream => _rawEyeGazeStream.ThrottleLastFrame(1, UnityFrameProvider.Update);
         
-        private UniTaskCompletionSource<bool> _startTrackingCompletionSource;
+        private UniTaskCompletionSource<bool> _startTrackingPromise;
         private readonly HashSet<object> _requesters = new();
         private readonly Subject<EyeGazeFrame> _rawEyeGazeStream = new();
         private IDisposable _eyeGazeSubscription;
@@ -62,7 +62,7 @@ namespace EDIVE.EyeTracking
             if (requester == null)
                 return;
 
-            _startTrackingCompletionSource ??= new UniTaskCompletionSource<bool>();
+            _startTrackingPromise ??= new UniTaskCompletionSource<bool>();
             _requesters.Add(requester);
             if (ActiveModule == null)
             {
@@ -70,7 +70,7 @@ namespace EDIVE.EyeTracking
                 return;
             }
 
-            _startTrackingCompletionSource.Task.ContinueWith(callback).Forget();
+            _startTrackingPromise.Task.ContinueWith(callback).Forget();
             if (ActiveModule.IsTracking)
                 return;
             
@@ -82,7 +82,7 @@ namespace EDIVE.EyeTracking
         
         private void OnTrackingStarted(bool success)
         {
-            _startTrackingCompletionSource?.TrySetResult(success);
+            _startTrackingPromise?.TrySetResult(success);
             _eyeGazeSubscription?.Dispose();
             _eyeGazeSubscription = null;
             if (!success || ActiveModule == null)
@@ -113,8 +113,8 @@ namespace EDIVE.EyeTracking
                 
                 _eyeGazeSubscription?.Dispose();
                 _eyeGazeSubscription = null;
-                _startTrackingCompletionSource?.TrySetResult(false);
-                _startTrackingCompletionSource = null;
+                _startTrackingPromise?.TrySetResult(false);
+                _startTrackingPromise = null;
             }
         }
     }

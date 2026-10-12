@@ -54,7 +54,7 @@ namespace EDIVE.Core
         }
 
         private bool _isLoaded;
-        private UniTaskCompletionSource _loadedCompletionSource;
+        private UniTaskCompletionSource _loadedPromise;
 
         private void Awake()
         {
@@ -89,8 +89,8 @@ namespace EDIVE.Core
                 return;
 
             Instance._isLoaded = true;
-            Instance._loadedCompletionSource?.TrySetResult();
-            Instance._loadedCompletionSource = null;
+            Instance._loadedPromise?.TrySetResult();
+            Instance._loadedPromise = null;
         }
 
         public static UniTask AwaitLoaded()
@@ -101,8 +101,8 @@ namespace EDIVE.Core
             if (IsLoaded)
                 return UniTask.CompletedTask;
 
-            Instance._loadedCompletionSource ??= new UniTaskCompletionSource();
-            return Instance._loadedCompletionSource.Task;
+            Instance._loadedPromise ??= new UniTaskCompletionSource();
+            return Instance._loadedPromise.Task;
         }
 
         [ExecuteOnAppRestart(0)]

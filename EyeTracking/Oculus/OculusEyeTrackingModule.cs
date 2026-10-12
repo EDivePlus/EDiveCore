@@ -21,7 +21,7 @@ namespace EDIVE.EyeTracking.Oculus
         
         private readonly Subject<EyeGazeFrame> _eyeGazeStream = new();
   
-        private readonly UniTaskCompletionSource<bool> _permissionCompletionSource = new();
+        private readonly UniTaskCompletionSource<bool> _permissionPromise = new();
         private CancellationTokenSource _trackingCancellation;
         
         public override UniTask Initialize()
@@ -30,7 +30,7 @@ namespace EDIVE.EyeTracking.Oculus
             
             if (OVRPermissionsRequester.IsPermissionGranted(OVRPermissionsRequester.Permission.EyeTracking))
             {
-                _permissionCompletionSource.TrySetResult(true);
+                _permissionPromise.TrySetResult(true);
             }
             else
             {
@@ -44,7 +44,7 @@ namespace EDIVE.EyeTracking.Oculus
         // Android callback may come off main thread
         private async UniTask<bool> WaitForPermission()
         {
-            var granted = await _permissionCompletionSource.Task;
+            var granted = await _permissionPromise.Task;
             await UniTask.SwitchToMainThread();
             return granted;
         }
@@ -54,11 +54,11 @@ namespace EDIVE.EyeTracking.Oculus
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
             var callbacks = new UnityEngine.Android.PermissionCallbacks();
-            callbacks.PermissionGranted += _ => _permissionCompletionSource.TrySetResult(true);
-            callbacks.PermissionDenied += _ => _permissionCompletionSource.TrySetResult(false);
+            callbacks.PermissionGranted += _ => _permissionPromise.TrySetResult(true);
+            callbacks.PermissionDenied += _ => _permissionPromise.TrySetResult(false);
             UnityEngine.Android.Permission.RequestUserPermission(OVRPermissionsRequester.GetPermissionId(OVRPermissionsRequester.Permission.EyeTracking), callbacks);
 #else
-            _permissionCompletionSource.TrySetResult(false);
+            _permissionPromise.TrySetResult(false);
 #endif
         }
         
