@@ -72,8 +72,8 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
             //   uv0, uv1: grid position, size, roundness and arc, see DecodeGeometry
             //   uv2.x: layer, corner shape, frame and sharp arc apex, see DecodeLayer
             //   uv2.yzw by layer:
-            //     fill:    encoded fill with texture flag and fit, gradient row in the main texture, inset * 256 in 1/16 px
-            //     shadow:  round(size) + round(blur) * 4096, offset, power + round(start) * 256; start is past the outlines,
+            //     fill:    encoded fill with texture flag and fit, gradient row + center x * 4096, inset in 1/16 px + center y * 4096
+            //     shadow:  size * 4 + blur * 4 * 4096, offset, power + round(start) * 256; start is past the outlines,
             //              negative when the outer shadow is hidden under an opaque fill
             //     outline: size + placement * 4096, overlap under the fill
             //   color: Graphic.color for the fill (tints the gradient), the effect color for effects (alpha times Graphic.color alpha when they use it)
@@ -97,11 +97,11 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                 float2 sdfPos                   : TEXCOORD0; // px from the rect center
                 nointerpolation float4 roundness : TEXCOORD1;
                 nointerpolation float4 shape    : TEXCOORD2; // xy = half size, z = layer, w = corner style + hasArc * 2 + hasTexture * 4 + texture fit * 8
-                nointerpolation float4 ring     : TEXCOORD3; // x = ring center, y = ring half width (< 0 without frame), z = corner join, w = arc corner radius
+                nointerpolation float4 ring     : TEXCOORD3; // x = ring center, y = ring half width (< 0 without frame), z = corner wrap, w = arc corner radius
                 nointerpolation float4 sectorA  : TEXCOORD4; // see PrepareSector
                 nointerpolation float4 sectorB  : TEXCOORD5;
                 nointerpolation float4 params   : TEXCOORD6; // fill: mode, gradient param, gradient row, inset; shadow: size, blur, power, start; outline: outer, inner reach
-                nointerpolation float4 params2  : TEXCOORD7; // shadow: offset, hidden under fill
+                nointerpolation float4 params2  : TEXCOORD7; // fill: gradient center offset; shadow: offset, hidden under fill
                 #ifdef UNITY_UI_CLIP_RECT
                 float2 clipPos                  : TEXCOORD8;
                 #endif
@@ -134,8 +134,8 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                 float layer, sharpApex, cornerShape, framePlacement, frameWidth;
                 bool frameMode;
                 DecodeLayer(v.uv2.x, layer, sharpApex, cornerShape, frameMode, framePlacement, frameWidth);
-                float cornerStyle, cornerJoin;
-                DecodeCornerShape(cornerShape, cornerStyle, cornerJoin);
+                float cornerStyle, cornerWrap;
+                DecodeCornerShape(cornerShape, cornerStyle, cornerWrap);
                 float frameOuter = frameMode ? PlacementOuterExtent(framePlacement, frameWidth) : 0.0;
                 float frameInner = frameOuter - frameWidth;
 
@@ -147,8 +147,9 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                 if (layer < 0.5 || layer > 3.5)
                 {
                     DecodeFill(v.uv2.y, params.x, params.y, hasTexture, textureFit);
-                    params.z = v.uv2.z;
-                    params.w = floor(v.uv2.w / 256.0) / 16.0;
+                    float2 center;
+                    DecodeFillExtra(v.uv2.z, v.uv2.w, params.z, params.w, center);
+                    params2 = float4(center, 0, 0);
                 }
                 else if (layer < 2.5)
                 {
@@ -182,7 +183,7 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                 OUT.sdfPos = (uv - 0.5) * size;
                 OUT.roundness = min(roundness, min(size.x, size.y) * 0.5);
                 OUT.shape = float4(size * 0.5, layer, cornerStyle + hasArc * 2.0 + hasTexture * 4.0 + textureFit * 8.0);
-                OUT.ring = float4((frameOuter + frameInner) * 0.5, frameMode ? frameWidth * 0.5 : -1.0, cornerJoin, cornerRadius);
+                OUT.ring = float4((frameOuter + frameInner) * 0.5, frameMode ? frameWidth * 0.5 : -1.0, cornerWrap, cornerRadius);
                 OUT.params = params;
                 OUT.params2 = params2;
                 #ifdef UNITY_UI_CLIP_RECT
@@ -193,13 +194,13 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
             }
 
             // Shape with the ring transform in frame mode and the arc cut. Effects follow the ring, so they wrap both its edges.
-            float LayerDistance(float2 p, v2f IN, float cornerStyle, float cornerJoin, float hasArc, float edgeCos)
+            float LayerDistance(float2 p, v2f IN, float cornerStyle, float cornerWrap, float hasArc, float edgeCos)
             {
-                float dist = ShapeDistance(p, IN.shape.xy, IN.roundness, cornerStyle, cornerJoin);
+                float dist = ShapeDistance(p, IN.shape.xy, IN.roundness, cornerStyle, cornerWrap);
                 float shape = IN.ring.y >= 0 ? abs(dist - IN.ring.x) - IN.ring.y : dist;
                 [branch]
                 if (hasArc > 0.5)
-                    shape = JoinedMax(shape, SectorDistance(p, IN.sectorA, IN.sectorB), IN.ring.w, edgeCos, cornerJoin);
+                    shape = WrappedMax(shape, SectorDistance(p, IN.sectorA, IN.sectorB), IN.ring.w, edgeCos, cornerWrap);
                 return shape;
             }
 
@@ -214,7 +215,7 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                 flags -= hasTexture * 4.0;
                 float hasArc = step(1.5, flags);
                 float cornerStyle = flags - hasArc * 2.0;
-                float cornerJoin = IN.ring.z;
+                float cornerWrap = IN.ring.z;
 
                 float2 p = IN.sdfPos;
 
@@ -224,7 +225,7 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                 [branch]
                 if (layer < 3.5)
                 {
-                    float dist = ShapeDistance(p, IN.shape.xy, IN.roundness, cornerStyle, cornerJoin);
+                    float dist = ShapeDistance(p, IN.shape.xy, IN.roundness, cornerStyle, cornerWrap);
                     float shape = IN.ring.y >= 0 ? abs(dist - IN.ring.x) - IN.ring.y : dist;
                     sdf = shape;
 
@@ -234,7 +235,7 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                     {
                         float sector = SectorDistance(p, IN.sectorA, IN.sectorB);
                         edgeCos = EdgeCosine(shape, sector, p);
-                        sdf = JoinedMax(shape, sector, IN.ring.w, edgeCos, cornerJoin);
+                        sdf = WrappedMax(shape, sector, IN.ring.w, edgeCos, cornerWrap);
                     }
                 }
 
@@ -254,7 +255,7 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                     [branch]
                     if (IN.params.x > 0.5)
                     {
-                        float t = GradientFactor(IN.params.x, uv, IN.shape.xy * 2.0, IN.params.y);
+                        float t = GradientFactor(IN.params.x, uv, IN.shape.xy * 2.0, IN.params.y, IN.params2.xy);
                         half4 ramp = SampleGradient(_MainTex, _MainTex_TexelSize, t, IN.params.z);
                         rgb = Dither(rgb * ramp.rgb, IN.vertex.xy);
                         alpha *= ramp.a;
@@ -282,7 +283,7 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                     float shadowSdf = sdf;
                     [branch]
                     if (dot(shadowOffset, shadowOffset) > 0)
-                        shadowSdf = LayerDistance(p - shadowOffset, IN, cornerStyle, cornerJoin, hasArc, edgeCos);
+                        shadowSdf = LayerDistance(p - shadowOffset, IN, cornerStyle, cornerWrap, hasArc, edgeCos);
 
                     rgb = IN.color.rgb;
                     if (layer < 1.5)

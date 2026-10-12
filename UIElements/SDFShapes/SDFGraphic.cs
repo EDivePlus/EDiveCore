@@ -6,6 +6,7 @@ using EDIVE.DataStructures;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 #if UNITY_EDITOR
@@ -18,7 +19,7 @@ using EDIVE.OdinExtensions.Editor;
 namespace EDIVE.UIElements.SDFShapes
 {
     [RequireComponent(typeof(CanvasRenderer))]
-    public class SDFGraphic : MaskableGraphic, ICanvasRaycastFilter, IShapeStyleProvider
+    public class SDFGraphic : MaskableGraphic, ICanvasRaycastFilter, ICornerStyleProvider
     {
         private const string SHADER_NAME = "Hidden/EDIVE/SDFShapes/SDFShape";
 
@@ -35,72 +36,71 @@ namespace EDIVE.UIElements.SDFShapes
         [HideInInspector]
         private Shader _Shader;
 
-        [PropertyOrder(0)]
         [SerializeField]
         private Texture _Texture;
 
-        [PropertyOrder(0.1f)]
         [ShowIf(nameof(HasTexture))]
         [SerializeField]
         private TextureFit _TextureFit;
 
+        // Graphic.color is the fill color, or tints the gradient; its alpha also fades effects that use it
         [PropertyOrder(1)]
+        [ShowInInspector]
+        private Color Color
+        {
+            get => color;
+            set => color = value;
+        }
+
+        [PropertyOrder(2)]
         [HideIf(nameof(HasTexture))]
         [HideLabel]
         [InlineProperty]
         [SerializeField]
         private GradientFill _Fill = GradientFill.Default;
 
-        // Graphic.color is the fill color, or tints the gradient; its alpha also fades effects that use it
-        [PropertyOrder(0.5f)]
-        [LabelText("Color")]
-        [ShowInInspector]
-        private Color GraphicColor
-        {
-            get => color;
-            set => color = value;
-        }
-
+        [PropertyOrder(3)]
         [PropertySpace]
-        [PropertyOrder(10)]
         [SerializeField]
         private CornerRoundness _Roundness;
 
+        [PropertyOrder(3)]
+        [IconEnumToggleButtons]
+        [FormerlySerializedAs("_ShapeStyle")]
+        [SerializeField]
+        private CornerStyle _CornerStyle;
+
+        [PropertyOrder(3)]
+        [Tooltip("How frames, outlines, outer shadows and arc cuts wrap sharp corners")]
+        [ShowIf(nameof(ShowCornerWrap))]
+        [IconEnumToggleButtons]
+        [FormerlySerializedAs("_CornerJoin")]
+        [SerializeField]
+        private SharpCornerWrap _SharpCornerWrap;
+
+        [PropertyOrder(4)]
         [PropertySpace]
-        [PropertyOrder(11)]
         [IconEnumToggleButtons]
         [SerializeField]
         private FillMode _FillMode;
-
-        [PropertyOrder(12)]
-        [IconEnumToggleButtons]
-        [SerializeField]
-        private ShapeStyle _ShapeStyle;
 
         [SerializeField]
         [HideInInspector]
         private float _FrameWidth = 5f;
 
-        [PropertyOrder(13)]
+        [PropertyOrder(5)]
         [ShowIf(nameof(NoFill))]
         [ShowInInspector]
         public float FrameWidth
         {
             get => _FrameWidth;
-            set { value = VertexPacking.ClampPixel(value); if (Mathf.Approximately(_FrameWidth, value)) return; _FrameWidth = value; SetVerticesDirty(); }
+            set { value = VertexPacking.ClampFrameWidth(value); if (Mathf.Approximately(_FrameWidth, value)) return; _FrameWidth = value; SetVerticesDirty(); }
         }
 
-        [PropertyOrder(14)]
+        [PropertyOrder(6)]
         [ShowIf(nameof(NoFill))]
         [SerializeField]
         private EdgePlacement _FramePlacement;
-
-        [PropertySpace]
-        [PropertyOrder(19)]
-        [LabelText("Corner Style")]
-        [IconEnumToggleButtons]
-        [SerializeField]
-        private CornerJoin _CornerJoin;
 
         private readonly List<ASDFEffect> _effects = new();
         private SDFArc _arc;
@@ -114,8 +114,8 @@ namespace EDIVE.UIElements.SDFShapes
         private bool _editorRebuildQueued;
 #endif
 
+        [PropertyOrder(7)]
         [PropertySpace]
-        [PropertyOrder(100)]
         [ShowInInspector]
         public bool RaycastTarget
         {
@@ -123,7 +123,7 @@ namespace EDIVE.UIElements.SDFShapes
             set => raycastTarget = value;
         }
 
-        [PropertyOrder(101)]
+        [PropertyOrder(7)]
         [ShowInInspector]
         public RectPadding RaycastPadding
         {
@@ -131,7 +131,7 @@ namespace EDIVE.UIElements.SDFShapes
             set => raycastPadding = value;
         }
 
-        [PropertyOrder(102)]
+        [PropertyOrder(7)]
         [ShowInInspector]
         public bool Maskable
         {
@@ -171,10 +171,10 @@ namespace EDIVE.UIElements.SDFShapes
 
         public bool NoFill => _FillMode == FillMode.NoFill;
 
-        public ShapeStyle ShapeStyle
+        public CornerStyle CornerStyle
         {
-            get => _ShapeStyle;
-            set { if (_ShapeStyle == value) return; _ShapeStyle = value; SetVerticesDirty(); }
+            get => _CornerStyle;
+            set { if (_CornerStyle == value) return; _CornerStyle = value; SetVerticesDirty(); }
         }
 
         public EdgePlacement FramePlacement
@@ -183,10 +183,10 @@ namespace EDIVE.UIElements.SDFShapes
             set { if (_FramePlacement == value) return; _FramePlacement = value; SetVerticesDirty(); }
         }
 
-        public CornerJoin CornerJoin
+        public SharpCornerWrap SharpCornerWrap
         {
-            get => _CornerJoin;
-            set { if (_CornerJoin == value) return; _CornerJoin = value; SetVerticesDirty(); }
+            get => _SharpCornerWrap;
+            set { if (_SharpCornerWrap == value) return; _SharpCornerWrap = value; SetVerticesDirty(); }
         }
 
         public ArcCutout ActiveArc
@@ -215,9 +215,9 @@ namespace EDIVE.UIElements.SDFShapes
         }
 
         // Matches DecodeCornerShape in SDFShape.cginc
-        private float EncodedCornerShape => (int) _ShapeStyle + (int) _CornerJoin * 2;
-        private float FrameWidthRounded => Mathf.Round(VertexPacking.ClampPixel(_FrameWidth));
-        private float FrameReach => NoFill ? _FramePlacement.OuterExtent(FrameWidthRounded) : 0f;
+        private float EncodedCornerShape => (int) _CornerStyle + (int) _SharpCornerWrap * 2;
+        private float FrameWidthQuantized => VertexPacking.QuantizeFrameWidth(_FrameWidth);
+        private float FrameReach => NoFill ? _FramePlacement.OuterExtent(FrameWidthQuantized) : 0f;
         private bool HasVisibleFill => color.a > 0f;
         private bool HasTexture => _Texture;
         private bool UsesGradient => !_Texture && _Fill.HasGradient;
@@ -265,8 +265,8 @@ namespace EDIVE.UIElements.SDFShapes
             Refresh();
         }
 
+        [PropertyOrder(7)]
         [PropertySpace]
-        [PropertyOrder(110)]
         [OnInspectorGUI]
         private void DrawAddEffectMenu()
         {
@@ -319,6 +319,39 @@ namespace EDIVE.UIElements.SDFShapes
         }
 
         // Hits only inside the shape, grown by outward raycast padding. Frames count their empty middle too.
+#if UNITY_EDITOR
+        // Only sharp corners grown outward use it: a frame past the edge, an outward outline, an outer shadow, or an arc cut
+        private bool ShowCornerWrap
+        {
+            get
+            {
+                var arc = ActiveArc;
+                if (!arc.IsFull && arc.CornerRadius <= 0f)
+                    return true;
+
+                var rect = rectTransform.rect;
+                var radii = _Roundness.Resolve(rect.width, rect.height);
+                var hasSharpCorner = _CornerStyle == CornerStyle.Chamfer || Mathf.Min(Mathf.Min(radii.x, radii.y), Mathf.Min(radii.z, radii.w)) <= 0f;
+                if (!hasSharpCorner)
+                    return false;
+
+                if (NoFill && _FramePlacement != EdgePlacement.Inside)
+                    return true;
+
+                foreach (var effect in GetComponents<ASDFEffect>())
+                {
+                    if (!effect.enabled)
+                        continue;
+                    if (effect is SDFOutline outline && outline.Placement != EdgePlacement.Inside)
+                        return true;
+                    if (effect is SDFShadow shadow && shadow.Mode == ShadowMode.Outer)
+                        return true;
+                }
+                return false;
+            }
+        }
+#endif
+
         public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
         {
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, eventCamera, out var local))
@@ -341,7 +374,7 @@ namespace EDIVE.UIElements.SDFShapes
             var radius = p.x > 0f ? (p.y > 0f ? corners.x : corners.y) : (p.y > 0f ? corners.z : corners.w);
             radius = Mathf.Min(radius, Mathf.Min(halfSize.x, halfSize.y));
             var q = new Vector2(Mathf.Abs(p.x) - halfSize.x, Mathf.Abs(p.y) - halfSize.y);
-            if (_ShapeStyle == ShapeStyle.Chamfer && radius > 0f)
+            if (_CornerStyle == CornerStyle.Chamfer && radius > 0f)
                 return Mathf.Max(Mathf.Max(q.x, q.y), (q.x + q.y + radius) * SQRT_HALF);
 
             var qc = new Vector2(q.x + radius, q.y + radius);
@@ -408,7 +441,7 @@ namespace EDIVE.UIElements.SDFShapes
         }
 
         // Frames are empty past their inner edge, layers reach into that by the given amount
-        private float FrameHoleInset(float reach) => reach < 0f ? -1f : FrameWidthRounded - FrameReach + reach;
+        private float FrameHoleInset(float reach) => reach < 0f ? -1f : FrameWidthQuantized - FrameReach + reach;
 
         // Hole past the corner radius; arcs cut into the middle, so only full shapes get one
         private float HoleInset(float inset) => _activeArc.IsFull && inset >= 0f ? _maxCornerRadius + inset : -1f;
@@ -528,24 +561,26 @@ namespace EDIVE.UIElements.SDFShapes
             return vertex;
         }
 
-        // uv2: layer, encoded fill + hasTexture * 32768 + texture fit * 65536, gradient row in the atlas, inset * 256 in 1/16 px.
+        // uv2: layer, encoded fill + hasTexture * 32768 + texture fit * 65536, gradient row + center x * 4096, inset in 1/16 px + center y * 4096.
         // Without a texture the shader skips the sample, without a gradient the row lookup.
         private UIVertex BuildFillVertex(UIVertex geometry, float inset)
         {
             var insetCode = Mathf.Round(Mathf.Clamp(inset, 0f, VertexPacking.MAX_FILL_INSET) * 16f);
             var fill = UsesGradient ? _Fill.EncodeShaderFill() : 0f;
             var textureFlag = _Texture ? 32768f + (int) _TextureFit * 65536f : 0f;
-            geometry.uv2 = new Vector4(EncodeLayer(SDFLayer.Fill), fill + textureFlag, Mathf.Max(_gradientRow, 0), insetCode * 256f);
+            var center = _Fill.EncodeShaderCenter();
+            var row = Mathf.Clamp(_gradientRow, 0, 4095);
+            geometry.uv2 = new Vector4(EncodeLayer(SDFLayer.Fill), fill + textureFlag, row + center.x * 4096f, insetCode + center.y * 4096f);
             return geometry;
         }
 
         // Matches DecodeLayer in SDFShape.cginc:
-        // frameWidth + framePlacement * 4096 + frameMode * 16384 + cornerShape * 32768 + sharpApex * 262144 + layer * 524288
+        // frameWidth * 16 + framePlacement * 16384 + frameMode * 65536 + cornerShape * 131072 + sharpApex * 1048576 + layer * 2097152
         private float EncodeLayer(SDFLayer layer)
         {
-            var frame = NoFill ? FrameWidthRounded + (int) _FramePlacement * 4096f + 16384f : 0f;
-            var sharpApex = _activeArc.SharpCenter ? 262144f : 0f;
-            return frame + EncodedCornerShape * 32768f + sharpApex + (int) layer * 524288f;
+            var frame = NoFill ? FrameWidthQuantized * 16f + (int) _FramePlacement * 16384f + 65536f : 0f;
+            var sharpApex = _activeArc.SharpCenter ? 1048576f : 0f;
+            return frame + EncodedCornerShape * 131072f + sharpApex + (int) layer * 2097152f;
         }
 
         private void MigrateLegacyFill()
@@ -596,9 +631,9 @@ namespace EDIVE.UIElements.SDFShapes
 #endif
     }
 
-    public interface IShapeStyleProvider
+    public interface ICornerStyleProvider
     {
-        ShapeStyle ShapeStyle { get; }
+        CornerStyle CornerStyle { get; }
     }
 
     // Ranges the vertex encodings can hold; property setters clamp to them before the value is stored.
@@ -613,6 +648,8 @@ namespace EDIVE.UIElements.SDFShapes
         public const float MAX_SHADOW_POWER = 255.99f;
         public const float MAX_RADIAL_SIZE = 40.95f;
         public const float MAX_FILL_INSET = 255f;
+        public const float MAX_FRAME_WIDTH = 1023.9375f;
+        public const float MAX_SHADOW_PIXEL = 1023.75f;
 
         private const float FIXED_MAX = 65535f;
         private const float FIXED_STEP = 16f;
@@ -622,6 +659,12 @@ namespace EDIVE.UIElements.SDFShapes
         public static float ClampPixel(float value) => Mathf.Clamp(value, 0f, MAX_PIXEL);
         public static float ClampShadowPower(float value) => Mathf.Clamp(value, MIN_SHADOW_POWER, MAX_SHADOW_POWER);
         public static float ClampRadialSize(float value) => Mathf.Clamp(value, 0f, MAX_RADIAL_SIZE);
+        public static float ClampFrameWidth(float value) => Mathf.Clamp(value, 0f, MAX_FRAME_WIDTH);
+        public static float ClampShadowPixel(float value) => Mathf.Clamp(value, 0f, MAX_SHADOW_PIXEL);
+
+        // Frame width in 1/16 px, shadow size and blur in 1/4 px
+        public static float QuantizeFrameWidth(float value) => Mathf.Round(ClampFrameWidth(value) * 16f) / 16f;
+        public static float QuantizeShadowPixel(float value) => Mathf.Round(ClampShadowPixel(value) * 4f) / 4f;
 
         public static float PackBytes(int b0, int b1, int b2) => b0 + b1 * 256f + b2 * 65536f;
 

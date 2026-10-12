@@ -28,6 +28,7 @@ namespace EDIVE.UIElements.SDFShapes
         [SerializeField]
         private ArcFillOrigin _FillOrigin;
 
+        [Tooltip("Moves both cut edges inward, for gaps between wedges")]
         [SerializeField]
         private float _EdgePadding;
 
@@ -35,6 +36,7 @@ namespace EDIVE.UIElements.SDFShapes
         [SerializeField]
         private float _CornerRadius;
 
+        [Tooltip("Keeps the center point sharp when the corners are rounded")]
         [SerializeField]
         private bool _SharpCenter;
 
