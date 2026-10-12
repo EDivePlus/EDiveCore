@@ -22,6 +22,9 @@ namespace EDIVE.VisualPresets.Switchers
         public virtual bool IsValid() => BaseVisualID != null;
 
         public abstract void TryApply(AVisualPresetRecord preset);
+
+        // Current target value as a preset record, null when no strategy supports it
+        public abstract AVisualPresetRecord Capture();
         
         private static List<IVisualSwitcherStrategy> _strategyCatalog;
         protected static List<IVisualSwitcherStrategy> StrategyCatalog
@@ -66,16 +69,27 @@ namespace EDIVE.VisualPresets.Switchers
 
         private void OnBeforeApply() => _strategyHandle?.Dispose();
         
+        private static List<IVisualSwitcherStrategy<TVisualID>> TypedStrategyCatalog
+        {
+            get
+            {
+                if (_typedStrategyCatalog != null)
+                    return _typedStrategyCatalog;
+
+                _typedStrategyCatalog = StrategyCatalog.OfType<IVisualSwitcherStrategy<TVisualID>>().ToList();
+                return _typedStrategyCatalog;
+            }
+        }
+
         public void TryApply(AVisualPresetRecord<TVisualID> presetRecord)
         {
-            _typedStrategyCatalog ??= StrategyCatalog.OfType<IVisualSwitcherStrategy<TVisualID>>().ToList();
             if (!_isInitialized)
             {
                 _isInitialized = true;
-                _typedStrategyCatalog.ForEach(s => s.Prepare(this));
+                TypedStrategyCatalog.ForEach(s => s.Prepare(this));
             }
             
-            foreach (var strategy in _typedStrategyCatalog)
+            foreach (var strategy in TypedStrategyCatalog)
             {
                 if (!strategy.TryApply(out var handle, presetRecord, this, OnBeforeApply)) 
                     continue;
@@ -88,6 +102,20 @@ namespace EDIVE.VisualPresets.Switchers
             Debug.LogWarning($"[VisualSwitcher] No strategy found for preset {presetRecord.VisualID.name}");
             _strategyHandle?.Dispose();
             _currentPreset = null;
+        }
+
+        public sealed override AVisualPresetRecord Capture()
+        {
+            if (_VisualID == null)
+                return null;
+
+            foreach (var strategy in TypedStrategyCatalog)
+            {
+                var presetRecord = strategy.Capture(this);
+                if (presetRecord != null)
+                    return presetRecord;
+            }
+            return null;
         }
     }
 }

@@ -34,5 +34,13 @@ namespace EDIVE.VisualPresets.Switchers
             switcherRecord.SpriteRenderer.sprite = presetRecord.Sprite;
             return DisposableUtils.Empty;
         }
+
+        protected override SpriteVisualPresetRecord Capture(SpriteRendererSpriteVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.SpriteRenderer == null)
+                return null;
+
+            return new(switcherRecord.VisualID, switcherRecord.SpriteRenderer.sprite);
+        }
     }
 }

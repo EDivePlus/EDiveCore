@@ -11,6 +11,9 @@ namespace EDIVE.VisualPresets.Switchers
     {
         bool TryApply(out IDisposable handle, AVisualPresetRecord presetRecord, AVisualSwitcherRecord switcherRecord, Action onBeforeApply = null);
         void Prepare(AVisualSwitcherRecord switcherRecord);
+
+        // Current target value as a preset record, null when not supported
+        AVisualPresetRecord Capture(AVisualSwitcherRecord switcherRecord);
     }
     
     public interface IVisualSwitcherStrategy<TVisualID> : IVisualSwitcherStrategy where TVisualID : ABaseVisualID
@@ -43,5 +46,18 @@ namespace EDIVE.VisualPresets.Switchers
         }
         
         protected virtual void Prepare(TSwitcherRecord switcherRecord) { }
+
+        public AVisualPresetRecord Capture(AVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord is not TSwitcherRecord tSwitcherRecord)
+                return null;
+
+            return Capture(tSwitcherRecord);
+        }
+
+        protected virtual TPresetRecord Capture(TSwitcherRecord switcherRecord)
+        {
+            return null;
+        }
     }
 }

@@ -70,6 +70,14 @@ namespace EDIVE.VisualPresets.Switchers
             switcherRecord.Text.FontSymbol = presetRecord.FontSymbol;
             return DisposableUtils.Empty;
         }
+
+        protected override FontSymbolVisualPresetRecord Capture(TextFontSymbolVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.Text == null)
+                return null;
+
+            return new(switcherRecord.VisualID, switcherRecord.Text.FontSymbol);
+        }
     }
     
     [Serializable]
@@ -94,6 +102,14 @@ namespace EDIVE.VisualPresets.Switchers
             
             switcherRecord.Text.FontSymbol = presetRecord.FontSymbol;
             return DisposableUtils.Empty;
+        }
+
+        protected override FontSymbolVisualPresetRecord Capture(TMPTextFontSymbolVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.Text == null)
+                return null;
+
+            return new(switcherRecord.VisualID, switcherRecord.Text.FontSymbol);
         }
     }
 }

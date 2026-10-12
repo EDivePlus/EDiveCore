@@ -35,5 +35,13 @@ namespace EDIVE.VisualPresets.Switchers
             switcherRecord.Image.sprite = presetRecord.Sprite;
             return DisposableUtils.Empty;
         }
+
+        protected override SpriteVisualPresetRecord Capture(ImageSpriteVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.Image == null)
+                return null;
+
+            return new(switcherRecord.VisualID, switcherRecord.Image.sprite);
+        }
     }
 }
