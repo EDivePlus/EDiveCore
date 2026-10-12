@@ -150,7 +150,7 @@ namespace EDIVE.Core.Services
             if (wrapper.HasService)
                 return wrapper.Service;
             
-            return await wrapper.CompletionSource.Task.AttachExternalCancellation(cancellationToken);
+            return await wrapper.Promise.Task.AttachExternalCancellation(cancellationToken);
         }
         
         public async UniTask<(T, T2)> AwaitRegistered<T, T2>(CancellationToken cancellationToken = default) 
@@ -210,8 +210,8 @@ namespace EDIVE.Core.Services
             public IService BaseService => Service;
             public bool HasService => Service != null;
             
-            public UniTaskCompletionSource<T> CompletionSource => _completionSource ??= new UniTaskCompletionSource<T>();
-            private UniTaskCompletionSource<T> _completionSource;
+            public UniTaskCompletionSource<T> Promise => _promise ??= new UniTaskCompletionSource<T>();
+            private UniTaskCompletionSource<T> _promise;
             
             public event Action<T> ServiceChanged;
             
@@ -224,8 +224,8 @@ namespace EDIVE.Core.Services
                 if (Service == null)
                     return;
 
-                _completionSource?.TrySetResult(Service);
-                _completionSource = null;
+                _promise?.TrySetResult(Service);
+                _promise = null;
             }
 
             public bool ClearService()
@@ -234,7 +234,7 @@ namespace EDIVE.Core.Services
                     return false;
                 
                 Service = null;
-                _completionSource = null;
+                _promise = null;
                 ServiceChanged?.Invoke(null);
                 return true;
             }

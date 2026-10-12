@@ -23,7 +23,7 @@ namespace EDIVE.Networking.Players
         public NetworkPlayerController LocalPlayer { get; private set; }
         public List<NetworkPlayerController> CurrentPlayers { get; } = new();
 
-        private readonly List<(PlayerID id, UniTaskCompletionSource<NetworkPlayerController> completionSource)> _playerRequests = new();
+        private readonly List<(PlayerID id, UniTaskCompletionSource<NetworkPlayerController> promise)> _playerRequests = new();
         private UniTaskCompletionSource<NetworkPlayerController> _localPlayerRequest;
         
         public event Action<NetworkPlayerController> PlayerRegistered;
@@ -57,7 +57,7 @@ namespace EDIVE.Networking.Players
             if (player.owner.HasValue &&
                 _playerRequests.TryGetFirst(p => p.id == player.owner.Value, out var request))
             {
-                request.completionSource.TrySetResult(player);
+                request.promise.TrySetResult(player);
                 _playerRequests.Remove(request);
             }
             
@@ -106,12 +106,12 @@ namespace EDIVE.Networking.Players
             if (TryGetPlayerController(clientID, out var playerController))
                 return playerController;
 
-            var completionSource = new UniTaskCompletionSource<NetworkPlayerController>();
-            var record = (clientID, completionSource);
+            var promise = new UniTaskCompletionSource<NetworkPlayerController>();
+            var record = (clientID, promise);
             _playerRequests.Add(record);
 
             var timeout = UniTask.Delay(TimeSpan.FromMinutes(1));
-            var result = await UniTask.WhenAny(completionSource.Task, timeout);
+            var result = await UniTask.WhenAny(promise.Task, timeout);
             _playerRequests.Remove(record);
             return result.result;
         }
