@@ -5,7 +5,6 @@ using UnityEngine;
 
 namespace EDIVE.OdinExtensions.Editor.Drawers
 {
-    [DrawerPriority(0, 0, 1)]
     public abstract class ATooltipIconAttributeDrawer<TAttribute> : OdinAttributeDrawer<TAttribute>
         where TAttribute : Attribute
     {
@@ -22,7 +21,11 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         }
     }
 
+    // Odin reads the priority only from the drawer type itself. Wrapper level, so it runs before
+    // attribute drawers that draw the label themselves, like IconEnumToggleButtons.
+    [DrawerPriority(0, 1, 0)]
     public class TooltipIconAttributeDrawer : ATooltipIconAttributeDrawer<TooltipAttribute> { }
 
+    [DrawerPriority(0, 1, 0)]
     public class PropertyTooltipIconAttributeDrawer : ATooltipIconAttributeDrawer<PropertyTooltipAttribute> { }
 }
