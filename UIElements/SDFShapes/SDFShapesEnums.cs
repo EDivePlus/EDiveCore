@@ -15,7 +15,7 @@ namespace EDIVE.UIElements.SDFShapes
         NoFill = 1
     }
 
-    public enum ShapeStyle
+    public enum CornerStyle
     {
         [IconLabelText(FontAwesomeEditorIconType.CircleSolid, "Round")]
         Round = 0,
@@ -25,16 +25,16 @@ namespace EDIVE.UIElements.SDFShapes
     }
 
     // How outline, shadow and frame wrap a sharp corner
-    public enum CornerJoin
+    public enum SharpCornerWrap
     {
         [IconLabelText(FontAwesomeEditorIconType.CircleRegular, "Round")]
         Round = 0,
 
-        [IconLabelText(FontAwesomeEditorIconType.SquareRegular, "Miter")]
-        Miter = 1,
+        [IconLabelText(FontAwesomeEditorIconType.SquareRegular, "Pointed")]
+        Pointed = 1,
 
-        [IconLabelText(FontAwesomeEditorIconType.DiamondRegular, "Bevel")]
-        Bevel = 2
+        [IconLabelText(FontAwesomeEditorIconType.DiamondRegular, "Flat")]
+        Flat = 2
     }
 
     // Declared in button order; PerCorner stays 0 so it is the default and matches older data

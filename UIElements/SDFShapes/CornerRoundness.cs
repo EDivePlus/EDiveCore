@@ -83,7 +83,7 @@ namespace EDIVE.UIElements.SDFShapes
         private enum Corner { TopLeft, TopRight, BottomRight, BottomLeft }
 
         // The owning graphic decides between round and chamfered corners
-        private ShapeStyle Style => (Property.Tree.WeakTargets[0] as IShapeStyleProvider)?.ShapeStyle ?? ShapeStyle.Round;
+        private CornerStyle Style => (Property.Tree.WeakTargets[0] as ICornerStyleProvider)?.CornerStyle ?? CornerStyle.Round;
 
         protected override void Initialize()
         {
@@ -101,7 +101,7 @@ namespace EDIVE.UIElements.SDFShapes
             switch (value.Mode)
             {
                 case RoundnessMode.Uniform:
-                    value.Radius = EditorGUILayout.FloatField(Style == ShapeStyle.Chamfer ? "Chamfer" : "Radius", value.Radius);
+                    value.Radius = EditorGUILayout.FloatField(Style == CornerStyle.Chamfer ? "Chamfer" : "Radius", value.Radius);
                     break;
                 case RoundnessMode.PerCorner:
                     DrawCorners(ref value);
@@ -165,12 +165,12 @@ namespace EDIVE.UIElements.SDFShapes
         }
 
         // radii order: top left, top right, bottom right, bottom left
-        private static void DrawPreview(Rect rect, Vector4 radii, ShapeStyle style)
+        private static void DrawPreview(Rect rect, Vector4 radii, CornerStyle style)
         {
             if (Event.current.type != EventType.Repaint)
                 return;
 
-            if (style == ShapeStyle.Round)
+            if (style == CornerStyle.Round)
             {
                 GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, PREVIEW_COLOR, Vector4.zero, radii);
                 return;

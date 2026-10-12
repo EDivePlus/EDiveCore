@@ -6,13 +6,13 @@
 #define SHAPE_HALF_PI 1.57079633
 #define SHAPE_TWO_PI 6.28318531
 
-// cornerShape = style + join * 2
+// cornerShape = style + wrap * 2
 //   style: 0 = round, 1 = chamfer
-//   join:  0 = round, 1 = miter, 2 = bevel (outer offsets only, the shape itself is unchanged)
-void DecodeCornerShape(float cornerShape, out float style, out float join)
+//   wrap:  0 = round, 1 = pointed, 2 = flat (outer offsets only, the shape itself is unchanged)
+void DecodeCornerShape(float cornerShape, out float style, out float wrap)
 {
-    join = floor(cornerShape / 2.0 + 0.001);
-    style = cornerShape - join * 2.0;
+    wrap = floor(cornerShape / 2.0 + 0.001);
+    style = cornerShape - wrap * 2.0;
 }
 
 float SegmentDistance(float2 p, float2 a, float2 b)
@@ -24,40 +24,40 @@ float SegmentDistance(float2 p, float2 a, float2 b)
 }
 
 // q = abs(p) - halfSize: the corner sits at the origin and the interior is negative
-float RoundCornerDistance(float2 q, float c, float join)
+float RoundCornerDistance(float2 q, float c, float wrap)
 {
     float2 qc = q + c;
     float2 o = max(qc, 0.0);
     float outside;
-    if (c > 0.0 || join < 0.5)
+    if (c > 0.0 || wrap < 0.5)
         outside = length(o);
-    else if (join < 1.5)
+    else if (wrap < 1.5)
         outside = max(o.x, o.y);
     else
         outside = max(max(o.x, o.y), (o.x + o.y) * SQRT_HALF);
     return min(max(qc.x, qc.y), 0.0) + outside - c;
 }
 
-float ChamferCornerDistance(float2 q, float c, float join)
+float ChamferCornerDistance(float2 q, float c, float wrap)
 {
     if (c <= 0.0)
-        return RoundCornerDistance(q, 0.0, join);
+        return RoundCornerDistance(q, 0.0, wrap);
 
-    // Edge lines x = 0, y = 0 and the chamfer x + y = -c; their max is exact inside and a miter offset outside
+    // Edge lines x = 0, y = 0 and the chamfer x + y = -c; their max is exact inside and a pointed offset outside
     float lineMax = max(max(q.x, q.y), (q.x + q.y + c) * SQRT_HALF);
-    if (lineMax <= 0.0 || (join > 0.5 && join < 1.5))
+    if (lineMax <= 0.0 || (wrap > 0.5 && wrap < 1.5))
         return lineMax;
 
-    if (join > 1.5)
+    if (wrap > 1.5)
     {
-        // Bevel: cut through each chamfer vertex along the bisector of its edge normals
+        // Flat: cut through each chamfer vertex along the bisector of its edge normals
         float2 n = normalize(float2(1.0 + SQRT_HALF, SQRT_HALF));
         float cutX = dot(q - float2(0.0, -c), n);
         float cutY = dot(q - float2(-c, 0.0), n.yx);
         return max(lineMax, max(cutX, cutY));
     }
 
-    // Round join: exact distance to the three boundary pieces of this corner
+    // Round wrap: exact distance to the three boundary pieces of this corner
     float2 vertexX = float2(0.0, -c);
     float2 vertexY = float2(-c, 0.0);
     float edgeX = q.y <= -c ? abs(q.x) : length(q - vertexX);
@@ -66,7 +66,7 @@ float ChamferCornerDistance(float2 q, float c, float join)
 }
 
 // corners: x = top right, y = bottom right, z = top left, w = bottom left; already clamped to the half size
-float ShapeDistance(float2 p, float2 halfSize, float4 corners, float style, float join)
+float ShapeDistance(float2 p, float2 halfSize, float4 corners, float style, float wrap)
 {
     float2 side = p.x > 0.0 ? corners.xy : corners.zw;
     float c = p.y > 0.0 ? side.x : side.y;
@@ -75,9 +75,9 @@ float ShapeDistance(float2 p, float2 halfSize, float4 corners, float style, floa
     float d;
     [branch]
     if (style < 0.5)
-        d = RoundCornerDistance(q, c, join);
+        d = RoundCornerDistance(q, c, wrap);
     else
-        d = ChamferCornerDistance(q, c, join);
+        d = ChamferCornerDistance(q, c, wrap);
     return d;
 }
 
@@ -139,12 +139,23 @@ void DecodeFill(float raw, out float mode, out float param, out float hasTexture
     param = mode > 1.5 && mode < 4.5 ? raw / 100.0 : raw / 4096.0;
 }
 
-// Position along the gradient, 0 to 1; uv spans the rect from 0 to 1, param is from DecodeFill.
-// Linear puts opposite corners on 0 and 1 at any angle, angular runs clockwise from its start.
-// Branch free: callers skip it for mode 0, and flow control nested in their branch crashes the D3D compiler.
-float GradientFactor(float mode, float2 uv, float2 size, float param)
+// rowAndX = row + centerX * 4096, insetAndY = inset * 16 + centerY * 4096, matching SDFGraphic.BuildFillVertex.
+// The center is an offset from the middle in rect sizes, -1 to 1.
+void DecodeFillExtra(float rowAndX, float insetAndY, out float row, out float inset, out float2 center)
 {
-    float2 centered = uv - 0.5;
+    float cx = floor(rowAndX / 4096.0);
+    float cy = floor(insetAndY / 4096.0);
+    row = rowAndX - cx * 4096.0;
+    inset = (insetAndY - cy * 4096.0) / 16.0;
+    center = float2(cx, cy) / 4095.0 * 2.0 - 1.0;
+}
+
+// Position along the gradient, 0 to 1; uv spans the rect from 0 to 1, param is from DecodeFill.
+// Linear puts opposite corners on 0 and 1 at any angle, angular runs clockwise from its start; radial and angular start at the center offset.
+// Branch free: callers skip it for mode 0, and flow control nested in their branch crashes the D3D compiler.
+float GradientFactor(float mode, float2 uv, float2 size, float param, float2 center)
+{
+    float2 centered = uv - 0.5 - center;
     float2 pixel = centered * size;
     float angle = param * SHAPE_TWO_PI;
     float2 direction;
@@ -212,14 +223,14 @@ float EdgeCosine(float a, float b, float2 p)
 }
 
 // Intersection of two distance fields. cosTheta is the cosine of the angle between their edge normals, which
-// keeps the corner exact at any angle. The corner is rounded by r, or offset outside with the join when sharp:
-// round is the true distance, miter extends both edges, bevel cuts the miter where the round would end.
-float JoinedMax(float a, float b, float r, float cosTheta, float join)
+// keeps the corner exact at any angle. The corner is rounded by r, or offset outside with the wrap when sharp:
+// round is the true distance, pointed extends both edges, flat cuts the pointed where the round would end.
+float WrappedMax(float a, float b, float r, float cosTheta, float wrap)
 {
     float2 q = float2(a, b) + r;
     float2 o = max(q, 0.0);
     float outside;
-    if (r > 0.0 || join < 0.5)
+    if (r > 0.0 || wrap < 0.5)
     {
         bool corner = q.x >= q.y * cosTheta && q.y >= q.x * cosTheta && max(q.x, q.y) > 0.0;
         float sinSq = max(1.0 - cosTheta * cosTheta, 1e-4);
@@ -227,7 +238,7 @@ float JoinedMax(float a, float b, float r, float cosTheta, float join)
             ? sqrt(max(q.x * q.x + q.y * q.y - 2.0 * q.x * q.y * cosTheta, 0.0) / sinSq)
             : max(o.x, o.y);
     }
-    else if (join < 1.5)
+    else if (wrap < 1.5)
     {
         outside = max(o.x, o.y);
     }
@@ -281,31 +292,32 @@ float SectorDistance(float2 p, float4 sectorA, float4 sectorB)
     return sectorB.w * (m * sign(sc.y * q.x - sc.x * q.y) - sectorB.z);
 }
 
-// shadow = round(shadowSize) + round(shadowBlur) * 4096.
-// Rounded first: perspective interpolation drifts the value slightly and floor would turn 0 into a 4096 px shadow.
+// shadow = shadowSize * 4 + shadowBlur * 4 * 4096, both in 1/4 px.
+// Rounded first: perspective interpolation drifts the value slightly and floor would turn 0 into a 1024 px shadow.
 void DecodeShadow(float raw, out float shadowSize, out float shadowBlur)
 {
     float info = round(max(raw, 0.0));
-    shadowBlur = floor(info / 4096.0);
-    shadowSize = info - shadowBlur * 4096.0;
+    float blur = floor(info / 4096.0);
+    shadowSize = (info - blur * 4096.0) / 4.0;
+    shadowBlur = blur / 4.0;
 }
 
-// layer = frameWidth + framePlacement * 4096 + frameMode * 16384 + cornerShape * 32768 + sharpApex * 262144 + layer * 524288,
+// layer = frameWidth * 16 + framePlacement * 16384 + frameMode * 65536 + cornerShape * 131072 + sharpApex * 1048576 + layer * 2097152,
 // matching SDFGraphic.EncodeLayer. Layers: 0 = fill, 1 = outer shadow, 2 = inner shadow, 3 = outline, 4 = solid fill
 void DecodeLayer(float raw, out float layer, out float sharpApex, out float cornerShape, out bool frameMode, out float framePlacement, out float frameWidth)
 {
     raw = round(raw);
-    layer = floor(raw / 524288.0);
-    raw -= layer * 524288.0;
-    sharpApex = floor(raw / 262144.0);
-    raw -= sharpApex * 262144.0;
-    cornerShape = floor(raw / 32768.0);
-    raw -= cornerShape * 32768.0;
-    float frame = floor(raw / 16384.0);
-    raw -= frame * 16384.0;
+    layer = floor(raw / 2097152.0);
+    raw -= layer * 2097152.0;
+    sharpApex = floor(raw / 1048576.0);
+    raw -= sharpApex * 1048576.0;
+    cornerShape = floor(raw / 131072.0);
+    raw -= cornerShape * 131072.0;
+    float frame = floor(raw / 65536.0);
+    raw -= frame * 65536.0;
     frameMode = frame > 0.5;
-    framePlacement = floor(raw / 4096.0);
-    frameWidth = raw - framePlacement * 4096.0;
+    framePlacement = floor(raw / 16384.0);
+    frameWidth = (raw - framePlacement * 16384.0) / 16.0;
 }
 
 // Placement: 0 = inside, 1 = center, 2 = outside. How far a band of the given width reaches past the edge.
