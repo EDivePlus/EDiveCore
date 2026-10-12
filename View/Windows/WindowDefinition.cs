@@ -5,14 +5,16 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AddressableAssets;
+using EDIVE.AssetTranslation;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.View.Windows
 {
+    // UniqueID is the route ID for ScreenRoot.Navigate
     [CreateAssetMenu(menuName = "EDIVE/View/Window Definition", fileName = "WindowDefinition")]
-    public class WindowDefinition : ScriptableObject
+    public class WindowDefinition : AUniqueDefinition
     {
         [SerializeField]
         [EnhancedBoxGroup("Source")]
@@ -39,6 +41,10 @@ namespace EDIVE.View.Windows
         [ShowIf(nameof(_Modal))]
         private bool _CloseOnBackdrop;
 
+        [SerializeField]
+        [EnhancedBoxGroup("Screen")]
+        private bool _CloseOnBack;
+
         // Windows below get hidden once this one is opened
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
@@ -49,11 +55,17 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Screen")]
         private bool _KeepAfterClose;
 
+        [SerializeField]
+        [EnhancedBoxGroup("Screen")]
+        private WindowInstancePolicy _InstancePolicy;
+
         public WindowLayer Layer => _Layer;
         public bool Modal => _Modal;
         public bool CloseOnBackdrop => _Modal && _CloseOnBackdrop;
+        public bool CloseOnBack => _CloseOnBack;
         public bool Opaque => _Opaque;
         public bool KeepAfterClose => _KeepAfterClose;
+        public WindowInstancePolicy InstancePolicy => _InstancePolicy;
 
         private bool UsesReference => _Prefab == null && _PrefabReference != null && !string.IsNullOrEmpty(_PrefabReference.Address);
 

@@ -300,7 +300,7 @@ namespace EDIVE.View.ViewTree
 
             if (Parent.IsResolved)
             {
-                state = Parent.StateInTree;
+                state = Parent.GetStateForChild(this);
                 return true;
             }
 

@@ -176,6 +176,32 @@ namespace EDIVE.View.Windows
                 Screen.Close(Handle, result, immediate);
         }
 
+        // Asks CanCloseAsync first, for user closes like a close button
+        public UniTask<bool> TryCloseAsync(object result = null, WindowCloseReason reason = WindowCloseReason.Code)
+        {
+            return Handle != null ? Screen.TryCloseAsync(Handle, result, reason) : UniTask.FromResult(false);
+        }
+
+        // Selects pages in the switches below, e.g. "audio/advanced"
+        public bool Navigate(string path) => ViewSwitch.Navigate(this, path);
+
+        internal UniTask<bool> CheckCanCloseAsync(WindowCloseReason reason) => CanCloseAsync(reason);
+
+        internal bool HandleBack() => OnBack();
+
+        // Guard for back, backdrop and TryCloseAsync. Plain Close skips it.
+        protected virtual UniTask<bool> CanCloseAsync(WindowCloseReason reason) => UniTask.FromResult(true);
+
+        // True when handled, the back goes no further
+        protected virtual bool OnBack()
+        {
+            if (!Definition.CloseOnBack)
+                return false;
+
+            TryCloseAsync(null, WindowCloseReason.Back).Forget();
+            return true;
+        }
+
         internal virtual void SetContext(object context) { }
 
         protected virtual void OnWindowOpening() { }

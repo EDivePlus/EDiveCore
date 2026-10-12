@@ -22,11 +22,19 @@ namespace EDIVE.View.Windows
         public bool IsClosed { get; private set; }
         public object Result { get; internal set; }
 
+        // Set once closing starts
+        public WindowCloseReason CloseReason { get; internal set; }
+
         public UniTask Opened => _opened.Task;
         public UniTask Closing => _closing.Task;
         public UniTask<object> Closed => _closed.Task;
 
         internal bool IsCloseRequested { get; set; }
+        internal bool IsGuarding { get; set; }
+        internal object Context { get; set; }
+
+        // Page path waiting for the window to load
+        internal string PendingPath { get; set; }
 
         internal WindowHandle(ScreenRoot screen, WindowDefinition definition)
         {
@@ -35,6 +43,20 @@ namespace EDIVE.View.Windows
         }
 
         public void Close(object result = null, bool immediate = false) => Screen.Close(this, result, immediate);
+
+        // Asks the window first, see AWindow.CanCloseAsync
+        public UniTask<bool> TryCloseAsync(object result = null, WindowCloseReason reason = WindowCloseReason.Code) => Screen.TryCloseAsync(this, result, reason);
+
+        internal void Navigate(string path)
+        {
+            if (IsClosing)
+                return;
+
+            if (Window != null)
+                Window.Navigate(path);
+            else
+                PendingPath = path;
+        }
 
         internal void SetOpened() => _opened.TrySetResult();
 
@@ -48,6 +70,7 @@ namespace EDIVE.View.Windows
         {
             IsClosing = true;
             IsClosed = true;
+            Context = null;
             _opened.TrySetResult();
             _closing.TrySetResult();
             _closed.TrySetResult(Result);
