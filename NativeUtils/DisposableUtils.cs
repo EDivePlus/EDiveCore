@@ -22,10 +22,16 @@ namespace EDIVE.NativeUtils
         
     internal sealed class AnonymousDisposable : IDisposable
     {
-        private readonly Action _onDisposed;
+        private Action _onDisposed;
 
         public AnonymousDisposable(Action onDisposed) => _onDisposed = onDisposed;
 
-        public void Dispose() => _onDisposed?.Invoke();
+        // Runs only on the first dispose
+        public void Dispose()
+        {
+            var onDisposed = _onDisposed;
+            _onDisposed = null;
+            onDisposed?.Invoke();
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 22.09.2026
 
+using System;
 using System.Collections.Generic;
 using EDIVE.Conditions;
 using EDIVE.StateHandling.ToggleStates;
@@ -22,21 +23,22 @@ namespace EDIVE.XRTools.ActionWheel
 
         [SerializeReference]
         private ABoolCondition _StateCondition;
+
+        private IDisposable _stateObserver;
         
         private bool State => _StateCondition?.Evaluate() ?? false;
 
         private void OnEnable()
         {
-            if (_StateCondition != null) _StateCondition.StateChanged += RefreshState;
-            _StateCondition?.InitializeObserving();
+            _stateObserver = _StateCondition.ObserveDisposable(RefreshState);
             
             RefreshState();
         }
 
         private void OnDisable()
         {
-            _StateCondition?.TerminateObserving();
-            if (_StateCondition != null) _StateCondition.StateChanged -= RefreshState;
+            _stateObserver?.Dispose();
+            _stateObserver = null;
         }
 
         public override void OnShow()
