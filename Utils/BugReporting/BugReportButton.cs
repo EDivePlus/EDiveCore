@@ -25,7 +25,7 @@ namespace EDIVE.Utils.BugReporting
         
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(OnActivated);
+            _Activation?.Register(OnActivated);
             if (!AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
             {
                 Debug.LogError("BugReportingManager not found", this);
@@ -38,7 +38,7 @@ namespace EDIVE.Utils.BugReporting
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(OnActivated);
+            _Activation?.Unregister(OnActivated);
             if (AppCore.Services.TryGet<BugReportingManager>(out var bugReportingManager))
             {
                 bugReportingManager.ReportSent -= RefreshState;

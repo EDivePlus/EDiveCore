@@ -41,13 +41,13 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
 
         private void OnEnable()
         {
-            _SpawnActivation?.RegisterActivationListener(OnSpawnActivated);
+            _SpawnActivation?.Register(OnSpawnActivated);
             UpdateDisplay();
         }
 
         private void OnDisable()
         {
-            _SpawnActivation?.UnregisterActivationListener(OnSpawnActivated);
+            _SpawnActivation?.Unregister(OnSpawnActivated);
         }
 
         public void ApplyContentInfo(ContentItemInfo content)

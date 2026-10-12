@@ -15,16 +15,16 @@ namespace EDIVE.Utils.Activations
         [SerializeReference]
         private List<IActivation> _Activations = new();
 
-        public void RegisterActivationListener(Action onActivate)
+        public void Register(Action onActivate)
         {
             foreach (var activation in _Activations)
-                activation?.RegisterActivationListener(onActivate);
+                activation?.Register(onActivate);
         }
 
-        public void UnregisterActivationListener(Action onActivate)
+        public void Unregister(Action onActivate)
         {
             foreach (var activation in _Activations)
-                activation?.UnregisterActivationListener(onActivate);
+                activation?.Unregister(onActivate);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 OnFocusedHandlerChanged(manager.FocusedHandler);
             }
             
-            _DeleteActivation?.RegisterActivationListener(OnDeleteActivated);
+            _DeleteActivation?.Register(OnDeleteActivated);
         }
 
         private void OnDisable()
@@ -44,7 +44,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                     _AnyHandlerFocusedState.SetState(false);
             }
             
-            _DeleteActivation?.UnregisterActivationListener(OnDeleteActivated);
+            _DeleteActivation?.Unregister(OnDeleteActivated);
         }
 
         private void OnFocusedHandlerChanged(ARemoteContentHandler selected)

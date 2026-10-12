@@ -22,12 +22,12 @@ namespace EDIVE.Avatars.Networking
 
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(Activate);
+            _Activation?.Register(Activate);
         }
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(Activate);
+            _Activation?.Unregister(Activate);
         }
 
         private void Activate() => ApplyPreset().Forget();

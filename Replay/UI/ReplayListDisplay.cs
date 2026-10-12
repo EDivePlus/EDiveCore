@@ -31,7 +31,7 @@ namespace EDIVE.Replay.UI
                 _ElementPrefab,
                 _currentRecords,
                 (item, record) => item.SetReplay(record, OnReplayRecordedSelected));
-            _RefreshActivation?.RegisterActivationListener(RefreshList);
+            _RefreshActivation?.Register(RefreshList);
         }
 
         private void Start()
@@ -41,7 +41,7 @@ namespace EDIVE.Replay.UI
 
         private void OnDisable()
         {
-            _RefreshActivation?.UnregisterActivationListener(RefreshList);
+            _RefreshActivation?.Unregister(RefreshList);
         }
 
         [Button]

@@ -47,13 +47,13 @@ namespace EDIVE.Utils.BugReporting
         
         private void OnEnable()
         {
-            _Activation?.RegisterActivationListener(OnActivated);
+            _Activation?.Register(OnActivated);
             RefreshState();
         }
 
         private void OnDisable()
         {
-            _Activation?.UnregisterActivationListener(OnActivated);
+            _Activation?.Unregister(OnActivated);
         }
 
         public void OnActivated()

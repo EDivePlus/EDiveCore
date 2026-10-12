@@ -51,7 +51,7 @@ namespace EDIVE.Networking.ServerManagement.UI
             if (_serverRecord == null)
                 return;
             
-            _ConnectActivation?.RegisterActivationListener(OnConnectActivated);
+            _ConnectActivation?.Register(OnConnectActivated);
             
             _serverRecord.StateChanged += OnServerRecordChanged;
             
@@ -64,7 +64,7 @@ namespace EDIVE.Networking.ServerManagement.UI
             {
                 endpointDisplay.SetActive(false);
             }
-            _ConnectActivation?.UnregisterActivationListener(OnConnectActivated);
+            _ConnectActivation?.Unregister(OnConnectActivated);
             
             if (_serverRecord != null)
                 _serverRecord.StateChanged -= OnServerRecordChanged;

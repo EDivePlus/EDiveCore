@@ -18,12 +18,12 @@ namespace EDIVE.Input.Controls
         
         private void Awake()
         {
-            _Activation?.RegisterActivationListener(OnActivated);
+            _Activation?.Register(OnActivated);
         }
         
         private void OnDestroy()
         {
-            _Activation?.UnregisterActivationListener(OnActivated);
+            _Activation?.Unregister(OnActivated);
         }
 
         private void OnActivated()

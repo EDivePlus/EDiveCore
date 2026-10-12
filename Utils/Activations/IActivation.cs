@@ -9,7 +9,7 @@ namespace EDIVE.Utils.Activations
     [EnhancedTypeSelector(true, 1)]
     public interface IActivation
     {
-        public void RegisterActivationListener(Action onActivate);
-        public void UnregisterActivationListener(Action onActivate);
+        public void Register(Action onActivate);
+        public void Unregister(Action onActivate);
     }
 }

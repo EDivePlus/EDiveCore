@@ -10,7 +10,7 @@ namespace EDIVE.Utils.Activations
     {
         private event Action InnerEvent;
 
-        public void RegisterActivationListener(Action onActivate)
+        public void Register(Action onActivate)
         {
             var wasEmpty = InnerEvent == null;
             InnerEvent += onActivate;
@@ -18,7 +18,7 @@ namespace EDIVE.Utils.Activations
                 StartListening();
         }
 
-        public void UnregisterActivationListener(Action onActivate)
+        public void Unregister(Action onActivate)
         {
             InnerEvent -= onActivate;
             if (InnerEvent == null)

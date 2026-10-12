@@ -13,8 +13,8 @@ namespace EDIVE.Utils.Activations
             if (activation == null || onActivate == null)
                 return DisposableUtils.Empty;
 
-            activation.RegisterActivationListener(onActivate);
-            return DisposableUtils.Create(() => activation.UnregisterActivationListener(onActivate));
+            activation.Register(onActivate);
+            return DisposableUtils.Create(() => activation.Unregister(onActivate));
         }
     }
 }
