@@ -1,11 +1,11 @@
-// Author: Michal Petr
+﻿// Author: Michal Petr
 // Created: 23.09.2026
 
 using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     [Serializable]
     public struct ArcCutout
@@ -107,7 +107,7 @@ namespace EDIVE.UIElements.ProceduralUI
             return new Vector4(apex.x, apex.y, start, end);
         }
 
-        // Mirrors SectorDistance in ProceduralShape.cginc without corner rounding; p is in pixels from the rect center
+        // Mirrors SectorDistance in SDFShape.cginc without corner rounding; p is in pixels from the rect center
         public bool Contains(Vector2 p, float width, float height)
         {
             if (IsFull)

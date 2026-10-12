@@ -4,7 +4,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     public class SDFOutline : ASDFEffect
     {
@@ -63,6 +63,9 @@ namespace EDIVE.UIElements.ProceduralUI
         internal override Color LayerColor => _Color;
         internal override float GetReach(in SDFEffectContext context) => OuterReach;
         internal override float GetHoleInset(in SDFEffectContext context) => InnerReach + GetFillOverlap(context.HasVisibleFill) + HOLE_MARGIN;
+
+        // On a frame the outline wraps the inner edge too
+        internal override float GetFrameHoleInset(in SDFEffectContext context) => OuterReach + HOLE_MARGIN;
 
         // size + placement * 4096, overlap under the fill
         internal override Vector3 PackData(in SDFEffectContext context) =>

@@ -1,7 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 07.10.2026
 
-using EDIVE.UIElements.ProceduralUI;
+using EDIVE.UIElements.SDFShapes;
 using UnityEngine;
 
 namespace EDIVE.UIElements.ProgressBars

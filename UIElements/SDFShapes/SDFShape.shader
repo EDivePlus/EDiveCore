@@ -1,5 +1,5 @@
 // Ported from PurrUI (MIT), Copyright 2025 Pebbles Games Consultancy Corporation, Riten SARL
-Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
+Shader "Hidden/EDIVE/SDFShapes/SDFShape"
 {
     Properties
     {
@@ -53,7 +53,7 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
 
             #include "UnityCG.cginc"
             #include "UnityUI.cginc"
-            #include "ProceduralShape.cginc"
+            #include "SDFShape.cginc"
 
             #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
             #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
@@ -64,15 +64,19 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
             #define LAYER_OUTLINE 3
             #define LAYER_SOLID_FILL 4
 
+            // Outer shadow reaches this far under an opaque fill, so the fill antialiasing never shows the background
+            #define SHADOW_FILL_OVERLAP 1.0
+
             // One quad per layer, packed by SDFGraphic.OnPopulateMesh. The canvas rotates and scales normals and tangents
             // with the RectTransform, so everything lives in the uv channels.
             //   uv0, uv1: grid position, size, roundness and arc, see DecodeGeometry
             //   uv2.x: layer, corner shape, frame and sharp arc apex, see DecodeLayer
             //   uv2.yzw by layer:
-            //     fill:    encoded fill with texture flag, gradient rgb, gradient alpha + inset * 256 in 1/16 px
-            //     shadow:  round(size) + round(blur) * 4096, offset, power + round(start) * 256; start is past the outlines
+            //     fill:    encoded fill with texture flag and fit, gradient row in the main texture, inset * 256 in 1/16 px
+            //     shadow:  round(size) + round(blur) * 4096, offset, power + round(start) * 256; start is past the outlines,
+            //              negative when the outer shadow is hidden under an opaque fill
             //     outline: size + placement * 4096, overlap under the fill
-            //   color: Graphic.color for the fill, the effect color for effects (alpha times Graphic.color alpha when they use it)
+            //   color: Graphic.color for the fill (tints the gradient), the effect color for effects (alpha times Graphic.color alpha when they use it)
 
             struct appdata
             {
@@ -92,12 +96,12 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 fixed4 color                    : COLOR;
                 float2 sdfPos                   : TEXCOORD0; // px from the rect center
                 nointerpolation float4 roundness : TEXCOORD1;
-                nointerpolation float4 shape    : TEXCOORD2; // xy = half size, z = layer, w = corner style + hasArc * 2 + hasTexture * 4
+                nointerpolation float4 shape    : TEXCOORD2; // xy = half size, z = layer, w = corner style + hasArc * 2 + hasTexture * 4 + texture fit * 8
                 nointerpolation float4 ring     : TEXCOORD3; // x = ring center, y = ring half width (< 0 without frame), z = corner join, w = arc corner radius
                 nointerpolation float4 sectorA  : TEXCOORD4; // see PrepareSector
                 nointerpolation float4 sectorB  : TEXCOORD5;
-                nointerpolation float4 params   : TEXCOORD6; // fill: mode, radial size, -, inset; shadow: size, blur, power, start; outline: outer, inner reach
-                nointerpolation float4 params2  : TEXCOORD7; // fill: gradient color; shadow: offset
+                nointerpolation float4 params   : TEXCOORD6; // fill: mode, gradient param, gradient row, inset; shadow: size, blur, power, start; outline: outer, inner reach
+                nointerpolation float4 params2  : TEXCOORD7; // shadow: offset, hidden under fill
                 #ifdef UNITY_UI_CLIP_RECT
                 float2 clipPos                  : TEXCOORD8;
                 #endif
@@ -105,6 +109,7 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
             };
 
             sampler2D _MainTex;
+            float4 _MainTex_TexelSize;
             fixed4 _Color;
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
@@ -137,23 +142,23 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                 float4 params = 0;
                 float4 params2 = 0;
                 float hasTexture = 0;
+                float textureFit = 0;
                 float reach = 0;
                 if (layer < 0.5 || layer > 3.5)
                 {
-                    DecodeFill(v.uv2.y, params.x, params.y, hasTexture);
-                    float insetCode = floor(v.uv2.w / 256.0);
-                    params.w = insetCode / 16.0;
-                    params2 = UnpackColor(float2(v.uv2.z, v.uv2.w - insetCode * 256.0));
-                    params2.rgb *= _Color.rgb;
+                    DecodeFill(v.uv2.y, params.x, params.y, hasTexture, textureFit);
+                    params.z = v.uv2.z;
+                    params.w = floor(v.uv2.w / 256.0) / 16.0;
                 }
                 else if (layer < 2.5)
                 {
                     float shadowSize, shadowBlur;
                     DecodeShadow(v.uv2.y, shadowSize, shadowBlur);
                     float2 shadowOffset = DecodeOffsets(v.uv2.z);
-                    float start = floor(v.uv2.w / 256.0);
-                    params = float4(shadowSize, shadowBlur, max(v.uv2.w - start * 256.0, 0.01), start);
-                    params2 = float4(shadowOffset, 0, 0);
+                    float powerStart = abs(v.uv2.w);
+                    float start = floor(powerStart / 256.0);
+                    params = float4(shadowSize, shadowBlur, max(powerStart - start * 256.0, 0.01), start);
+                    params2 = float4(shadowOffset, v.uv2.w < 0 ? 1.0 : 0.0, 0);
                     if (layer < 1.5)
                         reach = start + shadowSize + shadowBlur + max(abs(shadowOffset.x), abs(shadowOffset.y));
                 }
@@ -176,7 +181,7 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
 
                 OUT.sdfPos = (uv - 0.5) * size;
                 OUT.roundness = min(roundness, min(size.x, size.y) * 0.5);
-                OUT.shape = float4(size * 0.5, layer, cornerStyle + hasArc * 2.0 + hasTexture * 4.0);
+                OUT.shape = float4(size * 0.5, layer, cornerStyle + hasArc * 2.0 + hasTexture * 4.0 + textureFit * 8.0);
                 OUT.ring = float4((frameOuter + frameInner) * 0.5, frameMode ? frameWidth * 0.5 : -1.0, cornerJoin, cornerRadius);
                 OUT.params = params;
                 OUT.params2 = params2;
@@ -202,6 +207,9 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
             {
                 float layer = IN.shape.z;
                 float flags = IN.shape.w;
+
+                float textureFit = floor(flags / 8.0);
+                flags -= textureFit * 8.0;
                 float hasTexture = step(3.5, flags);
                 flags -= hasTexture * 4.0;
                 float hasArc = step(1.5, flags);
@@ -242,21 +250,23 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                     alpha = 1.0;
                     float2 uv = p / (IN.shape.xy * 2.0) + 0.5;
 
-                    // Gradient between the vertex fill color and the packed gradient color
+                    // Gradient row from the main texture, tinted by the vertex color
                     [branch]
                     if (IN.params.x > 0.5)
                     {
-                        float gradient = GradientFactor(IN.params.x, uv, IN.shape.xy * 2.0, IN.params.y);
-                        rgb = lerp(rgb, IN.params2.rgb, gradient);
-                        alpha = lerp(alpha, IN.params2.a, gradient);
+                        float t = GradientFactor(IN.params.x, uv, IN.shape.xy * 2.0, IN.params.y);
+                        half4 ramp = SampleGradient(_MainTex, _MainTex_TexelSize, t, IN.params.z);
+                        rgb = Dither(rgb * ramp.rgb, IN.vertex.xy);
+                        alpha *= ramp.a;
                     }
 
                     [branch]
                     if (hasTexture > 0.5)
                     {
-                        half4 graphic = tex2D(_MainTex, uv) + _TextureSampleAdd;
+                        float2 texUv = TextureFitUv(uv, IN.shape.xy, textureFit, _MainTex_TexelSize);
+                        half4 graphic = tex2D(_MainTex, texUv) + _TextureSampleAdd;
                         rgb *= graphic.rgb;
-                        alpha *= graphic.a;
+                        alpha *= graphic.a * TextureFitMask(texUv, textureFit);
                     }
 
                     alpha *= layer > 3.5 ? 1.0 : 1 - smoothstep(0, delta, sdf + IN.params.w);
@@ -279,6 +289,7 @@ Shader "Hidden/EDIVE/ProceduralUI/SimpleSDF"
                     {
                         float edge = start + shadowSize;
                         alpha = pow(1 - smoothstep(edge - shadowBlur, edge + delta, shadowSdf), IN.params.z);
+                        alpha *= 1 - IN.params2.z * (1 - smoothstep(-SHADOW_FILL_OVERLAP - delta, -SHADOW_FILL_OVERLAP, sdf));
                     }
                     else
                     {

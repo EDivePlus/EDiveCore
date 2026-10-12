@@ -125,51 +125,70 @@ void DecodeGeometry(float4 uv0, float4 uv1, out float2 uv, out float2 size, out 
     cornerRadius = FixedToPixel(corner);
 }
 
-// Three bytes per float: b0 + b1 * 256 + b2 * 65536. Power-of-two divisions are exact, so no epsilon.
-float3 UnpackBytes(float packed)
+// fill = param + mode * 4096 + hasTexture * 32768 + textureFit * 65536, matching SDFGraphic.BuildFillVertex
+// mode: 0 = solid, 1 = linear, 2 = radial cover, 3 = radial fit, 4 = ellipse, 5 = angular
+// param: radial size * 100 for radial, angle in 1/4096 turns otherwise; textureFit: 0 = stretch, 1 = cover, 2 = fit
+void DecodeFill(float raw, out float mode, out float param, out float hasTexture, out float textureFit)
 {
-    float b2 = floor(packed / 65536.0);
-    packed -= b2 * 65536.0;
-    float b1 = floor(packed / 256.0);
-    return float3(packed - b1 * 256.0, b1, b2);
-}
-
-// Packed colors are gamma bytes that bypass the canvas conversion, so they are brought to the working color space here
-half4 PackedToWorkingSpace(half4 color)
-{
-#ifndef UNITY_COLORSPACE_GAMMA
-    color.rgb = UIGammaToLinear(color.rgb);
-#endif
-    return color;
-}
-
-// One color from two floats, matching VertexPacking.PackColor
-half4 UnpackColor(float2 packed)
-{
-    float3 rgb = UnpackBytes(packed.x);
-    return PackedToWorkingSpace(half4(rgb, packed.y) / 255.0);
-}
-
-// fill = radialSize * 100 + mode * 4096 + hasTexture * 32768, matching SDFGraphic.BuildFillVertex
-// mode: 0 = none, 1 = vertical, 2 = horizontal, 3 = radial cover, 4 = radial fit, 5 = ellipse
-void DecodeFill(float raw, out float mode, out float radialSize, out float hasTexture)
-{
+    textureFit = floor(raw / 65536.0);
+    raw -= textureFit * 65536.0;
     hasTexture = floor(raw / 32768.0);
     raw -= hasTexture * 32768.0;
     mode = floor(raw / 4096.0);
-    radialSize = (raw - mode * 4096.0) / 100.0;
+    raw -= mode * 4096.0;
+    param = mode > 1.5 && mode < 4.5 ? raw / 100.0 : raw / 4096.0;
 }
 
-// Blend factor from the fill color toward the gradient color; uv spans the rect from 0 to 1.
+// Position along the gradient, 0 to 1; uv spans the rect from 0 to 1, param is from DecodeFill.
+// Linear puts opposite corners on 0 and 1 at any angle, angular runs clockwise from its start.
 // Branch free: callers skip it for mode 0, and flow control nested in their branch crashes the D3D compiler.
-float GradientFactor(float mode, float2 uv, float2 size, float radialSize)
+float GradientFactor(float mode, float2 uv, float2 size, float param)
 {
     float2 centered = uv - 0.5;
-    float axial = mode < 1.5 ? 1.0 - uv.y : uv.x;
-    float refDim = mode < 3.5 ? max(size.x, size.y) : min(size.x, size.y);
-    float radial = mode > 4.5 ? length(centered) * 2.0 : length(centered * size) / (refDim * 0.5);
-    radial /= max(radialSize, 0.0001);
-    return saturate(mode < 2.5 ? axial : radial);
+    float2 pixel = centered * size;
+    float angle = param * SHAPE_TWO_PI;
+    float2 direction;
+    sincos(angle, direction.y, direction.x);
+    float axial = dot(centered, direction) / (abs(direction.x) + abs(direction.y)) + 0.5;
+    float refDim = mode < 2.5 ? max(size.x, size.y) : min(size.x, size.y);
+    float radial = mode > 3.5 ? length(centered) * 2.0 : length(pixel) / (refDim * 0.5);
+    radial /= max(param, 0.0001);
+    float angular = frac((angle - atan2(pixel.y, pixel.x)) / SHAPE_TWO_PI);
+    return saturate(mode < 1.5 ? axial : (mode < 4.5 ? radial : angular));
+}
+
+// Gradient row in the shared main texture, see SDFGradientAtlas; texel x holds t = x / (width - 1)
+half4 SampleGradient(sampler2D atlas, float4 texelSize, float t, float row)
+{
+    float2 uv = float2(t * (1.0 - texelSize.x) + 0.5 * texelSize.x, (row + 0.5) * texelSize.y);
+    return tex2Dlod(atlas, float4(uv, 0, 0));
+}
+
+// Noise under one color step against banding, scaled for the sRGB curve in linear projects
+half3 Dither(half3 rgb, float2 screenPos)
+{
+    float noise = (frac(52.9829189 * frac(dot(screenPos, float2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
+#ifdef UNITY_COLORSPACE_GAMMA
+    return rgb + noise;
+#else
+    return rgb + noise * 2.0 * sqrt(rgb);
+#endif
+}
+
+// Cover crops the long side, fit shows the whole texture; texelSize is _MainTex_TexelSize
+float2 TextureFitUv(float2 uv, float2 halfSize, float fit, float4 texelSize)
+{
+    float ratio = halfSize.x / halfSize.y * texelSize.w * texelSize.x;
+    float2 cover = ratio > 1.0 ? float2(1.0, 1.0 / ratio) : float2(ratio, 1.0);
+    float2 scale = fit < 0.5 ? float2(1.0, 1.0) : (fit < 1.5 ? cover : (1.0 / cover).yx);
+    return (uv - 0.5) * scale + 0.5;
+}
+
+// Fit leaves the area around the texture empty, with an antialiased edge
+float TextureFitMask(float2 texUv, float fit)
+{
+    float2 edge = min(texUv, 1.0 - texUv) / max(fwidth(texUv), 0.00001);
+    return fit > 1.5 ? saturate(min(edge.x, edge.y) + 0.5) : 1.0;
 }
 
 // Gradient of a field over shape space, from screen space derivatives of the field and of the shape position

@@ -1,4 +1,4 @@
-// Author: Michal Petr
+﻿// Author: Michal Petr
 // Created: 22.09.2026
 
 using System.Collections.Generic;
@@ -15,12 +15,12 @@ using UnityEditor.UI;
 using EDIVE.OdinExtensions.Editor;
 #endif
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     [RequireComponent(typeof(CanvasRenderer))]
     public class SDFGraphic : MaskableGraphic, ICanvasRaycastFilter, IShapeStyleProvider
     {
-        private const string SHADER_NAME = "Hidden/EDIVE/ProceduralUI/SimpleSDF";
+        private const string SHADER_NAME = "Hidden/EDIVE/SDFShapes/SDFShape";
 
         public const AdditionalCanvasShaderChannels REQUIRED_CANVAS_CHANNELS =
             AdditionalCanvasShaderChannels.TexCoord1 |
@@ -28,6 +28,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
         private static readonly int[] EFFECT_DRAW_ORDERS = { -1, 1, 2 };
         private const float MIN_HOLE_SIZE = 32f;
+        private const float SQRT_HALF = 0.70710678f;
         private static Material _sharedMaterial;
 
         [SerializeField]
@@ -38,13 +39,19 @@ namespace EDIVE.UIElements.ProceduralUI
         [SerializeField]
         private Texture _Texture;
 
+        [PropertyOrder(0.1f)]
+        [ShowIf(nameof(HasTexture))]
+        [SerializeField]
+        private TextureFit _TextureFit;
+
         [PropertyOrder(1)]
+        [HideIf(nameof(HasTexture))]
         [HideLabel]
         [InlineProperty]
         [SerializeField]
         private GradientFill _Fill = GradientFill.Default;
 
-        // Graphic.color is the fill color; its alpha also fades effects that use it
+        // Graphic.color is the fill color, or tints the gradient; its alpha also fades effects that use it
         [PropertyOrder(0.5f)]
         [LabelText("Color")]
         [ShowInInspector]
@@ -100,6 +107,8 @@ namespace EDIVE.UIElements.ProceduralUI
         private bool _componentsDirty = true;
         private ArcCutout _activeArc;
         private float _maxCornerRadius;
+        [System.NonSerialized]
+        private int _gradientRow = -1;
 
 #if UNITY_EDITOR
         private bool _editorRebuildQueued;
@@ -134,6 +143,12 @@ namespace EDIVE.UIElements.ProceduralUI
         {
             get => _Texture;
             set { if (_Texture == value) return; _Texture = value; SetVerticesDirty(); SetMaterialDirty(); }
+        }
+
+        public TextureFit TextureFit
+        {
+            get => _TextureFit;
+            set { if (_TextureFit == value) return; _TextureFit = value; SetVerticesDirty(); }
         }
 
         public GradientFill Fill
@@ -183,7 +198,8 @@ namespace EDIVE.UIElements.ProceduralUI
             }
         }
 
-        public override Texture mainTexture => _Texture ? _Texture : s_WhiteTexture;
+        // Without a texture every graphic shares the gradient atlas, so they batch
+        public override Texture mainTexture => _Texture ? _Texture : SDFGradientAtlas.Texture;
 
         public override Material defaultMaterial
         {
@@ -198,20 +214,27 @@ namespace EDIVE.UIElements.ProceduralUI
             }
         }
 
-        // Matches DecodeCornerShape in ProceduralShape.cginc
+        // Matches DecodeCornerShape in SDFShape.cginc
         private float EncodedCornerShape => (int) _ShapeStyle + (int) _CornerJoin * 2;
         private float FrameWidthRounded => Mathf.Round(VertexPacking.ClampPixel(_FrameWidth));
         private float FrameReach => NoFill ? _FramePlacement.OuterExtent(FrameWidthRounded) : 0f;
-        private bool HasVisibleFill => color.a > 0f || _Fill.GradientType != GradientType.None;
-
-        // Without an arc or frame the middle is solid: the fill draws it without the distance math, edge only effects leave it out
-        private bool HasSolidMiddle => !NoFill && _activeArc.IsFull;
+        private bool HasVisibleFill => color.a > 0f;
+        private bool HasTexture => _Texture;
+        private bool UsesGradient => !_Texture && _Fill.HasGradient;
+        private bool HasOpaqueFill => !NoFill && !_Texture && color.a >= 1f && _Fill.IsOpaque;
 
         protected override void OnEnable()
         {
             EnsureShader();
+            MigrateLegacyFill();
             base.OnEnable();
             Refresh();
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            SDFGradientAtlas.Release(ref _gradientRow);
         }
 
         protected override void OnCanvasHierarchyChanged()
@@ -237,6 +260,7 @@ namespace EDIVE.UIElements.ProceduralUI
         protected override void OnValidate()
         {
             EnsureShader();
+            MigrateLegacyFill();
             base.OnValidate();
             Refresh();
         }
@@ -294,17 +318,34 @@ namespace EDIVE.UIElements.ProceduralUI
 #endif
         }
 
+        // Hits only inside the shape, grown by outward raycast padding. Frames count their empty middle too.
         public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
         {
-            var arc = ActiveArc;
-            if (arc.IsFull)
-                return true;
-
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, eventCamera, out var local))
                 return false;
 
             var rect = rectTransform.rect;
-            return arc.Contains(local - rect.center, rect.width, rect.height);
+            var p = local - rect.center;
+            var padding = raycastPadding;
+            var grow = Mathf.Max(0f, -Mathf.Min(Mathf.Min(padding.x, padding.y), Mathf.Min(padding.z, padding.w)));
+            if (ShapeDistance(p, rect.size * 0.5f, _Roundness.Resolve(rect.width, rect.height)) > grow)
+                return false;
+
+            var arc = ActiveArc;
+            return arc.IsFull || arc.Contains(p, rect.width, rect.height);
+        }
+
+        // Mirrors ShapeDistance in SDFShape.cginc; p is in px from the rect center
+        private float ShapeDistance(Vector2 p, Vector2 halfSize, Vector4 corners)
+        {
+            var radius = p.x > 0f ? (p.y > 0f ? corners.x : corners.y) : (p.y > 0f ? corners.z : corners.w);
+            radius = Mathf.Min(radius, Mathf.Min(halfSize.x, halfSize.y));
+            var q = new Vector2(Mathf.Abs(p.x) - halfSize.x, Mathf.Abs(p.y) - halfSize.y);
+            if (_ShapeStyle == ShapeStyle.Chamfer && radius > 0f)
+                return Mathf.Max(Mathf.Max(q.x, q.y), (q.x + q.y + radius) * SQRT_HALF);
+
+            var qc = new Vector2(q.x + radius, q.y + radius);
+            return Mathf.Min(Mathf.Max(qc.x, qc.y), 0f) + Vector2.Max(qc, Vector2.zero).magnitude - radius;
         }
 
         // Outer shadows, then the fill, inner shadows and outlines; component order within each group
@@ -322,10 +363,8 @@ namespace EDIVE.UIElements.ProceduralUI
 
             AddEffects(vh, geometry, context, EFFECT_DRAW_ORDERS[0]);
 
-            if (_Fill.RequiresSubdivision)
-                AddSubdividedFill(vh, geometry, rect, context.FillInset);
-            else
-                AddFill(vh, geometry, rect, context.FillInset);
+            SDFGradientAtlas.Assign(UsesGradient ? _Fill.Gradient : null, ref _gradientRow);
+            AddFill(vh, geometry, rect, context.FillInset);
 
             for (var i = 1; i < EFFECT_DRAW_ORDERS.Length; i++)
                 AddEffects(vh, geometry, context, EFFECT_DRAW_ORDERS[i]);
@@ -346,7 +385,7 @@ namespace EDIVE.UIElements.ProceduralUI
                 innerReach = Mathf.Max(innerReach, outline.InnerReach + outline.GetFillOverlap(hasVisibleFill));
                 fillInset = Mathf.Max(fillInset, outline.FillInset);
             }
-            return new SDFEffectContext(Mathf.Round(outerReach), Mathf.Round(innerReach), fillInset, hasVisibleFill);
+            return new SDFEffectContext(Mathf.Round(outerReach), Mathf.Round(innerReach), fillInset, hasVisibleFill, HasOpaqueFill);
         }
 
         private void AddEffects(VertexHelper vh, UIVertex geometry, in SDFEffectContext context, int drawOrder)
@@ -363,10 +402,16 @@ namespace EDIVE.UIElements.ProceduralUI
                 if (effect.UseGraphicAlpha)
                     effectColor.a *= color.a;
                 vertex.color = effectColor;
-                var holeInset = effect.GetHoleInset(context);
-                AddQuad(vh, vertex, rectTransform.rect, FrameReach + effect.GetReach(context) + 1f, HasSolidMiddle && holeInset >= 0f ? _maxCornerRadius + holeInset : -1f, out _);
+                var holeInset = NoFill ? FrameHoleInset(effect.GetFrameHoleInset(context)) : effect.GetHoleInset(context);
+                AddQuad(vh, vertex, rectTransform.rect, FrameReach + effect.GetReach(context) + 1f, HoleInset(holeInset), out _);
             }
         }
+
+        // Frames are empty past their inner edge, layers reach into that by the given amount
+        private float FrameHoleInset(float reach) => reach < 0f ? -1f : FrameWidthRounded - FrameReach + reach;
+
+        // Hole past the corner radius; arcs cut into the middle, so only full shapes get one
+        private float HoleInset(float inset) => _activeArc.IsFull && inset >= 0f ? _maxCornerRadius + inset : -1f;
 
         private static int DrawOrder(SDFLayer layer) => layer switch
         {
@@ -376,13 +421,13 @@ namespace EDIVE.UIElements.ProceduralUI
             _ => 0
         };
 
-        // The solid middle gets its own quad that skips the distance math
+        // The solid middle gets its own quad that skips the distance math. Frames are empty there.
         private void AddFill(VertexHelper vh, UIVertex geometry, Rect rect, float inset)
         {
             var vertex = BuildFillVertex(geometry, inset);
             vertex.color = color;
             var margin = FrameReach + 1f;
-            if (!AddQuad(vh, vertex, rect, margin, HasSolidMiddle ? _maxCornerRadius + inset : -1f, out var hole))
+            if (!AddQuad(vh, vertex, rect, margin, HoleInset(NoFill ? FrameHoleInset(ASDFEffect.HOLE_MARGIN) : inset), out var hole) || NoFill)
                 return;
 
             vertex.uv2.x = EncodeLayer(SDFLayer.SolidFill);
@@ -458,38 +503,7 @@ namespace EDIVE.UIElements.ProceduralUI
             vh.AddVert(vertex);
         }
 
-        private void AddSubdividedFill(VertexHelper vh, UIVertex geometry, Rect rect, float inset)
-        {
-            var n = _Fill.GradientQuality;
-            var start = vh.currentVertCount;
-
-            var vertex = BuildFillVertex(geometry, inset);
-            GetQuadBounds(rect, FrameReach + 1f, out var min, out var size);
-
-            var cols = n + 1;
-            for (var y = 0; y <= n; y++)
-            {
-                var gy = Mathf.RoundToInt((float) y / n * VertexPacking.GRID_STEPS);
-                for (var x = 0; x <= n; x++)
-                {
-                    var gx = Mathf.RoundToInt((float) x / n * VertexPacking.GRID_STEPS);
-                    vertex.color = _Fill.Evaluate((float) gx / VertexPacking.GRID_STEPS, (float) gy / VertexPacking.GRID_STEPS, color);
-                    AddGridVertex(vh, vertex, min, size, gx, gy);
-                }
-            }
-
-            for (var y = 0; y < n; y++)
-            {
-                for (var x = 0; x < n; x++)
-                {
-                    var i = start + y * cols + x;
-                    vh.AddTriangle(i, i + cols, i + cols + 1);
-                    vh.AddTriangle(i + cols + 1, i + 1, i);
-                }
-            }
-        }
-
-        // Geometry shared by every quad, matching DecodeGeometry in ProceduralShape.cginc:
+        // Geometry shared by every quad, matching DecodeGeometry in SDFShape.cginc:
         //   uv0.xy: grid code (added per vertex to x), width, height
         //   uv0.zw: roundness top right, bottom right, top left
         //   uv1.xy: roundness bottom left, arc apex x, arc apex y
@@ -514,24 +528,31 @@ namespace EDIVE.UIElements.ProceduralUI
             return vertex;
         }
 
-        // uv2: layer, encoded fill + hasTexture * 32768, gradient rgb, gradient alpha + inset * 256 in 1/16 px.
-        // Without a texture the shader skips the sample.
+        // uv2: layer, encoded fill + hasTexture * 32768 + texture fit * 65536, gradient row in the atlas, inset * 256 in 1/16 px.
+        // Without a texture the shader skips the sample, without a gradient the row lookup.
         private UIVertex BuildFillVertex(UIVertex geometry, float inset)
         {
-            var gradient = VertexPacking.PackColor(_Fill.GradientColor);
             var insetCode = Mathf.Round(Mathf.Clamp(inset, 0f, VertexPacking.MAX_FILL_INSET) * 16f);
-            var textureFlag = _Texture ? 32768f : 0f;
-            geometry.uv2 = new Vector4(EncodeLayer(SDFLayer.Fill), _Fill.EncodeShaderFill() + textureFlag, gradient.x, gradient.y + insetCode * 256f);
+            var fill = UsesGradient ? _Fill.EncodeShaderFill() : 0f;
+            var textureFlag = _Texture ? 32768f + (int) _TextureFit * 65536f : 0f;
+            geometry.uv2 = new Vector4(EncodeLayer(SDFLayer.Fill), fill + textureFlag, Mathf.Max(_gradientRow, 0), insetCode * 256f);
             return geometry;
         }
 
-        // Matches DecodeLayer in ProceduralShape.cginc:
+        // Matches DecodeLayer in SDFShape.cginc:
         // frameWidth + framePlacement * 4096 + frameMode * 16384 + cornerShape * 32768 + sharpApex * 262144 + layer * 524288
         private float EncodeLayer(SDFLayer layer)
         {
             var frame = NoFill ? FrameWidthRounded + (int) _FramePlacement * 4096f + 16384f : 0f;
             var sharpApex = _activeArc.SharpCenter ? 262144f : 0f;
             return frame + EncodedCornerShape * 32768f + sharpApex + (int) layer * 524288f;
+        }
+
+        private void MigrateLegacyFill()
+        {
+            var tint = color;
+            if (_Fill.TryMigrateLegacy(ref tint))
+                color = tint;
         }
 
         private void EnsureShader()
@@ -582,7 +603,7 @@ namespace EDIVE.UIElements.ProceduralUI
 
     // Ranges the vertex encodings can hold; property setters clamp to them before the value is stored.
     // Everything travels in the uv channels, the only vertex data the canvas leaves untransformed.
-    // Layouts match the decode functions in ProceduralShape.cginc.
+    // Layouts match the decode functions in SDFShape.cginc.
     public static class VertexPacking
     {
         public const float MAX_PIXEL = 4095f;
@@ -658,13 +679,13 @@ namespace EDIVE.UIElements.ProceduralUI
 
     // Prefab stages open with their own canvases, which need the extra channels before the graphics can draw
     [InitializeOnLoad]
-    public static class ProceduralUIPrefabStageRefresher
+    public static class SDFShapesPrefabStageRefresher
     {
         private static GameObject _queuedRoot;
         private static int _queuedPasses;
         private static bool _refreshQueued;
 
-        static ProceduralUIPrefabStageRefresher()
+        static SDFShapesPrefabStageRefresher()
         {
             PrefabStage.prefabStageOpened += OnPrefabStageOpened;
             EditorApplication.hierarchyChanged += QueueCurrentPrefabStageRefresh;

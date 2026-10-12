@@ -4,7 +4,7 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.UIElements.ProceduralUI
+namespace EDIVE.UIElements.SDFShapes
 {
     // Extra layer drawn by the SDFGraphic on the same object, as its own quad in the same mesh
     [ExecuteAlways]
@@ -32,14 +32,17 @@ namespace EDIVE.UIElements.ProceduralUI
         // How far the layer reaches past the shape edge, in px
         internal abstract float GetReach(in SDFEffectContext context);
 
-        // uv2.yzw, see ProceduralSimpleSDF.shader
+        // uv2.yzw, see SDFShape.shader
         internal abstract Vector3 PackData(in SDFEffectContext context);
 
         // How far in from the edge the layer stays empty, past the corner radius; negative when it fills the middle
         internal virtual float GetHoleInset(in SDFEffectContext context) => -1f;
 
+        // How far past the inner edge of a frame the layer reaches, past the corner radius; negative when it fills the middle
+        internal virtual float GetFrameHoleInset(in SDFEffectContext context) => -1f;
+
         // Room for the antialiasing next to the hole
-        protected const float HOLE_MARGIN = 2f;
+        internal const float HOLE_MARGIN = 2f;
 
         protected virtual void OnEnable() => SetComponentsDirty();
         protected virtual void OnDisable() => SetComponentsDirty();
@@ -60,7 +63,7 @@ namespace EDIVE.UIElements.ProceduralUI
         }
     }
 
-    // Matches the LAYER_ defines in ProceduralSimpleSDF.shader
+    // Matches the LAYER_ defines in SDFShape.shader
     internal enum SDFLayer
     {
         Fill = 0,
@@ -76,13 +79,15 @@ namespace EDIVE.UIElements.ProceduralUI
         public readonly float OutlineInnerReach;
         public readonly float FillInset;
         public readonly bool HasVisibleFill;
+        public readonly bool HasOpaqueFill;
 
-        public SDFEffectContext(float outlineReach, float outlineInnerReach, float fillInset, bool hasVisibleFill)
+        public SDFEffectContext(float outlineReach, float outlineInnerReach, float fillInset, bool hasVisibleFill, bool hasOpaqueFill)
         {
             OutlineReach = outlineReach;
             OutlineInnerReach = outlineInnerReach;
             FillInset = fillInset;
             HasVisibleFill = hasVisibleFill;
+            HasOpaqueFill = hasOpaqueFill;
         }
     }
 }
