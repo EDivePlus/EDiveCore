@@ -35,7 +35,7 @@ namespace EDIVE.View.Windows.Dialog
         public void Apply(DialogButtonSetup setup)
         {
             Setup = setup;
-            _Switcher.Apply(setup?.Visual);
+            _Switcher.ApplyExclusive(setup?.Visual);
         }
 
         private void OnClicked() => Clicked?.Invoke(this);

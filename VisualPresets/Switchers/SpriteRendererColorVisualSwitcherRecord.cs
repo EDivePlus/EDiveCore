@@ -34,5 +34,13 @@ namespace EDIVE.VisualPresets.Switchers
             switcherRecord.SpriteRenderer.color = presetRecord.Color;
             return DisposableUtils.Empty;
         }
+
+        protected override ColorVisualPresetRecord Capture(SpriteRendererColorVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.SpriteRenderer == null)
+                return null;
+
+            return new(switcherRecord.VisualID, switcherRecord.SpriteRenderer.color);
+        }
     }
 }

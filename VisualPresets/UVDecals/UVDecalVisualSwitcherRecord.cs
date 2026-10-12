@@ -36,5 +36,15 @@ namespace EDIVE.VisualPresets.UVDecals
             placer.SetDecal(presetRecord.Decal);
             return DisposableUtils.Empty;
         }
+
+        // Preset record holds one decal, only the first is kept
+        protected override UVDecalVisualPresetRecord Capture(UVDecalVisualSwitcherRecord switcherRecord)
+        {
+            var placer = switcherRecord.Placer;
+            if (placer == null)
+                return null;
+
+            return new(switcherRecord.VisualID, placer.Decals.Count > 0 ? placer.Decals[0] : null);
+        }
     }
 }

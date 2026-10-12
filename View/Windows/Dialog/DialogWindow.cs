@@ -45,7 +45,7 @@ namespace EDIVE.View.Windows.Dialog
             if (setup == null)
                 Debug.LogError($"[DialogWindow] {name} opened without a dialog setup.", this);
 
-            _Switcher.Apply(setup?.Visual);
+            _Switcher.ApplyExclusive(setup?.Visual);
 
             var setups = setup?.Buttons;
             var count = setups?.Count ?? 0;

@@ -41,5 +41,15 @@ namespace EDIVE.VisualPresets.StateHandling
             switcherRecord.MultiState.SetState(presetRecord.State);
             return DisposableUtils.Empty;
         }
+
+        // State is empty until the multi state starts
+        protected override MultiStateVisualPresetRecord Capture(MultiStateVisualSwitcherRecord switcherRecord)
+        {
+            var multiState = switcherRecord.MultiState;
+            if (multiState == null)
+                return null;
+
+            return new(switcherRecord.VisualID, string.IsNullOrEmpty(multiState.State) ? multiState.DefaultState : multiState.State);
+        }
     }
 }

@@ -60,5 +60,15 @@ namespace EDIVE.VisualPresets.Switchers
             
             return DisposableUtils.Empty;
         }
+
+        protected override MaterialVisualPresetRecord Capture(RendererMaterialVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.Renderer == null)
+                return null;
+
+            var materials = switcherRecord.UseSharedMaterial || !Application.isPlaying ? switcherRecord.Renderer.sharedMaterials : switcherRecord.Renderer.materials;
+            var index = switcherRecord.MaterialIndex;
+            return index >= 0 && index < materials.Length ? new(switcherRecord.VisualID, materials[index]) : null;
+        }
     }
 }

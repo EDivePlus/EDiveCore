@@ -58,5 +58,13 @@ namespace EDIVE.VisualPresets.Switchers
             material.color = presetRecord.Color;
             return DisposableUtils.Empty;
         }
+
+        protected override ColorVisualPresetRecord Capture(RendererMaterialColorVisualSwitcherRecord switcherRecord)
+        {
+            if (!switcherRecord.TryGetMaterial(out var material))
+                return null;
+
+            return new(switcherRecord.VisualID, material.color);
+        }
     }
 }

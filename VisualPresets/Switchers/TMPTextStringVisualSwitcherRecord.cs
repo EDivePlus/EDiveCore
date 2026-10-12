@@ -35,5 +35,13 @@ namespace EDIVE.VisualPresets.Switchers
             switcherRecord.Text.text = presetRecord.Text;
             return DisposableUtils.Empty;
         }
+
+        protected override StringVisualPresetRecord Capture(TMPTextStringVisualSwitcherRecord switcherRecord)
+        {
+            if (switcherRecord.Text == null)
+                return null;
+
+            return new(switcherRecord.VisualID, switcherRecord.Text.text);
+        }
     }
 }
