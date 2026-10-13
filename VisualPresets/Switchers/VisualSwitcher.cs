@@ -110,6 +110,11 @@ namespace EDIVE.VisualPresets.Switchers
         
         private Texture2D GetRecordIcon(AVisualSwitcherRecord record) => GUIHelper.GetAssetThumbnail(null, record.EditorIconTargetType, false);
         
+        public IEnumerable<UnityEngine.Object> GetTargets()
+        {
+            return _Records.Where(r => r != null && r.Target != null).Select(r => r.Target).Distinct();
+        }
+
         public IEnumerable<ABaseVisualID> GetVisualIDs()
         {
             return _Records.Select(r => r.BaseVisualID).Where(id => id != null);

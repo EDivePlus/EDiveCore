@@ -3,6 +3,7 @@
 
 using System;
 using DG.Tweening;
+using EDIVE.DataStructures.VariableFields;
 using EDIVE.Tweening.ObjectActions;
 using UnityEngine;
 
@@ -41,9 +42,9 @@ namespace EDIVE.UIElements.SDFShapes
     public class SDFOutlineColorTweenAction : ATweenObjectAction<SDFOutline>
     {
         [SerializeField]
-        private Color _EndColor = Color.black;
+        private VariableField<Color> _EndColor = new(Color.black);
 
-        protected override Tween GetTween(SDFOutline target) => DOTween.To(() => target.Color, x => target.Color = x, _EndColor, _Duration).SetTarget(target);
+        protected override Tween GetTween(SDFOutline target) => DOTween.To(() => target.Color, x => target.Color = x, _EndColor.Value, _Duration).SetTarget(target);
     }
 
     [Serializable]
@@ -59,9 +60,9 @@ namespace EDIVE.UIElements.SDFShapes
     public class SDFShadowColorTweenAction : ATweenObjectAction<SDFShadow>
     {
         [SerializeField]
-        private Color _EndColor = Color.black;
+        private VariableField<Color> _EndColor = new(Color.black);
 
-        protected override Tween GetTween(SDFShadow target) => DOTween.To(() => target.Color, x => target.Color = x, _EndColor, _Duration).SetTarget(target);
+        protected override Tween GetTween(SDFShadow target) => DOTween.To(() => target.Color, x => target.Color = x, _EndColor.Value, _Duration).SetTarget(target);
     }
 
     [Serializable]

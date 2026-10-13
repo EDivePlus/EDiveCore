@@ -9,6 +9,7 @@ using EDIVE.Tweening;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
+// ReSharper disable once CheckNamespace
 namespace EDIVE.UIElements.Selectables
 {
     [Serializable]
@@ -22,6 +23,12 @@ namespace EDIVE.UIElements.Selectables
         private TweenObjectReferenceCollection _References;
 
         private Sequence _tweener;
+
+        public TweenSelectableTransitionPreset Preset
+        {
+            get => _Preset;
+            set => _Preset = value;
+        }
 
         public override void DoStateTransition(SelectionState state, bool instant = false)
         {

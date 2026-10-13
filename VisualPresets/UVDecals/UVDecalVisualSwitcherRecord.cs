@@ -20,6 +20,7 @@ namespace EDIVE.VisualPresets.UVDecals
 
         public override string EditorLabel => "UV Decals";
         public override Type EditorIconTargetType => typeof(Texture);
+        public override UnityEngine.Object Target => _Placer;
 
         public UVDecalPlacer Placer => _Placer;
     }

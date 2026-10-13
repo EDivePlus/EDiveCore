@@ -2,6 +2,7 @@
 // Created: 12.10.2026
 
 using System;
+using EDIVE.DataStructures.VariableFields;
 using EDIVE.StateHandling.StateValuePresets;
 using UnityEngine;
 using UnityEngine.Scripting;
@@ -17,11 +18,13 @@ namespace EDIVE.UIElements.SDFShapes
     }
 
     [Serializable, Preserve]
-    public class SDFOutlineColorPreset : AStateValuePreset<SDFOutline, Color>
+    public class SDFOutlineColorPreset : AStateValuePreset<SDFOutline, VariableField<Color>>
     {
+        public SDFOutlineColorPreset() : base(new VariableField<Color>(Color.black)) { }
+
         public override string Title => "Outline Color";
-        public override void ApplyTo(SDFOutline targetObject) => targetObject.Color = Value;
-        public override void CaptureFrom(SDFOutline targetObject) => Value = targetObject.Color;
+        public override void ApplyTo(SDFOutline targetObject) => targetObject.Color = Value.Value;
+        public override void CaptureFrom(SDFOutline targetObject) => Value.Value = targetObject.Color;
     }
 
     [Serializable, Preserve]
@@ -33,11 +36,13 @@ namespace EDIVE.UIElements.SDFShapes
     }
 
     [Serializable, Preserve]
-    public class SDFShadowColorPreset : AStateValuePreset<SDFShadow, Color>
+    public class SDFShadowColorPreset : AStateValuePreset<SDFShadow, VariableField<Color>>
     {
+        public SDFShadowColorPreset() : base(new VariableField<Color>(Color.black)) { }
+
         public override string Title => "Shadow Color";
-        public override void ApplyTo(SDFShadow targetObject) => targetObject.Color = Value;
-        public override void CaptureFrom(SDFShadow targetObject) => Value = targetObject.Color;
+        public override void ApplyTo(SDFShadow targetObject) => targetObject.Color = Value.Value;
+        public override void CaptureFrom(SDFShadow targetObject) => Value.Value = targetObject.Color;
     }
 
     [Serializable, Preserve]

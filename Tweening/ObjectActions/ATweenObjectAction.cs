@@ -34,6 +34,15 @@ namespace EDIVE.Tweening.ObjectActions
         public abstract bool TryGetTween(Object target, out Tween tween);
         public abstract bool IsValidFor(Type targetType);
 
+        // Delay, duration and ease onto another action
+        protected T CopyTimingTo<T>(T action) where T : ATweenObjectAction
+        {
+            action._Delay = _Delay;
+            action._Duration = _Duration;
+            action._Ease = _Ease;
+            return action;
+        }
+
         public ATweenObjectAction GetCopy()
         {
             return JsonUtility.FromJson(JsonUtility.ToJson(this), GetType()) as ATweenObjectAction;

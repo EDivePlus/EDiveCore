@@ -29,6 +29,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "Renderer Color";
         public override Type EditorIconTargetType => typeof(MeshRenderer);
+        public override UnityEngine.Object Target => _Renderer;
         
         public bool TryGetMaterial(out Material material)
         {

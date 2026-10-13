@@ -20,6 +20,7 @@ namespace EDIVE.Tweening.Segments
         [LabelText("Action")]
         [EnhancedValueDropdown("TweenActionsDropdown", ChildrenDisplayType = DropdownChildrenDisplayType.ShowChildrenInline, SortDropdownItems = true)]
         [ValidateInput("ValidateObjectAction", ContinuousValidationCheck = true)]
+        [EnhancedValidate("ValidateLegacyAction")]
         protected ATweenObjectAction _ObjectAction;
 
         public override void AddToSequence(Sequence sequence)
@@ -80,6 +81,16 @@ namespace EDIVE.Tweening.Segments
             }
 
             return true;
+        }
+
+        [UsedImplicitly]
+        private void ValidateLegacyAction(ATweenObjectAction value, SelfValidationResult result)
+        {
+            if (value is ILegacyObjectAction legacy)
+            {
+                result.AddWarning($"Action '{value}' is obsolete")
+                    .WithFix(() => _ObjectAction = (ATweenObjectAction) legacy.Upgrade());
+            }
         }
 
         [UsedImplicitly]

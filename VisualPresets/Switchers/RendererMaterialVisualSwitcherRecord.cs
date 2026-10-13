@@ -29,6 +29,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "Renderer Material";
         public override Type EditorIconTargetType => typeof(MeshRenderer);
+        public override UnityEngine.Object Target => _Renderer;
 
         public Renderer Renderer => _Renderer;
         public int MaterialIndex => _MaterialIndex;

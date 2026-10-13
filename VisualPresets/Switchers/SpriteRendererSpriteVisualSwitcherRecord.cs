@@ -21,6 +21,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "SpriteRenderer Sprite";
         public override Type EditorIconTargetType => typeof(SpriteRenderer);
+        public override UnityEngine.Object Target => _SpriteRenderer;
     }
     
     [Preserve]

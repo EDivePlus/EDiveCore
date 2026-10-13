@@ -22,6 +22,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "Image Sprite";
         public override Type EditorIconTargetType => typeof(Image);
+        public override UnityEngine.Object Target => _Image;
     }
     
     [Preserve]

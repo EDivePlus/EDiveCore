@@ -18,6 +18,8 @@ namespace EDIVE.UIElements.Selectables
         [BoxGroup("Custom Transition")]
         private ASelectableTransition _CustomTransition;
 
+        public ASelectableTransition CustomTransition => _CustomTransition;
+
         public void DoStateTransition(SelectionState state, bool instant = false)
         {
             _CustomTransition?.DoStateTransition(state, instant);

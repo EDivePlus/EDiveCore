@@ -17,7 +17,7 @@ namespace EDIVE.Utils.ObjectActions
         public static IEnumerable<ValueDropdownItem<TObjectAction>> GetTweenActionsDropdown<TObjectAction>(Type targetType) where TObjectAction : class, IObjectAction
         {
             return GetDerivedClassesOfType<TObjectAction>()
-                .Where(a => a.IsValidFor(targetType))
+                .Where(a => a is not ILegacyObjectAction && a.IsValidFor(targetType))
                 .Select(a => new ValueDropdownItem<TObjectAction>(a.ToString(), a));
         }
 

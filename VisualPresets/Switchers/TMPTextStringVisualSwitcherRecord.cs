@@ -22,6 +22,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "TMP Text";
         public override Type EditorIconTargetType => typeof(TextMeshProUGUI);
+        public override UnityEngine.Object Target => _Text;
     }
     
     [Preserve]

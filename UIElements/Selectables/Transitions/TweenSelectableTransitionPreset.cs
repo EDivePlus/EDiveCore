@@ -5,6 +5,7 @@ using EDIVE.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+// ReSharper disable once CheckNamespace
 namespace EDIVE.UIElements.Selectables
 {
     public class TweenSelectableTransitionPreset : ATweenPreset
