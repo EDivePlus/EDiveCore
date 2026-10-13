@@ -23,6 +23,7 @@ namespace EDIVE.VisualPresets.Switchers
 
         public override string EditorLabel => "Prefab";
         public override Type EditorIconTargetType => typeof(GameObject);
+        public override UnityEngine.Object Target => _Root;
         
         public Transform Root => _Root;
     }

@@ -22,6 +22,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "Graphic Color";
         public override Type EditorIconTargetType => typeof(RawImage);
+        public override UnityEngine.Object Target => _Graphic;
     }
     
     [Preserve]

@@ -6,6 +6,7 @@ using EDIVE.EditorUtils;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.StateValuePresets;
 using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.ObjectActions;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEngine;
@@ -146,7 +147,7 @@ namespace EDIVE.StateHandling
         public static IEnumerable<ValueDropdownItem<AStateValuePreset>> GetValuePresetDropdown(Type targetType)
         {
             return TypeCacheUtils.GetDerivedClassesOfType<AStateValuePreset>()
-                .Where(p => p.IsValidFor(targetType))
+                .Where(p => p is not ILegacyObjectAction && p.IsValidFor(targetType))
                 .Select(p => new ValueDropdownItem<AStateValuePreset>(p.Title, p));
         }
         
@@ -165,6 +166,17 @@ namespace EDIVE.StateHandling
                 {
                     result.AddError($"Preset '{valuePreset}' is not compatible with Target!")
                         .WithFix(() => value.Remove(valuePreset));
+                }
+
+                if (valuePreset is ILegacyObjectAction legacy)
+                {
+                    result.AddWarning($"Preset '{valuePreset.Title}' is obsolete")
+                        .WithFix(() =>
+                        {
+                            var index = value.IndexOf(valuePreset);
+                            if (index >= 0)
+                                value[index] = (AStateValuePreset) legacy.Upgrade();
+                        });
                 }
             }
         }

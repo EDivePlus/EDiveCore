@@ -9,9 +9,10 @@ using UnityEngine.UI;
 using EDIVE.OdinExtensions.Editor;
 #endif
 
+// ReSharper disable once CheckNamespace
 namespace EDIVE.UIElements.Selectables
 {
-    public class EnhancedKnob : Selectable, IDragHandler, IInitializePotentialDragHandler
+    public class EnhancedKnob : Selectable, IDragHandler, IInitializePotentialDragHandler, IEnhancedSelectable
     {
         public enum Direction
         {
@@ -69,6 +70,7 @@ namespace EDIVE.UIElements.Selectables
         private Transform RotationTarget => _RotationTarget != null ? _RotationTarget : transform;
 
         public KnobFloatValueEvent ValueChanged => _ValueChanged;
+        public SelectableAdditionalData AdditionalData => _AdditionalData;
 
         [PropertySpace]
         [ShowInInspector, ReadOnly]
@@ -79,6 +81,8 @@ namespace EDIVE.UIElements.Selectables
         
         [ShowInInspector, ReadOnly]
         public float NormalizedValue => _ClampValue && _MaxValue > 0 ? RawValue / _MaxValue : RawValue;
+
+        public void RefreshVisuals() => DoStateTransition(currentSelectionState, true);
 
         protected override void DoStateTransition(SelectionState state, bool instant)
         {

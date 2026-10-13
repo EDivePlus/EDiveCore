@@ -19,6 +19,9 @@ namespace EDIVE.VisualPresets.Switchers
         public abstract Type EditorIconTargetType { get; }
         
         public abstract ABaseVisualID BaseVisualID { get;}
+
+        // Object the record changes, marked dirty after edit mode applies
+        public virtual UnityEngine.Object Target => null;
         public virtual bool IsValid() => BaseVisualID != null;
 
         public abstract void TryApply(AVisualPresetRecord preset);

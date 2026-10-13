@@ -24,6 +24,7 @@ namespace EDIVE.VisualPresets.StateHandling
         
         public override string EditorLabel => "MultiState";
         public override Type EditorIconTargetType => typeof(MultiState);
+        public override UnityEngine.Object Target => _MultiState;
 
 #if UNITY_EDITOR
         private IEnumerable GetValidStates() => VisualID != null ? VisualID.AvailableStates : null;

@@ -3,6 +3,7 @@
 
 using System;
 
+// ReSharper disable once CheckNamespace
 namespace EDIVE.UIElements.Selectables
 {
     [Serializable]

@@ -10,9 +10,10 @@ using UnityEngine.UI;
 using EDIVE.OdinExtensions.Editor;
 #endif
 
+// ReSharper disable once CheckNamespace
 namespace EDIVE.UIElements.Selectables
 {
-    public class EnhancedToggle : Toggle
+    public class EnhancedToggle : Toggle, IEnhancedSelectable
     {
         [SerializeField]
         private AToggleState _StateToggle;
@@ -21,6 +22,10 @@ namespace EDIVE.UIElements.Selectables
         [InlineProperty]
         [SerializeField]
         private SelectableAdditionalData _AdditionalData = new();
+
+        public SelectableAdditionalData AdditionalData => _AdditionalData;
+
+        public void RefreshVisuals() => DoStateTransition(currentSelectionState, true);
 
         protected override void OnEnable()
         {

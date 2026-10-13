@@ -57,6 +57,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "Text FontSymbol";
         public override Type EditorIconTargetType => typeof(FontSymbolText);
+        public override UnityEngine.Object Target => _Text;
     }
     
     [Preserve]
@@ -90,6 +91,7 @@ namespace EDIVE.VisualPresets.Switchers
         
         public override string EditorLabel => "TMP FontSymbol";
         public override Type EditorIconTargetType => typeof(FontSymbolTMPTextUI);
+        public override UnityEngine.Object Target => _Text;
     }
     
     [Preserve]

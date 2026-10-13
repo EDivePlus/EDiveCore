@@ -8,9 +8,11 @@
         "EDIVE.StateHandling",
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.VisualPresets",
+        "EDIVE.AssetTranslation",
         "EDIVE.DataStructures",
         "EDIVE.Utils",
         "Unity.TextMeshPro",
+        "Unity.TextMeshPro.Editor",
         "EDIVE.Utils.Activations"
     ],
     "includePlatforms": [],

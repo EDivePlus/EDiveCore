@@ -9,14 +9,19 @@ using UnityEngine.UI;
 using EDIVE.OdinExtensions.Editor;
 #endif
 
+// ReSharper disable once CheckNamespace
 namespace EDIVE.UIElements.Selectables
 {
-    public class EnhancedButton : Button
+    public class EnhancedButton : Button, IEnhancedSelectable
     {
         [HideLabel]
         [InlineProperty]
         [SerializeField]
         private SelectableAdditionalData _AdditionalData = new();
+
+        public SelectableAdditionalData AdditionalData => _AdditionalData;
+
+        public void RefreshVisuals() => DoStateTransition(currentSelectionState, true);
 
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
