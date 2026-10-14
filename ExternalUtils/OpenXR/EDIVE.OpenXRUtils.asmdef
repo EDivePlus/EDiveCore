@@ -3,14 +3,15 @@
     "rootNamespace": "",
     "references": [
         "Unity.XR.OpenXR",
+        "UniTask",
         "EDIVE.NativeUtils",
         "EDIVE.EditorUtils",
         "EDIVE.OdinExtensions",
-        "EDIVE.XRTools"
+        "EDIVE.XRTools",
+        "EDIVE.AppLoading",
+        "EDIVE.DataStructures"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
