@@ -44,6 +44,7 @@ namespace EDIVE.MenuScreen
                 else
                     Destroy(persistentFrame.gameObject);
             });
+            RefreshRunningDisplays();
         }
         
         private void Start()
@@ -87,6 +88,7 @@ namespace EDIVE.MenuScreen
             // todo set frame name to recognize the view
             newFrame.Initialize(this, view, context).Forget();
             ActiveFrames.Add(newFrame);
+            RefreshRunningDisplays();
             if (open) OpenFrame(newFrame);
         }
         
@@ -118,6 +120,7 @@ namespace EDIVE.MenuScreen
             frame.Terminate();
             ActiveFrames.Remove(frame);
             Destroy(frame.gameObject);
+            RefreshRunningDisplays();
         }
         
         private void SetupPinnedDisplays()
@@ -137,6 +140,15 @@ namespace EDIVE.MenuScreen
             }
         }
         
+        private void RefreshRunningDisplays()
+        {
+            foreach (var display in PinnedDisplays)
+            {
+                if (display.Definition != null)
+                    display.SetRunning(ActiveFrames.Any(f => Equals(f.ViewSource, display.Definition.ViewSource)));
+            }
+        }
+
         private void OnWidgetDisplayClicked(WidgetDefinition definition)
         {
             // All view sources override Equals
