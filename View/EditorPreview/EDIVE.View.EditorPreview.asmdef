@@ -1,0 +1,22 @@
+{
+    "name": "EDIVE.View.EditorPreview",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.UIElements",
+        "EDIVE.NativeUtils",
+        "EDIVE.OdinExtensions",
+        "EDIVE.EditorUtils",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
