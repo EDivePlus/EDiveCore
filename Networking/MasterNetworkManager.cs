@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
@@ -55,6 +56,7 @@ namespace EDIVE.Networking
         }
         
         private readonly List<PriorityPrepareHandler> _serverPrepareHandlers = new();
+        private CancellationTokenSource _serverAuthCancellation;
 
         protected override async UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -75,6 +77,7 @@ namespace EDIVE.Networking
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            CancelServerAuth();
             if (_networkManager != null)
             {
                 _networkManager.onClientConnectionState -= OnClientConnectionStateChanged;
@@ -102,6 +105,9 @@ namespace EDIVE.Networking
             _serverConnectionState = state;
             RefreshRuntimeMode();
             RefreshConnectionState();
+
+            if (state == ConnectionState.Disconnected)
+                CancelServerAuth();
 
             if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
             {
@@ -254,10 +260,7 @@ namespace EDIVE.Networking
         {
             try
             {
-                if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
-                {
-                    await serviceHub.ServerAuth.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, destroyCancellationToken);
-                }
+                await PrepareServerAuthAsync();
             }
             catch (Exception ex)
             {
@@ -270,7 +273,7 @@ namespace EDIVE.Networking
                 {
                     var tasks = _serverPrepareHandlers.Select(h => h.Handler)
                         .Where(h => h != null)
-                        .Select(h => h());
+                        .Select(RunServerPrepareHandler);
                     await UniTask.WhenAll(tasks);
                 }
 
@@ -280,6 +283,58 @@ namespace EDIVE.Networking
             finally
             {
                 _serverStartRequested = false;
+            }
+        }
+
+        private async UniTask PrepareServerAuthAsync()
+        {
+            if (!AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+                return;
+
+            CancelServerAuth();
+            _serverAuthCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            var connectivity = serviceHub.Connectivity;
+            if (connectivity != null && connectivity.IsServiceUnreachable)
+            {
+                ServerAuthWhenReachableAsync(serviceHub, _serverAuthCancellation.Token).Forget();
+                return;
+            }
+
+            await serviceHub.ServerAuth.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, _serverAuthCancellation.Token);
+        }
+
+        // Offline host starts unauthenticated, logs in once service is back
+        private async UniTaskVoid ServerAuthWhenReachableAsync(ServiceHubManager serviceHub, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await UniTask.WaitUntil(() => !serviceHub.Connectivity.IsServiceUnreachable, cancellationToken: cancellationToken);
+                await serviceHub.ServerAuth.PrepareServerAuthAsync(_ServerConfig.ServerID, _ServerConfig.ServerSecret, cancellationToken);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+
+        private void CancelServerAuth()
+        {
+            _serverAuthCancellation?.Cancel();
+            _serverAuthCancellation?.Dispose();
+            _serverAuthCancellation = null;
+        }
+
+        // Failed handler must not block server start
+        private static async UniTask RunServerPrepareHandler(Func<UniTask> handler)
+        {
+            try
+            {
+                await handler();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Debug.LogException(ex);
             }
         }
 

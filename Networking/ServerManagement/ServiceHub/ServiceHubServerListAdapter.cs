@@ -74,6 +74,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         
         private string _purrRelayRoom = string.Empty;
         private bool _relayInitialized;
+        private ServerRegistrationState _registrationState;
+
+        private bool IsServiceUnreachable => _serviceHub.Connectivity != null && _serviceHub.Connectivity.IsServiceUnreachable;
 
         public override UniTask Initialize()
         {
@@ -96,11 +99,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             }
 
             InitializeRelay();
+            SetRegistrationState(ServerRegistrationState.Registering);
 
-            // First attempt happens here so the join code is available as early as possible.
-            // If it fails, the heartbeat loop keeps retrying with backoff instead of giving up.
-            await RegisterLobby(destroyCancellationToken);
-
+            // Registered in heartbeat loop, server start doesn't wait
             _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             HeartbeatTask(_heartbeatCancellation.Token).Forget();
         }
@@ -131,6 +132,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             // Next start gets fresh room and record
             _relayInitialized = false;
             _currentServerRecord = null;
+            _registrationState = ServerRegistrationState.None;
             if (!_disposing)
                 DisposeAsync().Forget();
         }
@@ -154,8 +156,12 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         public override void RegisterHostServer(ServerRecord hostServer)
         {
             base.RegisterHostServer(hostServer);
-            
-            if (hostServer == null || _localEndpoints == null)
+
+            if (hostServer == null)
+                return;
+
+            hostServer.RegistrationState = _registrationState;
+            if (_localEndpoints == null)
                 return;
 
             hostServer.Endpoints.RemoveAll(e => Array.IndexOf(_localEndpoints, e) >= 0);
@@ -285,9 +291,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _serverSecret = response.Result.Secret;
             _joinCode = response.Result.Code;
 
-            if (_currentServerRecord != null)
-                _currentServerRecord.JoinCode = _joinCode;
-
             _lastSuccessfulContactUtc = DateTime.UtcNow;
 
             var endpoints = new List<AServerEndpoint>();
@@ -312,12 +315,13 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             var oldEndpoints = _localEndpoints;
             _localEndpoints = endpoints.ToArray();
-            // Re-register can change endpoints, push to host record
+            // Host record may exist already. Join code last, it refreshes UI
             if (_currentServerRecord != null)
             {
                 if (oldEndpoints != null)
                     _currentServerRecord.Endpoints.RemoveAll(e => Array.IndexOf(oldEndpoints, e) >= 0);
                 _currentServerRecord.Endpoints.AddRange(_localEndpoints);
+                _currentServerRecord.JoinCode = _joinCode;
             }
             Debug.Log($"[ServiceHubServerListAdapter] Server registered (join code: {_joinCode}).");
             return true;
@@ -334,13 +338,24 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 // server from the lobby.
                 if (string.IsNullOrEmpty(_serverSecret))
                 {
+                    if (IsServiceUnreachable)
+                    {
+                        SetRegistrationState(ServerRegistrationState.Offline);
+                        await UniTask.WaitUntil(() => !IsServiceUnreachable, cancellationToken: cancellationToken);
+                        registerAttempt = 0;
+                        continue;
+                    }
+
+                    SetRegistrationState(ServerRegistrationState.Registering);
                     if (await RegisterLobby(cancellationToken))
                     {
                         registerAttempt = 0;
+                        SetRegistrationState(ServerRegistrationState.Registered);
                     }
                     else
                     {
                         registerAttempt++;
+                        SetRegistrationState(IsServiceUnreachable ? ServerRegistrationState.Offline : ServerRegistrationState.Failed);
                         var delay = Mathf.Min(_RegisterRetryMaxDelay, _RegisterRetryBaseDelay * Mathf.Pow(2f, registerAttempt - 1));
                         Debug.LogWarning($"[ServiceHubServerListAdapter] Registration attempt {registerAttempt} failed — retrying in {delay:0.#}s.");
                         await UniTask.Delay(TimeSpan.FromSeconds(delay), true, cancellationToken: cancellationToken);
@@ -352,6 +367,13 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
                 if (string.IsNullOrEmpty(_serverSecret))
                     continue;
+
+                // Entry may expire meanwhile, update after reconnect re-registers it
+                if (IsServiceUnreachable)
+                {
+                    SetRegistrationState(ServerRegistrationState.Offline);
+                    await UniTask.WaitUntil(() => !IsServiceUnreachable, cancellationToken: cancellationToken);
+                }
 
                 try
                 {
@@ -367,6 +389,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     if (response.IsSuccess)
                     {
                         _lastSuccessfulContactUtc = DateTime.UtcNow;
+                        SetRegistrationState(ServerRegistrationState.Registered);
                     }
                     else if (response.ApiStatus is (int) ServiceHubStatus.InvalidSecret or (int) ServiceHubStatus.ServerNotFound)
                     {
@@ -391,6 +414,13 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     }
                 }
             }
+        }
+
+        private void SetRegistrationState(ServerRegistrationState state)
+        {
+            _registrationState = state;
+            if (_currentServerRecord != null)
+                _currentServerRecord.RegistrationState = state;
         }
 
         private async UniTask DisposeAsync()

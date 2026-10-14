@@ -26,7 +26,8 @@ namespace EDIVE.Networking.ServerManagement
         private DateTime _lastUpdated;
         private string _joinCode;
         private AppVersion _version;
-        
+        private ServerRegistrationState _registrationState;
+
         public string InstanceID
         {
             get => _instanceID;
@@ -107,6 +108,19 @@ namespace EDIVE.Networking.ServerManagement
                 if (_version == value) 
                     return;
                 _version = value;
+                StateChanged?.Invoke(this);
+            }
+        }
+
+        // Hub listing of hosted server, None for others
+        public ServerRegistrationState RegistrationState
+        {
+            get => _registrationState;
+            set
+            {
+                if (_registrationState == value)
+                    return;
+                _registrationState = value;
                 StateChanged?.Invoke(this);
             }
         }
