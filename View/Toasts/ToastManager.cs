@@ -101,7 +101,7 @@ namespace EDIVE.View.Toasts
 
                 var display = _pool.Count > 0 ? _pool.Pop() : Instantiate(_DisplayPrefab, _Container, false);
                 display.transform.SetAsLastSibling();
-                display.Show(handle.Preset);
+                display.Show(handle.Preset, handle.Dismiss);
 
                 handle.Display = display;
                 _visible.Add(handle);
