@@ -37,6 +37,7 @@ namespace EDIVE.View.EditorPreview
         private static Transform _root;
         private static ScalerState? _scalerBackup;
         private static string _signature;
+        private static bool _drivenUndoBlocked;
         private static bool _dirty = true;
         private static MethodInfo _setExpanded;
 
@@ -75,7 +76,11 @@ namespace EDIVE.View.EditorPreview
 
         static PreviewEnvironment()
         {
-            PrefabStage.prefabStageOpened += _ => SetDirty();
+            PrefabStage.prefabStageOpened += _ =>
+            {
+                BlockDrivenUndo(true);
+                SetDirty();
+            };
             PrefabStage.prefabStageClosing += _ => Clear();
             AssemblyReloadEvents.beforeAssemblyReload += Clear;
             EditorApplication.projectChanged += OnProjectChanged;
@@ -83,6 +88,19 @@ namespace EDIVE.View.EditorPreview
         }
 
         public static void SetDirty() => _dirty = true;
+
+        // Layout at another size (preset, context) rewrites driven rects as undo, the prefab would look changed
+        private static void BlockDrivenUndo(bool block)
+        {
+            if (_drivenUndoBlocked == block)
+                return;
+
+            _drivenUndoBlocked = block;
+            if (block)
+                DrivenRectTransformTracker.StopRecordingUndo();
+            else
+                DrivenRectTransformTracker.StartRecordingUndo();
+        }
 
         private static void OnProjectChanged()
         {
@@ -93,6 +111,7 @@ namespace EDIVE.View.EditorPreview
         private static void OnUpdate()
         {
             var stage = PrefabStageUtility.GetCurrentPrefabStage();
+            BlockDrivenUndo(stage != null);
             if (stage == null)
             {
                 if (_stage != null)

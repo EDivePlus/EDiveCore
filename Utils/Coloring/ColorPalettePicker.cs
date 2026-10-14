@@ -43,7 +43,7 @@ namespace EDIVE.Utils.Coloring
         [HorizontalGroup("Row", 80)]
         [HideLabel]
         [ShowInInspector]
-        [InlineIconButton(FontAwesomeEditorIconType.PaletteSolid, nameof(ShowSwatches), "Pick color", GUIAlwaysEnabled = true)]
+        [InlineIconButton(FontAwesomeEditorIconType.PaletteSolid, "ShowSwatches", "Pick color", GUIAlwaysEnabled = true)]
         public Color Color => _Palette ? _Palette.GetColor(_ColorIndex) : Color.clear;
 
         public static implicit operator Color(ColorPalettePicker picker)
