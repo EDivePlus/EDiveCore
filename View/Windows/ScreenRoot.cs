@@ -15,7 +15,8 @@ using UnityEngine.UI;
 namespace EDIVE.View.Windows
 {
     // Root of one screen, hosts its windows. Orders them by layer and open order, caps their view state:
-    // top is Focused, below a modal Visible, below an opened opaque window Hidden.
+    // top is Focused, below a modal Visible, below an opened opaque window Hidden. Minimized windows run hidden
+    // and don't cover anything, on an exclusive layer showing a window minimizes the others.
     public class ScreenRoot : ViewGroup
     {
         [Serializable]
@@ -51,6 +52,11 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Windows")]
         private List<WindowDefinition> _Routes = new();
 
+        // Opened on start, in order
+        [SerializeField]
+        [EnhancedBoxGroup("Windows")]
+        private List<WindowDefinition> _OpenOnStart = new();
+
         [SerializeReference]
         [EnhancedBoxGroup("Windows")]
         private IActivation _BackActivation;
@@ -65,6 +71,9 @@ namespace EDIVE.View.Windows
 
         // Open order, includes windows still loading or closing
         public IReadOnlyList<WindowHandle> Handles => _handles;
+
+        // Any open, close, order or minimize change
+        public event Action<ScreenRoot> Changed;
 
         protected override void Awake()
         {
@@ -92,6 +101,12 @@ namespace EDIVE.View.Windows
             {
                 if (definition != null && definition.KeepAfterClose)
                     PreloadAsync(definition, destroyCancellationToken).Forget();
+            }
+
+            foreach (var definition in _OpenOnStart)
+            {
+                if (definition != null)
+                    Open(definition, null, true);
             }
         }
 
@@ -175,15 +190,62 @@ namespace EDIVE.View.Windows
             return (WindowHandle<TResult>) Replace(handle, new WindowHandle<TResult>(this, definition), context, immediate);
         }
 
-        // Top of its layer
-        public void BringToFront(WindowHandle handle)
+        // Top of its layer, restores it when minimized
+        public void BringToFront(WindowHandle handle, bool immediate = false)
         {
             if (handle == null || handle.Screen != this || handle.IsClosing || !_handles.Remove(handle))
                 return;
 
             _handles.Add(handle);
+            if (handle.IsMinimized)
+            {
+                handle.IsMinimized = false;
+                if (handle.Window != null)
+                    handle.Window.RestoreAsync(immediate, destroyCancellationToken).Forget();
+            }
+
+            MinimizeOthers(handle, immediate);
             Refresh();
         }
+
+        // Keeps running hidden, BringToFront restores it
+        public void Minimize(WindowHandle handle, bool immediate = false)
+        {
+            if (handle == null || handle.Screen != this || handle.IsClosing || handle.IsCloseRequested || handle.IsMinimized)
+                return;
+
+            // A loading window minimizes once loaded
+            handle.IsMinimized = true;
+            if (handle.Window != null)
+                handle.Window.MinimizeAsync(immediate, destroyCancellationToken).Forget();
+            Refresh();
+        }
+
+        // Open handle of the definition, null when none
+        public WindowHandle FindHandle(WindowDefinition definition)
+        {
+            for (var i = _handles.Count - 1; i >= 0; i--)
+            {
+                var handle = _handles[i];
+                if (handle.Definition == definition && !handle.IsClosing && !handle.IsCloseRequested)
+                    return handle;
+            }
+            return null;
+        }
+
+        // Top shown window of the layer, loading ones count, minimized ones don't
+        public WindowHandle GetFront(WindowLayer layer)
+        {
+            for (var i = _handles.Count - 1; i >= 0; i--)
+            {
+                var handle = _handles[i];
+                if (handle.Definition.Layer == layer && !handle.IsClosing && !handle.IsCloseRequested && !handle.IsMinimized)
+                    return handle;
+            }
+            return null;
+        }
+
+        public bool IsFront(WindowHandle handle) => handle != null && GetFront(handle.Definition.Layer) == handle;
 
         // No guard, see TryCloseAsync
         public void Close(WindowHandle handle, object result = null, bool immediate = false)
@@ -288,7 +350,7 @@ namespace EDIVE.View.Windows
             switch (definition.InstancePolicy)
             {
                 case WindowInstancePolicy.Single:
-                    var open = FindOpen(definition);
+                    var open = FindHandle(definition);
                     if (open != null)
                         return Reopen(open, handle, context);
                     break;
@@ -304,6 +366,7 @@ namespace EDIVE.View.Windows
 
             handle.Context = context;
             _handles.Add(handle);
+            MinimizeOthers(handle, immediate);
             OpenAsync(handle, immediate, destroyCancellationToken).Forget();
             return handle;
         }
@@ -385,6 +448,10 @@ namespace EDIVE.View.Windows
                 window.Navigate(path);
             }
 
+            // Minimized while loading
+            if (handle.IsMinimized)
+                window.MinimizeAsync(true, cancellationToken).Forget();
+
             Refresh();
             await opening;
             if (this != null)
@@ -431,15 +498,19 @@ namespace EDIVE.View.Windows
             return handle;
         }
 
-        private WindowHandle FindOpen(WindowDefinition definition)
+        // Exclusive layers show one window at a time
+        private void MinimizeOthers(WindowHandle handle, bool immediate)
         {
+            var layer = handle.Definition.Layer;
+            if (layer == null || !layer.Exclusive)
+                return;
+
             for (var i = _handles.Count - 1; i >= 0; i--)
             {
-                var handle = _handles[i];
-                if (handle.Definition == definition && !handle.IsClosing && !handle.IsCloseRequested)
-                    return handle;
+                var other = _handles[i];
+                if (other != handle && other.Definition.Layer == layer)
+                    Minimize(other, immediate);
             }
-            return null;
         }
 
         private WindowDefinition FindRoute(string routeID)
@@ -557,8 +628,8 @@ namespace EDIVE.View.Windows
                 var window = handle.Window;
                 window.SetScreenCap(cap);
 
-                // Closing windows already hand focus back
-                if (window.State == WindowState.Closing)
+                // Closing windows already hand focus back, minimized ones hide themselves
+                if (window.State == WindowState.Closing || handle.IsMinimized)
                     continue;
 
                 if (window.Definition.Modal)
@@ -572,15 +643,17 @@ namespace EDIVE.View.Windows
                     cap = ViewState.Hidden;
             }
 
-            if (_Backdrop == null)
-                return;
-
-            if (_topModal != null && _backdropCanvas != null)
+            if (_Backdrop != null)
             {
-                _backdropCanvas.overrideSorting = true;
-                _backdropCanvas.sortingOrder = _topModal.Window.SortingOrder - 1;
+                if (_topModal != null && _backdropCanvas != null)
+                {
+                    _backdropCanvas.overrideSorting = true;
+                    _backdropCanvas.sortingOrder = _topModal.Window.SortingOrder - 1;
+                }
+                _Backdrop.SetState(_topModal != null ? ViewState.Focused : ViewState.Hidden);
             }
-            _Backdrop.SetState(_topModal != null ? ViewState.Focused : ViewState.Hidden);
+
+            Changed?.Invoke(this);
         }
 
         private void OnBackActivated() => Back();

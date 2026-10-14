@@ -20,6 +20,9 @@ namespace EDIVE.View.Windows
 
         public bool IsClosing { get; private set; }
         public bool IsClosed { get; private set; }
+
+        // Running but hidden, see ScreenRoot.Minimize
+        public bool IsMinimized { get; internal set; }
         public object Result { get; internal set; }
 
         // Set once closing starts
@@ -47,7 +50,8 @@ namespace EDIVE.View.Windows
         // Asks the window first, see AWindow.CanCloseAsync
         public UniTask<bool> TryCloseAsync(object result = null, WindowCloseReason reason = WindowCloseReason.Code) => Screen.TryCloseAsync(this, result, reason);
 
-        internal void Navigate(string path)
+        // Selects pages in the window, waits for it to load
+        public void Navigate(string path)
         {
             if (IsClosing)
                 return;

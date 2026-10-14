@@ -7,8 +7,10 @@ using Cysharp.Threading.Tasks;
 using EDIVE.AddressableAssets;
 using EDIVE.AssetTranslation;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.VisualPresets.Presets;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.Windows
 {
@@ -43,7 +45,8 @@ namespace EDIVE.View.Windows
 
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
-        private bool _CloseOnBack;
+        [FormerlySerializedAs("_CloseOnBack")]
+        private WindowBackAction _Back;
 
         // Windows below get hidden once this one is opened
         [SerializeField]
@@ -59,10 +62,17 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Screen")]
         private WindowInstancePolicy _InstancePolicy;
 
+        // Name, icon, color and tooltip for the window header, dock and library
+        [SerializeField]
+        [EnhancedBoxGroup("Visual")]
+        [HideLabel]
+        private VisualPreset _Visual = new();
+
         public WindowLayer Layer => _Layer;
         public bool Modal => _Modal;
         public bool CloseOnBackdrop => _Modal && _CloseOnBackdrop;
-        public bool CloseOnBack => _CloseOnBack;
+        public WindowBackAction Back => _Back;
+        public VisualPreset Visual => _Visual;
         public bool Opaque => _Opaque;
         public bool KeepAfterClose => _KeepAfterClose;
         public WindowInstancePolicy InstancePolicy => _InstancePolicy;

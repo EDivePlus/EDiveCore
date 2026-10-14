@@ -12,6 +12,8 @@
         "EDIVE.Utils.Activations",
         "EDIVE.StateHandling",
         "EDIVE.AssetTranslation",
+        "EDIVE.DataStructures",
+        "EDIVE.ScriptableArchitecture",
         "UniTask",
         "UniTask.Addressables",
         "UniTask.DOTween",

@@ -1,6 +1,7 @@
 // Author: František Holubec
 // Created: 2026-05-07
 
+using EDIVE.ScriptableArchitecture.Variables.Impl;
 using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -17,8 +18,12 @@ namespace EDIVE.Input.Touch
         [SerializeField] 
         private bool _ShowInEditor = true;
         
-        [SerializeField] 
+        [SerializeField]
         private OverrideMode _Override = OverrideMode.Auto;
+
+        // Hidden while true, e.g. the menu is expanded
+        [SerializeField]
+        private AScriptableVariable<bool> _HideWhile;
 
         public enum OverrideMode
         {
@@ -30,12 +35,16 @@ namespace EDIVE.Input.Touch
         private void OnEnable()
         {
             InputSystem.onDeviceChange += OnDeviceChange;
+            if (_HideWhile != null)
+                _HideWhile.ValueChanged += Refresh;
             Refresh();
         }
 
         private void OnDisable()
         {
             InputSystem.onDeviceChange -= OnDeviceChange;
+            if (_HideWhile != null)
+                _HideWhile.ValueChanged -= Refresh;
         }
         
         private void OnDeviceChange(InputDevice device, InputDeviceChange change)
@@ -61,6 +70,9 @@ namespace EDIVE.Input.Touch
 
         private bool ShouldShow()
         {
+            if (_HideWhile != null && _HideWhile.Value)
+                return false;
+
             switch (_Override)
             {
                 case OverrideMode.ForceOn:  return true;
