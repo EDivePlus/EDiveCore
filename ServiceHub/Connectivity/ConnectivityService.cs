@@ -127,14 +127,14 @@ namespace EDIVE.ServiceHub.Connectivity
         private async UniTask<ConnectivityState> ResolveStateAsync(CancellationToken cancellationToken)
         {
             if (Application.internetReachability == NetworkReachability.NotReachable)
-                return ConnectivityState.NoConnection;
+                return ConnectivityState.NoNetwork;
 
             if (await IsServiceReachableAsync(cancellationToken))
                 return ConnectivityState.Connected;
 
             return await IsInternetReachableAsync(cancellationToken)
                 ? ConnectivityState.NoServiceConnection
-                : ConnectivityState.NoConnection;
+                : ConnectivityState.NoInternet;
         }
 
         private async UniTask<bool> IsServiceReachableAsync(CancellationToken cancellationToken)
