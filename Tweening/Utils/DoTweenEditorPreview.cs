@@ -123,7 +123,7 @@ namespace EDIVE.Tweening
             }
         }
 
-        private static void OnPrefabStageClosing(PrefabStage stage) => Stop(true);
+        private static void OnPrefabStageClosing(PrefabStage stage) => Stop();
     }
 }
 #endif

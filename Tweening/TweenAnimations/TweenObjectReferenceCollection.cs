@@ -90,11 +90,20 @@ namespace EDIVE.Tweening
         {
             var references = new HashSet<TweenObjectReference>();
             _provider.PopulateReferences(references);
+            references.Remove(null);
 
-            _Presets = references.Where(r => r != null)
-                .Select(r => TryGetPreset(r, out var p) ? p : new ReferencePreset(r))
-                .ToList();
+            // Keeps the authored order, opening the inspector must not change data
+            var presets = new List<ReferencePreset>();
+            foreach (var preset in _Presets)
+            {
+                if (preset.Reference != null && references.Remove(preset.Reference))
+                    presets.Add(preset);
+            }
+            presets.AddRange(references.Select(r => new ReferencePreset(r)));
+            if (presets.SequenceEqual(_Presets))
+                return;
 
+            _Presets = presets;
             if (markDirty)
                 _providerProperty.MarkSerializationRootDirty();
         }
