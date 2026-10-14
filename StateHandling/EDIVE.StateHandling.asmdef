@@ -9,6 +9,7 @@
         "EDIVE.OdinExtensions",
         "EDIVE.Utils",
         "EDIVE.Utils.DrivenValues",
+        "EDIVE.VisualPresets",
         "PurrNet.Runtime"
     ],
     "includePlatforms": [],

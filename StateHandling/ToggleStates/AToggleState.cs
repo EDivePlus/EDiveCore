@@ -1,6 +1,7 @@
 using System;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.DrivenValues;
+using EDIVE.VisualPresets.Switchers;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ using UnityEditor;
 
 namespace EDIVE.StateHandling.ToggleStates
 {
-    public abstract class AToggleState : MonoBehaviour, IValueDriver
+    public abstract class AToggleState : MonoBehaviour, IValueDriver, IVisualPresetRefreshable
     {
         [PropertyOrder(-10)]
         [SerializeField]
@@ -62,6 +63,8 @@ namespace EDIVE.StateHandling.ToggleStates
         protected abstract void SetStateInternal(bool state, bool immediate = false);
 
         public void RefreshState() => SetStateInternal(State);
+
+        public void RefreshVisuals() => SetStateInternal(State, true);
 
         private void Awake()
         {
