@@ -3,11 +3,13 @@
 
 using System;
 using EDIVE.Conditions;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EDIVE.DataStructures.VariableFields
 {
     [Serializable]
+    [TypeRegistryItem("Conditional")]
     public class ConditionalVariableFieldData<T> : IVariableFieldData<T>
     {
         [SerializeReference]
