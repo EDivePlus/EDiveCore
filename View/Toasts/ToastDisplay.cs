@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 09.10.2026
 
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -8,6 +9,7 @@ using EDIVE.Tweening;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace EDIVE.View.Toasts
 {
@@ -22,8 +24,27 @@ namespace EDIVE.View.Toasts
         [SerializeField]
         private TweenAnimationField _HideAnimation;
 
-        internal void Show(VisualPreset preset)
+        // Optional, dismisses the shown toast
+        [SerializeField]
+        private Button _DismissButton;
+
+        private Action _dismiss;
+
+        private void Awake()
         {
+            if (_DismissButton != null)
+                _DismissButton.onClick.AddListener(OnDismissClicked);
+        }
+
+        private void OnDestroy()
+        {
+            if (_DismissButton != null)
+                _DismissButton.onClick.RemoveListener(OnDismissClicked);
+        }
+
+        internal void Show(VisualPreset preset, Action dismiss)
+        {
+            _dismiss = dismiss;
             gameObject.SetActive(true);
             _Switcher.Apply(preset);
 
@@ -41,5 +62,7 @@ namespace EDIVE.View.Toasts
 
             gameObject.SetActive(false);
         }
+
+        private void OnDismissClicked() => _dismiss?.Invoke();
     }
 }
