@@ -12,7 +12,7 @@ namespace EDIVE.View.Tooltips
 {
     // Shows a tooltip from the TooltipManager above in the view tree, only while focused
     [RequireComponent(typeof(Graphic))]
-    public class TooltipTrigger : AViewBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public class TooltipTrigger : AViewBehaviour, IPointerEnterHandler, IPointerExitHandler, IVisualPresetReceiver
     {
         [SerializeField]
         private VisualPreset _DefaultPreset;
@@ -61,6 +61,8 @@ namespace EDIVE.View.Tooltips
             }
             return true;
         }
+
+        public VisualPreset Preset => _currentVisualPreset ?? _DefaultPreset;
 
         public void SetPreset(VisualPreset visualPreset)
         {
