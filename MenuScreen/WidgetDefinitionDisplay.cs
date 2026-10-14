@@ -2,6 +2,7 @@
 // Created: 03.03.2026
 
 using System;
+using EDIVE.StateHandling.ToggleStates;
 using EDIVE.View.Tooltips;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
@@ -19,6 +20,10 @@ namespace EDIVE.MenuScreen
         
         [SerializeField]
         private TooltipTrigger _TooltipTrigger;
+
+        [Tooltip("On while the widget has a live frame")]
+        [SerializeField]
+        private AToggleState _RunningState;
         
         public WidgetDefinition Definition { get; private set; }
         public event Action<WidgetDefinition> OnClick = delegate { };
@@ -44,6 +49,12 @@ namespace EDIVE.MenuScreen
                 _Switcher.Apply(definition.Visual);
             if (_TooltipTrigger)
                 _TooltipTrigger.SetPreset(definition.Visual);
+        }
+
+        public void SetRunning(bool running)
+        {
+            if (_RunningState)
+                _RunningState.State = running;
         }
 
         private void OnOpenButtonClicked()
