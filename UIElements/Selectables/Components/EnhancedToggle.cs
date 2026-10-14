@@ -25,7 +25,12 @@ namespace EDIVE.UIElements.Selectables
 
         public SelectableAdditionalData AdditionalData => _AdditionalData;
 
-        public void RefreshVisuals() => DoStateTransition(currentSelectionState, true);
+        public void RefreshVisuals()
+        {
+            if (_StateToggle)
+                _StateToggle.RefreshVisuals();
+            DoStateTransition(currentSelectionState, true);
+        }
 
         protected override void OnEnable()
         {
