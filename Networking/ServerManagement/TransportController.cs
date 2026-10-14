@@ -1,6 +1,7 @@
 ﻿// Author: František Holubec
 // Created: 13.05.2026
 
+using System.Net;
 using EDIVE.Core.Services;
 using PurrNet;
 using PurrNet.Transports;
@@ -44,8 +45,13 @@ namespace EDIVE.Networking.ServerManagement
         public void SetHost()
         {
             NetworkManager.main.transport = _CompositeTransports;
-            // Host mode defaults to UDPTransport, LocalTransport seems to not work.
+            // Host client over UDP loopback, last join may have changed it. LocalTransport seems to not work
             // _CompositeTransports.SetClientTransport<LocalTransport>();
+            if (TryGetTransport<UDPTransport>(out var udp))
+            {
+                _CompositeTransports.SetClientTransport(udp);
+                udp.address = IPAddress.Loopback.ToString();
+            }
         }
         
         public void SetLocal()

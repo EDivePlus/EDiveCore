@@ -55,6 +55,9 @@ namespace EDIVE.ServiceHub.Connectivity
 
         public bool IsConnected => State == ConnectivityState.Connected;
 
+        // Known unreachable, Unknown is not
+        public bool IsServiceUnreachable => State is ConnectivityState.NoNetwork or ConnectivityState.NoInternet or ConnectivityState.NoServiceConnection;
+
         public event Action<ConnectivityState> StateChanged;
         public event Action<bool> IsCheckingChanged;
 

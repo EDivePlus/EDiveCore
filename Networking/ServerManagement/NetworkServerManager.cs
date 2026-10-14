@@ -574,7 +574,14 @@ namespace EDIVE.Networking.ServerManagement
             {
                 if (adapter ==null)
                     continue;
-                await adapter.PrepareServerStart();
+                try
+                {
+                    await adapter.PrepareServerStart();
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Debug.LogException(ex);
+                }
             }
         }
 

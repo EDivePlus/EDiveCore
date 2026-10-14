@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EDIVE.Core;
+using EDIVE.StateHandling.MultiStates;
 using EDIVE.TimeHandling.DateTimeUtils;
 using EDIVE.Utils.Activations;
 using Sirenix.OdinInspector;
@@ -22,7 +23,11 @@ namespace EDIVE.Networking.ServerManagement.UI
         
         [SerializeField]
         private TMP_Text _JoinCodeText;
-        
+
+        [SerializeField]
+        [ValidateMultiState(typeof(ServerRegistrationState))]
+        private AMultiState _RegistrationState;
+
         [SerializeField]
         private TMP_Text _CurrentPlayersText;
         
@@ -82,7 +87,10 @@ namespace EDIVE.Networking.ServerManagement.UI
 
             if (_JoinCodeText)
                 _JoinCodeText.text = _serverRecord.JoinCode ?? "-";
-            
+
+            if (_RegistrationState)
+                _RegistrationState.SetState(_serverRecord.RegistrationState);
+
             if (_CurrentPlayersText)
                 _CurrentPlayersText.text = $"{_serverRecord.CurrentPlayers}";
             
