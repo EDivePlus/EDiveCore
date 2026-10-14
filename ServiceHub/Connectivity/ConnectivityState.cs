@@ -6,7 +6,8 @@ namespace EDIVE.ServiceHub.Connectivity
     public enum ConnectivityState
     {
         Unknown,
-        NoConnection,
+        NoNetwork,
+        NoInternet,
         NoServiceConnection,
         Connected
     }
