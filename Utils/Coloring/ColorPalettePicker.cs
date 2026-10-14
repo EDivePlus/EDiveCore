@@ -1,11 +1,16 @@
-// Author: František Holubec
+﻿// Author: František Holubec
 // Created: 21.10.2021
 
 using System;
+using EDIVE.OdinExtensions;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
+
+#if UNITY_EDITOR
+using Sirenix.OdinInspector.Editor;
+#endif
 
 namespace EDIVE.Utils.Coloring
 {
@@ -14,31 +19,51 @@ namespace EDIVE.Utils.Coloring
     public class ColorPalettePicker
     {
         [FormerlySerializedAs("palette")]
-        [SerializeField]
-        [EnhancedInlineEditor]
-        [ShowCreateNew]
+        [HorizontalGroup("Row")]
         [HideLabel]
-        [BoxGroup("Border", false)]
+        [SerializeField]
         private AColorPalette _Palette;
 
         [FormerlySerializedAs("colorIndex")]
-        [HorizontalGroup("Border/Color", 100)]
-        [SerializeField]
-        [LabelWidth(80)]
-        [MinValue(0)]
-        [MaxValue(nameof(ColorCount))]
-        private int _ColorIndex;
-        
-        [HorizontalGroup("Border/Color")]
-        [ShowInInspector]
+        [HorizontalGroup("Row", 50)]
         [HideLabel]
+        [SerializeField]
+        private int _ColorIndex;
+
+        public ColorPalettePicker() { }
+        public ColorPalettePicker(AColorPalette palette, int colorIndex)
+        {
+            _Palette = palette;
+            _ColorIndex = colorIndex;
+        }
+
+        public AColorPalette Palette => _Palette;
+        public int ColorIndex => _ColorIndex;
+
+        [HorizontalGroup("Row", 80)]
+        [HideLabel]
+        [ShowInInspector]
+        [InlineIconButton(FontAwesomeEditorIconType.PaletteSolid, nameof(ShowSwatches), "Pick color", GUIAlwaysEnabled = true)]
         public Color Color => _Palette ? _Palette.GetColor(_ColorIndex) : Color.clear;
 
-        private int ColorCount => _Palette ? _Palette.ColorCount : 0;
-        
         public static implicit operator Color(ColorPalettePicker picker)
         {
             return picker.Color;
         }
+
+#if UNITY_EDITOR
+        private void ShowSwatches(Rect fieldRect, InspectorProperty property)
+        {
+            if (_Palette == null)
+                return;
+
+            var indexEntry = property.Parent.Children[nameof(_ColorIndex)].ValueEntry;
+            ColorPaletteGUI.ShowSwatchesPopup(fieldRect, _Palette, _ColorIndex, index =>
+            {
+                property.Tree.DelayActionUntilRepaint(() => indexEntry.WeakSmartValue = index);
+                UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+            });
+        }
+#endif
     }
 }
