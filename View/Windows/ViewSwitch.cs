@@ -38,12 +38,12 @@ namespace EDIVE.View.Windows
         // First page when empty
         [SerializeField]
         [EnhancedBoxGroup("Switch")]
-        [EnhancedValueDropdown(nameof(GetPageIDs))]
+        [EnhancedValueDropdown("GetPageIDs")]
         private string _DefaultPage;
 
         [SerializeField]
         [EnhancedBoxGroup("Switch")]
-        [EnhancedValidate(nameof(ValidatePages))]
+        [EnhancedValidate("ValidatePages")]
         private List<Page> _Pages = new();
 
         private int _selected = -1;

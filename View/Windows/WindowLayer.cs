@@ -13,6 +13,11 @@ namespace EDIVE.View.Windows
         [SerializeField]
         private int _SortingOrder;
 
+        // Showing a window here minimizes the other windows of the layer, e.g. apps
+        [SerializeField]
+        private bool _Exclusive;
+
         public int SortingOrder => _SortingOrder;
+        public bool Exclusive => _Exclusive;
     }
 }

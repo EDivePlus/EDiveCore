@@ -13,22 +13,25 @@ using UnityEngine;
 
 namespace EDIVE.View.Windows
 {
-    // Window root, opened into a ScreenRoot. Screen and lifecycle cap its view state.
+    // Window root, opened into a ScreenRoot. Screen, lifecycle and minimize cap its view state.
     [RequireComponent(typeof(Canvas))]
     public abstract class AWindow : ViewGroup
     {
         private const string SCREEN_REQUEST = "Screen";
         private const string LIFECYCLE_REQUEST = "Lifecycle";
+        private const string MINIMIZE_REQUEST = "Minimize";
 
         // Lets layout settle before the open animation
         [SerializeField]
         [EnhancedBoxGroup("Window")]
         private int _OpenFramesDelay = 1;
 
+        // Also plays on restore
         [SerializeField]
         [EnhancedBoxGroup("Window")]
         private TweenAnimationField _OpenAnimation;
 
+        // Also plays on minimize
         [SerializeField]
         [EnhancedBoxGroup("Window")]
         private TweenAnimationField _CloseAnimation;
@@ -39,6 +42,12 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Window")]
         public WindowState State { get; private set; }
 
+        [ShowInInspector]
+        [ReadOnly]
+        [HideInEditorMode]
+        [EnhancedBoxGroup("Window")]
+        public bool IsMinimized { get; private set; }
+
         public ScreenRoot Screen { get; private set; }
         public WindowDefinition Definition { get; private set; }
         public WindowHandle Handle { get; private set; }
@@ -48,7 +57,7 @@ namespace EDIVE.View.Windows
 
         private ViewStateRequests _requests;
         private Canvas _canvas;
-        private CancellationTokenSource _openCancellation;
+        private CancellationTokenSource _animation;
 
         internal void Setup(ScreenRoot screen, WindowDefinition definition)
         {
@@ -62,6 +71,7 @@ namespace EDIVE.View.Windows
             _requests = new ViewStateRequests(this);
             _requests.Set(LIFECYCLE_REQUEST, ViewState.Hidden);
             StateChanged += (_, _) => TryBecomeReady();
+            OnSetup();
         }
 
         // Unity drops override sorting set while the canvas is inactive, so it is set with every order
@@ -80,15 +90,16 @@ namespace EDIVE.View.Windows
         {
             Handle = handle;
             IsReady = false;
+            IsMinimized = false;
             State = WindowState.Opening;
+            _requests.Remove(MINIMIZE_REQUEST);
             _requests.Set(LIFECYCLE_REQUEST, ViewState.Visible);
             gameObject.SetActive(true);
 
             SetContext(context);
             OnWindowOpening();
 
-            _openCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var token = _openCancellation.Token;
+            var animation = BeginAnimation(cancellationToken);
             try
             {
                 if (!immediate)
@@ -96,33 +107,100 @@ namespace EDIVE.View.Windows
                     // Closed look during the layout delay, so nothing flashes
                     _CloseAnimation?.SetToEnd();
                     for (var i = 0; i < _OpenFramesDelay; i++)
-                        await UniTask.NextFrame(token);
+                        await UniTask.NextFrame(animation.Token);
                 }
 
-                await PlayAsync(_OpenAnimation, immediate, token);
+                await PlayAsync(_OpenAnimation, immediate, animation.Token);
             }
             catch (OperationCanceledException)
             {
-                // Closed while opening, close takes over
+                // Closed or minimized while opening, they take over
                 return;
             }
             finally
             {
-                _openCancellation.Dispose();
-                _openCancellation = null;
+                EndAnimation(animation);
             }
 
+            CompleteOpen();
+        }
+
+        private void CompleteOpen()
+        {
             State = WindowState.Opened;
             _requests.Set(LIFECYCLE_REQUEST, ViewState.Focused);
             OnWindowOpened();
-            handle.SetOpened();
+            Handle.SetOpened();
             TryBecomeReady();
+        }
+
+        // Hidden but running, plays the close animation
+        internal async UniTask MinimizeAsync(bool immediate, CancellationToken cancellationToken)
+        {
+            if (IsMinimized || State is WindowState.Closing or WindowState.Closed)
+                return;
+
+            IsMinimized = true;
+            if (State == WindowState.Opening)
+                CompleteOpen();
+
+            // Drawn but without input while it hides
+            _requests.Set(MINIMIZE_REQUEST, ViewState.Visible);
+            OnWindowMinimizing();
+
+            var animation = BeginAnimation(cancellationToken);
+            try
+            {
+                await PlayAsync(_CloseAnimation, immediate, animation.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Restored or closed meanwhile
+                return;
+            }
+            finally
+            {
+                EndAnimation(animation);
+            }
+
+            _requests.Set(MINIMIZE_REQUEST, ViewState.Hidden);
+            OnWindowMinimized();
+        }
+
+        // Shown again, plays the open animation from wherever minimize stopped
+        internal async UniTask RestoreAsync(bool immediate, CancellationToken cancellationToken)
+        {
+            if (!IsMinimized || State != WindowState.Opened)
+                return;
+
+            IsMinimized = false;
+            _requests.Set(MINIMIZE_REQUEST, ViewState.Visible);
+            OnWindowRestoring();
+
+            var animation = BeginAnimation(cancellationToken);
+            try
+            {
+                await PlayAsync(_OpenAnimation, immediate, animation.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Minimized or closed meanwhile
+                return;
+            }
+            finally
+            {
+                EndAnimation(animation);
+            }
+
+            _requests.Remove(MINIMIZE_REQUEST);
+            OnWindowRestored();
         }
 
         internal async UniTask CloseAsync(bool immediate, CancellationToken cancellationToken)
         {
-            // Close plays from wherever the open animation stopped
-            _openCancellation?.Cancel();
+            // Close plays from wherever the open or minimize animation stopped, a hidden window just closes
+            _animation?.Cancel();
+            immediate |= IsMinimized;
 
             State = WindowState.Closing;
             _requests.Set(LIFECYCLE_REQUEST, ViewState.Visible);
@@ -139,9 +217,26 @@ namespace EDIVE.View.Windows
             }
 
             State = WindowState.Closed;
+            IsMinimized = false;
+            _requests.Remove(MINIMIZE_REQUEST);
             _requests.Set(LIFECYCLE_REQUEST, ViewState.Hidden);
             OnWindowClosed();
             Handle = null;
+        }
+
+        // One animation at a time, a new one cancels the running one
+        private CancellationTokenSource BeginAnimation(CancellationToken cancellationToken)
+        {
+            _animation?.Cancel();
+            _animation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            return _animation;
+        }
+
+        private void EndAnimation(CancellationTokenSource animation)
+        {
+            if (_animation == animation)
+                _animation = null;
+            animation.Dispose();
         }
 
         private static async UniTask PlayAsync(TweenAnimationField animation, bool immediate, CancellationToken cancellationToken)
@@ -182,6 +277,12 @@ namespace EDIVE.View.Windows
             return Handle != null ? Screen.TryCloseAsync(Handle, result, reason) : UniTask.FromResult(false);
         }
 
+        public void Minimize()
+        {
+            if (Handle != null)
+                Screen.Minimize(Handle);
+        }
+
         // Selects pages in the switches below, e.g. "audio/advanced"
         public bool Navigate(string path) => ViewSwitch.Navigate(this, path);
 
@@ -195,18 +296,31 @@ namespace EDIVE.View.Windows
         // True when handled, the back goes no further
         protected virtual bool OnBack()
         {
-            if (!Definition.CloseOnBack)
-                return false;
-
-            TryCloseAsync(null, WindowCloseReason.Back).Forget();
-            return true;
+            switch (Definition.Back)
+            {
+                case WindowBackAction.Close:
+                    TryCloseAsync(null, WindowCloseReason.Back).Forget();
+                    return true;
+                case WindowBackAction.Minimize:
+                    Minimize();
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         internal virtual void SetContext(object context) { }
 
+        // Once per instance, the definition is set
+        protected virtual void OnSetup() { }
+
         protected virtual void OnWindowOpening() { }
         protected virtual void OnWindowOpened() { }
         protected virtual void OnWindowReady() { }
+        protected virtual void OnWindowMinimizing() { }
+        protected virtual void OnWindowMinimized() { }
+        protected virtual void OnWindowRestoring() { }
+        protected virtual void OnWindowRestored() { }
         protected virtual void OnWindowClosing() { }
         protected virtual void OnWindowClosed() { }
     }
