@@ -1,0 +1,36 @@
+{
+    "name": "EDIVE.Debugging",
+    "rootNamespace": "",
+    "references": [
+        "EDIVE.External.DomainReloadHelper",
+        "EDIVE.Utils.FontSymbols",
+        "EDIVE.Utils.Actions",
+        "EDIVE.Conditions",
+        "EDIVE.ScriptableArchitecture",
+        "UniTask",
+        "Unity.InputSystem",
+        "NativeShare.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "DEBUG_MENU"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.cysharp.r3",
+            "expression": "",
+            "define": "R3"
+        },
+        {
+            "name": "com.yasirkula.nativeshare",
+            "expression": "",
+            "define": "NATIVE_SHARE"
+        }
+    ],
+    "noEngineReferences": false
+}

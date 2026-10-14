@@ -81,4 +81,5 @@ Check here first before writing a helper. If EDIVE has it, use it.
 - Procedural: `MeshSliceScaler`, `SplineMeshBender`. GeoToolkit: geo coords, `MapController`, map services.
 - BuildTool: Tools/Build Tool (Ctrl+G), `BuildPreset` = user + app + platform config, custom steps inherit `ABuildAction`.
 - Configuration (`LocalConfigLoader`), Console (headless, `SPECTRE_CONSOLE`), View (`SafeAreaController`).
+- Debugging: UI Toolkit debug menu (`DEBUG_MENU`). `DebugMenu.For(this).Section("Panel/Page", "Section")`.
 - External: third party code, don't edit.
