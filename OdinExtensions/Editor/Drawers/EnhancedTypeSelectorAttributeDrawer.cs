@@ -40,10 +40,10 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (Attribute.OnTypeChanged != null)
             {
                 _onTypeChanged = ActionResolver.Get(Property, Attribute.OnTypeChanged,
-                    new ActionNamedValue(PREV_VALUE_ID, typeof(object)), 
+                    new ActionNamedValue(PREV_VALUE_ID, typeof(object)),
                     new ActionNamedValue(NEW_VALUE_ID, typeof(object)));
             }
-            
+
             if (Attribute.BaseTypeGetter != null || Attribute.BaseType != null)
             {
                 _baseTypeResolver = ValueResolver.Get(Property, Attribute.BaseTypeGetter, Attribute.BaseType);
@@ -64,15 +64,15 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 CallNextDrawer(label);
                 return;
             }
-            
+
             EditorGUILayout.BeginVertical();
             ActionResolver.DrawErrors(_onTypeChanged);
             ValueResolver.DrawErrors(_baseTypeResolver, _customTypesResolver);
 
             var selectedType = ValueEntry.SmartValue?.GetType();
             var dropdownButtonLabel = selectedType == null
-                ? $"None ({GetSelectorNiceName(typeof(T))})"
-                : GetSelectorNiceName(selectedType);
+                ? $"None ({GetSelectorNiceName(typeof(T), Attribute.UseGenericRegistryItems)})"
+                : GetSelectorNiceName(selectedType, Attribute.UseGenericRegistryItems);
 
             GUIContent dropdownLabel;
             if (Attribute.HideDropdownLabel)
@@ -81,17 +81,17 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 dropdownLabel = new GUIContent("Type");
             else
                 dropdownLabel = label;
-            
+
             var iconType = ValueEntry.SmartValue?.GetType() ?? typeof(T);
             SdfIconType valueIcon;
             if (typeof(Object).IsAssignableFrom(iconType))
                 valueIcon = SdfIconType.None;
             else
             {
-                var resolvedIcon = GetSelectorIcon(iconType);
+                var resolvedIcon = GetSelectorIcon(iconType, Attribute.UseGenericRegistryItems);
                 valueIcon = resolvedIcon != SdfIconType.None ? resolvedIcon : SdfIconType.PuzzleFill;
             }
-            
+
             var inlineFoldout = !typeof(Object).IsAssignableFrom(ValueEntry.BaseValueType);
             if (inlineFoldout)
             {
@@ -134,8 +134,10 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     {
                         child.Draw(child.Label);
                     }
+
                     GUIHelper.PopIndentLevel();
                 }
+
                 SirenixEditorGUI.EndFadeGroup();
             }
             else
@@ -147,10 +149,12 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 {
                     GUILayout.Space(Attribute.Space);
                 }
+
                 GUIHelper.PushIndentLevel(EditorGUI.indentLevel + Attribute.ContentIndent);
                 CallNextDrawer(label);
                 GUIHelper.PopIndentLevel();
             }
+
             EditorGUILayout.EndVertical();
             return;
 
@@ -169,11 +173,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                         types = TypeCacheUtils.GetAssignableTypes(baseType);
                     }
 
-                    var selector = new TypeSelectorV2(
-                        types,
-                        supportsMultiSelect: false,
-                        selectedType: selectedType ?? typeof(T),
-                        showNoneItem: false);
+                    var selector = new EnhancedTypeSelector(types, selectedType ?? typeof(T), Attribute.UseGenericRegistryItems);
                     selector.SetSelection(selectedType ?? typeof(T));
                     selector.DrawConfirmSelectionButton = true;
                     selector.SelectionConfirmed += selection =>
@@ -193,7 +193,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             if (newType == null)
                 return;
             var prevValue = ValueEntry.SmartValue;
-     
+
             if (ValueEntry.SmartValue is Object unityObject)
             {
                 // Changing script type for UnityEngine.Object is pretty hacky stuff so we have utility for that
@@ -221,8 +221,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     // Unity JsonUtility is used because it uses the same serialization layout as assets
                     newValue = JsonUtility.FromJson(JsonUtility.ToJson(ValueEntry.SmartValue), newType);
                 }
+
                 ValueEntry.WeakSmartValue = newValue;
-                
+
                 if (_onTypeChanged != null && !_onTypeChanged.HasError)
                 {
                     _onTypeChanged.Context.NamedValues.Set(PREV_VALUE_ID, prevValue);
@@ -232,27 +233,84 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             }
         }
 
-        private static string GetSelectorNiceName(Type type)
+        private static string GetSelectorNiceName(Type type, bool useGenericRegistryItems)
         {
             var userSettings = TypeRegistryUserConfig.Instance.TryGetSettings(type);
             if (userSettings != null && !string.IsNullOrEmpty(userSettings.Name))
                 return userSettings.Name;
 
-            var item = type.GetAttribute<TypeRegistryItemAttribute>(false);
+            var item = GetRegistryItem(type, useGenericRegistryItems);
             if (item != null && !string.IsNullOrEmpty(item.Name))
                 return item.Name;
 
             return type.GetNiceName();
         }
 
-        private static SdfIconType GetSelectorIcon(Type type)
+        private static SdfIconType GetSelectorIcon(Type type, bool useGenericRegistryItems)
         {
             var userSettings = TypeRegistryUserConfig.Instance.TryGetSettings(type);
             if (userSettings != null && userSettings.Icon != SdfIconType.None)
                 return userSettings.Icon;
 
-            var item = type.GetAttribute<TypeRegistryItemAttribute>(false);
+            var item = GetRegistryItem(type, useGenericRegistryItems);
             return item?.Icon ?? SdfIconType.None;
+        }
+
+        private static TypeRegistryItemAttribute GetRegistryItem(Type type, bool useGenericRegistryItems)
+        {
+            if (type.IsConstructedGenericType && !useGenericRegistryItems)
+                return null;
+            return type.GetAttribute<TypeRegistryItemAttribute>(false);
+        }
+
+        // Odin's menu items take their name from the exact type when first drawn, so closed generics are renamed after that
+        private class EnhancedTypeSelector : TypeSelectorV2
+        {
+            private readonly bool _useGenericRegistryItems;
+            private readonly List<(OdinMenuItem Item, string Name, SdfIconType Icon)> _renamedItems = new();
+
+            public EnhancedTypeSelector(IEnumerable<Type> types, Type selectedType, bool useGenericRegistryItems)
+                : base(types, supportsMultiSelect: false, selectedType: selectedType, showNoneItem: false)
+            {
+                _useGenericRegistryItems = useGenericRegistryItems;
+            }
+
+            protected override void BuildSelectionTree(OdinMenuTree tree)
+            {
+                base.BuildSelectionTree(tree);
+                _renamedItems.Clear();
+                if (!_useGenericRegistryItems)
+                    return;
+
+                foreach (var item in tree.EnumerateTree())
+                {
+                    if (item.Value is not Type { IsConstructedGenericType: true } type)
+                        continue;
+                    if (GetRegistryItem(type, true) == null)
+                        continue;
+
+                    _renamedItems.Add((item, GetSelectorNiceName(type, true), GetSelectorIcon(type, true)));
+                }
+                ApplyRenamedItems();
+            }
+
+            protected override void DrawSelectionTree()
+            {
+                ApplyRenamedItems();
+                base.DrawSelectionTree();
+                ApplyRenamedItems();
+            }
+
+            private void ApplyRenamedItems()
+            {
+                foreach (var (item, name, icon) in _renamedItems)
+                {
+                    item.Name = name;
+                    item.SearchString = name;
+                    if (icon != SdfIconType.None)
+                        item.SdfIcon = icon;
+                }
+            }
         }
     }
 }

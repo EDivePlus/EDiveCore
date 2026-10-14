@@ -21,6 +21,9 @@ namespace EDIVE.OdinExtensions.Attributes
         
         public string OnTypeChanged;
 
+        // Closed generic types use TypeRegistryItem name and icon of their generic definition
+        public bool UseGenericRegistryItems = true;
+
         public bool HasShowInInlineEditors => _showInInlineEditors.HasValue;
         private bool? _showInInlineEditors;
         public bool ShowInInlineEditors
