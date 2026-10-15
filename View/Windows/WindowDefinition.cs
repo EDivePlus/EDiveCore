@@ -58,6 +58,11 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Screen")]
         private bool _KeepAfterClose;
 
+        // Closes instead of minimizing, for windows without state worth keeping
+        [SerializeField]
+        [EnhancedBoxGroup("Screen")]
+        private bool _CloseOnMinimize;
+
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
         private WindowInstancePolicy _InstancePolicy;
@@ -75,6 +80,7 @@ namespace EDIVE.View.Windows
         public VisualPreset Visual => _Visual;
         public bool Opaque => _Opaque;
         public bool KeepAfterClose => _KeepAfterClose;
+        public bool CloseOnMinimize => _CloseOnMinimize;
         public WindowInstancePolicy InstancePolicy => _InstancePolicy;
 
         private bool UsesReference => _Prefab == null && _PrefabReference != null && !string.IsNullOrEmpty(_PrefabReference.Address);

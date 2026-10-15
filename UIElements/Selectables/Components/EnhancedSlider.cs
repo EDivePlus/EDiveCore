@@ -2,6 +2,7 @@
 // Created: 13.10.2026
 
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,9 +20,41 @@ namespace EDIVE.UIElements.Selectables
         [SerializeField]
         private SelectableAdditionalData _AdditionalData = new();
 
+        // Optional text showing the value, e.g. 80 %
+        [SerializeField]
+        [FoldoutGroup("Value Text")]
+        private TMP_Text _ValueText;
+
+        // Value 0 to 1 between min and max instead of the raw value
+        [SerializeField]
+        [FoldoutGroup("Value Text")]
+        private bool _NormalizedValueText = true;
+
+        [SerializeField]
+        [FoldoutGroup("Value Text")]
+        private string _ValueTextFormat = "{0:0%}";
+
         public SelectableAdditionalData AdditionalData => _AdditionalData;
 
         public void RefreshVisuals() => DoStateTransition(currentSelectionState, true);
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            RefreshValueText();
+        }
+
+        protected override void Set(float input, bool sendCallback = true)
+        {
+            base.Set(input, sendCallback);
+            RefreshValueText();
+        }
+
+        public void RefreshValueText()
+        {
+            if (_ValueText != null)
+                _ValueText.text = string.Format(_ValueTextFormat, _NormalizedValueText ? normalizedValue : value);
+        }
 
         protected override void DoStateTransition(SelectionState state, bool instant)
         {

@@ -16,7 +16,8 @@
         "EDIVE.AppLoading",
         "EDIVE.DataStructures",
         "EDIVE.OdinExtensions.Editor",
-        "EDIVE.VisualPresets"
+        "EDIVE.VisualPresets",
+        "EDIVE.AssetTranslation"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
