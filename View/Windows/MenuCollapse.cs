@@ -5,6 +5,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using EDIVE.Tweening;
+using EDIVE.Conditions;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
 using EDIVE.StateHandling.ToggleStates;
@@ -48,6 +49,11 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Display")]
         private AToggleState _OverlayState;
 
+        // Overlay shown only while true, e.g. touch screens fold the menu on a tap outside, desktop keeps it open. Empty is always.
+        [SerializeReference]
+        [EnhancedBoxGroup("Display")]
+        private ICondition _OverlayCondition;
+
         // Same as the overlay, e.g. touch controls hide
         [SerializeField]
         [EnhancedBoxGroup("Display")]
@@ -85,6 +91,11 @@ namespace EDIVE.View.Windows
         {
             _expandListener = _ExpandActivation.RegisterDisposable(Expand);
             _collapseListener = _CollapseActivation.RegisterDisposable(Collapse);
+            if (_OverlayCondition != null)
+            {
+                _OverlayCondition.InitializeObserving();
+                _OverlayCondition.StateChanged += OnOverlayConditionChanged;
+            }
             Apply(true);
         }
 
@@ -94,6 +105,11 @@ namespace EDIVE.View.Windows
             _expandListener = null;
             _collapseListener?.Dispose();
             _collapseListener = null;
+            if (_OverlayCondition != null)
+            {
+                _OverlayCondition.StateChanged -= OnOverlayConditionChanged;
+                _OverlayCondition.TerminateObserving();
+            }
             if (_OverlayVariable != null)
                 _OverlayVariable.SetValue(false);
         }
@@ -145,6 +161,8 @@ namespace EDIVE.View.Windows
             _CollapsedAnimation.Play();
         }
 
+        private void OnOverlayConditionChanged() => Apply(false);
+
         private void Apply(bool immediate)
         {
             var overlay = IsCollapsible && IsExpanded;
@@ -154,7 +172,7 @@ namespace EDIVE.View.Windows
             if (_CollapsibleState != null)
                 _CollapsibleState.SetState(IsCollapsible, immediate);
             if (_OverlayState != null)
-                _OverlayState.SetState(overlay, immediate);
+                _OverlayState.SetState(overlay && (_OverlayCondition == null || _OverlayCondition.Evaluate()), immediate);
             if (_OverlayVariable != null)
                 _OverlayVariable.SetValue(overlay);
         }
