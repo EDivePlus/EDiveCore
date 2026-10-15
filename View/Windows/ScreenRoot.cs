@@ -214,6 +214,12 @@ namespace EDIVE.View.Windows
             if (handle == null || handle.Screen != this || handle.IsClosing || handle.IsCloseRequested || handle.IsMinimized)
                 return;
 
+            if (handle.Definition.CloseOnMinimize)
+            {
+                Close(handle, immediate: immediate);
+                return;
+            }
+
             // A loading window minimizes once loaded
             handle.IsMinimized = true;
             if (handle.Window != null)
