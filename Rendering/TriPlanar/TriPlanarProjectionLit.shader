@@ -24,6 +24,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
         [ToggleOff] _SpecularHighlights("Specular Highlights", Float) = 1.0
         [ToggleOff] _EnvironmentReflections("Environment Reflections", Float) = 1.0
 
+        // Specular anti-aliasing, 0 variance is off
+        _SpecularAAVariance("Specular AA Variance", Range(0.0, 1.0)) = 0.1
+        _SpecularAAThreshold("Specular AA Threshold", Range(0.0, 1.0)) = 0.2
+
         _BumpScale("Scale", Float) = 1.0
         [NoScaleOffset] [Normal] _BumpMap("Normal Map", 2D) = "bump" {}
 
@@ -123,6 +127,8 @@ Shader "EDIVE/TriPlanar Projection Lit"
             half _DetailNormalMapScale;
             half _Parallax;
             half _BaseMapStrength;
+            half _SpecularAAVariance;
+            half _SpecularAAThreshold;
             float _BlendSharpness;
             float _ScaleInvariant;
             float _Surface;
@@ -375,6 +381,12 @@ Shader "EDIVE/TriPlanar Projection Lit"
             surfaceData.emission = SampleEmission(uv.z, _EmissionColor.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap));
             surfaceData.normalTS = half3(0, 0, 1);
         }
+
+        // Rougher where the normal changes within a pixel, stops distant highlights from flickering
+        half ApplySpecularAA(half smoothness, float3 normalWS)
+        {
+            return half(GeometricNormalFiltering(smoothness, normalWS, _SpecularAAVariance, _SpecularAAThreshold));
+        }
         ENDHLSL
 
         Pass
@@ -533,6 +545,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 inputData.positionWS = input.positionWS;
                 inputData.positionCS = input.positionCS;
                 inputData.normalWS = ProjectionToWorldNormal(SampleTriplanarNormal(uv, normal, detailUV, detailMask));
+                surfaceData.smoothness = ApplySpecularAA(surfaceData.smoothness, inputData.normalWS);
                 inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
             #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 inputData.shadowCoord = input.shadowCoord;
