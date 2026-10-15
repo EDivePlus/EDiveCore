@@ -3,6 +3,9 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.LoadItems;
 using EDIVE.Core;
+using EDIVE.DataStructures.VariableFields;
+using EDIVE.NativeUtils;
+using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -30,6 +33,22 @@ namespace EDIVE.AppLoading
 
         [SerializeField]
         private Toggle _LoadReportToggle;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Report Colors")]
+        private VariableField<Color> _PendingColor = new(ColorTools.Aqua);
+
+        [SerializeField]
+        [EnhancedBoxGroup("Report Colors")]
+        private VariableField<Color> _LoadingColor = new(ColorTools.Yellow);
+
+        [SerializeField]
+        [EnhancedBoxGroup("Report Colors")]
+        private VariableField<Color> _CompletedColor = new(ColorTools.Lime);
+
+        [SerializeField]
+        [EnhancedBoxGroup("Report Colors")]
+        private VariableField<Color> _InvalidColor = new(ColorTools.Red);
 
         private List<LoadItemDefinition> _loadItems;
 
@@ -96,9 +115,31 @@ namespace EDIVE.AppLoading
 
             if (_LoadReportTextArea != null && (_LoadReportToggle == null || _LoadReportToggle.isOn))
             {
-                var details = _loadItems.Select(l => l.GetLoadingDetail());
+                var details = _loadItems.Select(GetReportLine);
                 _LoadReportTextArea.text = string.Join("\n", details);
             }
+        }
+
+        private string GetReportLine(LoadItemDefinition item)
+        {
+            if (!item.IsValid)
+                return $"{"Invalid".Color(_InvalidColor.Value)} - {item.UniqueID}";
+
+            var state = item.CurrentState;
+            var color = GetStateColor(state);
+            var progress = $"{item.GetLoadingProgress() * 100:00}%".PadLeft(4);
+            return $"{state.GetSymbol().Color(color)} {(item.IsLoaded ? progress.Color(color) : progress)} - {item.UniqueID}";
+        }
+
+        private Color GetStateColor(LoadItemState state)
+        {
+            return state switch
+            {
+                LoadItemState.Pending => _PendingColor.Value,
+                LoadItemState.Loading => _LoadingColor.Value,
+                LoadItemState.Completed => _CompletedColor.Value,
+                _ => _InvalidColor.Value
+            };
         }
     }
 }
