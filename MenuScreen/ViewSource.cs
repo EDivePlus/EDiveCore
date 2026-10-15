@@ -6,8 +6,10 @@ using UnityEngine.AddressableAssets;
 namespace EDIVE.MenuScreen
 {
     [EnhancedTypeSelector(true, 1)]
+    [System.Obsolete("Replaced by the window system, see EDIVE.View.Windows (AppWindow, WindowDefinition, WindowCatalog)")]
     public interface IViewSource { }
     
+    [System.Obsolete("Replaced by the window system, see EDIVE.View.Windows (AppWindow, WindowDefinition, WindowCatalog)")]
     public class InstanceViewSource : IViewSource
     {
         public WidgetView Instance { get; }
@@ -39,6 +41,7 @@ namespace EDIVE.MenuScreen
     }
     
     [Serializable]
+    [System.Obsolete("Replaced by the window system, see EDIVE.View.Windows (AppWindow, WindowDefinition, WindowCatalog)")]
     public class PrefabViewSource : IViewSource
     {
         [SerializeField]
@@ -73,6 +76,7 @@ namespace EDIVE.MenuScreen
     }
 
     [Serializable]
+    [System.Obsolete("Replaced by the window system, see EDIVE.View.Windows (AppWindow, WindowDefinition, WindowCatalog)")]
     public class AddressablePrefabViewSource : IViewSource
     {
         [SerializeField]

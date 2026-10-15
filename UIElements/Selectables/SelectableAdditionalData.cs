@@ -20,9 +20,16 @@ namespace EDIVE.UIElements.Selectables
 
         public ASelectableTransition CustomTransition => _CustomTransition;
 
+        public SelectionState CurrentState { get; private set; }
+        public event Action<SelectionState> StateChanged;
+
         public void DoStateTransition(SelectionState state, bool instant = false)
         {
             _CustomTransition?.DoStateTransition(state, instant);
+            if (CurrentState == state)
+                return;
+            CurrentState = state;
+            StateChanged?.Invoke(state);
         }
 
 #if UNITY_EDITOR

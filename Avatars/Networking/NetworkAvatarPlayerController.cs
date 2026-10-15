@@ -1,6 +1,7 @@
 // Author: Michal Petr
 // Created: 17.03.2026
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -46,8 +47,12 @@ namespace EDIVE.Avatars.Networking
         
         private readonly SyncVar<VisualPreset> _customizationPreset = new(ownerAuth: true);
 
+        public AvatarDefinition AvatarDefinition => _avatarDefinition.value;
+        public event Action<AvatarDefinition> AvatarDefinitionChanged;
+
         private void Awake()
         {
+            _avatarDefinition.onChanged += OnAvatarDefinitionChanged;
             _avatar.onChanged += OnAvatarChanged;
             _customizationPreset.onChanged += OnSyncCustomizationChanged;
             _networkPlayerManager = AppCore.Services.Get<NetworkPlayerManager>();
@@ -60,7 +65,10 @@ namespace EDIVE.Avatars.Networking
             base.OnDestroy();
             _avatar.onChanged -= OnAvatarChanged;
             _customizationPreset.onChanged -= OnSyncCustomizationChanged;
+            _avatarDefinition.onChanged -= OnAvatarDefinitionChanged;
         }
+
+        private void OnAvatarDefinitionChanged(AvatarDefinition definition) => AvatarDefinitionChanged?.Invoke(definition);
 
         protected override void OnSpawned()
         {
@@ -117,7 +125,11 @@ namespace EDIVE.Avatars.Networking
                 _saveData.PlayerAvatar = avatarDef;
             
             if (_avatarDefinition.value != avatarDef)
+            {
                 _avatarDefinition.value = avatarDef;
+                // The sync callback does not always fire for the local owner
+                AvatarDefinitionChanged?.Invoke(avatarDef);
+            }
 
             if (avatarDef == null || !avatarDef.IsValid())
             {

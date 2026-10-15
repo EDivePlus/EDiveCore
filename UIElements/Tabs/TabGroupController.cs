@@ -11,6 +11,7 @@ using Sirenix.Utilities.Editor;
 
 namespace EDIVE.UIElements.Tabs
 {
+    [System.Obsolete("Replaced by ViewSwitch pages, see EDIVE.View.Windows.ViewSwitch")]
     public class TabGroupController : MonoBehaviour
     {
         [SerializeField]

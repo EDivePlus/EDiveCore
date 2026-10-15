@@ -9,6 +9,7 @@ using UnityEngine.Serialization;
 
 namespace EDIVE.MenuScreen
 {
+    [System.Obsolete("Replaced by the window system, see EDIVE.View.Windows (AppWindow, WindowDefinition, WindowCatalog)")]
     public class WidgetLibraryView : WidgetView 
     {
         [FormerlySerializedAs("_TabletDefinition")]

@@ -2,6 +2,7 @@
   "name": "EDIVE.Environment",
   "rootNamespace": "",
   "references": [
+    "EDIVE.StateHandling",
     "UniTask",
     "Unity.TextMeshPro",
     "EDIVE.Core",

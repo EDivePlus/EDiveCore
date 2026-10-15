@@ -2,7 +2,9 @@
 // Created: 14.10.2026
 
 using System;
-using EDIVE.DataStructures;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using EDIVE.Tweening;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ScriptableArchitecture.Variables.Impl;
 using EDIVE.StateHandling.ToggleStates;
@@ -13,13 +15,10 @@ using UnityEngine;
 
 namespace EDIVE.View.Windows
 {
-    // Collapses a menu to a small pill where room is short, e.g. phones with touch controls.
-    // Collapsed hides the content, its windows keep running. Elsewhere the menu stays expanded.
+    // Collapses a screen space menu to a small pill, e.g. desktop or phone. A world space menu, e.g. the VR tablet, stays expanded.
+    // Collapsed hides the content, its windows keep running.
     public class MenuCollapse : MonoBehaviour
     {
-        [SerializeField]
-        private PlatformSpecificValue<bool> _Collapsible = new();
-
         // Hidden while collapsed, e.g. the screen root
         [SerializeField]
         [Required]
@@ -54,6 +53,19 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Display")]
         private AScriptableVariable<bool> _OverlayVariable;
 
+        // Before collapsing, e.g. windows and dock fade out
+        [SerializeField]
+        private TweenAnimationField _CollapseAnimation = new();
+
+        // After collapsing, e.g. the pill comes in
+        [SerializeField]
+        private TweenAnimationField _CollapsedAnimation = new();
+
+        // After expanding, e.g. dock and windows come back
+        [SerializeField]
+        private TweenAnimationField _ExpandAnimation = new();
+
+        private int _transition;
         private IDisposable _expandListener;
         private IDisposable _collapseListener;
 
@@ -64,7 +76,8 @@ namespace EDIVE.View.Windows
 
         private void Awake()
         {
-            IsCollapsible = _Collapsible.GetCurrentPlatformValue();
+            var canvas = GetComponentInParent<Canvas>(true);
+            IsCollapsible = canvas != null && canvas.rootCanvas.renderMode != RenderMode.WorldSpace;
             IsExpanded = !IsCollapsible || !_StartCollapsed;
         }
 
@@ -85,6 +98,13 @@ namespace EDIVE.View.Windows
                 _OverlayVariable.SetValue(false);
         }
 
+        private void OnDestroy()
+        {
+            _CollapseAnimation.Kill();
+            _CollapsedAnimation.Kill();
+            _ExpandAnimation.Kill();
+        }
+
         public void Expand() => SetExpanded(true);
         public void Collapse() => SetExpanded(false);
 
@@ -96,8 +116,33 @@ namespace EDIVE.View.Windows
                 return;
 
             IsExpanded = expanded;
-            Apply(false);
             ExpandedChanged?.Invoke(expanded);
+            TransitionAsync(expanded).Forget();
+        }
+
+        // Collapse plays out first and swaps after, expand swaps first and plays in after
+        private async UniTaskVoid TransitionAsync(bool expanded)
+        {
+            var transition = ++_transition;
+            _CollapseAnimation.Kill();
+            _CollapsedAnimation.Kill();
+            _ExpandAnimation.Kill();
+
+            if (expanded)
+            {
+                Apply(false);
+                _ExpandAnimation.Play();
+                return;
+            }
+
+            _CollapseAnimation.Play();
+            var tween = _CollapseAnimation.Tween;
+            if (tween.IsActive())
+                await tween.ToUniTask(cancellationToken: destroyCancellationToken).SuppressCancellationThrow();
+            if (transition != _transition)
+                return;
+            Apply(false);
+            _CollapsedAnimation.Play();
         }
 
         private void Apply(bool immediate)
