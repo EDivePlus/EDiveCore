@@ -192,6 +192,7 @@ namespace EDIVE.Debugging
 
                 _field = new FloatField {isDelayed = true};
                 _field.AddToClassList("dm-field");
+                _field.AddToClassList("dm-field--number");
                 _field.RegisterValueChangedCallback(evt => _control.SetSnapped(evt.newValue));
                 Add(_field);
 

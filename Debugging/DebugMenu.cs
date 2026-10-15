@@ -42,6 +42,10 @@ namespace EDIVE.Debugging
         public static IReadOnlyList<DebugMenuHost> Hosts => HOSTS;
         public static bool IsOpen => HOSTS.Any(h => h.IsOpen);
 
+        // World space hosts (XR tablet) take over from the screen overlay while any is active
+        internal static bool HasWorldHost => HOSTS.Any(h => h.IsWorldSpace);
+        private static List<DebugMenuHost> ActiveHosts => HOSTS.Where(h => h.IsWorldSpace || !HasWorldHost).ToList();
+
         private static DebugScope GlobalScope => _globalScope ??= new DebugScope(null);
 
         // Registrations owned by an object. A Unity object owner removes them when destroyed, others call Dispose.
@@ -105,6 +109,25 @@ namespace EDIVE.Debugging
 
         public static ADebugTool FindTool(string name) => TOOLS.FirstOrDefault(t => t.Name == name);
 
+        // Every page of every panel, parents first.
+        internal static IEnumerable<DebugPage> AllPages()
+        {
+            var stack = new Stack<DebugPage>(PANELS.AsEnumerable().Reverse());
+            while (stack.Count > 0)
+            {
+                var page = stack.Pop();
+                yield return page;
+                for (var i = page.Children.Count - 1; i >= 0; i--)
+                {
+                    stack.Push(page.Children[i]);
+                }
+            }
+        }
+
+        internal static IEnumerable<ADebugControl> AllControls() => AllPages()
+            .SelectMany(p => p.Sections)
+            .SelectMany(s => s.Controls);
+
         // Re-reads getters of shown controls. Null refreshes every panel.
         public static void Refresh(string path = null)
         {
@@ -124,7 +147,7 @@ namespace EDIVE.Debugging
         // Opens the menu on every host. Path is a page path or a tool name, null keeps the last location.
         public static void Open(string path = null)
         {
-            foreach (var host in HOSTS)
+            foreach (var host in ActiveHosts)
             {
                 host.Open(path);
             }
@@ -134,9 +157,18 @@ namespace EDIVE.Debugging
         public static void ShowText(string title, string text)
         {
             var document = new DebugTextDocument(title, text);
-            foreach (var host in HOSTS)
+            foreach (var host in ActiveHosts)
             {
                 host.ShowText(document);
+            }
+        }
+
+        // Short message at the top of every host, shown even while the menu is closed.
+        public static void Toast(string text, DebugToastLevel level = DebugToastLevel.Info)
+        {
+            foreach (var host in ActiveHosts)
+            {
+                host.ShowToast(text, level);
             }
         }
 
@@ -172,9 +204,23 @@ namespace EDIVE.Debugging
         {
             if (!HOSTS.Contains(host))
                 HOSTS.Add(host);
+            UpdateHostVisibility();
         }
 
-        internal static void UnregisterHost(DebugMenuHost host) => HOSTS.Remove(host);
+        internal static void UnregisterHost(DebugMenuHost host)
+        {
+            HOSTS.Remove(host);
+            UpdateHostVisibility();
+        }
+
+        private static void UpdateHostVisibility()
+        {
+            var hasWorldHost = HasWorldHost;
+            foreach (var host in HOSTS)
+            {
+                host.SetSuppressed(!host.IsWorldSpace && hasWorldHost);
+            }
+        }
 
         internal static void RemoveScope(DebugScope scope)
         {

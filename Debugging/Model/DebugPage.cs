@@ -29,6 +29,9 @@ namespace EDIVE.Debugging
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.Sequence);
 
+        internal IReadOnlyList<DebugPage> Children => _children;
+        internal IReadOnlyList<DebugSectionNode> Sections => _sections;
+
         internal IEnumerable<DebugSectionNode> VisibleSections => _sections
             .Where(s => s.Controls.Count > 0)
             .OrderBy(s => s.SortOrder)

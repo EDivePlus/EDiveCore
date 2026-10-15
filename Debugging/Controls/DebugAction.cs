@@ -61,13 +61,17 @@ namespace EDIVE.Debugging
             {
                 var result = _invoke();
                 if (HasResult)
+                {
                     LastResult = FormatResult(result);
+                    DebugMenu.Toast($"{Label}: {LastResult}", DebugToastLevel.Success);
+                }
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
                 if (HasResult)
                     LastResult = e.GetType().Name;
+                DebugMenu.Toast($"{Label} failed: {e.GetType().Name}", DebugToastLevel.Error);
             }
 
             Refresh();

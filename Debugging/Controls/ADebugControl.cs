@@ -33,6 +33,10 @@ namespace EDIVE.Debugging
         internal IReadOnlyList<Func<Action, IDisposable>> RefreshTriggers => _refreshTriggers;
         internal bool IsOwnerDestroyed => Handle?.Scope?.IsOwnerDestroyed ?? false;
 
+        // Text matched by search and used in the favourite key
+        internal virtual string SearchText => Label;
+        internal string Key => Handle == null ? null : $"{Handle.Page.Path}{DebugMenu.PAGE_SEPARATOR}{Handle.Name}{DebugMenu.PAGE_SEPARATOR}{SearchText}";
+
         protected ADebugControl(string label)
         {
             Label = label ?? string.Empty;

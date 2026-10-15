@@ -27,6 +27,8 @@ namespace EDIVE.Debugging
         {
             DebugMenu.AddTool(new DebugConsoleTool());
             DebugMenu.AddTool(new DebugSystemTool());
+            DebugMenu.AddTool(new DebugProfilerTool());
+            DebugMenu.AddTool(new DebugFavouritesTool());
 
             var runner = new GameObject("[DebugMenu]");
             DontDestroyOnLoad(runner);
