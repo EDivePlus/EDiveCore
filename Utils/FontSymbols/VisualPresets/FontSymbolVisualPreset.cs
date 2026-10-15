@@ -88,6 +88,12 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private FontSymbolTMPTextUI _Text;
         public FontSymbolTMPTextUI Text => _Text;
+
+        // Shown only with a symbol, e.g. a button icon that is optional
+        [VerticalGroup("Value")]
+        [SerializeField]
+        private bool _ActiveWithSymbol;
+        public bool ActiveWithSymbol => _ActiveWithSymbol;
         
         public override string EditorLabel => "TMP FontSymbol";
         public override Type EditorIconTargetType => typeof(FontSymbolTMPTextUI);
@@ -103,6 +109,8 @@ namespace EDIVE.VisualPresets.Switchers
                 return DisposableUtils.Empty;
             
             switcherRecord.Text.FontSymbol = presetRecord.FontSymbol;
+            if (switcherRecord.ActiveWithSymbol)
+                switcherRecord.Text.gameObject.SetActive(presetRecord.FontSymbol.Symbol != default);
             return DisposableUtils.Empty;
         }
 

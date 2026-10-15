@@ -11,6 +11,7 @@
         "EDIVE.Utils.Actions",
         "EDIVE.Utils.Activations",
         "EDIVE.StateHandling",
+        "EDIVE.Conditions",
         "EDIVE.AssetTranslation",
         "EDIVE.DataStructures",
         "EDIVE.ScriptableArchitecture",
