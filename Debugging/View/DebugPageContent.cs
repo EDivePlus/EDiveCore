@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 14.10.2026
 
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UIElements;
 
@@ -20,7 +19,8 @@ namespace EDIVE.Debugging
             set => _scroll.schedule.Execute(() => _scroll.scrollOffset = new UnityEngine.Vector2(0, value));
         }
 
-        public DebugPageContent(DebugPage page, int columns)
+        // Pick mode makes rows inert, a click toggles the favourite
+        public DebugPageContent(DebugPage page, int columns, bool pick = false)
         {
             Page = page;
             AddToClassList("dm-page");
@@ -34,31 +34,7 @@ namespace EDIVE.Debugging
             _scroll.Add(row);
 
             // Fewer sections than columns leave columns empty, so cards keep their width
-            var sections = page.VisibleSections.ToList();
-            columns = UnityEngine.Mathf.Max(1, columns);
-
-            var columnElements = new List<VisualElement>();
-            var heights = new int[columns];
-            for (var i = 0; i < columns; i++)
-            {
-                var column = new VisualElement();
-                column.AddToClassList("dm-column");
-                row.Add(column);
-                columnElements.Add(column);
-            }
-
-            // Next section goes to the shortest column, height estimated by row count
-            foreach (var section in sections)
-            {
-                var target = 0;
-                for (var i = 1; i < columns; i++)
-                {
-                    if (heights[i] < heights[target])
-                        target = i;
-                }
-                columnElements[target].Add(new DebugSectionCard(section));
-                heights[target] += section.Controls.Count + 1;
-            }
+            DebugColumns.Fill(row, columns, page.VisibleSections.Select(s => ((VisualElement) new DebugSectionCard(s, pick), s.Controls.Count + 1)));
         }
     }
 
@@ -68,7 +44,7 @@ namespace EDIVE.Debugging
         private readonly VisualElement _body;
         private readonly Label _chevron;
 
-        public DebugSectionCard(DebugSectionNode section)
+        public DebugSectionCard(DebugSectionNode section, bool pick)
         {
             _section = section;
             AddToClassList("dm-card");
@@ -94,7 +70,7 @@ namespace EDIVE.Debugging
             _body.AddToClassList("dm-card__body");
             foreach (var control in section.SortedControls)
             {
-                _body.Add(control.CreateView());
+                _body.Add(DebugPickRow.Create(control, pick));
             }
             Add(_body);
 

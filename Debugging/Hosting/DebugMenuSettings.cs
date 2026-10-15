@@ -36,6 +36,14 @@ namespace EDIVE.Debugging
         [SerializeField]
         private float _TriggerHoldTime = 1f;
 
+        [Tooltip("Corner size on screens in centimeters, same on every device.")]
+        [SerializeField]
+        private float _TriggerSize = 0.8f;
+
+        [Tooltip("Corner size on world space panels in panel units.")]
+        [SerializeField]
+        private float _WorldTriggerSize = 64f;
+
         [SerializeField]
         private Key _ToggleKey = Key.F1;
 
@@ -54,6 +62,8 @@ namespace EDIVE.Debugging
         public Font Font => _Font;
         public FontSymbolsDefinition Icons => _Icons;
         public float TriggerHoldTime => _TriggerHoldTime;
+        public float TriggerSize => _TriggerSize;
+        public float WorldTriggerSize => _WorldTriggerSize;
         public Key ToggleKey => _ToggleKey;
         public int LogCapacity => _LogCapacity;
 

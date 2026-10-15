@@ -2,17 +2,16 @@
 // Created: 14.10.2026
 
 using System;
+using System.Text;
 using UnityEngine;
-using UnityEngine.Profiling;
+using UnityEngine.UIElements;
 using UnityEngine.XR;
 
 namespace EDIVE.Debugging
 {
-    // Application, device and runtime info, read when shown.
+    // Application, device and display info, read when shown. Live numbers are in the Profiler.
     public sealed class DebugSystemTool : ADebugPageTool
     {
-        private const float MB = 1024f * 1024f;
-
         public override string Name => "System";
         public override string Icon => "info";
         public override int Order => -90;
@@ -27,6 +26,7 @@ namespace EDIVE.Debugging
             app.Watch("Build", () => Debug.isDebugBuild ? "Development" : "Release");
             app.Watch("Backend", () => ScriptingBackend);
             app.Watch("Language", () => Application.systemLanguage);
+            app.Watch("Uptime", () => TimeSpan.FromSeconds(Time.realtimeSinceStartupAsDouble).ToString(@"hh\:mm\:ss"));
 
             var device = page.Section("Device");
             device.Watch("Model", () => SystemInfo.deviceModel);
@@ -53,15 +53,27 @@ namespace EDIVE.Debugging
             xr.Watch("Device", () => string.IsNullOrEmpty(XRSettings.loadedDeviceName) ? "-" : XRSettings.loadedDeviceName);
             xr.Watch("Eye texture", () => $"{XRSettings.eyeTextureWidth} x {XRSettings.eyeTextureHeight}");
             xr.Watch("Render scale", () => XRSettings.eyeTextureResolutionScale).Format("0.##");
+        }
 
-            var runtime = page.Section("Runtime");
-            runtime.Watch("Uptime", () => TimeSpan.FromSeconds(Time.realtimeSinceStartupAsDouble).ToString(@"hh\:mm\:ss")).Every(1f);
-            runtime.Watch("Frame", () => Time.frameCount).Every(0.25f);
-            runtime.Watch("FPS", () => 1f / Mathf.Max(0.0001f, Time.smoothDeltaTime)).Format("0").Every(0.25f);
-            runtime.Watch("Allocated", () => Profiler.GetTotalAllocatedMemoryLong() / MB).Format("0.0").Unit("MB").Every(1f);
-            runtime.Watch("Reserved", () => Profiler.GetTotalReservedMemoryLong() / MB).Format("0.0").Unit("MB").Every(1f);
-            runtime.Watch("Managed", () => GC.GetTotalMemory(false) / MB).Format("0.0").Unit("MB").Every(1f);
-            runtime.Buttons(("Collect GC", () => GC.Collect()), ("Unload unused", () => Resources.UnloadUnusedAssets()));
+        protected override VisualElement CreateHeaderContent(DebugPage page) =>
+            DebugMenuView.CreateIconButton("content_copy", () => DebugShare.Copy(CreateReport(page)));
+
+        // Every value as text, one section per block
+        private static string CreateReport(DebugPage page)
+        {
+            var report = new StringBuilder();
+            foreach (var section in page.VisibleSections)
+            {
+                if (report.Length > 0)
+                    report.AppendLine();
+                report.AppendLine(section.Name);
+                foreach (var control in section.SortedControls)
+                {
+                    if (control is DebugWatch watch)
+                        report.AppendLine($"{watch.Label}: {watch.GetText()}");
+                }
+            }
+            return report.ToString();
         }
 
         private static string ScriptingBackend

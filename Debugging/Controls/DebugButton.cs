@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -49,6 +50,7 @@ namespace EDIVE.Debugging
             catch (Exception e)
             {
                 Debug.LogException(e);
+                DebugMenu.Toast($"{Label} failed: {e.GetType().Name}", DebugToastLevel.Error);
             }
         }
 
@@ -61,6 +63,8 @@ namespace EDIVE.Debugging
         private readonly List<DebugButton> _buttons = new();
 
         public IReadOnlyList<DebugButton> Buttons => _buttons;
+
+        internal override string SearchText => string.Join(" ", _buttons.Select(b => b.Label));
 
         public DebugButtonRow(IEnumerable<(string label, Action action)> buttons) : base(string.Empty)
         {

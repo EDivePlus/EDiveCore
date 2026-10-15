@@ -5,10 +5,12 @@
         "EDIVE.External.DomainReloadHelper",
         "EDIVE.Utils.FontSymbols",
         "EDIVE.Utils.Actions",
+        "EDIVE.Utils.Activations",
         "EDIVE.Conditions",
         "EDIVE.ScriptableArchitecture",
         "UniTask",
         "Unity.InputSystem",
+        "UnityEngine.UI",
         "NativeShare.Runtime"
     ],
     "includePlatforms": [],

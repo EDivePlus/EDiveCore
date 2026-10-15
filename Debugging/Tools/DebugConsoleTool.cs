@@ -19,6 +19,7 @@ namespace EDIVE.Debugging
         // Kept for the session, the view is recreated on every show
         internal readonly bool[] LevelFilters = {true, true, true};
         internal bool Collapse;
+        internal bool ShowSource;
         internal bool AlignStackTrace;
         internal string Search = string.Empty;
 
@@ -27,9 +28,11 @@ namespace EDIVE.Debugging
         public override VisualElement CreateBadge() => new DebugLogCountBadge(true);
     }
 
-    internal sealed class DebugConsoleView : VisualElement
+    internal sealed class DebugConsoleView : VisualElement, IDebugHeaderContent
     {
-        private const int ROW_HEIGHT = 56;
+        private const int ROW_HEIGHT = 32;
+        private const long CLEAR_CONFIRM_MS = 3000;
+        private const int ROW_HEIGHT_SOURCE = 48;
 
         private static readonly string[] LEVEL_ICONS = {"info", "warning", "error"};
         private static readonly string[] LEVEL_CLASSES = {"dm-level--log", "dm-level--warning", "dm-level--error"};
@@ -40,6 +43,7 @@ namespace EDIVE.Debugging
         private readonly Button[] _filterButtons = new Button[3];
         private readonly Label[] _filterCounts = new Label[3];
         private readonly Button _collapseButton;
+        private readonly Button _sourceButton;
         private readonly ListView _list;
         private readonly VisualElement _detail;
         private readonly Label _detailTitle;
@@ -48,6 +52,9 @@ namespace EDIVE.Debugging
         private bool _refreshScheduled;
         private LogRow _selected;
 
+        // Filters, search and toggles, shown in the menu header
+        public VisualElement HeaderContent { get; }
+
         public DebugConsoleView(DebugConsoleTool tool)
         {
             _tool = tool;
@@ -55,7 +62,7 @@ namespace EDIVE.Debugging
 
             var toolbar = new VisualElement();
             toolbar.AddToClassList("dm-console__toolbar");
-            Add(toolbar);
+            HeaderContent = toolbar;
 
             for (var i = 0; i < 3; i++)
             {
@@ -71,18 +78,10 @@ namespace EDIVE.Debugging
                 _filterButtons[i] = button;
             }
 
-            _collapseButton = new Button(ToggleCollapse);
-            _collapseButton.AddToClassList("dm-filter");
-            _collapseButton.Add(DebugIcons.Create("unfold_less", "dm-filter__icon"));
-            var collapseLabel = new Label("Collapse");
-            collapseLabel.AddToClassList("dm-filter__count");
-            _collapseButton.Add(collapseLabel);
-            toolbar.Add(_collapseButton);
-
             var search = new TextField {value = tool.Search};
             search.AddToClassList("dm-field");
             search.AddToClassList("dm-console__search");
-            search.textEdition.placeholder = "Search";
+            search.textEdition.placeholder = "Filter logs";
             search.RegisterValueChangedCallback(evt =>
             {
                 _tool.Search = evt.newValue ?? string.Empty;
@@ -90,12 +89,22 @@ namespace EDIVE.Debugging
             });
             toolbar.Add(search);
 
-            toolbar.Add(DebugMenuView.CreateIconButton("delete_sweep", DebugLogBuffer.Clear, "dm-console__clear"));
+            _collapseButton = CreateToggle("unfold_less", "Collapse", ToggleCollapse);
+            toolbar.Add(_collapseButton);
+            // Second line with the first caller frame
+            _sourceButton = CreateToggle("subject", "Source", ToggleSource);
+            toolbar.Add(_sourceButton);
 
-            _list = new ListView(_rows, ROW_HEIGHT, MakeRow, BindRow)
+            var divider = new VisualElement();
+            divider.AddToClassList("dm-console__divider");
+            toolbar.Add(divider);
+            toolbar.Add(CreateClearButton());
+
+            _list = new ListView(_rows, tool.ShowSource ? ROW_HEIGHT_SOURCE : ROW_HEIGHT, MakeRow, BindRow)
             {
                 selectionType = SelectionType.Single,
-                virtualizationMethod = CollectionVirtualizationMethod.FixedHeight
+                virtualizationMethod = CollectionVirtualizationMethod.FixedHeight,
+                makeNoneElement = CreateEmpty
             };
             _list.AddToClassList("dm-console__list");
             _list.selectionChanged += OnSelectionChanged;
@@ -146,13 +155,69 @@ namespace EDIVE.Debugging
             RebuildRows(false);
         }
 
+        private void ToggleSource()
+        {
+            _tool.ShowSource = !_tool.ShowSource;
+            _list.fixedItemHeight = _tool.ShowSource ? ROW_HEIGHT_SOURCE : ROW_HEIGHT;
+            UpdateFilterButtons();
+            _list.Rebuild();
+        }
+
         private void UpdateFilterButtons()
         {
             for (var i = 0; i < 3; i++)
             {
                 _filterButtons[i].EnableInClassList("dm-filter--on", _tool.LevelFilters[i]);
             }
-            _collapseButton.EnableInClassList("dm-filter--on", _tool.Collapse);
+            _collapseButton.EnableInClassList("dm-toggle--on", _tool.Collapse);
+            _sourceButton.EnableInClassList("dm-toggle--on", _tool.ShowSource);
+        }
+
+        // First click arms it, a second one within 3 s clears, like Confirm on buttons
+        private static Button CreateClearButton()
+        {
+            var button = new Button();
+            button.AddToClassList("dm-console__clear");
+            button.Add(DebugIcons.Create("delete", "dm-console__clear-icon"));
+            var label = new Label("Clear?");
+            label.AddToClassList("dm-console__clear-label");
+            button.Add(label);
+
+            var armed = false;
+            IVisualElementScheduledItem disarm = null;
+
+            void Disarm()
+            {
+                armed = false;
+                disarm?.Pause();
+                button.RemoveFromClassList("dm-console__clear--armed");
+            }
+
+            button.clicked += () =>
+            {
+                if (!armed)
+                {
+                    armed = true;
+                    button.AddToClassList("dm-console__clear--armed");
+                    disarm = button.schedule.Execute(Disarm).StartingIn(CLEAR_CONFIRM_MS);
+                    return;
+                }
+
+                Disarm();
+                DebugLogBuffer.Clear();
+            };
+            return button;
+        }
+
+        private static Button CreateToggle(string icon, string text, Action clicked)
+        {
+            var button = new Button(clicked);
+            button.AddToClassList("dm-toggle");
+            button.Add(DebugIcons.Create(icon, "dm-toggle__icon"));
+            var label = new Label(text);
+            label.AddToClassList("dm-toggle__label");
+            button.Add(label);
+            return button;
         }
 
         // Logs can arrive every frame, rebuild at most once per frame
@@ -211,8 +276,29 @@ namespace EDIVE.Debugging
             if (atEnd && _rows.Count > 0)
                 _list.ScrollToItem(_rows.Count - 1);
 
-            if (_selected != null && !_rows.Contains(_selected))
-                ShowDetail(null);
+            // Rows are recreated, find the selected entry again
+            if (_selected != null)
+            {
+                var selected = _selected;
+                var index = _rows.FindIndex(r => r.Entry == selected.Entry || (_tool.Collapse && r.Matches(selected)));
+                if (index < 0)
+                {
+                    _list.ClearSelection();
+                    ShowDetail(null);
+                }
+                else
+                {
+                    _selected = _rows[index];
+                    _list.SetSelectionWithoutNotify(new[] {index});
+                }
+            }
+        }
+
+        private static VisualElement CreateEmpty()
+        {
+            var empty = new Label("No logs");
+            empty.AddToClassList("dm-console__empty");
+            return empty;
         }
 
         private VisualElement MakeRow()
@@ -256,7 +342,9 @@ namespace EDIVE.Debugging
 
             var texts = element[1];
             ((Label) texts[0]).text = entry.Title;
-            ((Label) texts[1]).text = entry.Source;
+            var source = (Label) texts[1];
+            source.text = entry.Source;
+            source.style.display = _tool.ShowSource ? DisplayStyle.Flex : DisplayStyle.None;
 
             var count = (Label) element[2];
             count.text = row.Count.ToString(CultureInfo.InvariantCulture);
@@ -308,6 +396,9 @@ namespace EDIVE.Debugging
             public int Count = 1;
 
             public LogRow(DebugLogEntry entry) => Entry = entry;
+
+            // Same collapsed group
+            public bool Matches(LogRow other) => Entry.Type == other.Entry.Type && Entry.Message == other.Entry.Message && Entry.StackTrace == other.Entry.StackTrace;
         }
     }
 

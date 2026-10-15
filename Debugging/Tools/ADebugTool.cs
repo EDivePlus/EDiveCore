@@ -19,12 +19,33 @@ namespace EDIVE.Debugging
         public virtual VisualElement CreateBadge() => null;
     }
 
+    // Content that puts its own controls into the menu header, like the console filters.
+    public interface IDebugHeaderContent
+    {
+        VisualElement HeaderContent { get; }
+    }
+
+    // Content with header controls next to it.
+    public sealed class DebugHeaderContent : VisualElement, IDebugHeaderContent
+    {
+        public VisualElement HeaderContent { get; }
+
+        public DebugHeaderContent(VisualElement content, VisualElement headerContent)
+        {
+            HeaderContent = headerContent;
+            style.flexGrow = 1;
+            Add(content);
+        }
+    }
+
     // Tool whose content is a page of sections, built once.
     public abstract class ADebugPageTool : ADebugTool
     {
         private DebugPage _page;
 
         protected abstract void Build(DebugPage page);
+
+        protected virtual VisualElement CreateHeaderContent(DebugPage page) => null;
 
         public override VisualElement CreateContent(DebugMenuView view)
         {
@@ -33,7 +54,9 @@ namespace EDIVE.Debugging
                 _page = DebugPage.CreateDetached(Name);
                 Build(_page);
             }
-            return new DebugPageContent(_page, view.Columns);
+            var content = new DebugPageContent(_page, view.Columns);
+            var header = CreateHeaderContent(_page);
+            return header != null ? new DebugHeaderContent(content, header) : content;
         }
     }
 }

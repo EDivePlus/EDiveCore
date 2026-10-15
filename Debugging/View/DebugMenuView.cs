@@ -20,9 +20,10 @@ namespace EDIVE.Debugging
         private const string SELECTED_CLASS = "dm-nav-item--selected";
 
         private const float NARROW_WIDTH = 900f;
-        private const float SIDEBAR_WIDTH = 240f;
-        private const float CONTENT_PADDING = 48f;
-        private const float COLUMN_GAP = 16f;
+        private const float SIDEBAR_WIDTH = 208f;
+        private const float CONTENT_PADDING = 32f;
+        private const float COLUMN_GAP = 12f;
+        private const int MAX_SEARCH_RESULTS = 100;
         private const float COLUMN_MIN_WIDTH = 300f;
         private const int MAX_CRUMBS = 2;
 
@@ -35,9 +36,19 @@ namespace EDIVE.Debugging
         private readonly VisualElement _panelList;
         private readonly Label _panelsCaption;
         private readonly VisualElement _main;
+        private readonly VisualElement _header;
+        private readonly VisualElement _subHeader;
         private readonly Button _menuButton;
         private readonly Button _backButton;
         private readonly VisualElement _crumbs;
+        private readonly VisualElement _searchBox;
+        private readonly TextField _searchField;
+        private readonly Label _searchInfo;
+        private readonly VisualElement _headerSpacer;
+        private readonly VisualElement _headerExtra;
+        private readonly Button _pickButton;
+        private readonly Button _doneButton;
+        private readonly Button _searchButton;
         private readonly ScrollView _pages;
         private readonly VisualElement _content;
         private readonly VisualElement _scrim;
@@ -49,8 +60,13 @@ namespace EDIVE.Debugging
         private VisualElement _contentElement;
         private bool _rebuildScheduled;
         private bool _narrow;
+        private bool _searchMode;
+        private bool _pickMode;
+        private string _searchText = string.Empty;
+        private IVisualElementScheduledItem _searchRebuild;
 
         public int Columns { get; private set; } = 1;
+        public bool PickMode => _pickMode;
         public bool IsNarrow => _narrow;
         public ADebugTool CurrentTool => _tool;
         public DebugPage CurrentPage => _page;
@@ -97,18 +113,30 @@ namespace EDIVE.Debugging
             _main = new VisualElement();
             _main.AddToClassList("dm-main");
 
-            var header = new VisualElement();
-            header.AddToClassList("dm-header");
+            // Tool controls sit in the header row when wide, in the row below with the page chips when narrow
+            _header = new VisualElement();
+            _header.AddToClassList("dm-header");
             _menuButton = CreateIconButton("menu", () => SetDrawerOpen(true), "dm-header__menu");
-            header.Add(_menuButton);
+            _header.Add(_menuButton);
             _backButton = CreateIconButton("arrow_back", NavigateBack, "dm-header__back");
-            header.Add(_backButton);
+            _header.Add(_backButton);
             _crumbs = new VisualElement();
             _crumbs.AddToClassList("dm-crumbs");
-            header.Add(_crumbs);
-            if (showCloseButton)
-                header.Add(CreateIconButton("close", () => CloseRequested?.Invoke(), "dm-header__close"));
-            _main.Add(header);
+            _header.Add(_crumbs);
+
+            _searchBox = new VisualElement();
+            _searchBox.AddToClassList("dm-search");
+            _searchBox.Add(DebugIcons.Create("search", "dm-search__icon"));
+            _searchField = new TextField();
+            _searchField.AddToClassList("dm-search__field");
+            _searchField.textEdition.placeholder = "Search controls and pages";
+            _searchField.RegisterValueChangedCallback(evt => SetSearchText(evt.newValue));
+            _searchBox.Add(_searchField);
+            _searchInfo = new Label();
+            _searchInfo.AddToClassList("dm-search__info");
+            _searchBox.Add(_searchInfo);
+            _searchBox.Add(CreateIconButton("close", CloseSearch, "dm-search__close"));
+            _header.Add(_searchBox);
 
             _pages = new ScrollView(ScrollViewMode.Horizontal)
             {
@@ -116,7 +144,32 @@ namespace EDIVE.Debugging
                 verticalScrollerVisibility = ScrollerVisibility.Hidden
             };
             _pages.AddToClassList("dm-pages");
-            _main.Add(_pages);
+
+            _headerSpacer = new VisualElement();
+            _headerSpacer.AddToClassList("dm-header__spacer");
+            _header.Add(_headerSpacer);
+
+            _headerExtra = new VisualElement();
+            _headerExtra.AddToClassList("dm-header__extra");
+            _header.Add(_headerExtra);
+
+            _pickButton = CreateIconButton("star", () => SetPickMode(true), "dm-header__pick");
+            _pickButton.tooltip = "Pick favourites";
+            _header.Add(_pickButton);
+            _doneButton = new Button(() => SetPickMode(false)) {text = "Done"};
+            _doneButton.AddToClassList("dm-header__done");
+            _header.Add(_doneButton);
+            _searchButton = CreateIconButton("search", () => OpenSearch(false), "dm-header__search");
+            _header.Add(_searchButton);
+            if (showCloseButton)
+                _header.Add(CreateIconButton("close", () => CloseRequested?.Invoke(), "dm-header__close"));
+            _main.Add(_header);
+
+            _subHeader = new VisualElement();
+            _subHeader.AddToClassList("dm-subheader");
+            _subHeader.Add(_pages);
+            _subHeader.style.display = DisplayStyle.None;
+            _main.Add(_subHeader);
 
             _content = new VisualElement();
             _content.AddToClassList("dm-content");
@@ -133,6 +186,7 @@ namespace EDIVE.Debugging
             RegisterCallback<AttachToPanelEvent>(OnAttach);
             RegisterCallback<DetachFromPanelEvent>(OnDetach);
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+            RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
         }
 
         // Page path or tool name, null keeps the current or last location.
@@ -170,10 +224,65 @@ namespace EDIVE.Debugging
                 Rebuild(false);
         }
 
+        // Search results are live controls. With pick on, a click on a result toggles its favourite.
+        public void OpenSearch(bool pick)
+        {
+            _searchMode = true;
+            _pickMode = pick;
+            SetDrawerOpen(false);
+            if (panel == null)
+                return;
+            Rebuild(false);
+            _searchField.schedule.Execute(() => _searchField.Focus());
+        }
+
+        public void CloseSearch()
+        {
+            if (!_searchMode)
+                return;
+            _searchMode = false;
+            _pickMode = false;
+            if (panel != null)
+                Rebuild(false);
+        }
+
+        public void SetPickMode(bool pick)
+        {
+            if (_pickMode == pick)
+                return;
+            _pickMode = pick;
+            if (panel != null)
+                Rebuild(true);
+        }
+
+        private void SetSearchText(string text)
+        {
+            _searchText = text ?? string.Empty;
+            _searchRebuild?.Pause();
+            _searchRebuild = schedule.Execute(() => RebuildContent(false)).StartingIn(150);
+        }
+
+        private void OnKeyDown(KeyDownEvent evt)
+        {
+            if (evt.keyCode == KeyCode.Escape && (_searchMode || _pickMode))
+            {
+                if (_searchMode) CloseSearch();
+                else SetPickMode(false);
+                evt.StopPropagation();
+            }
+            else if (evt.keyCode == KeyCode.F && evt.actionKey)
+            {
+                OpenSearch(false);
+                evt.StopPropagation();
+            }
+        }
+
         private void SetLocation(ADebugTool tool, DebugPage page)
         {
-            var samePage = page != null && page == _page && _document == null;
+            var samePage = page != null && page == _page && _document == null && !_searchMode;
             _document = null;
+            _searchMode = false;
+            _pickMode = false;
             _tool = tool;
             _page = page;
             _lastLocation = tool != null ? tool.Name : page?.Path;
@@ -238,6 +347,10 @@ namespace EDIVE.Debugging
         {
             _narrow = narrow;
             EnableInClassList(NARROW_CLASS, narrow);
+            // After the search box and the spacer
+            if (narrow) _subHeader.Add(_headerExtra);
+            else _header.Insert(_header.IndexOf(_searchBox) + 2, _headerExtra);
+            UpdateSubHeader();
             // Drawer has to be drawn over the main area
             if (narrow) _sidebar.BringToFront();
             else _sidebar.SendToBack();
@@ -325,8 +438,17 @@ namespace EDIVE.Debugging
         private void RebuildHeader()
         {
             _crumbs.Clear();
-            var canGoBack = _document != null || _tool == null && _page is {IsPanel: false};
+            var canGoBack = !_searchMode && (_document != null || (_tool == null && _page is {IsPanel: false}));
             _backButton.style.display = canGoBack ? DisplayStyle.Flex : DisplayStyle.None;
+            SetShown(_crumbs, !_searchMode);
+            SetShown(_searchBox, _searchMode);
+            SetShown(_headerSpacer, !_searchMode);
+            SetShown(_searchButton, !_searchMode);
+            SetShown(_pickButton, !_searchMode && !_pickMode && _document == null && _tool == null && _page != null);
+            SetShown(_doneButton, _pickMode);
+
+            if (_searchMode)
+                return;
 
             if (_document != null)
             {
@@ -375,6 +497,8 @@ namespace EDIVE.Debugging
             _crumbs.Add(CreateTitle(_page.Title));
         }
 
+        private static void SetShown(VisualElement element, bool shown) => element.style.display = shown ? DisplayStyle.Flex : DisplayStyle.None;
+
         private void AddCrumb(VisualElement crumb)
         {
             if (crumb is Label label)
@@ -386,7 +510,7 @@ namespace EDIVE.Debugging
         private void RebuildPages()
         {
             _pages.Clear();
-            var children = _tool == null && _document == null ? _page?.VisibleChildren.ToList() : null;
+            var children = _tool == null && _document == null && !_searchMode ? _page?.VisibleChildren.ToList() : null;
             if (children == null || children.Count == 0)
             {
                 _pages.style.display = DisplayStyle.None;
@@ -396,15 +520,7 @@ namespace EDIVE.Debugging
             _pages.style.display = DisplayStyle.Flex;
             foreach (var child in children)
             {
-                var chip = new Button(() => Navigate(child));
-                chip.AddToClassList("dm-chip");
-                if (!string.IsNullOrEmpty(child.IconName))
-                    chip.Add(DebugIcons.Create(child.IconName, "dm-chip__icon"));
-                var label = new Label(child.Title);
-                label.AddToClassList("dm-chip__label");
-                chip.Add(label);
-                chip.Add(DebugIcons.Create("chevron_right", "dm-chip__chevron"));
-                _pages.Add(chip);
+                _pages.Add(CreatePageChip(child, child.Title));
             }
         }
 
@@ -417,7 +533,11 @@ namespace EDIVE.Debugging
             if (panel == null)
                 return;
 
-            if (_document != null)
+            if (_searchMode)
+            {
+                _contentElement = CreateSearchContent();
+            }
+            else if (_document != null)
             {
                 _contentElement = new DebugTextPreview(_document);
             }
@@ -427,7 +547,7 @@ namespace EDIVE.Debugging
             }
             else if (_page != null)
             {
-                var pageContent = new DebugPageContent(_page, Columns);
+                var pageContent = new DebugPageContent(_page, Columns, _pickMode);
                 if (scroll > 0f)
                     pageContent.ScrollOffset = scroll;
                 _contentElement = pageContent;
@@ -441,12 +561,76 @@ namespace EDIVE.Debugging
 
             if (_contentElement != null)
                 _content.Add(_contentElement);
+
+            if (_contentElement is IDebugHeaderContent {HeaderContent: { } headerContent})
+                _headerExtra.Add(headerContent);
+            UpdateSubHeader();
         }
+
+        private void UpdateSubHeader() => SetShown(_subHeader, _pages.style.display != DisplayStyle.None || (_narrow && _headerExtra.childCount > 0));
 
         private void ClearContent()
         {
             _content.Clear();
+            _headerExtra.Clear();
             _contentElement = null;
+        }
+
+        private VisualElement CreateSearchContent()
+        {
+            var query = _searchText.Trim();
+            if (query.Length == 0)
+            {
+                _searchInfo.text = string.Empty;
+                return new DebugGroupsContent(Array.Empty<DebugControlGroup>(), Columns, _pickMode, Navigate, emptyText: "Type to search labels, sections and pages.");
+            }
+
+            var controls = DebugMenu.AllControls()
+                .Where(c => !c.IsOwnerDestroyed && (Contains(c.SearchText, query) || Contains(c.Handle?.Name, query)))
+                .Take(MAX_SEARCH_RESULTS)
+                .ToList();
+            var pages = DebugMenu.AllPages()
+                .Where(p => p.HasContent && Contains(p.Title, query))
+                .ToList();
+            _searchInfo.text = controls.Count == 1 ? "1 result" : $"{controls.Count} results";
+
+            VisualElement top = null;
+            if (pages.Count > 0)
+            {
+                top = new VisualElement();
+                top.AddToClassList("dm-search__pages");
+                foreach (var page in pages)
+                {
+                    top.Add(CreatePageChip(page, GetPathTitle(page)));
+                }
+            }
+
+            return new DebugGroupsContent(DebugControlGroup.FromControls(controls), Columns, _pickMode, Navigate, top, "Nothing found.");
+        }
+
+        private static bool Contains(string text, string query) => text != null && text.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static string GetPathTitle(DebugPage page)
+        {
+            var parts = new List<string>();
+            for (var p = page; p != null; p = p.Parent)
+            {
+                parts.Insert(0, p.Title);
+            }
+            return string.Join("  ›  ", parts);
+        }
+
+        private Button CreatePageChip(DebugPage page, string title)
+        {
+            var chip = new Button(() => Navigate(page));
+            chip.AddToClassList("dm-chip");
+            if (!string.IsNullOrEmpty(page.IconName))
+                chip.Add(DebugIcons.Create(page.IconName, "dm-chip__icon"));
+            var label = new Label(title);
+            label.AddToClassList("dm-chip__label");
+            chip.Add(label);
+            chip.Add(DebugIcons.Create("chevron_right", "dm-chip__chevron"));
+            return chip;
         }
 
         private static IEnumerable<DebugPage> VisiblePanels() => DebugMenu.Panels

@@ -9,8 +9,11 @@
         "EDIVE.NativeUtils",
         "EDIVE.StateHandling",
         "StompyRobot.SRDebugger",
+        "EDIVE.Debugging",
         "Unity.TextMeshPro",
-        "EDIVE.Utils.Activations"
+        "EDIVE.Utils.Activations",
+        "EDIVE.Utils.Actions",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

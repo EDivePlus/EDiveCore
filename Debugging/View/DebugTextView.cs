@@ -16,7 +16,11 @@ namespace EDIVE.Debugging
         public static bool IsAvailable => false;
 #endif
 
-        public static void Copy(string text) => GUIUtility.systemCopyBuffer = text ?? string.Empty;
+        public static void Copy(string text)
+        {
+            GUIUtility.systemCopyBuffer = text ?? string.Empty;
+            DebugMenu.Toast("Copied to clipboard", DebugToastLevel.Success);
+        }
 
         public static void Share(string subject, string text)
         {
