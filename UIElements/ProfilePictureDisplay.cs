@@ -15,7 +15,7 @@ namespace EDIVE.UIElements
         private TMP_Text _InitialsText;
         
         [SerializeField]
-        private Image _Background;
+        private Graphic _Background;
 
         public void SetProfilePicture(string initials, Color backgroundColor)
         {

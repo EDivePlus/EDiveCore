@@ -34,6 +34,10 @@ namespace EDIVE.Networking.ServerManagement.UI
         [SerializeField]
         private TMP_Text _MaxPlayersText;
 
+        // Current and max players in one text, e.g. 8 / 32
+        [SerializeField]
+        private TMP_Text _PlayersText;
+
         [SerializeField]
         private DateTimeDisplay _LastUpdatedDisplay;
         
@@ -96,6 +100,9 @@ namespace EDIVE.Networking.ServerManagement.UI
             
             if (_MaxPlayersText)
                 _MaxPlayersText.text = $"{_serverRecord.MaxPlayers}";
+
+            if (_PlayersText)
+                _PlayersText.text = $"{_serverRecord.CurrentPlayers} / {_serverRecord.MaxPlayers}";
             
             if (_LastUpdatedDisplay)
                 _LastUpdatedDisplay.SetDateTime(_serverRecord.LastUpdated);

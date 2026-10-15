@@ -42,6 +42,11 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
         [EnhancedBoxGroup("Pagination")]
         private TMP_Text _TotalPagesText;
 
+        // Current and total pages in one text, e.g. 1 / 5
+        [SerializeField]
+        [EnhancedBoxGroup("Pagination")]
+        private TMP_Text _PageText;
+
         [SerializeField]
         [EnhancedBoxGroup("Filtering", Color = "@ColorTools.Cyan", SpaceBefore = 8)]
         private TMP_Dropdown _MediaTypeDropdown;
@@ -202,6 +207,8 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
                 _CurrentPageText.text = (_currentPage + 1).ToString();
             if (_TotalPagesText != null)
                 _TotalPagesText.text = totalPages.ToString();
+            if (_PageText != null)
+                _PageText.text = $"{_currentPage + 1} / {totalPages}";
             if (_PreviousPageButton != null)
                 _PreviousPageButton.interactable = _currentPage > 0;
             if (_NextPageButton != null)
