@@ -19,6 +19,13 @@ namespace EDIVE.VisualPresets.Localization
             if (switcherRecord.Text == null) 
                 return DisposableUtils.Empty;
             
+            // Shown right away when the table is loaded, otherwise blank until it is, never the old text
+            if (presetRecord.LocalizedText != null && !presetRecord.LocalizedText.IsEmpty)
+            {
+                var current = presetRecord.LocalizedText.GetLocalizedStringAsync();
+                switcherRecord.Text.text = current.IsDone ? current.Result : string.Empty;
+            }
+
             var localizeStringEvent = switcherRecord.Text.GetOrAddComponent<LocalizeStringEvent>();
             localizeStringEvent.OnUpdateString.AddListener(UpdateString);
             localizeStringEvent.enabled = true;

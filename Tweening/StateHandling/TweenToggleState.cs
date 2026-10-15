@@ -33,6 +33,13 @@ namespace EDIVE.Tweening.StateHandling
 
         private ITweenAnimationPlayer GetAnim(bool state) => state ? _EnableAnimation : _DisableAnimation;
 
+        // Running tweens would keep touching destroyed targets, e.g. dropdown items destroyed mid fade
+        private void OnDestroy()
+        {
+            _EnableAnimation?.Kill();
+            _DisableAnimation?.Kill();
+        }
+
 #if UNITY_EDITOR
         public override void PopulateDrivenValues(DrivenValuesCollection values)
         {

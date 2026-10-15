@@ -259,4 +259,33 @@ namespace EDIVE.Tweening.ObjectActions
             return target.DOMorph(_Snapshot, _Duration);
         }
     }
+
+    // Moves and resizes to cover another rect, e.g. a dock folding into its collapsed pill
+    [Serializable]
+    public class RectTransformMatchTweenAction : ATweenObjectAction<RectTransform>
+    {
+        [SerializeField]
+        private RectTransform _Target;
+
+        protected override Tween GetTween(RectTransform target)
+        {
+            if (_Target == null || target.parent is not RectTransform parent)
+                return null;
+
+            var corners = new Vector3[4];
+            _Target.GetWorldCorners(corners);
+            Vector2 min = parent.InverseTransformPoint(corners[0]);
+            Vector2 max = parent.InverseTransformPoint(corners[2]);
+            var rect = parent.rect;
+            var endMin = min - (rect.min + Vector2.Scale(target.anchorMin, rect.size));
+            var endMax = max - (rect.min + Vector2.Scale(target.anchorMax, rect.size));
+            var startMin = target.offsetMin;
+            var startMax = target.offsetMax;
+            return DOTween.To(() => 0f, t =>
+            {
+                target.offsetMin = Vector2.LerpUnclamped(startMin, endMin, t);
+                target.offsetMax = Vector2.LerpUnclamped(startMax, endMax, t);
+            }, 1f, _Duration).SetTarget(target);
+        }
+    }
 }

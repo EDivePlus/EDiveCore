@@ -2,6 +2,7 @@
   "name": "EDIVE.VisualPresets.Localization",
   "rootNamespace": "",
   "references": [
+    "Unity.ResourceManager",
     "EDIVE.VisualPresets",
     "EDIVE.NativeUtils",
     "Unity.TextMeshPro",
