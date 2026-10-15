@@ -5,6 +5,7 @@ using Unity.XR.CoreUtils.Bindings;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.XR.Interaction.Toolkit.Attachment;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
@@ -33,7 +34,6 @@ namespace EDIVE.XRTools.Controls
     {
         [Space]
         [Header("Interactors")]
-
         [SerializeField]
         [Tooltip("The interactor used for distant/ray manipulation. Use this or Near-Far Interactor, not both.")]
         XRRayInteractor m_RayInteractor;
@@ -48,7 +48,6 @@ namespace EDIVE.XRTools.Controls
 
         [Space]
         [Header("Controller Actions")]
-
         [SerializeField]
         [Tooltip("The reference to the action to start the teleport aiming mode for this controller.")]
         [FormerlySerializedAs("m_TeleportModeActivate")]
@@ -76,13 +75,13 @@ namespace EDIVE.XRTools.Controls
 
         [Space]
         [Header("Locomotion Settings")]
-
         [SerializeField]
         [Tooltip("If true, continuous movement will be enabled. If false, teleport will be enabled.")]
         bool m_SmoothMotionEnabled;
 
         [SerializeField]
-        [Tooltip("If true, continuous turn will be enabled. If false, snap turn will be enabled. Note: If smooth motion is enabled and enable strafe is enabled on the continuous move provider, turn will be overriden in favor of strafe.")]
+        [Tooltip(
+            "If true, continuous turn will be enabled. If false, snap turn will be enabled. Note: If smooth motion is enabled and enable strafe is enabled on the continuous move provider, turn will be overriden in favor of strafe.")]
         bool m_SmoothTurnEnabled;
 
         [SerializeField]
@@ -91,28 +90,25 @@ namespace EDIVE.XRTools.Controls
 
         [Space]
         [Header("UI Settings")]
-
         [SerializeField]
         [Tooltip("If true, UI scrolling will be enabled. Locomotion will be disabled when pointing at UI to allow it to be scrolled.")]
         bool m_UIScrollingEnabled = true;
 
         [Space]
         [Header("Thumbstick Control")]
-
         [SerializeField]
         [Tooltip("Thumbstick of this controller. After control is released, locomotion stays disabled until the stick is centered.")]
         private InputActionReference _Thumbstick;
 
         [Space]
         [Header("Mediation Events")]
-
         [SerializeField]
         [Tooltip("Event fired when the active ray interactor changes between interaction and teleport.")]
         UnityEvent<IXRRayProvider> m_RayInteractorChanged;
-        
+
 
         [SerializeField]
-        private List<GrabRecord> _GrabRecords= new List<GrabRecord>();
+        private List<GrabRecord> _GrabRecords = new List<GrabRecord>();
 
 
         [Serializable]
@@ -126,7 +122,7 @@ namespace EDIVE.XRTools.Controls
 
             // Only re-enable what grab disabled
             private readonly List<InputAction> _disabledByGrab = new List<InputAction>();
-            
+
             public void Enable()
             {
                 var grabAction = GetInputAction(_GrabAction);
@@ -147,13 +143,14 @@ namespace EDIVE.XRTools.Controls
                     _disabledByGrab.Add(action);
                 }
             }
-            
+
             private void OnGrabCanceled(InputAction.CallbackContext obj)
             {
                 foreach (var action in _disabledByGrab)
                 {
                     action.Enable();
                 }
+
                 _disabledByGrab.Clear();
             }
 
@@ -165,11 +162,11 @@ namespace EDIVE.XRTools.Controls
                     grabAction.performed -= OnGrabPerformed;
                     grabAction.canceled -= OnGrabCanceled;
                 }
+
                 OnGrabCanceled(default);
             }
-            
         }
-        
+
 
         public bool smoothMotionEnabled
         {
@@ -328,7 +325,10 @@ namespace EDIVE.XRTools.Controls
             m_PostponedDeactivateTeleport = false;
 
             if (m_TeleportInteractor != null)
+            {
                 m_TeleportInteractor.gameObject.SetActive(true);
+                KeepReticlesInOwnScene(m_TeleportInteractor);
+            }
 
             if (m_RayInteractor != null)
                 m_RayInteractor.gameObject.SetActive(false);
@@ -337,6 +337,20 @@ namespace EDIVE.XRTools.Controls
                 m_NearFarInteractor.gameObject.SetActive(false);
 
             m_RayInteractorChanged?.Invoke(m_TeleportInteractor);
+        }
+
+        // XRI instantiates reticles into the active scene, so they get destroyed when that scene unloads.
+        static void KeepReticlesInOwnScene(Component interactor)
+        {
+            if (!interactor.TryGetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals.XRInteractorLineVisual>(out var lineVisual)) return;
+            MoveToScene(lineVisual.reticle, interactor.gameObject.scene);
+            MoveToScene(lineVisual.blockedReticle, interactor.gameObject.scene);
+        }
+
+        static void MoveToScene(GameObject target, Scene scene)
+        {
+            if (target == null || target.transform.parent != null || target.scene == scene) return;
+            SceneManager.MoveGameObjectToScene(target, scene);
         }
 
         void OnCancelTeleport(InputAction.CallbackContext context)
@@ -408,8 +422,10 @@ namespace EDIVE.XRTools.Controls
             if (attachController != null)
             {
                 manipulateAttachTransform = attachController.useManipulationInput &&
-                    ((attachController.manipulationInput.inputSourceMode == XRInputValueReader.InputSourceMode.InputActionReference && attachController.manipulationInput.inputActionReference != null) ||
-                     (attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.InputActionReference && attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.Unused));
+                                            ((attachController.manipulationInput.inputSourceMode == XRInputValueReader.InputSourceMode.InputActionReference &&
+                                              attachController.manipulationInput.inputActionReference != null) ||
+                                             (attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.InputActionReference &&
+                                              attachController.manipulationInput.inputSourceMode != XRInputValueReader.InputSourceMode.Unused));
             }
 
             if (selectionRegion == NearFarInteractor.Region.Far)
@@ -485,7 +501,7 @@ namespace EDIVE.XRTools.Controls
             {
                 grabRecord.Enable();
             }
-            
+
             if (m_RayInteractor != null && m_NearFarInteractor != null)
             {
                 Debug.LogWarning("Both Ray Interactor and Near-Far Interactor are assigned. Only one should be assigned, not both. Clearing Ray Interactor.", this);
@@ -512,6 +528,7 @@ namespace EDIVE.XRTools.Controls
             {
                 grabRecord.Disable();
             }
+
             TeardownInteractorEvents();
         }
 
@@ -621,7 +638,7 @@ namespace EDIVE.XRTools.Controls
         static bool HasStickInput(InteractionAttachController attachController)
         {
             return attachController.manipulationInput.TryReadValue(out var stickInput) &&
-                stickInput.sqrMagnitude > k_SqrStickReleaseThreshold;
+                   stickInput.sqrMagnitude > k_SqrStickReleaseThreshold;
         }
 
         static void SetEnabled(InputActionReference actionReference, bool enabled)
