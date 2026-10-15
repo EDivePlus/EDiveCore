@@ -19,6 +19,12 @@ namespace EDIVE.VisualPresets.Switchers
         [SerializeField]
         private Image _Image;
         public Image Image => _Image;
+
+        // Image drawn only with a sprite, e.g. a placeholder shows below
+        [VerticalGroup("Value")]
+        [SerializeField]
+        private bool _EnableWithSprite;
+        public bool EnableWithSprite => _EnableWithSprite;
         
         public override string EditorLabel => "Image Sprite";
         public override Type EditorIconTargetType => typeof(Image);
@@ -34,6 +40,8 @@ namespace EDIVE.VisualPresets.Switchers
                 return DisposableUtils.Empty;
             
             switcherRecord.Image.sprite = presetRecord.Sprite;
+            if (switcherRecord.EnableWithSprite)
+                switcherRecord.Image.enabled = presetRecord.Sprite != null;
             return DisposableUtils.Empty;
         }
 
