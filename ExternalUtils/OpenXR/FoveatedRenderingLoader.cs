@@ -28,8 +28,10 @@ namespace EDIVE.ExternalUtils.OpenXR
             SubsystemManager.GetSubsystems(displays);
             foreach (var display in displays)
             {
-                if (display.running)
-                    display.foveatedRenderingLevel = level;
+                if (!display.running)
+                    continue;
+                display.foveatedRenderingLevel = level;
+                display.foveatedRenderingFlags = XRDisplaySubsystem.FoveatedRenderingFlags.GazeAllowed;
             }
             return UniTask.CompletedTask;
         }
