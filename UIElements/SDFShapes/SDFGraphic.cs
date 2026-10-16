@@ -72,7 +72,7 @@ namespace EDIVE.UIElements.SDFShapes
 
         [PropertyOrder(3)]
         [Tooltip("How frames, outlines, outer shadows and arc cuts wrap sharp corners")]
-        [ShowIf(nameof(ShowCornerWrap))]
+        [ShowIf("ShowCornerWrap")]
         [IconEnumToggleButtons]
         [FormerlySerializedAs("_CornerJoin")]
         [SerializeField]
