@@ -10,5 +10,8 @@ namespace EDIVE.UIElements.Selectables
     public abstract class ASelectableTransition
     {
         public abstract void DoStateTransition(SelectionState state, bool instant = false);
+
+        // Stops a running transition, e.g. when the selectable is destroyed
+        public virtual void Kill() { }
     }
 }

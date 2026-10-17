@@ -19,6 +19,19 @@ namespace EDIVE.Tweening
         protected Sequence _tweener;
         public Tween Tween => _tweener;
 
+        // Quitting tears objects down and recreates DOTween, tweens started then hit destroyed targets
+        private static bool _quitting;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void TrackQuitting()
+        {
+            _quitting = false;
+            Application.quitting -= OnQuitting;
+            Application.quitting += OnQuitting;
+        }
+
+        private static void OnQuitting() => _quitting = true;
+
         public abstract Sequence CreateSequence();
 
         public Tween Play()
@@ -52,6 +65,8 @@ namespace EDIVE.Tweening
         private Tween PlayInternal()
         {
             Kill();
+            if (_quitting)
+                return null;
             _tweener = CreateSequence();
             _tweener.Play();
             return _tweener;

@@ -56,6 +56,13 @@ namespace EDIVE.UIElements.Selectables
                 _ValueText.text = string.Format(_ValueTextFormat, _NormalizedValueText ? normalizedValue : value);
         }
 
+        // Transitions started right before destruction would tween destroyed targets
+        protected override void OnDestroy()
+        {
+            _AdditionalData.Kill();
+            base.OnDestroy();
+        }
+
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             base.DoStateTransition(state, instant);

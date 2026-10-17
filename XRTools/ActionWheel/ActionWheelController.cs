@@ -174,7 +174,7 @@ namespace EDIVE.XRTools.ActionWheel
                 return;
             }
 
-            _HideAnimation.Play().OnComplete(() => _canvas.enabled = false);
+            _HideAnimation.Play()?.OnComplete(() => _canvas.enabled = false);
         }
 
         private void RefreshWedgeVisibility()

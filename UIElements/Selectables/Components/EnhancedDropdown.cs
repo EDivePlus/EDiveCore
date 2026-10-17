@@ -49,6 +49,13 @@ namespace EDIVE.UIElements.Selectables
             base.DestroyDropdownList(dropdownList);
         }
 
+        // Transitions started right before destruction would tween destroyed targets
+        protected override void OnDestroy()
+        {
+            _AdditionalData.Kill();
+            base.OnDestroy();
+        }
+
         protected override void DoStateTransition(SelectionState state, bool instant)
         {
             base.DoStateTransition(state, instant);

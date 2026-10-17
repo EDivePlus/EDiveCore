@@ -23,6 +23,8 @@ namespace EDIVE.UIElements.Selectables
         public SelectionState CurrentState { get; private set; }
         public event Action<SelectionState> StateChanged;
 
+        public void Kill() => _CustomTransition?.Kill();
+
         public void DoStateTransition(SelectionState state, bool instant = false)
         {
             _CustomTransition?.DoStateTransition(state, instant);

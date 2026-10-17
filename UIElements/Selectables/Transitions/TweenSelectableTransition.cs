@@ -58,6 +58,12 @@ namespace EDIVE.UIElements.Selectables
             }
         }
 
+        public override void Kill()
+        {
+            _tweener?.Kill();
+            _tweener = null;
+        }
+
         public IDictionary<TweenObjectReference, Object> GetReferencesDictionary()
         {
             return _References?.GetReferencesDictionary();
