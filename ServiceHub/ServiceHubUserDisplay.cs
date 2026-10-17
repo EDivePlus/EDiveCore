@@ -1,6 +1,7 @@
 ﻿// Author: Michal Petr
 // Created: 20.04.2026
 
+using EDIVE.Core;
 using EDIVE.ServiceHub.Auth;
 using EDIVE.ServiceHub.RemoteContent;
 using EDIVE.StateHandling.ToggleStates;
@@ -40,12 +41,20 @@ namespace EDIVE.ServiceHub
 
         private void OnEnable()
         {
-            if (_AutoGetAuthInfo)
-            {
-                var userInfo = AuthStorage.Client.GetInfo<AuthUserInfo>();
-                if (userInfo != null)
-                    SetUserInfo(userInfo);
-            }
+            if (!_AutoGetAuthInfo)
+                return;
+
+            var userInfo = AuthStorage.Client.GetInfo<AuthUserInfo>();
+            if (userInfo != null)
+                SetUserInfo(userInfo);
+            if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+                serviceHub.ClientAuth.UserInfoChanged += SetUserInfo;
+        }
+
+        private void OnDisable()
+        {
+            if (_AutoGetAuthInfo && AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+                serviceHub.ClientAuth.UserInfoChanged -= SetUserInfo;
         }
 
         public void SetUserInfo(AuthUserInfo userInfo)
