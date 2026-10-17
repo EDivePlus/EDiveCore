@@ -20,6 +20,13 @@ namespace EDIVE.ServiceHub
         ValueTooLarge = 17,
         SaveDataNotFound = 18,
         Unauthorized = 19,
-        ContentItemNotFound = 20
+        ContentItemNotFound = 20,
+        InvalidDomain = 21,
+        InvalidRefreshToken = 22,
+        AccountAlreadyLinked = 23,
+        RegistrationFailed = 24,
+        SaveDataQuotaExceeded = 25,
+        BatchTooLarge = 26,
+        BannedFromApp = 27
     }
 }

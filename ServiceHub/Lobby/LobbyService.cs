@@ -6,6 +6,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.ServiceHub.Auth;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -43,10 +44,11 @@ namespace EDIVE.ServiceHub.Lobby
             if (string.IsNullOrEmpty(request.AppSecret))
                 request.AppSecret = Settings.AppSecret;
 
+            // Server credential token links the lobby session to it in the console
             var response = await RestUtils.PostAsync<ApiResponse<ServerRegistrationResponse>, RegisterServerRequest>(
                 RegisterUrl,
                 request,
-                authToken: null,
+                authToken: AuthStorage.Server.IsValid() ? AuthStorage.Server.GetAccessToken() : null,
                 headers: null,
                 timeout: timeoutSeconds ?? RequestTimeoutSeconds,
                 cancellationToken: cancellationToken,

@@ -32,7 +32,7 @@ namespace EDIVE.ServiceHub.SaveData
         public AuthStorage Auth { get; private set; }
 
         // Logged in identity, empty when logged out
-        public string OwnerId => Auth != null && Auth.IsValid() ? JwtUtils.GetClaim(Auth.GetAccessToken(), "sub") ?? "" : "";
+        public string OwnerId => Auth != null && Auth.HasSession ? JwtUtils.GetClaim(Auth.GetAccessToken(), "sub") ?? "" : "";
         
         private Dictionary<string, ASaveDataObject> _objectCache;
         private Dictionary<string, ASaveDataObject> ObjectCache => _objectCache ??= new Dictionary<string, ASaveDataObject>(StringComparer.Ordinal);

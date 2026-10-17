@@ -76,7 +76,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
 
         private async UniTask FlushSyncBucket(CancellationToken ct)
         {
-            if (!Context.Auth.IsValid())
+            if (!Context.Auth.HasSession)
                 return;
 
             Dictionary<string, string> snapshot;
@@ -104,7 +104,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                 pending.Remove(key);
                 var jsonByteSize = Encoding.UTF8.GetByteCount(json);
                 
-                if (batch.Count > 0 && batchByteSize + jsonByteSize > SaveDataService.BATCH_MAX_SIZE)
+                if (batch.Count > 0 && (batchByteSize + jsonByteSize > SaveDataService.BATCH_MAX_SIZE || batch.Count >= SaveDataService.BATCH_MAX_ENTRIES))
                 {
                     await FlushBatchAsync(batch, ct);
                     batch.Clear();

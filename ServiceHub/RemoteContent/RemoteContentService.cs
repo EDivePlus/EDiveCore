@@ -129,16 +129,16 @@ namespace EDIVE.ServiceHub.RemoteContent
         public async UniTask<NetworkResponse<ContentMediaTypeListResponse>> ListContentMediaTypesAsync(
             CancellationToken cancellationToken = default)
         {
-            if (!AuthStorage.Client.IsValid())
+            if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentMediaTypeListResponse>.Error(401, "Not authenticated");
 
-            var response = await RestUtils.GetAsync<ApiResponse<ContentMediaTypeListResponse>>(
+            var response = await AuthStorage.Client.SendAsync(token => RestUtils.GetAsync<ApiResponse<ContentMediaTypeListResponse>>(
                 ContentMediaTypesUrl,
-                authToken: AuthStorage.Client.GetAccessToken(),
+                authToken: token,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
-            );
+            ));
             return ApiResponseHelper.UnwrapApi(response, "ListContentMediaTypes");
         }
 
@@ -152,7 +152,7 @@ namespace EDIVE.ServiceHub.RemoteContent
             int pageSize = 50,
             CancellationToken cancellationToken = default)
         {
-            if (!AuthStorage.Client.IsValid())
+            if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentItemListResponse>.Error(401, "Not authenticated");
 
             var url = ContentItemsUrl;
@@ -163,13 +163,13 @@ namespace EDIVE.ServiceHub.RemoteContent
             url = AppendQuery(url, "page", page.ToString(CultureInfo.InvariantCulture));
             url = AppendQuery(url, "pageSize", pageSize.ToString(CultureInfo.InvariantCulture));
 
-            var response = await RestUtils.GetAsync<ApiResponse<ContentItemListResponse>>(
+            var response = await AuthStorage.Client.SendAsync(token => RestUtils.GetAsync<ApiResponse<ContentItemListResponse>>(
                 url,
-                authToken: AuthStorage.Client.GetAccessToken(),
+                authToken: token,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
-            );
+            ));
             return ApiResponseHelper.UnwrapApi(response, "ListOwnContentItems");
         }
 
@@ -181,7 +181,7 @@ namespace EDIVE.ServiceHub.RemoteContent
             string search = null,
             CancellationToken cancellationToken = default)
         {
-            if (!AuthStorage.Client.IsValid())
+            if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentItemCountResponse>.Error(401, "Not authenticated");
 
             var url = ContentItemsCountUrl;
@@ -190,13 +190,13 @@ namespace EDIVE.ServiceHub.RemoteContent
             if (!string.IsNullOrWhiteSpace(search))
                 url = AppendQuery(url, "search", search);
 
-            var response = await RestUtils.GetAsync<ApiResponse<ContentItemCountResponse>>(
+            var response = await AuthStorage.Client.SendAsync(token => RestUtils.GetAsync<ApiResponse<ContentItemCountResponse>>(
                 url,
-                authToken: AuthStorage.Client.GetAccessToken(),
+                authToken: token,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
-            );
+            ));
             return ApiResponseHelper.UnwrapApi(response, "CountOwnContentItems");
         }
 
@@ -207,20 +207,20 @@ namespace EDIVE.ServiceHub.RemoteContent
             string itemId,
             CancellationToken cancellationToken = default)
         {
-            if (!AuthStorage.Client.IsValid())
+            if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentShareResponse>.Error(401, "Not authenticated");
 
             if (string.IsNullOrEmpty(itemId))
                 return NetworkResponse<ContentShareResponse>.Error(0, "Content item id is empty");
 
-            var response = await RestUtils.PostAsync<ApiResponse<ContentShareResponse>, object>(
+            var response = await AuthStorage.Client.SendAsync(token => RestUtils.PostAsync<ApiResponse<ContentShareResponse>, object>(
                 ItemShareUrl(itemId),
                 request: null,
-                authToken: AuthStorage.Client.GetAccessToken(),
+                authToken: token,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
-            );
+            ));
             return ApiResponseHelper.UnwrapApi(response, $"CreateContentShare({itemId})");
         }
 
@@ -231,19 +231,19 @@ namespace EDIVE.ServiceHub.RemoteContent
             string itemId,
             CancellationToken cancellationToken = default)
         {
-            if (!AuthStorage.Client.IsValid())
+            if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<bool>.Error(401, "Not authenticated");
 
             if (string.IsNullOrEmpty(itemId))
                 return NetworkResponse<bool>.Error(0, "Content item id is empty");
 
-            var response = await RestUtils.DeleteAsync<ApiResponse<object>>(
+            var response = await AuthStorage.Client.SendAsync(token => RestUtils.DeleteAsync<ApiResponse<object>>(
                 ItemShareUrl(itemId),
-                authToken: AuthStorage.Client.GetAccessToken(),
+                authToken: token,
                 headers: null,
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
-            );
+            ));
 
             if (response.IsNotFound)
                 return NetworkResponse<bool>.Success(response.StatusCode, false);

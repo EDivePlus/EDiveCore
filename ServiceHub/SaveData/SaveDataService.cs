@@ -33,6 +33,7 @@ namespace EDIVE.ServiceHub.SaveData
         public const int MAX_KEY_LENGTH = 256;
         public const int MAX_VALUE_BYTES = 256 * 1024;  // 256 KB
         public const int BATCH_MAX_SIZE = 128 * 1024;   // 128 KB
+        public const int BATCH_MAX_ENTRIES = 100;
         
         public ServiceHubSettings Settings { get; private set; }
 
