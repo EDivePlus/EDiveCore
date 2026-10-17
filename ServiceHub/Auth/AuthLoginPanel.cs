@@ -2,6 +2,7 @@
 // Created: 08.09.2025
 
 using System;
+using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Http;
 using EDIVE.OdinExtensions.Attributes;
@@ -9,6 +10,8 @@ using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
 namespace EDIVE.ServiceHub.Auth
@@ -45,6 +48,36 @@ namespace EDIVE.ServiceHub.Auth
         [SerializeField]
         [EnhancedBoxGroup("Error display")]
         private TMP_Text _ErrorText;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        private LocalizeStringEvent _ErrorLocalize;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        private LocalizedString _InvalidCredentialsMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        private LocalizedString _BannedMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        private LocalizedString _TooManyAttemptsMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        private LocalizedString _UnreachableMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        [Tooltip("On after the server signed this device out")]
+        private AToggleState _SignedOutState;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        [Tooltip("Login stays locked this long after too many attempts")]
+        private float _RateLimitCooldown = 60;
         
         [SerializeField]
         [Optional]
@@ -52,6 +85,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private ClientAuthService _clientAuth;
         private bool _isPasswordHidden = true;
+        private bool _coolingDown;
 
         private void Awake()
         {
@@ -85,13 +119,10 @@ namespace EDIVE.ServiceHub.Auth
 
             _clientAuth.OnLoginSucceeded += OnClientLoginOk;
             _clientAuth.OnLoginFailed += OnClientLoginFail;
+            _clientAuth.SessionEnded += OnSessionEnded;
 
-            if (_ErrorText)
-            {
-                _ErrorText.text = string.Empty;
-                _ErrorText.gameObject.SetActive(false);
-            }
-            if (_ErrorState) _ErrorState.SetState(false);
+            HideError();
+            ShowSessionEnd();
             
             _CredentialsLoginButton.onClick.AddListener(OnLoginClicked);
             if (_LogoutButton) _LogoutButton.onClick.AddListener(OnLogoutClicked);
@@ -104,6 +135,7 @@ namespace EDIVE.ServiceHub.Auth
         {
             _clientAuth.OnLoginSucceeded -= OnClientLoginOk;
             _clientAuth.OnLoginFailed -= OnClientLoginFail;
+            _clientAuth.SessionEnded -= OnSessionEnded;
             _CredentialsLoginButton.onClick.RemoveListener(OnLoginClicked);
             if (_LogoutButton) _LogoutButton.onClick.RemoveListener(OnLogoutClicked);
             _CredentialsEmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
@@ -134,6 +166,8 @@ namespace EDIVE.ServiceHub.Auth
 
         private void OnClientLoginOk(LoginResponse r)
         {
+            HideError();
+            if (_SignedOutState) _SignedOutState.SetState(false);
             SetLoggedInUI(true);
             Debug.Log("Login was successful.");
             // Debug.Log($"Access Token: {r.AccessToken}");
@@ -154,22 +188,79 @@ namespace EDIVE.ServiceHub.Auth
                 AuthStorage.Client.SetLastEmail(emailNow);
         }
 
+        // Status is the API status, or the HTTP status when the server sent no API response
         private void OnClientLoginFail(long status, string message)
         {
-            Debug.Log($"{message} {(status > 0 ? $"(HTTP {status})" : "")}");
-            if (_ErrorText != null)
+            Debug.Log($"{message} {(status > 0 ? $"(status {status})" : "")}");
+            switch (status)
             {
-                _ErrorText.text = message;
-                _ErrorText.gameObject.SetActive(true);
-                if (_ErrorState) _ErrorState.SetState(true);
+                case (int) ServiceHubStatus.BannedFromApp:
+                    ShowError(_BannedMessage, message);
+                    break;
+                case 429:
+                    ShowError(_TooManyAttemptsMessage, message);
+                    CooldownAsync().Forget();
+                    break;
+                case 0:
+                case >= 500:
+                    ShowError(_UnreachableMessage, message);
+                    break;
+                default:
+                    ShowError(_InvalidCredentialsMessage, message);
+                    break;
             }
+        }
+
+        private void OnSessionEnded(ServiceHubStatus reason) => ShowSessionEnd();
+
+        private void ShowSessionEnd()
+        {
+            var reason = _clientAuth.SessionEndReason;
+            if (_SignedOutState) _SignedOutState.SetState(reason == ServiceHubStatus.InvalidRefreshToken);
+            if (reason == ServiceHubStatus.BannedFromApp)
+                ShowError(_BannedMessage, "Banned from app");
+        }
+
+        private void ShowError(LocalizedString localized, string fallback)
+        {
+            if (_ErrorLocalize && localized != null && !localized.IsEmpty)
+                _ErrorLocalize.StringReference = localized;
+            else if (_ErrorText)
+                _ErrorText.text = fallback;
+            if (_ErrorText) _ErrorText.gameObject.SetActive(true);
+            if (_ErrorState) _ErrorState.SetState(true);
+        }
+
+        private void HideError()
+        {
+            if (_ErrorText) _ErrorText.gameObject.SetActive(false);
+            if (_ErrorState) _ErrorState.SetState(false);
+        }
+
+        private async UniTaskVoid CooldownAsync()
+        {
+            if (_coolingDown)
+                return;
+            _coolingDown = true;
+            SetButtonsInteractable(false);
+            await UniTask.Delay(TimeSpan.FromSeconds(_RateLimitCooldown), DelayType.Realtime, cancellationToken: destroyCancellationToken).SuppressCancellationThrow();
+            _coolingDown = false;
+            if (this && !_clientAuth.IsLoggedIn)
+                SetButtonsInteractable(true);
+        }
+
+        private void SetButtonsInteractable(bool interactable)
+        {
+            _CredentialsLoginButton.interactable = interactable;
+            if (_AnonymousLoginButton != null) _AnonymousLoginButton.interactable = interactable;
         }
 
         private void SetLoggedInUI(bool logged)
         {
             _CredentialsEmailInput.interactable = !logged;
             _CredentialsPasswordInput.interactable = !logged;
-            _CredentialsLoginButton.interactable = !logged;
+            _CredentialsLoginButton.interactable = !logged && !_coolingDown;
+            if (_AnonymousLoginButton != null) _AnonymousLoginButton.interactable = !logged && !_coolingDown;
             if (_LogoutButton) _LogoutButton.interactable = logged;
 
             if (logged)

@@ -32,6 +32,9 @@ namespace EDIVE.ServiceHub.Auth
         public event Action<ServiceHubStatus> SessionEnded;
         public event Action<AuthUserInfo> UserInfoChanged;
 
+        // Why the server last ended the session, cleared on login
+        public ServiceHubStatus? SessionEndReason { get; private set; }
+
         public override void Initialize(ServiceHubSettings settings)
         {
             base.Initialize(settings);
@@ -201,6 +204,7 @@ namespace EDIVE.ServiceHub.Auth
             if (ended.HasValue)
             {
                 Debug.LogWarning($"[ServiceHub] Session ended ({ended.Value}), signing out.");
+                SessionEndReason = ended;
                 SessionEnded?.Invoke(ended.Value);
                 LogoutAsync().Forget();
             }
@@ -263,6 +267,7 @@ namespace EDIVE.ServiceHub.Auth
             var infoJson = userInfo != null ? JsonConvert.SerializeObject(userInfo) : null;
 
             AuthStorage.Client.Save(accessToken, data.RefreshToken, expUnix, data.ExpiresIn, infoJson);
+            SessionEndReason = null;
 
             var email = userInfo?.Email ?? JwtUtils.GetClaim(accessToken, "email") ?? "";
             if (!string.IsNullOrEmpty(email))

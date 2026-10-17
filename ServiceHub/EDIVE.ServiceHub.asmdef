@@ -12,7 +12,8 @@
         "EDIVE.StateHandling",
         "EDIVE.Conditions",
         "EDIVE.Console",
-        "EDIVE.UIElements"
+        "EDIVE.UIElements",
+        "Unity.Localization"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
