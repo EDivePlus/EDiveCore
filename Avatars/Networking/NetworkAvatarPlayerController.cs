@@ -13,6 +13,7 @@ using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub;
+using EDIVE.ServiceHub.Auth;
 using EDIVE.ServiceHub.SaveData;
 using EDIVE.VisualPresets.Presets;
 using PurrNet;
@@ -39,6 +40,7 @@ namespace EDIVE.Avatars.Networking
 
         private NetworkPlayerManager _networkPlayerManager;
         private SaveDataService _saveDataService;
+        private ClientAuthService _clientAuth;
         private AvatarPlayerSaveData _saveData;
 
         private readonly SyncVar<AvatarDefinition> _avatarDefinition = new(ownerAuth: true);
@@ -57,7 +59,10 @@ namespace EDIVE.Avatars.Networking
             _customizationPreset.onChanged += OnSyncCustomizationChanged;
             _networkPlayerManager = AppCore.Services.Get<NetworkPlayerManager>();
             if (AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub))
+            {
                 _saveDataService = serviceHub.SaveData;
+                _clientAuth = serviceHub.ClientAuth;
+            }
         }
 
         protected override void OnDestroy()
@@ -72,11 +77,29 @@ namespace EDIVE.Avatars.Networking
 
         protected override void OnSpawned()
         {
-            if (isOwner)
-                LoadAndApplySavedAvatar(destroyCancellationToken).Forget();
+            if (!isOwner)
+                return;
+
+            LoadAndApplySavedAvatar(destroyCancellationToken).Forget();
+            if (_clientAuth != null)
+                _clientAuth.OnLoginSucceeded += OnLoggedIn;
         }
 
         protected override void OnDespawned()
+        {
+            if (_clientAuth != null)
+                _clientAuth.OnLoginSucceeded -= OnLoggedIn;
+            ReleaseSaveData();
+        }
+
+        // Log in while connected, the avatar comes from the new account
+        private void OnLoggedIn(LoginResponse response)
+        {
+            ReleaseSaveData();
+            LoadAndApplySavedAvatar(destroyCancellationToken).Forget();
+        }
+
+        private void ReleaseSaveData()
         {
             if (_saveData != null)
             {
@@ -95,12 +118,18 @@ namespace EDIVE.Avatars.Networking
             if (result.Value == null || !isSpawned)
                 return;
             _saveData = result.Value;
-            if (_saveData.PlayerAvatar == null && _DefaultAvatars.Count > 0)
-                _saveData.PlayerAvatar = _DefaultAvatars.RandomItem();
+            // Nothing saved yet keeps the current avatar, e.g. after logging in while connected
+            if (_saveData.PlayerAvatar == null)
+                _saveData.PlayerAvatar = _avatarDefinition.value != null ? _avatarDefinition.value : _DefaultAvatars.Count > 0 ? _DefaultAvatars.RandomItem() : null;
             if (_saveData.CustomizationPreset == null && _saveData.PlayerAvatar != null)
-                _saveData.CustomizationPreset = _saveData.PlayerAvatar.DefaultCustomizations;
+                _saveData.CustomizationPreset = _customizationPreset.value != null ? _customizationPreset.value : _saveData.PlayerAvatar.DefaultCustomizations;
             if (_saveData.PlayerAvatar != null && _saveData.PlayerAvatar.IsValid())
-                SetAvatar(_saveData.PlayerAvatar);
+            {
+                if (_avatarDefinition.value != _saveData.PlayerAvatar || _avatar.value == null)
+                    SetAvatar(_saveData.PlayerAvatar);
+                else if (_saveData.CustomizationPreset != null)
+                    _customizationPreset.value = _saveData.CustomizationPreset;
+            }
 
             _saveData.CustomizationChanged += OnSaveDataCustomizationChanged;
         }

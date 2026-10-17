@@ -190,6 +190,7 @@ namespace EDIVE.ServiceHub.SaveData
 
         private async UniTask<SaveDataResult<T>> LoadFromStoresAsync<T>(string key) where T : ASaveDataObject, new()
         {
+            var owner = OwnerId;
             var count = _Stores.Count;
             var peeks = new TimestampPeek[count];
             var fullReads = new StoreReadResult?[count];
@@ -224,6 +225,9 @@ namespace EDIVE.ServiceHub.SaveData
                 return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
 
             var winnerRead = fullReads[winnerIndex] ?? await _Stores[winnerIndex].GetAsync(key);
+            // Logged out or switched account while loading, the data belongs to the previous one
+            if (owner != OwnerId)
+                return SaveDataResult<T>.Success(new T(), false);
             if (!winnerRead.Found)
                 return SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
 

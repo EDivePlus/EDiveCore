@@ -261,8 +261,18 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             if (!_serviceHub.HasValidSetup)
                 return false;
 
-            var serverManager = AppCore.Services.Get<NetworkServerManager>();
+            // Server token links the lobby session to its credential, login may still be waiting for the service
+            try
+            {
+                if (!string.IsNullOrEmpty(_serverConfig.ServerSecret))
+                    await _serviceHub.ServerAuth.PrepareServerAuthAsync(_serverConfig.ServerID, _serverConfig.ServerSecret, cancellationToken);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Debug.LogException(e);
+            }
 
+            var serverManager = AppCore.Services.Get<NetworkServerManager>();
             var data = new ServiceHubServerData
             {
                 InstanceID = serverManager.InstanceID,

@@ -90,7 +90,19 @@ namespace EDIVE.ServiceHub.Auth
             return HandleLoginResponse(response);
         }
 
-        public async UniTask PrepareServerAuthAsync(string serverId, string serverSecret, CancellationToken cancellationToken = default)
+        private UniTask? _preparing;
+
+        // One login at a time, later callers wait for the running one
+        public UniTask PrepareServerAuthAsync(string serverId, string serverSecret, CancellationToken cancellationToken = default)
+        {
+            if (_preparing is { Status: UniTaskStatus.Pending } running)
+                return running;
+            var preparing = PrepareServerAuthCoreAsync(serverId, serverSecret, cancellationToken).Preserve();
+            _preparing = preparing;
+            return preparing;
+        }
+
+        private async UniTask PrepareServerAuthCoreAsync(string serverId, string serverSecret, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(serverId) || string.IsNullOrEmpty(serverSecret))
             {

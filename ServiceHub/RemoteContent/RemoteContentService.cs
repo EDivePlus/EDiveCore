@@ -84,7 +84,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 SharedContentUrl(shareToken),
                 authToken: null,
                 headers: null,
-                timeout: RequestTimeoutSeconds,
+                timeout: _settings.ContentTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
 

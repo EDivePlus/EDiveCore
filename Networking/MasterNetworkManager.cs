@@ -42,6 +42,8 @@ namespace EDIVE.Networking
         private bool _clientStartRequested;
         private bool _clientWasConnected;
         private bool _clientStopRequested;
+        // Bumped by stop, a start still preparing then gives up
+        private int _startVersion;
 
         public event Action BeforeHostStarted;
         public event Action BeforeServerStarted;
@@ -226,8 +228,8 @@ namespace EDIVE.Networking
                         transportController.SetHost();
                 }
                 
-                await StartServerInternalAsync();
-                StartClientInternal();
+                if (await StartServerInternalAsync())
+                    StartClientInternal();
             });
         }
 
@@ -256,12 +258,14 @@ namespace EDIVE.Networking
             StartServerInternalAsync().Forget();
         }
 
-        private async UniTask StartServerInternalAsync()
+        private async UniTask<bool> StartServerInternalAsync()
         {
+            var version = _startVersion;
             try
             {
                 await PrepareServerAuthAsync();
             }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
@@ -277,8 +281,14 @@ namespace EDIVE.Networking
                     await UniTask.WhenAll(tasks);
                 }
 
+                if (version != _startVersion)
+                {
+                    Debug.Log("[MasterNetworkManager] Server start canceled.");
+                    return false;
+                }
                 BeforeServerStarted?.Invoke();
                 NetworkManager.main.StartServer();
+                return true;
             }
             finally
             {
@@ -410,6 +420,8 @@ namespace EDIVE.Networking
 
         public void StopConnections()
         {
+            _startVersion++;
+            CancelServerAuth();
             _serverStartRequested = false;
             _clientStartRequested = false;
             _clientStopRequested = _clientWasConnected;

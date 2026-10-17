@@ -31,6 +31,12 @@ namespace EDIVE.ServiceHub
         private int _AuthTimeoutSeconds = 5;
 
         [SerializeField]
+        [EnhancedBoxGroup("Timeouts")]
+        [MinValue(10)]
+        [Tooltip("Whole download of shared content files")]
+        private int _ContentTimeoutSeconds = 120;
+
+        [SerializeField]
         [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Green")]
         private UTimeSpan _BatchSaveDataSyncInterval = TimeSpan.FromSeconds(30);
 
@@ -38,6 +44,7 @@ namespace EDIVE.ServiceHub
         public string AppSecret => _AppSecret ?? "";
         public int ApiTimeoutSeconds => Mathf.Max(3, _ApiTimeoutSeconds);
         public int AuthTimeoutSeconds => Mathf.Max(3, _AuthTimeoutSeconds);
+        public int ContentTimeoutSeconds => Mathf.Max(10, _ContentTimeoutSeconds);
         public TimeSpan BatchSaveDataSyncInterval => _BatchSaveDataSyncInterval;
     }
 }

@@ -6,6 +6,7 @@ using EDIVE.Core;
 using EDIVE.Input.Controls;
 using EDIVE.Networking.UI;
 using EDIVE.ServiceHub;
+using EDIVE.ServiceHub.Auth;
 using EDIVE.StateHandling.ToggleStates;
 using PurrNet;
 using Sirenix.OdinInspector;
@@ -88,6 +89,10 @@ namespace EDIVE.Networking.Players
                 {
                     _authUserInfo.value = NetworkUserInfo.CreateAnonymous(playerManager.GeneratePlayerName());
                 }
+
+                // Log in or linking while connected renames the player
+                if (serviceHubManager != null && serviceHubManager.ClientAuth != null)
+                    serviceHubManager.ClientAuth.UserInfoChanged += OnLocalUserInfoChanged;
             }
 
         }
@@ -95,6 +100,8 @@ namespace EDIVE.Networking.Players
         protected override void OnDespawned(bool asServer)
         {
             _authUserInfo.onChanged -= OnAuthUserInfoChanged;
+            if (!asServer && AppCore.Services.TryGet<ServiceHubManager>(out var serviceHubManager) && serviceHubManager.ClientAuth != null)
+                serviceHubManager.ClientAuth.UserInfoChanged -= OnLocalUserInfoChanged;
 
             if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
             {
@@ -129,6 +136,17 @@ namespace EDIVE.Networking.Players
         private void ServerSetPlayerPing(int ping)
         {
             _ping.value = ping;
+        }
+
+        private void OnLocalUserInfoChanged(AuthUserInfo userInfo)
+        {
+            if (!isSpawned || !isOwner)
+                return;
+            // Token refreshes report the same account
+            var current = _authUserInfo.value;
+            if (current != null && current.Id == userInfo.Id && current.Email == userInfo.Email && current.Name == userInfo.Name)
+                return;
+            _authUserInfo.value = NetworkUserInfo.FromAuthUserInfo(userInfo);
         }
 
         private void OnAuthUserInfoChanged(NetworkUserInfo userInfo)

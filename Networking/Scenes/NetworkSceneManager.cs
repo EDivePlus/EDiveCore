@@ -109,13 +109,13 @@ namespace EDIVE.Networking.Scenes
 
             try
             {
+                // Join on the server even when loaded here already, so the scene counts this player
+                _networkManager.SendToServer(new ConnectionSceneRequest(key, ConnectionSceneRequestOperation.Join));
                 if (TryGetLoadedScene(key, out var existing))
                 {
                     _clientJoinedScenes.Add(key);
                     return existing;
                 }
-
-                _networkManager.SendToServer(new ConnectionSceneRequest(key, ConnectionSceneRequestOperation.Join));
 
                 var result = await tcs.Task.TimeoutWithoutException(TimeSpan.FromSeconds(_JoinTimeout));
                 if (result.IsTimeout)
