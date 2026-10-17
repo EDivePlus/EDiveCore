@@ -28,11 +28,21 @@ namespace EDIVE.ServiceHub.Auth
         [SerializeField]
         private string _Password;
 
-        public LoginRequest(string appSecret, string email, string password)
+        [JsonProperty("device_name", NullValueHandling = NullValueHandling.Ignore)]
+        [SerializeField]
+        private string _DeviceName;
+
+        [JsonProperty("use_refresh_token")]
+        [SerializeField]
+        private bool _UseRefreshToken;
+
+        public LoginRequest(string appSecret, string email, string password, string deviceName = null, bool useRefreshToken = false)
         {
             _AppSecret = appSecret;
             _Email = email;
             _Password = password;
+            _DeviceName = deviceName;
+            _UseRefreshToken = useRefreshToken;
         }
     }
 
@@ -48,10 +58,34 @@ namespace EDIVE.ServiceHub.Auth
         [SerializeField]
         private string _Token;
 
-        public AnonymousLoginRequest(string appSecret, string token)
+        [JsonProperty("device_name", NullValueHandling = NullValueHandling.Ignore)]
+        [SerializeField]
+        private string _DeviceName;
+
+        [JsonProperty("use_refresh_token")]
+        [SerializeField]
+        private bool _UseRefreshToken;
+
+        public AnonymousLoginRequest(string appSecret, string token, string deviceName = null, bool useRefreshToken = false)
         {
             _AppSecret = appSecret;
             _Token = token;
+            _DeviceName = deviceName;
+            _UseRefreshToken = useRefreshToken;
+        }
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class RefreshRequest
+    {
+        [JsonProperty("refresh_token")]
+        [SerializeField]
+        private string _RefreshToken;
+
+        public RefreshRequest(string refreshToken)
+        {
+            _RefreshToken = refreshToken;
         }
     }
 
@@ -94,6 +128,18 @@ namespace EDIVE.ServiceHub.Auth
         [SerializeField]
         private int _ExpiresIn;
 
+        [JsonProperty("session_id")]
+        [SerializeField]
+        private string _SessionId;
+
+        [JsonProperty("refresh_token")]
+        [SerializeField]
+        private string _RefreshToken;
+
+        [JsonProperty("refresh_expires_in")]
+        [SerializeField]
+        private int _RefreshExpiresIn;
+
         [JsonProperty("user")]
         [SerializeField]
         private AuthUserInfo _AuthUser;
@@ -101,7 +147,60 @@ namespace EDIVE.ServiceHub.Auth
         public string AccessToken => _AccessToken;
         public string TokenType => _TokenType;
         public int ExpiresIn => _ExpiresIn;
+        public string SessionId => _SessionId;
+        public string RefreshToken => _RefreshToken;
+        public int RefreshExpiresIn => _RefreshExpiresIn;
         public AuthUserInfo AuthUser => _AuthUser;
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class LinkCodeResponse
+    {
+        [JsonProperty("code")]
+        [SerializeField]
+        private string _Code;
+
+        [JsonProperty("expires_in")]
+        [SerializeField]
+        private int _ExpiresIn;
+
+        [JsonProperty("link_url")]
+        [SerializeField]
+        private string _LinkUrl;
+
+        public string Code => _Code;
+        public int ExpiresIn => _ExpiresIn;
+        public string LinkUrl => _LinkUrl;
+    }
+
+    public enum LinkCodeState
+    {
+        None,
+        Pending,
+        Expired,
+        Linked
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class LinkCodeStatusResponse
+    {
+        [JsonProperty("status")]
+        [SerializeField]
+        private string _Status;
+
+        [JsonProperty("expires_in")]
+        [SerializeField]
+        private int _ExpiresIn;
+
+        [JsonProperty("email")]
+        [SerializeField]
+        private string _Email;
+
+        public LinkCodeState State => Enum.TryParse<LinkCodeState>(_Status, true, out var state) ? state : LinkCodeState.None;
+        public int ExpiresIn => _ExpiresIn;
+        public string Email => _Email;
     }
     
     [Serializable]

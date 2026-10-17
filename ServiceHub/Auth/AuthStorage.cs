@@ -2,6 +2,8 @@
 // Created: 08.09.2025
 
 using System;
+using Cysharp.Threading.Tasks;
+using EDIVE.Http;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -9,6 +11,8 @@ namespace EDIVE.ServiceHub.Auth
 {
     public class AuthStorage
     {
+        private const int REFRESH_MARGIN_SECONDS = 60;
+
         private readonly string _kAccess;
         private readonly string _kRefresh;
         private readonly string _kExpiresAt;
@@ -29,6 +33,36 @@ namespace EDIVE.ServiceHub.Auth
             _kExpiresAt = p + "expiresAt";
             _kInfo = p + "info";
             _kLastEmail = p + "lastEmail";
+        }
+
+        // Renews the access token, set by the auth service that owns the refresh token
+        public Func<UniTask<bool>> Refresher { get; set; }
+
+        private bool CanRefresh => Refresher != null && !string.IsNullOrEmpty(GetRefreshToken());
+
+        // Signed in, the access token may need a refresh first
+        public bool HasSession => IsValid() || CanRefresh;
+
+        // Valid access token, refreshed when it expires within a minute. Null when signed out
+        public async UniTask<string> GetAccessTokenAsync()
+        {
+            var expiring = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + REFRESH_MARGIN_SECONDS >= GetExpiresAtUnix();
+            if (expiring && CanRefresh)
+                await Refresher();
+            return IsValid() ? GetAccessToken() : null;
+        }
+
+        // Sends with a valid token, on 401 refreshes and retries once
+        public async UniTask<NetworkResponse<T>> SendAsync<T>(Func<string, UniTask<NetworkResponse<T>>> send)
+        {
+            var token = await GetAccessTokenAsync();
+            if (token == null)
+                return NetworkResponse<T>.Error(401, "Not authenticated");
+
+            var response = await send(token);
+            if (response.StatusCode != 401 || !CanRefresh || !await Refresher())
+                return response;
+            return await send(GetAccessToken());
         }
 
         public void Save(string accessToken, string refreshToken, long? expUnixFromJwt, int expiresInFromApi, string infoJson = null)
@@ -58,6 +92,12 @@ namespace EDIVE.ServiceHub.Auth
         public string GetRefreshToken() => PlayerPrefs.GetString(_kRefresh, "");
 
         public string GetInfoJson() => PlayerPrefs.GetString(_kInfo, "");
+
+        public void SetInfoJson(string infoJson)
+        {
+            PlayerPrefs.SetString(_kInfo, infoJson ?? "");
+            PlayerPrefs.Save();
+        }
 
         public T GetInfo<T>() where T : class
         {

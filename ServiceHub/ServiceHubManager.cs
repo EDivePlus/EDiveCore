@@ -91,7 +91,7 @@ namespace EDIVE.ServiceHub
             _ServerAuth.OnLoggedOut += _SaveData.Server.ResetForIdentityChange;
             _ServerAuth.OnLoginSucceeded += _ => _SaveData.Server.ClearCache();
 
-            if (AuthStorage.Client.IsValid())
+            if (AuthStorage.Client.HasSession)
                 await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);
         }
 

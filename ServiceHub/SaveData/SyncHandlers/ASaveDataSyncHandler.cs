@@ -139,7 +139,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
         // True when some write failed again
         private async UniTask<bool> FlushRetriesAsync(CancellationToken ct)
         {
-            if (Context == null || !Context.Auth.IsValid())
+            if (Context == null || !Context.Auth.HasSession)
                 return false;
             KeyValuePair<string, string>[] snapshot;
             lock (_retryLock)
@@ -184,14 +184,14 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
             CancellationToken ct)
         {
             var request = new SaveDataWriteRequest(json);
-            return RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
+            return context.Auth.SendAsync(token => RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
                 Store.KeyUrl(key),
                 request,
-                context.Auth.GetAccessToken(),
+                token,
                 null,
                 Service.Settings.ApiTimeoutSeconds,
                 ct
-            );
+            ));
         }
 
         protected UniTask<NetworkResponse<ApiResponse<SaveDataBatchResponse>>> PutSaveDataBatchAsync(
@@ -200,14 +200,14 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
             CancellationToken ct)
         {
             var request = new SaveDataBatchWriteRequest(entries);
-            return RestUtils.PutAsync<ApiResponse<SaveDataBatchResponse>, SaveDataBatchWriteRequest>(
+            return context.Auth.SendAsync(token => RestUtils.PutAsync<ApiResponse<SaveDataBatchResponse>, SaveDataBatchWriteRequest>(
                 Store.BatchUrl,
                 request,
-                context.Auth.GetAccessToken(),
+                token,
                 null,
                 Service.Settings.ApiTimeoutSeconds,
                 ct
-            );
+            ));
         }
     }
 }

@@ -71,16 +71,16 @@ namespace EDIVE.ServiceHub.SaveData
 
         public override async UniTask<StoreReadResult> GetAsync(string key)
         {
-            if (!Context.Auth.IsValid())
+            if (!Context.Auth.HasSession)
                 return StoreReadResult.NotFound;
 
-            var response = await RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
+            var response = await Context.Auth.SendAsync(token => RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
                 KeyUrl(key),
-                Context.Auth.GetAccessToken(),
+                token,
                 null,
                 SaveDataService.Settings.ApiTimeoutSeconds,
                 _cts.Token
-            );
+            ));
 
             if (response.IsSuccess && response.Result is { Status: 0, Data: { Value: not null } data })
                 return StoreReadResult.Hit(data.Value.ToString(Formatting.None), Normalize(data.UpdatedAt));
@@ -93,16 +93,16 @@ namespace EDIVE.ServiceHub.SaveData
 
         public override async UniTask<TimestampPeek> GetTimestampAsync(string key)
         {
-            if (!Context.Auth.IsValid())
+            if (!Context.Auth.HasSession)
                 return TimestampPeek.Missing;
 
-            var response = await RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
+            var response = await Context.Auth.SendAsync(token => RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
                 MetaUrl(key),
-                Context.Auth.GetAccessToken(),
+                token,
                 null,
                 SaveDataService.Settings.ApiTimeoutSeconds,
                 _cts.Token
-            );
+            ));
 
             if (response.IsSuccess && response.Result is { Status: 0, Data: { } data })
                 return TimestampPeek.At(Normalize(data.UpdatedAt));
@@ -127,16 +127,16 @@ namespace EDIVE.ServiceHub.SaveData
         {
             _handlers.ForEach(handler => handler.RemovePending(key));
 
-            if (!Context.Auth.IsValid())
+            if (!Context.Auth.HasSession)
                 return;
 
-            var response = await RestUtils.DeleteAsync<string>(
+            var response = await Context.Auth.SendAsync(token => RestUtils.DeleteAsync<string>(
                 KeyUrl(key),
-                Context.Auth.GetAccessToken(),
+                token,
                 null,
                 SaveDataService.Settings.ApiTimeoutSeconds,
                 _cts.Token
-            );
+            ));
 
             if (!response.IsSuccess && !response.IsNotFound)
                 Debug.LogError($"[ServiceHub] {Context.Key} delete failed for '{key}': {response.ErrorMessage}");

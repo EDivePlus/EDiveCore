@@ -21,7 +21,7 @@ namespace EDIVE.ServiceHub.Auth
         public event Func<CancellationToken, UniTask> OnLoggingOutAsync;
         public event Action OnLoggedOut;
 
-        public bool IsLoggedIn => Storage.IsValid();
+        public bool IsLoggedIn => Storage.HasSession;
 
         protected abstract AuthStorage Storage { get; }
         protected abstract string LogScope { get; }
@@ -48,9 +48,21 @@ namespace EDIVE.ServiceHub.Auth
                 await UniTask.WhenAll(tasks);
             }
 
+            try
+            {
+                await EndRemoteSessionAsync(effectiveToken);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Debug.LogException(e);
+            }
+
             Storage.Clear();
             OnLoggedOut?.Invoke();
         }
+
+        // Ends the session on the server before the tokens are deleted
+        protected virtual UniTask EndRemoteSessionAsync(CancellationToken cancellationToken) => UniTask.CompletedTask;
 
         protected NetworkResponse<TLoginResponse> HandleLoginResponse(NetworkResponse<ApiResponse<TLoginResponse>> response)
         {
@@ -69,7 +81,7 @@ namespace EDIVE.ServiceHub.Auth
                 var statusCode = apiResponse?.Status ?? -1;
                 Debug.LogError($"[ServiceHub] {LogScope} failed ({statusCode}): {message}");
                 OnLoginFailed?.Invoke(statusCode, message);
-                return NetworkResponse<TLoginResponse>.Error(response.StatusCode, message);
+                return NetworkResponse<TLoginResponse>.Error(response.StatusCode, message, apiStatus: statusCode);
             }
 
             var data = apiResponse.Data;

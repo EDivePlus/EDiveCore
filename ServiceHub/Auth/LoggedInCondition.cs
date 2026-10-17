@@ -9,6 +9,6 @@ namespace EDIVE.ServiceHub.Auth
     [Serializable]
     public class LoggedInCondition : ABoolCondition
     {
-        protected override bool GetValue() => AuthStorage.Client.IsValid();
+        protected override bool GetValue() => AuthStorage.Client.HasSession;
     }
 }
