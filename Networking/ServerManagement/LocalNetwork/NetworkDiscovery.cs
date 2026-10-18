@@ -25,16 +25,17 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
         {
             var nm = NetworkManager.main;
             var port = nm != null && nm.TryGetCurrentTransport<UDPTransport>(out var udp) ? udp.serverPort : (ushort) 0;
-            var serverManager = AppCore.Services.Get<NetworkServerManager>();
+            // Requests can arrive while the app shuts down
+            AppCore.Services.TryGet<NetworkServerManager>(out var serverManager);
             
             return new NetworkDiscoveryResponse
             {
-                InstanceID = serverManager.InstanceID,
+                InstanceID = serverManager ? serverManager.InstanceID : null,
                 ServerName = _Config.ServerName,
                 Port = port,
                 MaxPlayers = _Config.MaxPlayers,
                 CurrentPlayers = nm != null ? nm.playerCount : 0,
-                JoinCode = serverManager.JoinCode,
+                JoinCode = serverManager ? serverManager.JoinCode : null,
                 Version = AppCore.CurrentVersion.ToString()
             };
         }
