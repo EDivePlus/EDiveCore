@@ -36,8 +36,10 @@ namespace EDIVE.GeoToolkit.Maps
         [SerializeField]
         private bool _ShowDebugRays;
         
+#pragma warning disable CS0414
         [SerializeField]
         private bool _ShowGizmos = true;
+#pragma warning restore CS0414
         
         public GeoAreaRect GeoArea => _Area.Value;
 

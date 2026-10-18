@@ -36,6 +36,7 @@ namespace EDIVE.GeoToolkit.Maps
         [SerializeField]
         private MapController _Map;
 
+#pragma warning disable CS0414
         [SerializeField]
         private bool generateBorder = true;
 
@@ -63,6 +64,7 @@ namespace EDIVE.GeoToolkit.Maps
 
         [SerializeField]
         private int maxAreaTextureResolution = 4096;
+#pragma warning restore CS0414
 
         [Title("Border Line", HorizontalLine = false)]
         [SerializeField]

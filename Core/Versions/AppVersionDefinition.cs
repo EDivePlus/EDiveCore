@@ -24,6 +24,7 @@ namespace EDIVE.Core.Versions
         [EnhancedValidate("ValidateCurrentVersion", ContinuousValidationCheck = true)]
         private AppVersion _CurrentVersion;
         
+#pragma warning disable CS0414
         [SerializeField]
         private bool _AutoIncrement = true;
         
@@ -31,6 +32,7 @@ namespace EDIVE.Core.Versions
         [Indent]
         [SerializeField]
         private AppVersionSignificance _IncrementSignificance = AppVersionSignificance.Build;
+#pragma warning restore CS0414
 
         [SerializeField]
         [PropertySpace]

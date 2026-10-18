@@ -29,7 +29,9 @@ namespace EDIVE.Utils.SerializableDictionary
         [ReadOnly]
         [UsedImplicitly]
         [ShowInInspector]
+#pragma warning disable CS0414
         private bool _keyCollision;
+#pragma warning restore CS0414
         
         [Serializable]
         public struct SerializableKeyValuePair

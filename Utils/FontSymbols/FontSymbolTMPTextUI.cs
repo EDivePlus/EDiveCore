@@ -113,7 +113,9 @@ namespace EDIVE.Utils.FontSymbols
 
         private void RefreshSymbol()
         {
+#pragma warning disable CS0219
             var changed = false;
+#pragma warning restore CS0219
             enableAutoSizing = false;
             richText = false;
             textWrappingMode = TextWrappingModes.NoWrap;

@@ -15,8 +15,10 @@ namespace EDIVE.Input.Touch
         [SerializeField]
         private AToggleState _ToggleState;
         
+#pragma warning disable CS0414
         [SerializeField] 
         private bool _ShowInEditor = true;
+#pragma warning restore CS0414
         
         [SerializeField]
         private OverrideMode _Override = OverrideMode.Auto;

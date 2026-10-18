@@ -147,18 +147,18 @@ namespace EDIVE.View.Windows
             if (expanded)
             {
                 Apply(false);
-                _ExpandAnimation.Play();
+                _ = _ExpandAnimation.Play();
                 return;
             }
 
-            _CollapseAnimation.Play();
+            _ = _CollapseAnimation.Play();
             var tween = _CollapseAnimation.Tween;
             if (tween.IsActive())
                 await tween.ToUniTask(cancellationToken: destroyCancellationToken).SuppressCancellationThrow();
             if (transition != _transition)
                 return;
             Apply(false);
-            _CollapsedAnimation.Play();
+            _ = _CollapsedAnimation.Play();
         }
 
         private void OnOverlayConditionChanged() => Apply(false);

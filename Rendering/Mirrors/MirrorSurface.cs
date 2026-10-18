@@ -126,6 +126,7 @@ namespace EDIVE.Rendering.Mirrors
         [EnhancedBoxGroup("Depth Probe")]
         private LayerMask _DepthProbeCullingMask = ~0;
 
+#pragma warning disable CS0414
         [SerializeField]
         [EnhancedBoxGroup("Depth Probe")]
         [ValueDropdown(nameof(DEPTH_PROBE_RESOLUTIONS))]
@@ -143,6 +144,7 @@ namespace EDIVE.Rendering.Mirrors
         [Tooltip("Anything further reads as sky.")]
         [MinValue(1f)]
         private float _DepthProbeRange = 60f;
+#pragma warning restore CS0414
 
         [SerializeField]
         [EnhancedBoxGroup("Depth Probe")]

@@ -93,7 +93,9 @@ namespace EDIVE.Utils.FontSymbols
 
         private void RefreshSymbol()
         {
+#pragma warning disable CS0219
             var changed = false;
+#pragma warning restore CS0219
             alignment = TextAnchor.MiddleCenter;
             supportRichText = false;
             horizontalOverflow = HorizontalWrapMode.Overflow;
