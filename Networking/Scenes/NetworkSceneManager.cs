@@ -68,6 +68,11 @@ namespace EDIVE.Networking.Scenes
             if (!reference.IsValid) return null;
             var key = reference.Key;
             if (!key.IsValid) return null;
+            if (!_networkManager.isClient)
+            {
+                Debug.LogWarning($"[NetworkSceneManager] Cannot join scene '{key}', client is not connected.", this);
+                return null;
+            }
 
             var module = _networkManager.sceneModule;
             var tcs = new UniTaskCompletionSource<Scene>();
@@ -148,6 +153,7 @@ namespace EDIVE.Networking.Scenes
             if (_networkManager == null) return;
 
             _clientJoinedScenes.Remove(key);
+            if (!_networkManager.isClient) return;
             _networkManager.SendToServer(new ConnectionSceneRequest(key, ConnectionSceneRequestOperation.Leave));
         }
 

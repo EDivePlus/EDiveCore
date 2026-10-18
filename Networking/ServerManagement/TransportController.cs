@@ -1,7 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 13.05.2026
 
-using System.Net;
 using EDIVE.Core.Services;
 using PurrNet;
 using PurrNet.Transports;
@@ -19,6 +18,11 @@ namespace EDIVE.Networking.ServerManagement
         [Required]
         [SerializeField]
         private LocalTransport _LocalTransport;
+
+        // Host client, must be one of the composite transports
+        [Required]
+        [SerializeField]
+        private LocalTransport _HostLocalTransport;
 
         public bool HasTransport<T>() where T : GenericTransport
         {
@@ -45,13 +49,8 @@ namespace EDIVE.Networking.ServerManagement
         public void SetHost()
         {
             NetworkManager.main.transport = _CompositeTransports;
-            // Host client over UDP loopback, last join may have changed it. LocalTransport seems to not work
-            // _CompositeTransports.SetClientTransport<LocalTransport>();
-            if (TryGetTransport<UDPTransport>(out var udp))
-            {
-                _CompositeTransports.SetClientTransport(udp);
-                udp.address = IPAddress.Loopback.ToString();
-            }
+            // In process host client, no timeout during long loads
+            _CompositeTransports.SetClientTransport(_HostLocalTransport);
         }
         
         public void SetLocal()
@@ -100,6 +99,9 @@ namespace EDIVE.Networking.ServerManagement
             }
 
             if (TryGetTransport<UDPTransport>(out var udpTransport) && udpTransport.clientState == ConnectionState.Connected)
+                return SessionLinkMode.Direct;
+
+            if (_HostLocalTransport && _HostLocalTransport.clientState == ConnectionState.Connected)
                 return SessionLinkMode.Direct;
 
             return SessionLinkMode.None;
