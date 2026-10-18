@@ -13,7 +13,8 @@
         "EDIVE.Conditions",
         "EDIVE.Utils",
         "EDIVE.DataStructures",
-        "EDIVE.Utils.Activations"
+        "EDIVE.Utils.Activations",
+        "EDIVE.View.ViewTree"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

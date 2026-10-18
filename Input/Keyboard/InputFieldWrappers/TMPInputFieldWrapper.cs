@@ -2,6 +2,7 @@
 // Created: 07.05.2026
 
 using System;
+using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
@@ -42,6 +43,23 @@ namespace EDIVE.Input.Keyboard.InputFieldWrappers
             get => _InputField.selectionFocusPosition;
             set => _InputField.selectionFocusPosition = value;
         }
+        public override bool IsEditable => _InputField.IsInteractable() && !_InputField.readOnly;
+        public override bool IsMultiLine => _InputField.multiLine;
+        public override string Placeholder => _InputField.placeholder is TMP_Text placeholder ? placeholder.text : null;
+        public override bool IsPassword
+        {
+            get => _InputField.contentType == TMP_InputField.ContentType.Password;
+            set
+            {
+                if (IsPassword == value)
+                    return;
+
+                _InputField.contentType = value ? TMP_InputField.ContentType.Password : TMP_InputField.ContentType.Standard;
+                _InputField.ForceLabelUpdate();
+            }
+        }
+
+        private static readonly MethodInfo VALIDATE_METHOD = typeof(TMP_InputField).GetMethod("Validate", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] {typeof(string), typeof(int), typeof(char)}, null);
 
         public override event Action<string> ValueChanged
         {
@@ -108,6 +126,21 @@ namespace EDIVE.Input.Keyboard.InputFieldWrappers
         {
             _InputField.resetOnDeActivation = false;
             _InputField.shouldHideSoftKeyboard = true;
+            // Keys append at the caret, a select all on focus would look like the text gets replaced
+            _InputField.onFocusSelectAll = false;
         }
+
+        public override char Validate(string text, int position, char character)
+        {
+            if (_InputField.onValidateInput != null)
+                return _InputField.onValidateInput(text, position, character);
+
+            if (_InputField.characterValidation == TMP_InputField.CharacterValidation.None || VALIDATE_METHOD == null)
+                return character;
+
+            return (char) VALIDATE_METHOD.Invoke(_InputField, new object[] {text, position, character});
+        }
+
+        public override void Submit() => _InputField.onSubmit.Invoke(_InputField.text);
     }
 }

@@ -14,6 +14,7 @@ namespace EDIVE.Input.Keyboard
         Clear,
         Shift,
         Layout,
-        Hide
+        Hide,
+        Mic
     }
 }

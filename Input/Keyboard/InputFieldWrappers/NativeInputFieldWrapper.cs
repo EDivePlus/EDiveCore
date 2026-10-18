@@ -2,6 +2,7 @@
 // Created: 26.11.2025
 
 using System;
+using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
@@ -45,6 +46,23 @@ namespace EDIVE.Input.Keyboard.InputFieldWrappers
             get => _InputField.selectionFocusPosition;
             set => _InputField.selectionFocusPosition = value;
         }
+        public override bool IsEditable => _InputField.IsInteractable() && !_InputField.readOnly;
+        public override bool IsMultiLine => _InputField.multiLine;
+        public override string Placeholder => _InputField.placeholder is Text placeholder ? placeholder.text : null;
+        public override bool IsPassword
+        {
+            get => _InputField.contentType == InputField.ContentType.Password;
+            set
+            {
+                if (IsPassword == value)
+                    return;
+
+                _InputField.contentType = value ? InputField.ContentType.Password : InputField.ContentType.Standard;
+                _InputField.ForceLabelUpdate();
+            }
+        }
+
+        private static readonly MethodInfo VALIDATE_METHOD = typeof(InputField).GetMethod("Validate", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] {typeof(string), typeof(int), typeof(char)}, null);
         
         public override event Action<string> ValueChanged
         {
@@ -150,5 +168,18 @@ namespace EDIVE.Input.Keyboard.InputFieldWrappers
         {
             _InputField.shouldHideMobileInput = true;
         }
+
+        public override char Validate(string text, int position, char character)
+        {
+            if (_InputField.onValidateInput != null)
+                return _InputField.onValidateInput(text, position, character);
+
+            if (_InputField.characterValidation == InputField.CharacterValidation.None || VALIDATE_METHOD == null)
+                return character;
+
+            return (char) VALIDATE_METHOD.Invoke(_InputField, new object[] {text, position, character});
+        }
+
+        public override void Submit() => _InputField.onSubmit.Invoke(_InputField.text);
     }
 }

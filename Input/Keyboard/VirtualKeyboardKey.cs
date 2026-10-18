@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 #if UNITY_EDITOR
@@ -15,7 +16,7 @@ using Sirenix.OdinInspector.Editor;
 
 namespace EDIVE.Input.Keyboard
 {
-    public class VirtualKeyboardKey : MonoBehaviour
+    public class VirtualKeyboardKey : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
     {
         [SerializeField]
         private Button _Button;
@@ -51,7 +52,15 @@ namespace EDIVE.Input.Keyboard
         private float _lastClickTime;
         private float TimeSinceLastClick => UnityEngine.Time.time - _lastClickTime;
 
+        private bool _holding;
+        private bool _repeated;
+        private float _nextRepeatTime;
+        private PointerEventData _pressEventData;
+        private bool RepeatsOnHold => _KeyType == KeyType.Backspace;
+
         private const float DOUBLE_CLICK_INTERVAL = 0.5f;
+        private const float REPEAT_DELAY = 0.5f;
+        private const float REPEAT_INTERVAL = 0.07f;
 
         public void OnEnable()
         {
@@ -69,8 +78,40 @@ namespace EDIVE.Input.Keyboard
                 _Button.onClick.RemoveListener(OnKeyPressed);
 
             _enabledInternal = false;
-            UnregisterListeners();
+            _holding = false;
+            if (_initialized)
+                UnregisterListeners();
         }
+
+        private void Update()
+        {
+            if (!_holding || UnityEngine.Time.unscaledTime < _nextRepeatTime)
+                return;
+
+            _repeated = true;
+            _nextRepeatTime += REPEAT_INTERVAL;
+            Keyboard.Backspace();
+            Keyboard.RaiseKeyDown(this, _pressEventData);
+        }
+
+        void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
+        {
+            if (!_initialized || !_Button || !_Button.IsInteractable())
+                return;
+
+            _pressEventData = eventData;
+            Keyboard.RaiseKeyDown(this, eventData);
+
+            if (!RepeatsOnHold)
+                return;
+
+            _holding = true;
+            _repeated = false;
+            _nextRepeatTime = UnityEngine.Time.unscaledTime + REPEAT_DELAY;
+        }
+
+        void IPointerUpHandler.OnPointerUp(PointerEventData eventData) => _holding = false;
+        void IPointerExitHandler.OnPointerExit(PointerEventData eventData) => _holding = false;
 
         public void Initialize(VirtualKeyboardController keyboard)
         {
@@ -126,6 +167,13 @@ namespace EDIVE.Input.Keyboard
             if (!_initialized)
                 return;
 
+            // The hold already deleted, the click on release must not delete once more
+            if (_repeated)
+            {
+                _repeated = false;
+                return;
+            }
+
             switch (_KeyType)
             {
                 case KeyType.None:
@@ -154,6 +202,7 @@ namespace EDIVE.Input.Keyboard
                         Keyboard.Shift(ShiftState.CapsLock);
                         break;
                     }
+
                     Keyboard.Shift(Keyboard.IsShifted ? ShiftState.None : ShiftState.Shift);
                     break;
                 case KeyType.Layout:
@@ -162,12 +211,15 @@ namespace EDIVE.Input.Keyboard
                 case KeyType.Hide:
                     Keyboard.Close(false);
                     break;
+                // Handled through KeyPressed until speech to text exists
+                case KeyType.Mic:
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
             Keyboard.RaiseKeyPressed(this);
-            _lastClickTime =  UnityEngine.Time.time;
+            _lastClickTime = UnityEngine.Time.time;
         }
 
 #if UNITY_EDITOR

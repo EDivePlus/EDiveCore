@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Input.Keyboard.InputFieldWrappers;
+using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -13,6 +14,9 @@ namespace EDIVE.Input.Keyboard
     {
         [SerializeReference]
         private AInputFieldWrapper _InputField;
+
+        [SerializeField]
+        private TMP_Text _Label;
 
         [SerializeField]
         private bool _ManualKeyboard;
@@ -49,13 +53,15 @@ namespace EDIVE.Input.Keyboard
 
         private int _lastCaretPosition;
         private bool _isAvailable;
+        private bool _initialized;
         private IDisposable _serviceRegistration;
+        private AViewNode _viewNode;
 
         private void Awake()
         {
             _serviceRegistration = AppCore.Services.WhenRegistered<VirtualKeyboardManager>(keyboardManager =>
             {
-                if (!keyboardManager.CheckAvailable()) 
+                if (!keyboardManager.CheckAvailable())
                     return;
 
                 _isAvailable = true;
@@ -81,22 +87,32 @@ namespace EDIVE.Input.Keyboard
 
                 if (_AlwaysObserveKeyboard && _activeKeyboard != null)
                     StartObservingKeyboard(_activeKeyboard);
+
+                // The manager can register after this field got enabled
+                if (isActiveAndEnabled)
+                    Initialize();
             });
         }
 
-       
         private void Initialize()
         {
-            if (!_isAvailable)
+            if (!_isAvailable || _initialized)
                 return;
-            
+
+            _initialized = true;
             if (_InputField != null)
             {
                 _InputField.GainedFocus += OnInputFieldGainedFocus;
                 _InputField.TextSelectionChanged += OnTextSelectionChanged;
                 _lastCaretPosition = _InputField.CaretPosition;
+                if (_AlwaysObserveKeyboard)
+                    _InputField.ValueChanged += OnFieldValueChanged;
             }
-            
+
+            _viewNode = this.FindViewNode();
+            if (_viewNode != null)
+                _viewNode.StateChanged += OnViewStateChanged;
+
             if ((_activeKeyboard == null || !_ManualKeyboard) && AppCore.Services.TryGet<VirtualKeyboardManager>(out var keyboardManager))
                 _activeKeyboard = keyboardManager.Keyboard;
 
@@ -104,20 +120,7 @@ namespace EDIVE.Input.Keyboard
             if (observeOnStart)
                 StartObservingKeyboard(_activeKeyboard);
         }
-        
-        private void Terminate()
-        {
-            if (_InputField != null)
-            {
-                _InputField.GainedFocus -= OnInputFieldGainedFocus;
-                _InputField.TextSelectionChanged -= OnTextSelectionChanged;
-            }
-            
-            var isObservingKeyboard = _activeKeyboard != null && _activeKeyboard.gameObject.activeInHierarchy && _isActivelyObservingKeyboard;
-            if (_HideKeyboardOnDisable && isObservingKeyboard && _activeKeyboard.IsOpen)
-                _activeKeyboard.Close();
-        }
-        
+
         private void OnEnable()
         {
             Initialize();
@@ -125,12 +128,20 @@ namespace EDIVE.Input.Keyboard
 
         private void OnDisable()
         {
+            if (!_initialized)
+                return;
+
+            _initialized = false;
             if (_InputField != null)
             {
                 _InputField.GainedFocus -= OnInputFieldGainedFocus;
                 _InputField.TextSelectionChanged -= OnTextSelectionChanged;
+                _InputField.ValueChanged -= OnFieldValueChanged;
             }
-            
+
+            if (_viewNode != null)
+                _viewNode.StateChanged -= OnViewStateChanged;
+
             var isObservingKeyboard = _activeKeyboard != null && _activeKeyboard.gameObject.activeInHierarchy && _isActivelyObservingKeyboard;
             if (_HideKeyboardOnDisable && isObservingKeyboard && _activeKeyboard.IsOpen)
                 _activeKeyboard.Close();
@@ -142,7 +153,7 @@ namespace EDIVE.Input.Keyboard
             _serviceRegistration = null;
             StopObservingKeyboard(_activeKeyboard);
         }
-        
+
         private void Update()
         {
             if (!_isAvailable)
@@ -161,6 +172,9 @@ namespace EDIVE.Input.Keyboard
 
         private void OnTextSelectionChanged(string selectedText, int startIndex, int endIndex)
         {
+            if (_activeKeyboard == null)
+                return;
+
             _activeKeyboard.SelectStartIndex = startIndex;
             _activeKeyboard.SelectEndIndex = endIndex;
         }
@@ -195,6 +209,13 @@ namespace EDIVE.Input.Keyboard
             activeKeyboard.FocusChanged += KeyboardFocusChanged;
 
             _isActivelyObservingKeyboard = true;
+
+            // Text set before this display woke up, e.g. a prefilled field on the first open
+            if (_AlwaysObserveKeyboard && _InputField != null && _InputField.IsValid())
+            {
+                MirrorPassword();
+                UpdateText(activeKeyboard.Text);
+            }
         }
 
         private void StopObservingKeyboard(VirtualKeyboardController activeKeyboard)
@@ -213,6 +234,9 @@ namespace EDIVE.Input.Keyboard
 
         private void OnInputFieldGainedFocus()
         {
+            if (!_AlwaysObserveKeyboard && !_InputField.IsEditable)
+                return;
+
             if (_isActivelyObservingKeyboard && !_AlwaysObserveKeyboard)
             {
                 if ((!_ManualKeyboard || Keyboard == null) && AppCore.Services.TryGet<VirtualKeyboardManager>(out var keyboardManager))
@@ -233,7 +257,7 @@ namespace EDIVE.Input.Keyboard
                 }
                 else
                 {
-                    var provider = GetComponentInParent<VirtualKeyboardProvider>();
+                    var provider = this.FindInViewTree<VirtualKeyboardProvider>() ?? GetComponentInParent<VirtualKeyboardProvider>();
                     if (provider != null && provider.Keyboard != null)
                     {
                         provider.Keyboard.Open(_InputField, _MonitorCharacterLimit);
@@ -241,11 +265,16 @@ namespace EDIVE.Input.Keyboard
                     }
                     else if (AppCore.Services.TryGet<VirtualKeyboardManager>(out var keyboardManager))
                     {
-                        
                         _activeKeyboard = keyboardManager.ShowKeyboard(_InputField, _MonitorCharacterLimit);
                     }
                 }
             }
+
+            if (_activeKeyboard == null)
+                return;
+
+            if (_OpenKeyboardOnFocus && _Label != null)
+                _activeKeyboard.Label = _Label.text;
 
             _InputField.CaretPosition = _activeKeyboard.CaretPosition;
 
@@ -273,7 +302,7 @@ namespace EDIVE.Input.Keyboard
         {
             var updatedText = text;
 
-            if (_MonitorCharacterLimit && updatedText.Length >= _InputField.CharacterLimit)
+            if (_MonitorCharacterLimit && _InputField.CharacterLimit > 0 && updatedText.Length >= _InputField.CharacterLimit)
                 updatedText = updatedText[.._InputField.CharacterLimit];
 
             _InputField.Text = updatedText;
@@ -296,8 +325,34 @@ namespace EDIVE.Input.Keyboard
 
         private void KeyboardFocusChanged()
         {
-            if (!_InputField.IsFocused && !_AlwaysObserveKeyboard)
+            if (_AlwaysObserveKeyboard)
+                MirrorPassword();
+            else if (!_InputField.IsFocused)
                 StopObservingKeyboard(_activeKeyboard);
+        }
+
+        // Physical typing into an always observing field, e.g. the keyboard's own preview
+        private void OnFieldValueChanged(string text)
+        {
+            if (_isActivelyObservingKeyboard && _activeKeyboard != null && text != _activeKeyboard.Text)
+                _activeKeyboard.SetText(text);
+        }
+
+        private void MirrorPassword()
+        {
+            var source = _activeKeyboard != null ? _activeKeyboard.CurrentInputField : null;
+            _InputField.IsPassword = source != null && source.IsValid() && source.IsPassword;
+        }
+
+        // The field's window got hidden or covered, e.g. by a dialog
+        private void OnViewStateChanged(ViewState from, ViewState to)
+        {
+            if (_AlwaysObserveKeyboard || _viewNode.FocusedInTree || _activeKeyboard == null || !_activeKeyboard.IsOpen)
+                return;
+
+            var current = _activeKeyboard.CurrentInputField;
+            if (current != null && current.IsValid() && current.GameObject == _InputField.GameObject)
+                _activeKeyboard.Close(false);
         }
     }
 }
