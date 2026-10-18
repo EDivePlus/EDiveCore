@@ -24,34 +24,22 @@ namespace EDIVE.XRTools.DeviceSimulator
             return UniTask.CompletedTask;
         }
 
+        // Simulator outlives scenes, gone with the manager on app restart
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (_runtimeSimulatorInstance != null)
+                Destroy(_runtimeSimulatorInstance);
+        }
+
         private void EnsureSimulatorInstance()
         {
-            if (_runtimeSimulatorInstance != null)
-            {
-                if (!_runtimeSimulatorInstance.activeSelf)
-                    _runtimeSimulatorInstance.SetActive(true);
-                return;
-            }
-            if (!_SimulatorPrefab)
+            if (_runtimeSimulatorInstance != null || !_SimulatorPrefab)
                 return;
 
             _runtimeSimulatorInstance = Instantiate(_SimulatorPrefab);
             _runtimeSimulatorInstance.name = _SimulatorPrefab.name;
             DontDestroyOnLoad(_runtimeSimulatorInstance);
-        }
-
-        private void DisableSimulatorInstance()
-        {
-            if (_runtimeSimulatorInstance != null && _runtimeSimulatorInstance.activeSelf)
-                _runtimeSimulatorInstance.SetActive(false);
-        }
-
-        public void SetSimulatorActive(bool value)
-        {
-            if (value)
-                EnsureSimulatorInstance();
-            else 
-                DisableSimulatorInstance();
         }
     }
 }

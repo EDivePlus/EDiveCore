@@ -3,6 +3,8 @@
     "rootNamespace": "",
     "references": [
         "EDIVE.StateHandling",
+        "EDIVE.View.Windows",
+        "EDIVE.View.ViewTree",
         "EDIVE.NativeUtils",
         "EDIVE.Core",
         "EDIVE.OdinExtensions",

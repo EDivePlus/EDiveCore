@@ -1,7 +1,6 @@
 ﻿// Author: Michal Petr
 // Created: 30.09.2026
 
-using EDIVE.Core;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 
@@ -14,12 +13,8 @@ namespace EDIVE.XRTools.DeviceSimulator
         public static bool SimulatorEnabled
         {
             get => PlayerPrefs.GetInt(RUNTIME_ENABLED_PREF_KEY, 0) != 0;
-            set
-            {
-                PlayerPrefs.SetInt(RUNTIME_ENABLED_PREF_KEY, value ? 1 : 0);
-                if (AppCore.Services.TryGet<XRDeviceSimulatorManager>(out var manager))
-                    manager.SetSimulatorActive(value);
-            }
+            // Applies on next app start
+            set => PlayerPrefs.SetInt(RUNTIME_ENABLED_PREF_KEY, value ? 1 : 0);
         }
         
         // We use our own simulator
