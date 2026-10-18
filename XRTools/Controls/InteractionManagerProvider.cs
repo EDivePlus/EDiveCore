@@ -16,6 +16,7 @@ using UnityEditor;
 
 namespace EDIVE.XRTools.Controls
 {
+    [DefaultExecutionOrder(-200)]
     public class InteractionManagerProvider : AServiceBehaviour<InteractionManagerProvider>
     {
         [PropertySpace]

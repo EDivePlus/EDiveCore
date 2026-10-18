@@ -91,8 +91,16 @@ namespace EDIVE.ServiceHub
             _ServerAuth.OnLoggedOut += _SaveData.Server.ResetForIdentityChange;
             _ServerAuth.OnLoginSucceeded += _ => _SaveData.Server.ClearCache();
 
-            if (AuthStorage.Client.HasSession)
-                await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);
+            // Must not throw, dependents wait for registration
+            try
+            {
+                if (AuthStorage.Client.HasSession)
+                    await _ClientAuth.CheckClientAuthAsync(destroyCancellationToken);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Debug.LogException(e);
+            }
         }
 
         // Quest can kill a backgrounded app without calling OnApplicationQuit, so flush pending local and remote writes on pause.

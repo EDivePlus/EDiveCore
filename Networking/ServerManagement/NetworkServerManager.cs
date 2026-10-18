@@ -142,6 +142,7 @@ namespace EDIVE.Networking.ServerManagement
         {
             base.PopulateDependencies(dependencies);
             dependencies.Add(typeof(MasterNetworkManager));
+            dependencies.Add(typeof(LocalConfigLoader));
             EnumerateAdapters(adapter => adapter.PopulateDependencies(dependencies));
         }
 

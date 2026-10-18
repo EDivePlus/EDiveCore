@@ -78,20 +78,15 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
         private bool IsServiceUnreachable => _serviceHub.Connectivity != null && _serviceHub.Connectivity.IsServiceUnreachable;
 
-        public override UniTask Initialize()
+        private async UniTask WaitForServiceHub(CancellationToken cancellationToken)
         {
-            base.Initialize();
-            _serviceHub = AppCore.Services.Get<ServiceHubManager>();
-            return UniTask.CompletedTask;
+            _serviceHub ??= await AppCore.Services.AwaitRegistered<ServiceHubManager>(cancellationToken);
         }
 
         public override async UniTask PrepareServerStart()
         {
             await base.PrepareServerStart();
 
-            if (!_serviceHub.HasValidSetup)
-                return;
-            
             if (NetworkManager.main.transport is LocalTransport)
             {
                 Debug.LogWarning("[ServiceHubServerListAdapter] Server hosted as local, skipping lobby registration.");
@@ -99,7 +94,6 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             }
 
             InitializeRelay();
-            SetRegistrationState(ServerRegistrationState.Registering);
 
             // Registered in heartbeat loop, server start doesn't wait
             _heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
@@ -173,7 +167,11 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         {
             if (request is not CodeJoinRequest codeRequest)
                 return (false, null);
-            
+
+            _serviceHub ??= AppCore.Services.Get<ServiceHubManager>();
+            if (_serviceHub == null)
+                return (false, null);
+
             var response = await Lobby.GetServerAsync(codeRequest.Code, CancellationToken.None);
             if (!response.IsSuccess || response.Result == null)                
                 return (false, null);
@@ -184,6 +182,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {
+            await WaitForServiceHub(cancellationToken);
             if (!_serviceHub.HasValidSetup)
                 return;
             
@@ -339,6 +338,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         
         private async UniTaskVoid HeartbeatTask(CancellationToken cancellationToken)
         {
+            await WaitForServiceHub(cancellationToken);
+            if (!_serviceHub.HasValidSetup)
+                return;
+
             var registerAttempt = 0;
             while (!cancellationToken.IsCancellationRequested)
             {
