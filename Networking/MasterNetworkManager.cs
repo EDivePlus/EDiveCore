@@ -48,6 +48,7 @@ namespace EDIVE.Networking
         public event Action BeforeHostStarted;
         public event Action BeforeServerStarted;
         public event Action BeforeClientStarted;
+        public event Action RuntimeStopRequested;
         
         public StatisticsManager StatisticsManager => _StatisticsManager;
 
@@ -245,9 +246,9 @@ namespace EDIVE.Networking
 
         public void StartServer()
         {
-            if (!CanStartServer())
+            if (!CanStartServer() || !CanStartClient())
             {
-                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: server is {LiveServerState}.");
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: runtime is already {RuntimeMode}.");
                 return;
             }
             
@@ -409,6 +410,7 @@ namespace EDIVE.Networking
 
         public void StopRuntime()
         {
+            RuntimeStopRequested?.Invoke();
             StopConnections();
 
             if (ConnectionLost)

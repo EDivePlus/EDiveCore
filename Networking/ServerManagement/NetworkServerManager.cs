@@ -117,6 +117,7 @@ namespace EDIVE.Networking.ServerManagement
         
         private ServerRecord _resumeReconnectTarget;
         private CancellationTokenSource _autoReconnectCts;
+        private CancellationTokenSource _stopCts;
         private float? _reconnectAt;
         private bool _autoReconnecting;
 
@@ -149,6 +150,7 @@ namespace EDIVE.Networking.ServerManagement
             _masterNetworkManager.RegisterServerPrepareHandler(OnServerPrepareHandlers);
             _masterNetworkManager.ClientDisconnected += OnClientConnectionLost;
             _masterNetworkManager.ConnectionStateChanged += OnMasterConnectionStateChanged;
+            _masterNetworkManager.RuntimeStopRequested += OnRuntimeStopRequested;
         }
 
         protected override void PopulateDependencies(HashSet<Type> dependencies)
@@ -176,8 +178,9 @@ namespace EDIVE.Networking.ServerManagement
                 _masterNetworkManager.UnregisterServerPrepareHandler(OnServerPrepareHandlers);
                 _masterNetworkManager.ClientDisconnected -= OnClientConnectionLost;
                 _masterNetworkManager.ConnectionStateChanged -= OnMasterConnectionStateChanged;
+                _masterNetworkManager.RuntimeStopRequested -= OnRuntimeStopRequested;
             }
-            CancelAutoReconnect();
+            OnRuntimeStopRequested();
         }
 
         private void OnClientConnectionLost()
@@ -194,6 +197,17 @@ namespace EDIVE.Networking.ServerManagement
         {
             if (state == ConnectionState.Disconnected && !_masterNetworkManager.ConnectionLost)
                 CancelAutoReconnect();
+        }
+
+        // User stop cancels pending connect attempts
+        private CancellationToken StopToken => (_stopCts ??= new CancellationTokenSource()).Token;
+
+        private void OnRuntimeStopRequested()
+        {
+            CancelAutoReconnect();
+            _stopCts?.Cancel();
+            _stopCts?.Dispose();
+            _stopCts = null;
         }
 
         private async UniTaskVoid AutoReconnectAsync(CancellationToken cancellationToken)
@@ -374,21 +388,26 @@ namespace EDIVE.Networking.ServerManagement
                 return;
             }
 
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StopToken);
+            var resolved = false;
             foreach (var adapter in _Adapters)
             {
                 if (adapter == null)
                     continue;
 
-                cancellationToken.ThrowIfCancellationRequested();
+                cts.Token.ThrowIfCancellationRequested();
                 var (handled, record) = await adapter.TryHandleJoinRequest(joinRequest);
                 if (!handled || record == null)
                     continue;
 
-                if (await ConnectToServerAsync(record, null, cancellationToken))
+                resolved = true;
+                cts.Token.ThrowIfCancellationRequested();
+                if (await ConnectToServerAsync(record, null, cts.Token))
                     return;
             }
 
-            Debug.LogWarning($"[NetworkServerManager] No adapter could handle join request of type {joinRequest.GetType().Name}.");
+            if (!resolved)
+                Debug.LogWarning($"[NetworkServerManager] No adapter could handle join request of type {joinRequest.GetType().Name}.");
         }
 
         public UniTask<bool> ReconnectAsync(CancellationToken cancellationToken = default)
@@ -420,6 +439,9 @@ namespace EDIVE.Networking.ServerManagement
                 Debug.LogWarning($"[NetworkServerManager] Server '{server.ServerName}' has no endpoints to try.");
                 return false;
             }
+
+            using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StopToken);
+            cancellationToken = connectCts.Token;
 
             JoinedServer = server;
             LastJoinedServer = server;
@@ -526,8 +548,9 @@ namespace EDIVE.Networking.ServerManagement
             var nm = NetworkManager.main;
             nm.onClientConnectionState += OnState;
 
+            // Slim timer fires on the main thread, the continuation calls Unity API
             using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            attemptCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
+            using var attemptTimeout = attemptCts.CancelAfterSlim(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)), DelayType.Realtime);
             await using var registration = attemptCts.Token.Register(() => attempt.TrySetResult(false));
 
             try
@@ -542,8 +565,8 @@ namespace EDIVE.Networking.ServerManagement
                 nm.StopClient();
                 
                 using (var stopCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                using (stopCts.CancelAfterSlim(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)), DelayType.Realtime))
                 {
-                    stopCts.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, _ConnectAttemptTimeoutSeconds)));
                     await stopped.Task.AttachExternalCancellation(stopCts.Token).SuppressCancellationThrow();
                 }
 
