@@ -59,6 +59,7 @@ namespace EDIVE.Networking.UI
             _networkManager.RuntimeModeChanged += OnRuntimeModeChanged;
             _serverManager = serverManager;
             _serverManager.ReconnectAttemptFailed += OnReconnectAttemptFailed;
+            _serverManager.CurrentServerChanged += OnCurrentServerChanged;
             RefreshState();
         }
 
@@ -72,7 +73,10 @@ namespace EDIVE.Networking.UI
                 _networkManager.RuntimeModeChanged -= OnRuntimeModeChanged;
             }
             if (_serverManager)
+            {
                 _serverManager.ReconnectAttemptFailed -= OnReconnectAttemptFailed;
+                _serverManager.CurrentServerChanged -= OnCurrentServerChanged;
+            }
         }
 
         private void Update()
@@ -84,6 +88,7 @@ namespace EDIVE.Networking.UI
         private void OnRuntimeModeChanged(NetworkRuntimeMode networkRuntimeMode) => RefreshState();
         private void OnClientConnectionStateChanged(ConnectionState state) => RefreshState();
         private void OnReconnectAttemptFailed() => RefreshState();
+        private void OnCurrentServerChanged(ServerRecord server) => RefreshState();
 
         private void RefreshState()
         {

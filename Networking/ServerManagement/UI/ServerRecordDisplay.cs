@@ -58,7 +58,10 @@ namespace EDIVE.Networking.ServerManagement.UI
         {
             _serverRecord = serverRecord;
             if (_serverRecord == null)
+            {
+                ClearDisplay();
                 return;
+            }
             
             _ConnectActivation?.Register(OnConnectActivated);
             
@@ -124,6 +127,32 @@ namespace EDIVE.Networking.ServerManagement.UI
             }
         }
         
+        private void ClearDisplay()
+        {
+            if (_IDText)
+                _IDText.text = "-";
+
+            if (_NameText)
+                _NameText.text = "-";
+
+            if (_JoinCodeText)
+                _JoinCodeText.text = "-";
+
+            if (_CurrentPlayersText)
+                _CurrentPlayersText.text = "-";
+
+            if (_MaxPlayersText)
+                _MaxPlayersText.text = "-";
+
+            if (_PlayersText)
+                _PlayersText.text = "-";
+
+            foreach (var endpointDisplay in _EndpointDisplays.Where(d => d != null))
+            {
+                endpointDisplay.gameObject.SetActive(false);
+            }
+        }
+
         private void OnServerRecordChanged(ServerRecord record)
         {
             if (record != _serverRecord)

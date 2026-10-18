@@ -85,10 +85,24 @@ namespace EDIVE.Networking.ServerManagement
         [ShowInInspector]
         public string JoinCode => CurrentServer?.JoinCode;
         
-        public ServerRecord HostServer { get; private set; }
-        public ServerRecord JoinedServer { get; private set; }
+        private ServerRecord _hostServer;
+        private ServerRecord _joinedServer;
+
+        public ServerRecord HostServer
+        {
+            get => _hostServer;
+            private set => SetServers(value, _joinedServer);
+        }
+
+        public ServerRecord JoinedServer
+        {
+            get => _joinedServer;
+            private set => SetServers(_hostServer, value);
+        }
+
         public ServerRecord LastJoinedServer { get; private set; }
         public ServerRecord CurrentServer =>  HostServer ?? JoinedServer;
+        public event Action<ServerRecord> CurrentServerChanged;
         public AServerEndpoint ConnectedEndpoint { get; private set; }
         
         public event Action<AServerEndpoint> ConnectedEndpointChanged;
@@ -635,6 +649,15 @@ namespace EDIVE.Networking.ServerManagement
                 ConsoleCommandHandler.ResetTitle();
                 StopServer();
             }
+        }
+
+        private void SetServers(ServerRecord hostServer, ServerRecord joinedServer)
+        {
+            var previous = CurrentServer;
+            _hostServer = hostServer;
+            _joinedServer = joinedServer;
+            if (previous != CurrentServer)
+                CurrentServerChanged?.Invoke(CurrentServer);
         }
 
         private void StopServer()
