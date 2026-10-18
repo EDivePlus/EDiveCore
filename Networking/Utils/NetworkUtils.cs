@@ -3,6 +3,7 @@
 
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
@@ -74,6 +75,27 @@ namespace EDIVE.Networking.Utils
             catch
             {
                 return "0.0.0.0";
+            }
+        }
+
+        // Loopback or an address of any adapter on this machine
+        public static bool IsLocalAddress(string address)
+        {
+            if (!IPAddress.TryParse(address, out var ip))
+                return false;
+
+            if (IPAddress.IsLoopback(ip))
+                return true;
+
+            try
+            {
+                return NetworkInterface.GetAllNetworkInterfaces()
+                    .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+                    .Any(a => a.Address.Equals(ip));
+            }
+            catch
+            {
+                return address == GetLocalIPv4();
             }
         }
 

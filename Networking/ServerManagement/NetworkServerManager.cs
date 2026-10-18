@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
@@ -351,13 +350,7 @@ namespace EDIVE.Networking.ServerManagement
 
         private static bool IsLocalEndpoint(AServerEndpoint endpoint)
         {
-            if (endpoint is not AddressServerEndpoint addressEndpoint || string.IsNullOrEmpty(addressEndpoint.Address))
-                return false;
-
-            if (IPAddress.TryParse(addressEndpoint.Address, out var ip) && IPAddress.IsLoopback(ip))
-                return true;
-
-            return addressEndpoint.Address == NetworkUtils.GetLocalIPv4();
+            return endpoint is AddressServerEndpoint addressEndpoint && NetworkUtils.IsLocalAddress(addressEndpoint.Address);
         }
 
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
