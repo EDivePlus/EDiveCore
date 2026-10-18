@@ -92,6 +92,9 @@ namespace EDIVE.ServiceHub.Auth
 
         private UniTask? _preparing;
 
+        // Credentials the service refused, retried only once the config changes
+        private (string ServerId, string Secret)? _rejectedCredentials;
+
         // One login at a time, later callers wait for the running one
         public UniTask PrepareServerAuthAsync(string serverId, string serverSecret, CancellationToken cancellationToken = default)
         {
@@ -117,10 +120,27 @@ namespace EDIVE.ServiceHub.Auth
 
             if (!IsLoggedIn)
             {
-                await LoginServerAsync(serverId, serverSecret, cancellationToken);
+                if (_rejectedCredentials == (serverId, serverSecret))
+                    return;
+
+                var response = await LoginServerAsync(serverId, serverSecret, cancellationToken);
                 if (!IsLoggedIn)
+                {
+                    if (IsRejected(response))
+                        _rejectedCredentials = (serverId, serverSecret);
                     Debug.LogError($"[ServiceHub] Server '{serverId}' login from ServerConfig failed. Starting unauthenticated; server-scoped save data will not sync.");
+                }
             }
+        }
+
+        private static bool IsRejected(NetworkResponse<ServerLoginResponse> response)
+        {
+            if (response.StatusCode is 401 or 403)
+                return true;
+
+            return (ServiceHubStatus) response.ApiStatus is ServiceHubStatus.InvalidSecret
+                or ServiceHubStatus.ServerNotFound
+                or ServiceHubStatus.InvalidCredentials;
         }
 
         protected override void SaveLoginToStorage(ServerLoginResponse data)
