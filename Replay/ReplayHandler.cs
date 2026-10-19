@@ -231,6 +231,7 @@ namespace EDIVE.Replay
 
         private readonly List<ReplayAgentHandler> _spawnedHandlers = new();
         private readonly List<ReplayAgent> _playbackAgents = new();
+        private int _loadVersion;
 
         private CancellationTokenSource _playbackCancellationTokenSource;
 
@@ -263,7 +264,7 @@ namespace EDIVE.Replay
                 return;
             }
 
-            await LoadPlaybackAsync(ReplayRecord, cancellationToken);
+            await LoadPlaybackAsync(ReplayRecord, false, cancellationToken);
             if (cancellationToken.IsCancellationRequested)
                 return;
             StateChanged?.Invoke();
@@ -334,26 +335,51 @@ namespace EDIVE.Replay
             TimeChanged?.Invoke();
         }
 
-        public async UniTask LoadPlaybackAsync(ReplayRecord record, CancellationToken cancellationToken = default)
+        public UniTask LoadPlaybackAsync(ReplayRecord record, CancellationToken cancellationToken = default)
+        {
+            return LoadPlaybackAsync(record, true, cancellationToken);
+        }
+
+        // Playback calls this with its own token, so it must not stop itself
+        private async UniTask LoadPlaybackAsync(ReplayRecord record, bool stopPlayback, CancellationToken cancellationToken)
         {
             if (StopRecordingInternal())
                 StateChanged?.Invoke();
             if (record == null || (ReplayRecord == record && IsPlaybackLoaded))
                 return;
             if (PlaybackLoadState != PlaybackLoadState.NotLoaded)
-                UnloadPlayback();
+            {
+                if (stopPlayback)
+                    StopPlaybackInternal();
+                UnloadPlaybackInternal();
+            }
             ReplayRecord = record;
 
             if (Scope == null)
                 return;
 
+            var loadVersion = ++_loadVersion;
             PlaybackLoadState = PlaybackLoadState.Loading;
             StateChanged?.Invoke();
+            try
+            {
+                await LoadAgentsAsync(record, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                if (loadVersion == _loadVersion)
+                    UnloadPlaybackInternal();
+                throw;
+            }
+        }
 
+        private async UniTask LoadAgentsAsync(ReplayRecord record, CancellationToken cancellationToken)
+        {
             // Prepare all agents
-            var getObjectTasks = ReplayRecord.ObjectData
+            var getObjectTasks = record.ObjectData
                 .Where(data => data != null && !string.IsNullOrEmpty(data.ID))
-                .Select(data => TryGetObjectAsync(data, cancellationToken));
+                .Select(data => TryGetObjectAsync(data, cancellationToken))
+                .ToList();
 
             // All agents that are not found will be set to ignored, spawned agents are not registered in the scope
             foreach (var agent in Scope.Agents)
@@ -364,7 +390,7 @@ namespace EDIVE.Replay
 
             // Await for all tasks to complete in parallel
             var results = await UniTask.WhenAll(getObjectTasks);
-            await UniTask.Yield();
+            await UniTask.Yield(cancellationToken);
             foreach (var (success, agent, data) in results)
             {
                 if (!success)
@@ -378,6 +404,7 @@ namespace EDIVE.Replay
 
             // Prepare all agents for playback in parallel
             await UniTask.WhenAll(_playbackAgents.Select(a => a.PreparePlayback(CurrentTime, cancellationToken)));
+            cancellationToken.ThrowIfCancellationRequested();
 
             PlaybackLoadState = PlaybackLoadState.Loaded;
             _currentDuration = record.Duration;
@@ -389,6 +416,11 @@ namespace EDIVE.Replay
         public void UnloadPlayback()
         {
             StopPlaybackInternal();
+            UnloadPlaybackInternal();
+        }
+
+        private void UnloadPlaybackInternal()
+        {
             if (PlaybackLoadState == PlaybackLoadState.NotLoaded)
                 return;
 
@@ -575,16 +607,16 @@ namespace EDIVE.Replay
                 }
 
                 var data = await File.ReadAllBytesAsync(path);
-                ReplayRecord = await ReplayUtils.DeserializeAsync<ReplayRecord>(data);
+                var record = await ReplayUtils.DeserializeAsync<ReplayRecord>(data);
                 await UniTask.SwitchToMainThread();
-                if (ReplayRecord == null)
+                if (record == null)
                 {
                     Debug.LogWarning($"Failed to deserialize replay record from file: {path}");
                     return false;
                 }
                     
-                Debug.Log($"Loaded replay record: {ReplayRecord.ID} from file: {path}");
-                await LoadPlaybackAsync(ReplayRecord);
+                Debug.Log($"Loaded replay record: {record.ID} from file: {path}");
+                await LoadPlaybackAsync(record);
                 return true;
             }
             catch (Exception ex)

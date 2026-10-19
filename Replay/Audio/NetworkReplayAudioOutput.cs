@@ -41,6 +41,7 @@ namespace EDIVE.Replay.Audio
         [ObserversRpc]
         private void ObserversClearBuffer()
         {
+            if (isServer) return;
             _replayAudioOutput.ClearBuffer();
         }
 
@@ -54,18 +55,18 @@ namespace EDIVE.Replay.Audio
             ObserversSetPlaybackEnabled(isEnabled);
         }
 
-        // PurrNet doesn't have FishNet's ExcludeServer flag — by default the server doesn't run
-        // ObserversRpc bodies locally (runLocally defaults to false), so the host's server side
-        // is already excluded. The host's client side still receives the call as an observer.
+        // Host already applied it locally, skip to avoid echo and double playback
         [ObserversRpc]
         private void ObserversFeedAudioFrame(AudioFrame frame)
         {
+            if (isServer) return;
             _replayAudioOutput.Feed(frame);
         }
 
         [ObserversRpc]
         private void ObserversSetPlaybackEnabled(bool isEnabled)
         {
+            if (isServer) return;
             _replayAudioOutput.SetPlaybackEnabled(isEnabled);
         }
     }

@@ -31,6 +31,7 @@ namespace EDIVE.Replay.Network
         protected override void OnSpawned(bool asServer)
         {
             if (!asServer) return;
+            _Handler.Initialize();
             _Handler.StateChanged += OnHandlerStateChanged;
             _Handler.TimeChanged += OnHandlerTimeChanged;
         }
@@ -40,6 +41,7 @@ namespace EDIVE.Replay.Network
             if (!asServer) return;
             _Handler.StateChanged -= OnHandlerStateChanged;
             _Handler.TimeChanged -= OnHandlerTimeChanged;
+            _Handler.Terminate();
         }
 
         private void OnHandlerStateChanged()
@@ -126,8 +128,12 @@ namespace EDIVE.Replay.Network
             if (!isClient)
                 return await _Handler.GetSavedRecords();
 
-            _recordsRequest = new UniTaskCompletionSource<IEnumerable<AReplayRecordMeta>>();
-            ServerGetSavedRecords();
+            if (_recordsRequest == null)
+            {
+                _recordsRequest = new UniTaskCompletionSource<IEnumerable<AReplayRecordMeta>>();
+                ServerGetSavedRecords();
+            }
+
             var result = await _recordsRequest.Task;
             _recordsRequest = null;
             return result;

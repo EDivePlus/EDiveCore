@@ -42,7 +42,7 @@ namespace EDIVE.Replay.Agents
         [ShowCreateNew]
         [SerializeField]
         private ReplayAgentDefinition _Definition;
-        
+
         [SerializeField]
         [ValidateMultiState("GetAllowedPlaybackParticipationStates")]
         private AMultiState _ParticipationState;
@@ -52,16 +52,16 @@ namespace EDIVE.Replay.Agents
         [ShowCreateNew]
         [SerializeField]
         private ReplayRecordingConfig _RecordingConfig;
-        
+
         [Required]
         [ShowCreateNew]
         [SerializeField]
         private ReplayScope _ReplayScope;
-        
+
         [ReadOnly]
         [ShowInInspector]
         public PlaybackParticipation CurrentPlaybackParticipation { get; private set; }
-        
+
         [PropertySpace]
         [SerializeReference]
         [HideReferenceObjectPicker]
@@ -69,7 +69,7 @@ namespace EDIVE.Replay.Agents
         [ListDrawerSettings(DefaultExpandedState = true, OnTitleBarGUI = "OnComponentsTitleBarGUI")]
         [EnhancedValueDropdown("GetComponentsDropdown", IconGetter = "GetComponentIcon", DrawDropdownForListElements = false, SortDropdownItems = true)]
         private List<AReplayAgentComponent> _ComponentList = new();
-        
+
         [HideInInspector]
         [Obsolete]
         [SerializeField]
@@ -79,7 +79,7 @@ namespace EDIVE.Replay.Agents
         public int? DynamicID { get; set; }
         [ShowInInspector]
         public string ID => DynamicID.HasValue ? $"{_BaseID}_{DynamicID}" : _BaseID;
-        
+
         public bool IsActive { get; private set; }
 
         public ReplaySpawnMode SpawnMode => _SpawnMode;
@@ -95,10 +95,10 @@ namespace EDIVE.Replay.Agents
         private ReplayAgentHandler _handler;
 
         private List<Collider> _ownColliders;
-        private IEnumerable<Collider> _enabledColliders;
-        
+        private List<Collider> _enabledColliders;
+
         private List<Rigidbody> _ownRigidbodies;
-        private IEnumerable<Rigidbody> _nonKinematicRigidbodies;
+        private List<Rigidbody> _nonKinematicRigidbodies;
 
         public void Initialize(ReplayAgentHandler handler)
         {
@@ -108,7 +108,7 @@ namespace EDIVE.Replay.Agents
             {
                 SetCurrentPlaybackParticipation(CurrentPlaybackParticipation);
             }
-            
+
             // Register to scope only if not spawned during playback
             if (CurrentPlaybackParticipation != PlaybackParticipation.Spawned)
             {
@@ -121,10 +121,10 @@ namespace EDIVE.Replay.Agents
                     Debug.LogWarning($"RecordableScope not assigned to {_handler.name}. This controller will not register itself.", _handler);
                 }
             }
-            
+
             IsActive = true;
         }
-        
+
         public void Terminate()
         {
             // Unregister from scope
@@ -133,15 +133,18 @@ namespace EDIVE.Replay.Agents
                 _ReplayScope.UnregisterAgent(this);
             }
 
-            foreach (var component in _ComponentList)
-                component?.OnAgentTerminating();
-            
+            if (_ComponentList != null)
+            {
+                foreach (var component in _ComponentList)
+                    component?.OnAgentTerminating();
+            }
+
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
             IsActive = false;
         }
-        
+
         public ReplayAgentData GetData()
         {
             return new ReplayAgentData(ID, _SpawnMode, _Definition, _ComponentList.Select(t => t.GetDataCopy()).ToList());
@@ -151,7 +154,7 @@ namespace EDIVE.Replay.Agents
         {
             if (agentData == null)
                 return;
-            
+
             foreach (var component in _ComponentList)
             {
                 var data = agentData.GetComponentData(component.ID);
@@ -159,7 +162,7 @@ namespace EDIVE.Replay.Agents
                     component.SetData(data);
             }
         }
-        
+
         public void StartRecording(float startTime, CancellationToken cancellationToken)
         {
             if (_cancellationTokenSource != null)
@@ -167,23 +170,23 @@ namespace EDIVE.Replay.Agents
                 Debug.LogError("Recording already in progress!");
                 return;
             }
-            
+
             if (cancellationToken.IsCancellationRequested)
                 return;
-            
+
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationTokenSource.Token.Register(() =>
             {
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
             });
-            
+
             foreach (var component in _ComponentList)
             {
                 component.StartRecording(startTime, _RecordingConfig, _cancellationTokenSource.Token);
             }
         }
-        
+
         public void ClearData(float startTime = 0f)
         {
             foreach (var component in _ComponentList)
@@ -191,16 +194,16 @@ namespace EDIVE.Replay.Agents
                 component?.ClearData(startTime);
             }
         }
-        
+
         public async UniTask PreparePlayback(float startTime, CancellationToken cancellationToken)
         {
             var tasks = _ComponentList
                 .Where(c => c != null)
                 .Select(c => c.PreparePlayback(startTime, cancellationToken));
-            
+
             await UniTask.WhenAll(tasks);
         }
-        
+
         public void StartPlayback(float startTime, CancellationToken cancellationToken)
         {
             if (_cancellationTokenSource != null)
@@ -208,23 +211,23 @@ namespace EDIVE.Replay.Agents
                 Debug.LogError("Playback already in progress!");
                 return;
             }
-            
+
             if (cancellationToken.IsCancellationRequested)
                 return;
-            
+
             _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationTokenSource.Token.Register(() =>
             {
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
             });
-            
+
             foreach (var component in _ComponentList)
             {
                 component.StartPlayback(startTime, _cancellationTokenSource.Token);
             }
         }
-        
+
         public void ApplyTime(float value)
         {
             if (_ComponentList == null)
@@ -235,7 +238,7 @@ namespace EDIVE.Replay.Agents
                 record.ApplyTime(value);
             }
         }
-        
+
         public void SetCurrentPlaybackParticipation(PlaybackParticipation participation)
         {
             var wasFound = CurrentPlaybackParticipation == PlaybackParticipation.Found;
@@ -245,39 +248,37 @@ namespace EDIVE.Replay.Agents
                 foreach (var component in _ComponentList)
                     component?.OnPlaybackUnloaded();
             }
-            if (_ParticipationState) 
+
+            if (_ParticipationState)
                 _ParticipationState.SetState(participation);
-            
+
             if (_handler == null)
                 return;
-            
+
             if (participation == PlaybackParticipation.None)
             {
                 _enabledColliders?.ForEach(c => c.enabled = true);
                 _enabledColliders = null;
-                
+
                 _nonKinematicRigidbodies?.ForEach(r => r.isKinematic = false);
                 _nonKinematicRigidbodies = null;
             }
-            else
+            else if (participation is PlaybackParticipation.Found or PlaybackParticipation.Spawned)
             {
-                var isPlayback = participation is PlaybackParticipation.Found or PlaybackParticipation.Spawned;
-                
                 _ownColliders ??= _handler.GetComponentsInChildren<Collider>().ToList();
-                _enabledColliders = _ownColliders.Where(c => c.enabled);
-                if (isPlayback) 
-                    _enabledColliders.ForEach(c => c.enabled = false);
-                
+                _enabledColliders ??= _ownColliders.Where(c => c.enabled).ToList();
+                _enabledColliders.ForEach(c => c.enabled = false);
+
                 _ownRigidbodies ??= _handler.GetComponentsInChildren<Rigidbody>().ToList();
-                _nonKinematicRigidbodies = _ownRigidbodies.Where(r => !r.isKinematic);
-                if (isPlayback) 
-                    _nonKinematicRigidbodies.ForEach(r => r.isKinematic = true);
+                _nonKinematicRigidbodies ??= _ownRigidbodies.Where(r => !r.isKinematic).ToList();
+                _nonKinematicRigidbodies.ForEach(r => r.isKinematic = true);
             }
         }
 
     #region Migration
         [Obsolete]
         public void OnBeforeSerialize() => Migrate();
+
         [Obsolete]
         public void OnAfterDeserialize() => Migrate();
 
@@ -286,14 +287,14 @@ namespace EDIVE.Replay.Agents
         {
             if (_Components == null || _Components.Count == 0)
                 return;
-            
+
             _ComponentList = _Components
                 .Where(c => c?.FrameSequences != null)
                 .SelectMany(c => c.FrameSequences
                     .Where(f => f != null)
                     .Select(f => f.Migrate(c)))
                 .ToList();
-            
+
             _Components = null;
         }
     #endregion
@@ -303,7 +304,7 @@ namespace EDIVE.Replay.Agents
         [PropertyRange(nameof(MinTime), nameof(MaxTime))]
         [OnValueChanged(nameof(ApplyTime))]
         private float _preview;
-        
+
         [UsedImplicitly]
         private IEnumerable<PlaybackParticipation> GetAllowedPlaybackParticipationStates()
         {
@@ -314,20 +315,20 @@ namespace EDIVE.Replay.Agents
                     yield return PlaybackParticipation.Found;
                     yield return PlaybackParticipation.Spawned;
                     break;
-                case ReplaySpawnMode.FindOnly: 
+                case ReplaySpawnMode.FindOnly:
                     yield return PlaybackParticipation.None;
                     yield return PlaybackParticipation.Found;
                     break;
-                case ReplaySpawnMode.AlwaysCreate: 
+                case ReplaySpawnMode.AlwaysCreate:
                     yield return PlaybackParticipation.None;
                     yield return PlaybackParticipation.Spawned;
                     yield return PlaybackParticipation.Ignored;
                     break;
-                default: 
+                default:
                     throw new ArgumentOutOfRangeException();
             }
         }
-        
+
         [UsedImplicitly]
         private void OnComponentsTitleBarGUI(InspectorProperty property)
         {
@@ -337,15 +338,15 @@ namespace EDIVE.Replay.Agents
                 property.MarkSerializationRootDirty();
             }
         }
-        
+
         private IEnumerable GetComponentsDropdown()
         {
             return TypeCacheUtils.GetAssignableClassesOfType<AReplayAgentComponent>()
                 .Select(c => new ValueDropdownItem<AReplayAgentComponent>(c.ComponentLabel, c));
         }
-        
+
         private Texture2D GetComponentIcon(AReplayAgentComponent component) => GUIHelper.GetAssetThumbnail(null, component.EditorTargetType, false);
-        
+
         [UsedImplicitly]
         private void ValidateComponents(List<AReplayAgentComponent> value, SelfValidationResult result, InspectorProperty property)
         {
@@ -356,22 +357,22 @@ namespace EDIVE.Replay.Agents
 
             if (property.TryGetParentObject<ReplayAgentHandler>(out var handler))
             {
-                if (SpawnMode != ReplaySpawnMode.FindOnly && 
+                if (SpawnMode != ReplaySpawnMode.FindOnly &&
                     (_ComponentList == null || !_ComponentList.Any(t => t is GameObjectActiveComponent)))
                 {
                     result.AddError("Current spawn mode requires to track main GameObject's Active state.")
-                        .WithFix(() => 
-                        { 
+                        .WithFix(() =>
+                        {
                             _ComponentList ??= new List<AReplayAgentComponent>();
                             _ComponentList.Insert(0, new GameObjectActiveComponent());
                             property.MarkSerializationRootDirty();
                         });
                 }
             }
-            
+
             if (_ComponentList == null)
                 return;
-            
+
             if (_ComponentList.Any(t => t == null))
             {
                 result.AddError("One or more components are null.")
@@ -381,7 +382,7 @@ namespace EDIVE.Replay.Agents
                         property.MarkSerializationRootDirty();
                     });
             }
-            
+
             var duplicateItems = _ComponentList
                 .Where(i => i != null)
                 .GroupBy(i => i.ID)
@@ -393,7 +394,7 @@ namespace EDIVE.Replay.Agents
                 result.AddError($"Duplicate components found: {string.Join(", ", duplicateItems.Select(g => g.Key))}");
             }
         }
-        
+
         private void SetObjNameID(InspectorProperty property)
         {
             if (property.TryGetParentObject<MonoBehaviour>(out var mono))
