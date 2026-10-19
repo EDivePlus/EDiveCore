@@ -30,6 +30,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
         private IEnumerable<object> _result;
         private bool _enableMultiSelect;
         private Dictionary<object, string> _nameLookup;
+        private string _nullValueName;
         private ValueResolver<Texture> _iconGetterResolver;
         private ValueResolver<string> _valueLabelGetterResolver;
         private ActionResolver _onListEndGUIResolver;
@@ -126,14 +127,18 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             {
                 var vals = _getValues();
                 _nameLookup = new Dictionary<object, string>(new IValueDropdownEqualityComparer(false, _valueComparer));
+                _nullValueName = null;
                 foreach (var item in vals)
                 {
                     _nameLookup[item] = item.Text;
+                    if (item.Value == null)
+                        _nullValueName = item.Text;
                 }
             }
             else
             {
                 _nameLookup = null;
+                _nullValueName = null;
             }
         }
 
@@ -423,6 +428,10 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                         {
                             _nameLookup[item.Value] = item.Text;
                         }
+                        else
+                        {
+                            _nullValueName = item.Text;
+                        }
                     }
                 }
             }
@@ -513,6 +522,11 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 if (_nameLookup != null && weakValue != null)
                 {
                     _nameLookup.TryGetValue(weakValue, out name);
+                }
+                else if (weakValue == null)
+                {
+                    // Null can't be a lookup key, use the label of the null item
+                    name = _nullValueName;
                 }
 
                 if (_valueLabelGetterResolver != null && !_valueLabelGetterResolver.HasError)
