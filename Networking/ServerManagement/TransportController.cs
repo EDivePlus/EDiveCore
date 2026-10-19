@@ -18,14 +18,10 @@ namespace EDIVE.Networking.ServerManagement
         [SerializeField]
         private CompositeTransport _CompositeTransports;
         
+        // Offline transport, also the host client, so it must be one of the composite transports
         [Required]
         [SerializeField]
         private LocalTransport _LocalTransport;
-
-        // Host client, must be one of the composite transports
-        [Required]
-        [SerializeField]
-        private LocalTransport _HostLocalTransport;
 
         [SerializeField]
         [MinValue(1)]
@@ -122,7 +118,7 @@ namespace EDIVE.Networking.ServerManagement
         {
             NetworkManager.main.transport = _CompositeTransports;
             // In process host client, no timeout during long loads
-            _CompositeTransports.SetClientTransport(_HostLocalTransport);
+            _CompositeTransports.SetClientTransport(_LocalTransport);
         }
         
         public void SetLocal()
@@ -173,7 +169,7 @@ namespace EDIVE.Networking.ServerManagement
             if (TryGetTransport<UDPTransport>(out var udpTransport) && udpTransport.clientState == ConnectionState.Connected)
                 return SessionLinkMode.Direct;
 
-            if (_HostLocalTransport && _HostLocalTransport.clientState == ConnectionState.Connected)
+            if (!IsLocal() && _LocalTransport.clientState == ConnectionState.Connected)
                 return SessionLinkMode.Direct;
 
             return SessionLinkMode.None;

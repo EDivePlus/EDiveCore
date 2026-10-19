@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.StateHandling.ToggleStates;
 using EDIVE.UIElements.RecyclableScroller;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,6 +23,10 @@ namespace EDIVE.Networking.ServerManagement.UI
 
         [SerializeField]
         private Button _RefreshButton;
+
+        [SerializeField]
+        [Tooltip("On while the list is empty.")]
+        private AToggleState _EmptyState;
 
         private readonly List<ServerRecord> _currentServers = new();
         private NetworkServerManager _serverManager;
@@ -88,6 +93,7 @@ namespace EDIVE.Networking.ServerManagement.UI
             _currentServers.Clear();
             _currentServers.AddRange(_serverManager.ServerList);
             _Scroller.ReloadDataKeepingPosition();
+            if (_EmptyState) _EmptyState.SetState(_currentServers.Count == 0);
         }
 
     }

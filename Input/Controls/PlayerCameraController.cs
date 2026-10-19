@@ -1,9 +1,10 @@
-// Author: František Holubec
+﻿// Author: František Holubec
 // Created: 2026-05-07
 
 using EDIVE.Input.Touch;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using Gyroscope = UnityEngine.InputSystem.Gyroscope;
 
@@ -20,34 +21,34 @@ namespace EDIVE.Input.Controls
     {
         [SerializeField]
         private CameraMovementMode _Mode = CameraMovementMode.Planar;
-        
+
         [PropertySpace]
-        [Required] 
+        [Required]
         [SerializeField]
         private InputActionReference _Move;
 
-        [Required] 
+        [Required]
         [SerializeField]
         private InputActionReference _Look;
-        
-        [SerializeField] 
+
+        [SerializeField]
         private InputActionReference _Sprint;
-        
+
         [ShowIf(nameof(_Mode), CameraMovementMode.Flying)]
-        [SerializeField] 
+        [SerializeField]
         private InputActionReference _Vertical;
 
         [PropertySpace]
-        [MinValue(0f)] 
+        [MinValue(0f)]
         [SerializeField]
         private float _MoveSpeed = 3f;
 
-        [MinValue(1f)] 
+        [MinValue(1f)]
         [SerializeField]
         private float _SprintMultiplier = 3f;
 
         [Tooltip("Time to reach 99% of target position. 0 = instant.")]
-        [Range(0f, 1f)] 
+        [Range(0f, 1f)]
         [SerializeField]
         private float _PositionSmoothing;
 
@@ -55,30 +56,30 @@ namespace EDIVE.Input.Controls
         [MinValue(0f)]
         [SerializeField]
         private float _LookSensitivity = 120f;
-        
-        [SerializeField] 
+
+        [SerializeField]
         private float _MinPitch = -80f;
-        
-        [SerializeField] 
+
+        [SerializeField]
         private float _MaxPitch = 80f;
-        
-        [SerializeField] 
+
+        [SerializeField]
         private bool _InvertY;
-        
+
         [Tooltip("Time to reach 99% of target rotation. 0 = instant.")]
-        [Range(0f, 1f)] 
+        [Range(0f, 1f)]
         [SerializeField]
         private float _RotationSmoothing;
 
         [PropertySpace]
-        [SerializeField] 
+        [SerializeField]
         private bool _LockCursorOnRightMouse = true;
-        
-        [SerializeField] 
+
+        [SerializeField]
         private bool _UseGyro;
-        
+
         [ShowIf(nameof(_UseGyro))]
-        [SerializeField] 
+        [SerializeField]
         private float _GyroSensitivity = 1f;
 
         private float _yaw;
@@ -88,6 +89,9 @@ namespace EDIVE.Input.Controls
         private Vector3 _targetPosition;
         private Vector3 _smoothedPosition;
         private bool _lookFromDelta;
+        private bool _lookFromMouse;
+        // Right mouse pressed over UI, no mouse look until released
+        private bool _mouseLookBlocked;
 
         private void Awake()
         {
@@ -154,32 +158,40 @@ namespace EDIVE.Input.Controls
 
         private void HandleCursor()
         {
-            if (!_LockCursorOnRightMouse || Mouse.current == null) return;
+            if (Mouse.current == null) return;
 
             if (Mouse.current.rightButton.wasPressedThisFrame)
-                Cursor.lockState = CursorLockMode.Locked;
+            {
+                _mouseLookBlocked = EventSystem.current && EventSystem.current.IsPointerOverGameObject();
+                if (_LockCursorOnRightMouse && !_mouseLookBlocked)
+                    Cursor.lockState = CursorLockMode.Locked;
+            }
             else if (Mouse.current.rightButton.wasReleasedThisFrame)
             {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
+                _mouseLookBlocked = false;
+                if (_LockCursorOnRightMouse)
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
             }
         }
 
         private void ApplyLook()
         {
-            if (_Look != null)
+            if (_Look != null && !(_mouseLookBlocked && _lookFromMouse))
             {
                 var look = _Look.action.ReadValue<Vector2>();
                 // Mouse delta is per-frame; sticks are continuous values.
                 var dtMult = _lookFromDelta ? 1f : Time.deltaTime;
-                _yaw   += look.x * _LookSensitivity * dtMult;
+                _yaw += look.x * _LookSensitivity * dtMult;
                 _pitch += look.y * _LookSensitivity * dtMult * (_InvertY ? 1f : -1f);
             }
 
             if (_UseGyro && Gyroscope.current != null && Gyroscope.current.enabled)
             {
                 var rate = Gyroscope.current.angularVelocity.ReadValue() * (Mathf.Rad2Deg * _GyroSensitivity);
-                _yaw   -= rate.y * Time.deltaTime;
+                _yaw -= rate.y * Time.deltaTime;
                 _pitch -= rate.x * Time.deltaTime;
             }
 
@@ -223,8 +235,8 @@ namespace EDIVE.Input.Controls
             var rotPct = SmoothingFactor(_RotationSmoothing);
 
             _smoothedPosition = Vector3.Lerp(_smoothedPosition, _targetPosition, posPct);
-            _smoothedYaw      = Mathf.LerpAngle(_smoothedYaw, _yaw, rotPct);
-            _smoothedPitch    = Mathf.Lerp(_smoothedPitch, _pitch, rotPct);
+            _smoothedYaw = Mathf.LerpAngle(_smoothedYaw, _yaw, rotPct);
+            _smoothedPitch = Mathf.Lerp(_smoothedPitch, _pitch, rotPct);
 
             transform.position = _smoothedPosition;
             transform.eulerAngles = new Vector3(_smoothedPitch, _smoothedYaw, 0f);
@@ -248,6 +260,7 @@ namespace EDIVE.Input.Controls
             // Mouse/pen deltas and LookPad-driven TouchControls are per-frame deltas; sticks are continuous.
             var device = ctx.control?.device;
             _lookFromDelta = device is Mouse || device is Pen || device is TouchControls;
+            _lookFromMouse = device is Mouse;
         }
 
         private static void EnableAction(InputActionReference reference)

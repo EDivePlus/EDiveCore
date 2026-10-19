@@ -16,15 +16,15 @@ namespace EDIVE.View.Tooltips
     {
         [SerializeField]
         private VisualPreset _DefaultPreset;
-        
+
         [SerializeField]
         private TooltipPlacement _Placement;
-        
+
         private Graphic _graphic;
         private TooltipManager _tooltipManager;
-        
+
         private IDisposable _tooltipSubscription;
-        private VisualPreset _currentVisualPreset; 
+        private VisualPreset _currentVisualPreset;
 
         protected override void Awake()
         {
@@ -59,6 +59,7 @@ namespace EDIVE.View.Tooltips
                 enabled = false;
                 return false;
             }
+
             return true;
         }
 
@@ -66,10 +67,15 @@ namespace EDIVE.View.Tooltips
 
         public void SetPreset(VisualPreset visualPreset)
         {
-            _currentVisualPreset = VisualPreset.Combine(visualPreset, _DefaultPreset);
+            // Records apply in order, so the default goes first as a fallback
+            _currentVisualPreset = VisualPreset.Combine(_DefaultPreset, visualPreset);
+            if (_tooltipSubscription != null)
+                ShowTooltip();
         }
-        
-        public void OnPointerEnter(PointerEventData eventData)
+
+        public void OnPointerEnter(PointerEventData eventData) => ShowTooltip();
+
+        private void ShowTooltip()
         {
             if (!FocusedInTree || !EnsureManager())
                 return;

@@ -33,17 +33,26 @@ namespace EDIVE.ServiceHub.Connectivity
         {
             _registration?.Dispose();
             _registration = null;
+            Unbind();
+        }
 
+        private void Unbind()
+        {
             if (_service != null)
             {
                 _service.StateChanged -= OnStateChanged;
                 _service.IsCheckingChanged -= OnCheckingChanged;
             }
+
             _service = null;
         }
 
         private void OnServiceHubRegistered(ServiceHubManager serviceHub)
         {
+            Unbind();
+            if (!isActiveAndEnabled)
+                return;
+
             _service = serviceHub.Connectivity;
             if (_service == null)
                 return;
