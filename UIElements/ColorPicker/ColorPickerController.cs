@@ -86,7 +86,7 @@ namespace EDIVE.UIElements.ColorPicker
         
         public void SetColor(Color color, bool notify = true)
         {
-            Color.RGBToHSV(color, out _hue, out _saturation, out _value);
+            SetHsvFromRgb(color);
             _alpha = color.a;
             RefreshComponents(notify);
             _initialized = true;
@@ -206,8 +206,20 @@ namespace EDIVE.UIElements.ColorPicker
 
         private void ApplyRgb(Color color)
         {
-            Color.RGBToHSV(color, out _hue, out _saturation, out _value);
+            SetHsvFromRgb(color);
             _alpha = color.a;
+        }
+
+        // Grey has no hue and black no saturation, keep the current ones
+        private void SetHsvFromRgb(Color color)
+        {
+            Color.RGBToHSV(color, out var hue, out var saturation, out _value);
+            if (_value <= 0f)
+                return;
+
+            _saturation = saturation;
+            if (saturation > 0f)
+                _hue = hue;
         }
         
         private bool TryGetGradient(ColorChannel channel, Color color, out Color from, out Color to)

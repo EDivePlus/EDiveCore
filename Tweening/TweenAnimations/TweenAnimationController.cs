@@ -96,8 +96,14 @@ namespace EDIVE.Tweening
             var sequence = DOTween.Sequence();
             sequence.SetUpdate(_UpdateTime, _IgnoreUnityTimeScale);
             _References.AssignTempReferences();
-            _Sequence?.PopulateSequence(sequence);
-            _References.ClearTempReferences();
+            try
+            {
+                _Sequence?.PopulateSequence(sequence);
+            }
+            finally
+            {
+                _References.ClearTempReferences();
+            }
             sequence.SetLoops(_Loops, _LoopType);
             sequence.timeScale = _TimeScale;
             if (_Offset > 0)

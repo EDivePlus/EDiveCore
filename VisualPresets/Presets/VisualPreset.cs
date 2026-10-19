@@ -66,7 +66,7 @@ namespace EDIVE.VisualPresets.Presets
             where TVisualID : ABaseVisualID 
             where TRecord : AVisualPresetRecord<TVisualID>
         {
-            if (_Records.TryGetFirst(r => r.BaseVisualID == visualID, out var baseRecord) && baseRecord is TRecord typedRecord)
+            if (_Records.TryGetFirst(r => r != null && r.BaseVisualID == visualID, out var baseRecord) && baseRecord is TRecord typedRecord)
             {
                 record = typedRecord;
                 return true;

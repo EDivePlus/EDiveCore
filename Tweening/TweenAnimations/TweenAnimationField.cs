@@ -21,8 +21,14 @@ namespace EDIVE.Tweening
         protected override void PopulateSequence(Sequence sequence)
         {
             _References.AssignTempReferences();
-            _Sequence?.PopulateSequence(sequence);
-            _References.ClearTempReferences();
+            try
+            {
+                _Sequence?.PopulateSequence(sequence);
+            }
+            finally
+            {
+                _References.ClearTempReferences();
+            }
         }
 
         public override IDictionary<TweenObjectReference, Object> GetReferencesDictionary()

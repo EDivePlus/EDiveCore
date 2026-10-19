@@ -36,11 +36,17 @@ namespace EDIVE.Tweening
         {
             PopulateSequenceDynamic(sequence);
             _References.AssignTempReferences();
-            foreach (var additiveSequence in _AdditiveSequences)
+            try
             {
-                additiveSequence.ApplyTo(sequence);
+                foreach (var additiveSequence in _AdditiveSequences)
+                {
+                    additiveSequence.ApplyTo(sequence);
+                }
             }
-            _References.ClearTempReferences();
+            finally
+            {
+                _References.ClearTempReferences();
+            }
         }
 
         protected abstract void PopulateSequenceDynamic(Sequence sequence);

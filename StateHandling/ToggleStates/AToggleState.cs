@@ -69,7 +69,7 @@ namespace EDIVE.StateHandling.ToggleStates
         private void Awake()
         {
             if(_SetDefaultStateOnAwake)
-                SetState(DefaultState);
+                SetState(DefaultState, true);
         }
 
 #if UNITY_EDITOR

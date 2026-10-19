@@ -44,11 +44,17 @@ namespace EDIVE.UIElements.Selectables
         public Sequence CreateSequence(SelectionState state, TweenObjectReferenceCollection references, bool instant = false)
         {
             references.AssignTempReferences();
-            var anim = GetTweenSequenceByState(state);
-            var sequence = anim.CreateSequence();
-            sequence.SetUpdate(true);
-            references.ClearTempReferences();
-            return sequence;
+            try
+            {
+                var anim = GetTweenSequenceByState(state);
+                var sequence = anim.CreateSequence();
+                sequence.SetUpdate(true);
+                return sequence;
+            }
+            finally
+            {
+                references.ClearTempReferences();
+            }
         }
 
 #if UNITY_EDITOR

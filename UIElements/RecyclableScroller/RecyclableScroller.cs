@@ -355,6 +355,14 @@ namespace EDIVE.UIElements.RecyclableScroller
             _scrollTween?.Kill();
             _scrollTween = null;
 
+            // No OnEndDrag comes after disable
+            if (_dragFingerCount > 0)
+            {
+                _dragFingerCount = 0;
+                IsDragging = false;
+                _Snapping = _snapBeforeDrag;
+            }
+
             _snapJumping = false;
             if (IsTweening)
             {
@@ -534,6 +542,7 @@ namespace EDIVE.UIElements.RecyclableScroller
         public Tween JumpToDataIndex(int dataIndex, JumpOptions options = null)
         {
             options ??= new JumpOptions();
+            dataIndex = Mathf.Clamp(dataIndex, 0, Mathf.Max(0, ItemCount - 1));
 
             var itemOffsetPosition = 0f;
 
@@ -618,9 +627,9 @@ namespace EDIVE.UIElements.RecyclableScroller
         public float GetScrollPositionForItemIndex(int itemIndex)
         {
             if (ItemCount == 0) return 0;
-            if (itemIndex < 0) itemIndex = 0;
+            itemIndex = Mathf.Clamp(itemIndex, 0, _itemOffsetArray.Count - 1);
 
-            if (itemIndex == 0)
+            if (itemIndex <= 0)
                 return LeadingPadding;
 
             // previous item's offset plus the spacing between items
@@ -698,17 +707,17 @@ namespace EDIVE.UIElements.RecyclableScroller
 
         public void OnEndDrag(PointerEventData data)
         {
-            IsDragging = false;
-
             _dragFingerCount--;
-            if (_dragFingerCount < 0) _dragFingerCount = 0;
+            if (_dragFingerCount > 0) return;
+            _dragFingerCount = 0;
+            IsDragging = false;
 
             // restore the snapping captured before the drag
             _Snapping = _snapBeforeDrag;
 
             // snap to the nearest item once the last finger lifts; the velocity-continuous
             // tween flows out of any remaining fling speed
-            if (_Snapping && _dragFingerCount == 0 && !_snapJumping)
+            if (_Snapping && !_snapJumping)
                 Snap();
         }
 

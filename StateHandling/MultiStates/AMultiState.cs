@@ -75,7 +75,7 @@ namespace EDIVE.StateHandling.MultiStates
         private void Awake()
         {
             if (_SetDefaultStateOnAwake)
-                SetState(DefaultState);
+                SetState(DefaultState, true);
         }
 
         public abstract IEnumerable<string> GetAllStates();
