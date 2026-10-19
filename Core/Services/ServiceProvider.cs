@@ -89,26 +89,15 @@ namespace EDIVE.Core.Services
                 return true;
             }
             
-#if UNITY_EDITOR
+            // Same result in editor and builds, only a hint when registered under a related type
             foreach (var registeredService in _services.Keys)
             {
-                if (registeredService.IsAssignableFrom(typeof(T)))
-                {
-                    service = _services[registeredService].BaseService as T;
-                    if (service == null) continue;
-                    Debug.LogError($"[ServiceProvider] Attempt to get service with child type. Call '{registeredService.Name}' instead of '{service.GetType().Name}'!");
-                    return true;
-                }
-
-                if (typeof(T).IsAssignableFrom(registeredService))
-                {
-                    service = _services[registeredService].BaseService as T;
-                    if (service == null) continue;
-                    Debug.LogError($"[ServiceProvider] Attempt to get service with parent type. Call '{registeredService.Name}' instead of '{service.GetType().Name}'!");
-                    return true;
-                }
+                if (registeredService == typeof(T) || _services[registeredService].BaseService is not T)
+                    continue;
+                Debug.LogError($"[ServiceProvider] '{typeof(T).Name}' is registered as '{registeredService.Name}', get it by that type.");
+                break;
             }
-#endif
+
             service = null;
             return false;
         }

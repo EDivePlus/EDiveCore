@@ -22,7 +22,8 @@ namespace EDIVE.CredentialStore
 
         public LinuxSecretToolCredentialStore(TimeSpan? timeout = null)
         {
-            Timeout = timeout ?? TimeSpan.FromSeconds(60);
+            // Runs on the calling thread, a locked keyring prompt blocks until this
+            Timeout = timeout ?? TimeSpan.FromSeconds(5);
         }
 
         public TimeSpan Timeout { get; }

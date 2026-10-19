@@ -178,7 +178,7 @@ namespace EDIVE.ServiceHub.Connectivity
 
         private void OnRequestStarted(RequestStartedEvent e)
         {
-            if (Settings != null && e.Url != null && e.Url.StartsWith(Settings.ServiceBaseUrl, StringComparison.OrdinalIgnoreCase))
+            if (Settings != null && !string.IsNullOrEmpty(Settings.ServiceBaseUrl) && e.Url != null && e.Url.StartsWith(Settings.ServiceBaseUrl, StringComparison.OrdinalIgnoreCase))
                 _serviceRequests.Add(e.RequestId);
         }
 

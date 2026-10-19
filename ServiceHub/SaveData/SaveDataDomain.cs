@@ -39,6 +39,7 @@ namespace EDIVE.ServiceHub.SaveData
         
         private ServiceHubSettings _settings;
         private readonly Dictionary<string, UniTask<(ASaveDataObject Value, bool FromRemote)>> _pendingLoads = new(StringComparer.Ordinal);
+        private int _loadGeneration;
 
         public SaveDataDomain() { }
         public SaveDataDomain(string key, IEnumerable<ASaveDataStore> stores = null, ISaveDataConflictResolver conflictResolver = null)
@@ -125,6 +126,7 @@ namespace EDIVE.ServiceHub.SaveData
 
         public void ClearCache()
         {
+            _loadGeneration++;
             _pendingLoads.Clear();
             foreach (var cached in ObjectCache.Values)
                 Untrack(cached);
@@ -165,18 +167,12 @@ namespace EDIVE.ServiceHub.SaveData
             if (!_pendingLoads.TryGetValue(key, out var pending))
             {
                 pending = LoadAsync<T>(key).Preserve();
-                _pendingLoads[key] = pending;
+                // Finished synchronously, nothing left to share
+                if (!pending.Status.IsCompleted())
+                    _pendingLoads[key] = pending;
             }
-            (ASaveDataObject Value, bool FromRemote) loaded;
-            try
-            {
-                loaded = await pending.AttachExternalCancellation(ct);
-            }
-            finally
-            {
-                _pendingLoads.Remove(key);
-            }
-            var (value, fromRemote) = loaded;
+            // A caller cancelling only stops its own wait, the shared load keeps running
+            var (value, fromRemote) = await pending.AttachExternalCancellation(ct);
             return value is T typed
                 ? SaveDataResult<T>.Success(typed, fromRemote)
                 : SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);
@@ -184,8 +180,18 @@ namespace EDIVE.ServiceHub.SaveData
 
         private async UniTask<(ASaveDataObject Value, bool FromRemote)> LoadAsync<T>(string key) where T : ASaveDataObject, new()
         {
-            var result = await LoadFromStoresAsync<T>(key);
-            return (result.Value, result.FromRemote);
+            var generation = _loadGeneration;
+            try
+            {
+                var result = await LoadFromStoresAsync<T>(key);
+                return (result.Value, result.FromRemote);
+            }
+            finally
+            {
+                // A cleared cache may hold a newer load for the key
+                if (generation == _loadGeneration)
+                    _pendingLoads.Remove(key);
+            }
         }
 
         private async UniTask<SaveDataResult<T>> LoadFromStoresAsync<T>(string key) where T : ASaveDataObject, new()

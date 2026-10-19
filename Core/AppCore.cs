@@ -75,6 +75,8 @@ namespace EDIVE.Core
             if (_instance == this)
                 _instance = null;
 
+            _loadedPromise?.TrySetCanceled();
+            _loadedPromise = null;
             _services = null;
         }
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
 
@@ -23,6 +24,8 @@ namespace EDIVE.Core.Restart
                 var result = method.Invoke(null, null);
                 if (result is UniTask uniTask)
                     await uniTask;
+                else if (result is Task task)
+                    await task;
             }
         }
     }

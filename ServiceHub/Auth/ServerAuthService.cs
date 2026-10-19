@@ -98,11 +98,12 @@ namespace EDIVE.ServiceHub.Auth
         // One login at a time, later callers wait for the running one
         public UniTask PrepareServerAuthAsync(string serverId, string serverSecret, CancellationToken cancellationToken = default)
         {
+            // Shared run is not tied to one caller, each caller only stops its own wait
             if (_preparing is { Status: UniTaskStatus.Pending } running)
-                return running;
-            var preparing = PrepareServerAuthCoreAsync(serverId, serverSecret, cancellationToken).Preserve();
+                return running.AttachExternalCancellation(cancellationToken);
+            var preparing = PrepareServerAuthCoreAsync(serverId, serverSecret, destroyCancellationToken).Preserve();
             _preparing = preparing;
-            return preparing;
+            return preparing.AttachExternalCancellation(cancellationToken);
         }
 
         private async UniTask PrepareServerAuthCoreAsync(string serverId, string serverSecret, CancellationToken cancellationToken)
