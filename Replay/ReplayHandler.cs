@@ -96,7 +96,23 @@ namespace EDIVE.Replay
 
         private async UniTask RecordAsync(CancellationToken cancellationToken)
         {
+            try
+            {
+                await RecordInternalAsync(cancellationToken);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Debug.LogException(e);
+                StopRecordingInternal(true);
+            }
+        }
+
+        private async UniTask RecordInternalAsync(CancellationToken cancellationToken)
+        {
+            // Record from the playhead, frames after it get replaced
+            var startTime = CurrentTime;
             UnloadPlayback();
+            CurrentTime = startTime;
             // Discard any previously saved/played-back snapshot so this recording is saved fresh.
             ReplayRecord = null;
             if (Scope == null)
@@ -443,11 +459,6 @@ namespace EDIVE.Replay
             _spawnedHandlers.Clear();
             _playbackAgents.Clear();
             StateChanged?.Invoke();
-        }
-
-        public void SaveCurrentRecording()
-        {
-            throw new NotImplementedException();
         }
 
         private async UniTask<(bool, ReplayAgent, ReplayAgentData)> TryGetObjectAsync(ReplayAgentData data, CancellationToken cancellationToken = default)

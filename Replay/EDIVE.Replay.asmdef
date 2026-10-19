@@ -18,7 +18,9 @@
         "EDIVE.MemoryPackUtils",
         "EDIVE.Core",
         "EDIVE.UIElements.RecyclableScroller",
-        "EDIVE.Utils.Activations"
+        "EDIVE.Utils.Activations",
+        "EDIVE.View.ViewTree",
+        "EDIVE.View.Windows"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

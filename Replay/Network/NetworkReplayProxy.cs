@@ -30,7 +30,11 @@ namespace EDIVE.Replay.Network
 
         protected override void OnSpawned(bool asServer)
         {
-            if (!asServer) return;
+            if (!asServer)
+            {
+                _currentTime.onChanged += OnCurrentTimeChanged;
+                return;
+            }
             _Handler.Initialize();
             _Handler.StateChanged += OnHandlerStateChanged;
             _Handler.TimeChanged += OnHandlerTimeChanged;
@@ -38,7 +42,11 @@ namespace EDIVE.Replay.Network
 
         protected override void OnDespawned(bool asServer)
         {
-            if (!asServer) return;
+            if (!asServer)
+            {
+                _currentTime.onChanged -= OnCurrentTimeChanged;
+                return;
+            }
             _Handler.StateChanged -= OnHandlerStateChanged;
             _Handler.TimeChanged -= OnHandlerTimeChanged;
             _Handler.Terminate();
@@ -58,15 +66,16 @@ namespace EDIVE.Replay.Network
         [ObserversRpc(runLocally: true)]
         private void ObserversDispatchStateChanged() => StateChanged?.Invoke();
 
+        // Clients and host get it from the time SyncVar
         private void OnHandlerTimeChanged()
         {
             _currentDuration.value = _Handler.CurrentDuration;
             _currentTime.value = _Handler.CurrentTime;
-            ObserversDispatchTimeChanged();
+            if (!isClient)
+                TimeChanged?.Invoke();
         }
 
-        [ObserversRpc(runLocally: true)]
-        private void ObserversDispatchTimeChanged() => TimeChanged?.Invoke();
+        private void OnCurrentTimeChanged(float time) => TimeChanged?.Invoke();
     #endregion
 
     #region Recording
@@ -108,8 +117,6 @@ namespace EDIVE.Replay.Network
         [ServerRpc(requireOwnership: false)]
         public void UnloadPlayback() => _Handler.UnloadPlayback();
 
-        [ServerRpc(requireOwnership: false)]
-        public void SaveCurrentRecording() => _Handler.SaveCurrentRecording();
     #endregion
 
     #region Saving

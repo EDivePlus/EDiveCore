@@ -2,10 +2,14 @@
 // Created: 22.07.2025
 
 using System;
+using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.TimeHandling.TimeSpanUtils;
+using EDIVE.View.ViewTree;
+using EDIVE.View.Windows;
+using EDIVE.View.Windows.Dialog;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
@@ -56,7 +60,16 @@ namespace EDIVE.Replay.UI
         [SerializeField]
         private AToggleState _HasRecordState;
 
+        // Asks before recording over frames after the playhead, skipped when empty
+        [PropertySpace]
+        [SerializeField]
+        private WindowDefinition _DialogWindow;
+
+        [SerializeField]
+        private DialogSetup _OverwriteDialog;
+
         private ReplayController _replayController;
+        private bool _isConfirming;
 
         private void OnEnable()
         {
@@ -192,8 +205,7 @@ namespace EDIVE.Replay.UI
         
         private void OnSaveButtonClicked()
         {
-            // TODO
-            // _replayController?.SaveCurrentRecording();
+            _replayController.SaveCurrentRecord();
         }
 
         private void OnClearRecordingButtonClicked()
@@ -206,11 +218,34 @@ namespace EDIVE.Replay.UI
             if (_replayController.IsRecording)
             {
                 _replayController.StopRecording();
+                return;
             }
+
+            var overwrites = _replayController.CurrentTime < _replayController.CurrentDuration - 0.05f;
+            if (overwrites && _DialogWindow != null && _OverwriteDialog != null)
+                ConfirmRecordingAsync().Forget();
             else
-            {
                 _replayController.StartRecording();
+        }
+
+        private async UniTaskVoid ConfirmRecordingAsync()
+        {
+            if (_isConfirming)
+                return;
+
+            var screen = this.FindInViewTree<ScreenRoot>();
+            if (screen == null)
+            {
+                Debug.LogWarning($"[ReplayDisplay] {name} is not under a ScreenRoot.", this);
+                return;
             }
+
+            _isConfirming = true;
+            var result = await screen.Open(_DialogWindow, _OverwriteDialog).Closed;
+            _isConfirming = false;
+
+            if (result is true && _replayController != null)
+                _replayController.StartRecording();
         }
         
         // Todo listed to replay controller state change

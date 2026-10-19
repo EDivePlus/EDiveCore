@@ -120,6 +120,9 @@ namespace EDIVE.Replay.Components
         public override Type EditorTargetType => typeof(TTarget);
 
         protected AReplayAgentComponent() { }
-        protected AReplayAgentComponent(TTarget target, TData data) : base(data) { }
+        protected AReplayAgentComponent(TTarget target, TData data) : base(data)
+        {
+            _Target = target;
+        }
     }
 }
