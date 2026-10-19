@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Http;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace EDIVE.ServiceHub.Auth
@@ -45,7 +44,14 @@ namespace EDIVE.ServiceHub.Auth
                     .Where(h => h != null)
                     .Select(h => h(effectiveToken));
 
-                await UniTask.WhenAll(tasks);
+                try
+                {
+                    await UniTask.WhenAll(tasks);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Debug.LogException(e);
+                }
             }
 
             try
@@ -90,9 +96,7 @@ namespace EDIVE.ServiceHub.Auth
             Debug.Log($"[ServiceHub] {LogScope} successful.");
             OnLoginSucceeded?.Invoke(data);
 
-            var result = NetworkResponse<TLoginResponse>.Success(response.StatusCode, data);
-            Debug.Log($"[ServiceHub] {LogScope} response (formatted): {JsonConvert.SerializeObject(result, Formatting.Indented)}");
-            return result;
+            return NetworkResponse<TLoginResponse>.Success(response.StatusCode, data);
         }
     }
 }

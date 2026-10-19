@@ -293,10 +293,12 @@ namespace EDIVE.View.Windows
             return true;
         }
 
+        // Snapshot, a close callback can close or open other windows
         public void CloseAll(bool immediate = false)
         {
-            for (var i = _handles.Count - 1; i >= 0; i--)
-                Close(_handles[i], null, immediate);
+            var handles = _handles.ToArray();
+            for (var i = handles.Length - 1; i >= 0; i--)
+                Close(handles[i], null, immediate);
         }
 
         // Windows drawn above the handle, any layer
@@ -307,25 +309,27 @@ namespace EDIVE.View.Windows
                 return;
 
             var sortingOrder = handle.Definition.Layer.SortingOrder;
-            for (var i = _handles.Count - 1; i > index; i--)
+            var handles = _handles.ToArray();
+            for (var i = handles.Length - 1; i > index; i--)
             {
-                if (_handles[i].Definition.Layer.SortingOrder >= sortingOrder)
-                    Close(_handles[i], null, immediate);
+                if (handles[i].Definition.Layer.SortingOrder >= sortingOrder)
+                    Close(handles[i], null, immediate);
             }
 
             for (var i = index - 1; i >= 0; i--)
             {
-                if (_handles[i].Definition.Layer.SortingOrder > sortingOrder)
-                    Close(_handles[i], null, immediate);
+                if (handles[i].Definition.Layer.SortingOrder > sortingOrder)
+                    Close(handles[i], null, immediate);
             }
         }
 
         public void CloseLayer(WindowLayer layer, bool immediate = false)
         {
-            for (var i = _handles.Count - 1; i >= 0; i--)
+            var handles = _handles.ToArray();
+            for (var i = handles.Length - 1; i >= 0; i--)
             {
-                if (_handles[i].Definition.Layer == layer)
-                    Close(_handles[i], null, immediate);
+                if (handles[i].Definition.Layer == layer)
+                    Close(handles[i], null, immediate);
             }
         }
 
@@ -425,11 +429,16 @@ namespace EDIVE.View.Windows
                 return;
             }
 
+            // Screen destroyed while loading, handles already closed
+            if (this == null)
+                return;
+
             if (window == null)
             {
                 Debug.LogError($"[ScreenRoot] {name} failed to load {handle.Definition.name}.", this);
                 _handles.Remove(handle);
                 Fail(handle);
+                Refresh();
                 return;
             }
 
