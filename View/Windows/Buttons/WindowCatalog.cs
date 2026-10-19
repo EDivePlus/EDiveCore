@@ -6,7 +6,7 @@ using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.View.Windows
+namespace EDIVE.View.Windows.Buttons
 {
     // Apps a screen offers, all of them for the library, the pinned ones for the dock
     [CreateAssetMenu(menuName = "EDIVE/View/Window Catalog", fileName = "WindowCatalog")]
@@ -16,7 +16,7 @@ namespace EDIVE.View.Windows
         [EnhancedValidate("ValidateWindows")]
         private List<WindowDefinition> _Windows = new();
 
-        // Always in the dock, in this order
+        [Tooltip("Always in the dock, in this order")]
         [SerializeField]
         [EnhancedValidate("ValidatePinned")]
         private List<WindowDefinition> _Pinned = new();

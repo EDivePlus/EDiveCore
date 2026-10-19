@@ -4,6 +4,9 @@
     "references": [
         "EDIVE.NativeUtils",
         "EDIVE.OdinExtensions",
+        "EDIVE.ScriptableArchitecture",
+        "EDIVE.Conditions",
+        "EDIVE.StateHandling",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

@@ -5,7 +5,7 @@ using EDIVE.StateHandling.ToggleStates;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-namespace EDIVE.View.Windows
+namespace EDIVE.View.Windows.Screens
 {
     // On while a window is open on the layer, e.g. the dock turns as solid as the windows
     public class ScreenWindowsState : MonoBehaviour

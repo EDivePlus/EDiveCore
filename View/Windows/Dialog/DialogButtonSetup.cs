@@ -13,7 +13,7 @@ namespace EDIVE.View.Windows.Dialog
         [SerializeField]
         private VisualPreset _Visual = new();
 
-        // Empty closes with null
+        [Tooltip("Empty closes with null")]
         [SerializeReference]
         private IDialogResult _Result;
 

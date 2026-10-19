@@ -40,6 +40,8 @@ Check here first before writing a helper. If EDIVE has it, use it.
 - Selectables: `EnhancedButton`, `EnhancedToggle` (drives an `AToggleState` from `isOn`), `EnhancedKnob`. `SelectableAdditionalData` -> `TweenSelectableTransition` + preset for animated states.
 - Other: `TabGroupController`/`TabHandler`, `AProgressBar`, `RadialLayout`/`RadialLayoutElement`, `RecyclableScroller`, `TooltipTrigger`/`TooltipManager`, `ColorPickerController`, `RoundedRectRaycastTarget`.
 - MenuScreen: `MenuScreenController` service, `WidgetDefinition`, `WidgetView`, `MenuScreenFrame`.
+- View tree: `ViewGroup` nodes with `ViewState` (Hidden/Visible/Focused), adapters apply it. Groups link inactive children on Awake. Inactive content added deeper than a direct child: `ViewChildrenLinker` on the container or `instance.LinkViewTree()`. Events up the tree: `SendViewEvent` + `IViewEventHandler<T>` (e.g. `CloseWindowEvent`).
+- Windows: `AWindow` + `WindowDefinition`, `Screens/ScreenRoot`, `Buttons/WindowButton`. `ViewSwitch` pages, `Navigate("route/page")`. Pooled windows get `ResetView()` on close, override `OnViewReset` to reset own state. `WindowOpenCondition` for open/shown/front.
 - Localization: `SafeLocalizedString`, `EnhancedLocalizeStringEvent`, `LocalizeFont` + `LocalizedFontDefinition` (TMP texts need it, validator checks).
 
 ## State, tweening, visual presets

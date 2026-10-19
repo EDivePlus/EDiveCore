@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
+using EDIVE.View.Windows.Screens;
 
-namespace EDIVE.View.Windows
+namespace EDIVE.View.Windows.Buttons
 {
     // Spawns window buttons for a catalog: all windows for the library, pinned and shown ones for the dock
     public class WindowButtonList : MonoBehaviour
@@ -23,13 +25,14 @@ namespace EDIVE.View.Windows
         private WindowCatalog _Catalog;
 
         [SerializeField]
-        private ListContent _Content;
+        [FormerlySerializedAs("_Content")]
+        private ListContent _ListedWindows;
 
         [SerializeField]
         [Required]
         private WindowButton _ButtonPrefab;
 
-        // Buttons go here, at the end of the existing children
+        [Tooltip("Buttons go here, at the end of the existing children")]
         [SerializeField]
         [Required]
         private RectTransform _Container;
@@ -59,7 +62,7 @@ namespace EDIVE.View.Windows
 
         private void OnScreenChanged(ScreenRoot screen)
         {
-            if (_Content == ListContent.PinnedAndShown)
+            if (_ListedWindows == ListContent.PinnedAndShown)
                 Rebuild();
         }
 
@@ -98,7 +101,7 @@ namespace EDIVE.View.Windows
             if (_Catalog == null)
                 return;
 
-            if (_Content == ListContent.All)
+            if (_ListedWindows == ListContent.All)
             {
                 foreach (var window in _Catalog.Windows)
                 {

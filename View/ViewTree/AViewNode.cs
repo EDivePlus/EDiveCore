@@ -2,9 +2,12 @@
 // Created: 08.10.2026
 
 using System;
+using System.Collections.Generic;
+using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace EDIVE.View.ViewTree
 {
@@ -21,14 +24,14 @@ namespace EDIVE.View.ViewTree
         [ShowIf(nameof(_AttachMode), AttachMode.Explicit)]
         private ViewGroup _ExplicitParent;
 
-        // Reattaches right away at runtime
+        // Reattaches right away at runtime, also before Awake once linked
         public AttachMode AttachMode
         {
             get => _AttachMode;
             set
             {
                 _AttachMode = value;
-                if (_isAwake)
+                if (_isAwake || IsAttached)
                     Reattach();
             }
         }
@@ -40,7 +43,7 @@ namespace EDIVE.View.ViewTree
             set
             {
                 _ExplicitParent = value;
-                if (_isAwake && _AttachMode == AttachMode.Explicit)
+                if ((_isAwake || IsAttached) && _AttachMode == AttachMode.Explicit)
                     Reattach();
             }
         }
@@ -82,12 +85,22 @@ namespace EDIVE.View.ViewTree
         public bool FocusedInTree => StateInTree >= ViewState.Focused;
         public bool IsAttached => Parent != null;
 
+        // False for nodes linked by a group scan before their object was ever active
+        public bool IsAwake => _isAwake;
+
         // False until the first state is resolved
         public bool IsResolved => _state.HasValue;
 
         // Args are from, to
         public event Action<ViewState, ViewState> StateChanging;
         public event Action<ViewState, ViewState> StateChanged;
+
+        // Can fire before Awake, see IsAwake
+        public event Action<AViewNode, ViewGroup> Attached;
+        public event Action<AViewNode, ViewGroup> Detached;
+
+        // From ResetView, e.g. a pooled window before reuse
+        public event Action<AViewNode> ViewReset;
 
         private ViewState? _stateSelf;
         private ViewState? _state;
@@ -97,6 +110,8 @@ namespace EDIVE.View.ViewTree
         private bool _isOrphaned;
         private bool _isRefreshing;
         private bool _refreshPending;
+        // Handlers from AddViewEventHandler, by event type
+        private Dictionary<Type, object> _viewEventHandlers;
 
         protected virtual void Awake()
         {
@@ -132,9 +147,10 @@ namespace EDIVE.View.ViewTree
             RefreshHandlers();
         }
 
+        // Nodes linked before Awake follow moves too
         protected virtual void OnTransformParentChanged()
         {
-            if (!_isAwake || _AttachMode != AttachMode.Auto)
+            if ((!_isAwake && !IsAttached) || _AttachMode != AttachMode.Auto)
                 return;
 
             Reattach();
@@ -178,6 +194,91 @@ namespace EDIVE.View.ViewTree
             ApplyHandlers(_state.Value);
         }
 
+        // Back to the authored look for this node and everything below, top-down
+        public void ResetView()
+        {
+            try
+            {
+                OnViewReset();
+                ViewReset?.Invoke(this);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e, this);
+            }
+
+            ResetChildren();
+        }
+
+        // Goes up the view tree from this node, true when handled
+        public bool SendViewEvent<TEvent>(TEvent viewEvent)
+        {
+            for (AViewNode node = this; node != null; node = node.Parent)
+            {
+                if (node.TryHandleViewEvent(viewEvent))
+                    return true;
+            }
+            return false;
+        }
+
+        // For code that is not a component next to the node, true stops the event. Dispose to remove.
+        public IDisposable AddViewEventHandler<TEvent>(Func<TEvent, bool> handler)
+        {
+            _viewEventHandlers ??= new Dictionary<Type, object>();
+            if (!_viewEventHandlers.TryGetValue(typeof(TEvent), out var list))
+                _viewEventHandlers[typeof(TEvent)] = list = new List<Func<TEvent, bool>>();
+
+            var handlers = (List<Func<TEvent, bool>>) list;
+            handlers.Add(handler);
+            return DisposableUtils.Create(() => handlers.Remove(handler));
+        }
+
+        // Components first, then added handlers
+        private bool TryHandleViewEvent<TEvent>(TEvent viewEvent)
+        {
+            var components = ListPool<IViewEventHandler<TEvent>>.Get();
+            GetComponents(components);
+            var handled = false;
+            foreach (var component in components)
+            {
+                try
+                {
+                    handled = component.HandleViewEvent(viewEvent);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e, this);
+                }
+
+                if (handled)
+                    break;
+            }
+            ListPool<IViewEventHandler<TEvent>>.Release(components);
+
+            if (handled || _viewEventHandlers == null || !_viewEventHandlers.TryGetValue(typeof(TEvent), out var list))
+                return handled;
+
+            // Copy, handlers can remove themselves
+            var added = ListPool<Func<TEvent, bool>>.Get();
+            added.AddRange((List<Func<TEvent, bool>>) list);
+            foreach (var handler in added)
+            {
+                try
+                {
+                    handled = handler(viewEvent);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e, this);
+                }
+
+                if (handled)
+                    break;
+            }
+            ListPool<Func<TEvent, bool>>.Release(added);
+            return handled;
+        }
+
         public void SetExplicitParent(ViewGroup parent)
         {
             _AttachMode = AttachMode.Explicit;
@@ -209,11 +310,32 @@ namespace EDIVE.View.ViewTree
             _isOrphaned = parent == null && orphaned;
 
             if (previous != null)
-                OnDetached(previous);
+                NotifyLink(previous, false);
             if (parent != null)
-                OnAttached(parent);
+                NotifyLink(parent, true);
 
             Refresh();
+        }
+
+        private void NotifyLink(ViewGroup parent, bool attached)
+        {
+            try
+            {
+                if (attached)
+                {
+                    OnAttached(parent);
+                    Attached?.Invoke(this, parent);
+                }
+                else
+                {
+                    OnDetached(parent);
+                    Detached?.Invoke(this, parent);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e, this);
+            }
         }
 
         // Changes made during a refresh run after it, in order
@@ -316,6 +438,10 @@ namespace EDIVE.View.ViewTree
         {
         }
 
+        private protected virtual void ResetChildren()
+        {
+        }
+
         private void Notify(ViewState from, ViewState to)
         {
             try
@@ -403,6 +529,12 @@ namespace EDIVE.View.ViewTree
         {
         }
 
+        // Can run before Awake, also on nodes that were never shown
+        protected virtual void OnViewReset()
+        {
+        }
+
+        // Can run before Awake, don't rely on state set up there
         protected virtual void OnAttached(ViewGroup parent)
         {
         }

@@ -21,6 +21,12 @@ namespace EDIVE.View.ViewTree
         [FormerlySerializedAs("_State")]
         private ViewState _DefaultState = ViewState.Focused;
 
+        [Tooltip("Optional, holds this group so others can read it without a reference")]
+        [SerializeField]
+        [ShowCreateNew]
+        [EnhancedBoxGroup("View")]
+        private ViewGroupScriptableVariable _Variable;
+
         public override ViewState DefaultState => _DefaultState;
 
         [ShowInInspector]
@@ -30,6 +36,80 @@ namespace EDIVE.View.ViewTree
         private readonly List<AViewNode> _children = new();
 
         public IReadOnlyList<AViewNode> Children => _children;
+
+        private bool _subtreeLinked;
+        private int _linkedChildCount;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            if (_Variable != null)
+                _Variable.Value = this;
+            LinkSubtree();
+        }
+
+        // Content created inactive under a group that already linked its subtree
+        public static void LinkHierarchy(Transform root)
+        {
+            if (root != null)
+                LinkBranch(root);
+        }
+
+        // Nodes below that never woke, e.g. hidden pages, join the tree now
+        private void LinkSubtree()
+        {
+            if (_subtreeLinked)
+                return;
+
+            _subtreeLinked = true;
+            _linkedChildCount = transform.childCount;
+            for (var i = 0; i < transform.childCount; i++)
+                LinkBranch(transform.GetChild(i));
+        }
+
+        // Only direct children notify, deeper content needs LinkHierarchy
+        private void OnTransformChildrenChanged()
+        {
+            // Not linked yet, Awake links everything
+            if (!_subtreeLinked)
+                return;
+
+            var count = transform.childCount;
+            var added = count > _linkedChildCount;
+            _linkedChildCount = count;
+
+            // Added children always come last
+            if (added)
+                LinkBranch(transform.GetChild(count - 1));
+        }
+
+        // Stops at groups that already linked theirs
+        private static void LinkBranch(Transform target)
+        {
+            var nodes = ListPool<AViewNode>.Get();
+            target.GetComponents(nodes);
+            var descend = true;
+            foreach (var node in nodes)
+            {
+                if (!node.IsAttached)
+                    node.Reattach();
+
+                if (node is ViewGroup group)
+                {
+                    if (group._subtreeLinked)
+                        descend = false;
+                    group._subtreeLinked = true;
+                    group._linkedChildCount = target.childCount;
+                }
+            }
+            ListPool<AViewNode>.Release(nodes);
+
+            if (!descend)
+                return;
+
+            for (var i = 0; i < target.childCount; i++)
+                LinkBranch(target.GetChild(i));
+        }
 
         protected override void OnDestroy()
         {
@@ -52,6 +132,9 @@ namespace EDIVE.View.ViewTree
                     child.SetParent(null);
             }
             ListPool<AViewNode>.Release(children);
+
+            if (_Variable != null && _Variable.Value == this)
+                _Variable.Value = null;
 
             base.OnDestroy();
         }
@@ -105,6 +188,13 @@ namespace EDIVE.View.ViewTree
 
         private protected override void RefreshChildren()
         {
+            // Nodes destroyed before Awake never detach
+            for (var i = _children.Count - 1; i >= 0; i--)
+            {
+                if (_children[i] == null)
+                    _children.RemoveAt(i);
+            }
+
             var children = ListPool<AViewNode>.Get();
             children.AddRange(_children);
             foreach (var child in children)
@@ -120,6 +210,18 @@ namespace EDIVE.View.ViewTree
                 {
                     Debug.LogException(e, child);
                 }
+            }
+            ListPool<AViewNode>.Release(children);
+        }
+
+        private protected override void ResetChildren()
+        {
+            var children = ListPool<AViewNode>.Get();
+            children.AddRange(_children);
+            foreach (var child in children)
+            {
+                if (child != null && child.Parent == this)
+                    child.ResetView();
             }
             ListPool<AViewNode>.Release(children);
         }

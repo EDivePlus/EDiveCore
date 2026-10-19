@@ -10,13 +10,15 @@ using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.Toasts
 {
     public class ToastDisplay : MonoBehaviour
     {
         [SerializeField]
-        private VisualSwitcher _Switcher = new();
+        [FormerlySerializedAs("_Switcher")]
+        private VisualSwitcher _VisualSwitcher = new();
 
         [SerializeField]
         private TweenAnimationField _ShowAnimation;
@@ -24,7 +26,6 @@ namespace EDIVE.View.Toasts
         [SerializeField]
         private TweenAnimationField _HideAnimation;
 
-        // Optional, dismisses the shown toast
         [SerializeField]
         private Button _DismissButton;
 
@@ -46,7 +47,7 @@ namespace EDIVE.View.Toasts
         {
             _dismiss = dismiss;
             gameObject.SetActive(true);
-            _Switcher.Apply(preset);
+            _VisualSwitcher.Apply(preset);
 
             // Shows from the hidden look
             _HideAnimation?.SetToEnd();

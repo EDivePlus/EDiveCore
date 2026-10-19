@@ -7,18 +7,19 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.Utils.Activations;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.Windows
 {
     // Window of an app, the header shows the definition visual
     public class AppWindow : AWindow
     {
-        // Definition visual into the header, e.g. title and icon
         [SerializeField]
         [EnhancedBoxGroup("App")]
-        private VisualSwitcher _Switcher = new();
+        [FormerlySerializedAs("_Switcher")]
+        private VisualSwitcher _VisualSwitcher = new();
 
-        // E.g. the header close button, asks CanCloseAsync first
+        [Tooltip("E.g. the header close button, asks CanCloseAsync first")]
         [SerializeReference]
         [EnhancedBoxGroup("App")]
         private IActivation _CloseActivation;
@@ -29,7 +30,7 @@ namespace EDIVE.View.Windows
 
         private readonly DisposableGroup _listeners = new();
 
-        protected override void OnSetup() => _Switcher.Apply(Definition.Visual);
+        protected override void OnSetup() => _VisualSwitcher.Apply(Definition.Visual);
 
         protected override void OnEnable()
         {

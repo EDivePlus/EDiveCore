@@ -399,6 +399,8 @@ namespace EDIVE.View.ViewTree.Editor
             {
                 DrawStateIcon(iconRect, item.Node.VisibleInTree, FontAwesomeEditorIcons.EyeSolid, FontAwesomeEditorIcons.EyeSlashSolid, "Visible");
                 DrawStateIcon(iconRect.SubX(20), item.Node.FocusedInTree, FontAwesomeEditorIcons.HandPointerSolid, FontAwesomeEditorIcons.HandPointerSolid, "Focused");
+                if (!item.Node.IsAwake)
+                    GUI.Label(iconRect.SubX(40), GUIHelper.TempContent(FontAwesomeEditorIcons.BedSolid.Highlighted, "Not awake yet, linked by its group"));
                 return;
             }
 

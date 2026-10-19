@@ -13,17 +13,18 @@ using EDIVE.Utils.Activations;
 using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Serialization;
 
-namespace EDIVE.View.Windows
+namespace EDIVE.View.Windows.Screens
 {
     // Collapses a screen space menu to a small pill, e.g. desktop or phone. A world space menu, e.g. the VR tablet, stays expanded.
     // Collapsed hides the content, its windows keep running.
     public class MenuCollapse : MonoBehaviour
     {
-        // Hidden while collapsed, e.g. the screen root
         [SerializeField]
         [Required]
-        private ViewGroup _Content;
+        [FormerlySerializedAs("_Content")]
+        private ViewGroup _HiddenWhenCollapsed;
 
         [SerializeField]
         private bool _StartCollapsed;
@@ -34,40 +35,39 @@ namespace EDIVE.View.Windows
         [SerializeReference]
         private IActivation _CollapseActivation;
 
-        // On while expanded, e.g. the dock instead of the pill
         [SerializeField]
         [EnhancedBoxGroup("Display")]
         private AToggleState _ExpandedState;
 
-        // On where it can collapse, e.g. the collapse button
+        [Tooltip("On where it can collapse, e.g. the collapse button")]
         [SerializeField]
         [EnhancedBoxGroup("Display")]
         private AToggleState _CollapsibleState;
 
-        // On while collapsible and expanded, e.g. a scrim over the scene
+        [Tooltip("On while collapsible and expanded, e.g. a scrim over the scene")]
         [SerializeField]
         [EnhancedBoxGroup("Display")]
         private AToggleState _OverlayState;
 
-        // Overlay shown only while true, e.g. touch screens fold the menu on a tap outside, desktop keeps it open. Empty is always.
+        [Tooltip("Overlay shown only while true, e.g. touch screens fold the menu on a tap outside, desktop keeps it open. Empty is always.")]
         [SerializeReference]
         [EnhancedBoxGroup("Display")]
         private ICondition _OverlayCondition;
 
-        // Same as the overlay, e.g. touch controls hide
+        [Tooltip("Same as the overlay, e.g. touch controls hide")]
         [SerializeField]
         [EnhancedBoxGroup("Display")]
         private AScriptableVariable<bool> _OverlayVariable;
 
-        // Before collapsing, e.g. windows and dock fade out
+        [Tooltip("Before collapsing, e.g. windows and dock fade out")]
         [SerializeField]
         private TweenAnimationField _CollapseAnimation = new();
 
-        // After collapsing, e.g. the pill comes in
+        [Tooltip("After collapsing, e.g. the pill comes in")]
         [SerializeField]
         private TweenAnimationField _CollapsedAnimation = new();
 
-        // After expanding, e.g. dock and windows come back
+        [Tooltip("After expanding, e.g. dock and windows come back")]
         [SerializeField]
         private TweenAnimationField _ExpandAnimation = new();
 
@@ -166,7 +166,7 @@ namespace EDIVE.View.Windows
         private void Apply(bool immediate)
         {
             var overlay = IsCollapsible && IsExpanded;
-            _Content.SetState(IsExpanded ? _Content.DefaultState : ViewState.Hidden);
+            _HiddenWhenCollapsed.SetState(IsExpanded ? _HiddenWhenCollapsed.DefaultState : ViewState.Hidden);
             if (_ExpandedState != null)
                 _ExpandedState.SetState(IsExpanded, immediate);
             if (_CollapsibleState != null)

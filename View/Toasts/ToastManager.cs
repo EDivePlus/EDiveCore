@@ -18,7 +18,7 @@ namespace EDIVE.View.Toasts
         [Required]
         private ToastDisplay _DisplayPrefab;
 
-        // Layout group, newest is last
+        [Tooltip("Layout group, newest is last")]
         [SerializeField]
         [Required]
         private RectTransform _Container;

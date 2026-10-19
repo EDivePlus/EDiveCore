@@ -10,28 +10,29 @@ using EDIVE.Tweening;
 using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using EDIVE.View.Windows.Screens;
 
 namespace EDIVE.View.Windows
 {
     // Window root, opened into a ScreenRoot. Screen, lifecycle and minimize cap its view state.
     [RequireComponent(typeof(Canvas))]
-    public abstract class AWindow : ViewGroup
+    public abstract class AWindow : ViewGroup, IViewEventHandler<CloseWindowEvent>
     {
         private const string SCREEN_REQUEST = "Screen";
         private const string LIFECYCLE_REQUEST = "Lifecycle";
         private const string MINIMIZE_REQUEST = "Minimize";
 
-        // Lets layout settle before the open animation
+        [Tooltip("Lets layout settle before the open animation")]
         [SerializeField]
         [EnhancedBoxGroup("Window")]
         private int _OpenFramesDelay = 1;
 
-        // Also plays on restore
+        [Tooltip("Also plays on restore")]
         [SerializeField]
         [EnhancedBoxGroup("Window")]
         private TweenAnimationField _OpenAnimation;
 
-        // Also plays on minimize
+        [Tooltip("Also plays on minimize")]
         [SerializeField]
         [EnhancedBoxGroup("Window")]
         private TweenAnimationField _CloseAnimation;
@@ -285,6 +286,16 @@ namespace EDIVE.View.Windows
 
         // Selects pages in the switches below, e.g. "audio/advanced"
         public bool Navigate(string path) => ViewSwitch.Navigate(this, path);
+
+        // Not opened by a screen, the event goes further up
+        bool IViewEventHandler<CloseWindowEvent>.HandleViewEvent(CloseWindowEvent viewEvent)
+        {
+            if (Handle == null)
+                return false;
+
+            Close(viewEvent.Result, viewEvent.Immediate);
+            return true;
+        }
 
         internal UniTask<bool> CheckCanCloseAsync(WindowCloseReason reason) => CanCloseAsync(reason);
 

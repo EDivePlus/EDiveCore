@@ -10,6 +10,7 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 using Object = UnityEngine.Object;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View
 {
@@ -18,17 +19,20 @@ namespace EDIVE.View
     public class ViewContentSpawner : ILoadable
     {
         [SerializeField]
-        private RectTransform _Panel;
+        [FormerlySerializedAs("_Panel")]
+        private RectTransform _PanelPrefab;
 
         [SerializeField]
         private VariableField<Transform> _SpawnRoot;
 
         [SerializeField]
-        private bool _SetOrder;
+        [FormerlySerializedAs("_SetOrder")]
+        private bool _OverrideSiblingIndex;
         
-        [ShowIf(nameof(_SetOrder))]
+        [ShowIf(nameof(_OverrideSiblingIndex))]
         [SerializeField]
-        private int _Order;
+        [FormerlySerializedAs("_Order")]
+        private int _SiblingIndex;
         
         public UniTask Load(Action<float> progressCallback)
         {
@@ -39,10 +43,10 @@ namespace EDIVE.View
                 return UniTask.CompletedTask;
             }
             
-            var panelInstance = Object.Instantiate(_Panel, _SpawnRoot.Value);
+            var panelInstance = Object.Instantiate(_PanelPrefab, _SpawnRoot.Value);
             panelInstance.SetToFillParent();
-            if (_SetOrder)
-                panelInstance.SetSiblingIndex(_Order);
+            if (_OverrideSiblingIndex)
+                panelInstance.SetSiblingIndex(_SiblingIndex);
             
             return UniTask.CompletedTask;
         }

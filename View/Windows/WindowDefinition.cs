@@ -22,7 +22,7 @@ namespace EDIVE.View.Windows
         [EnhancedBoxGroup("Source")]
         private AWindow _Prefab;
 
-        // Used when no direct prefab is set
+        [Tooltip("Used when no direct prefab is set")]
         [SerializeField]
         [EnhancedBoxGroup("Source")]
         [HideIf(nameof(_Prefab))]
@@ -31,9 +31,10 @@ namespace EDIVE.View.Windows
         [SerializeField]
         [Required]
         [EnhancedBoxGroup("Screen")]
-        private WindowLayer _Layer;
+        [FormerlySerializedAs("_Layer")]
+        private WindowLayer _WindowLayer;
 
-        // Windows below stay drawn but take no input
+        [Tooltip("Windows below stay drawn but take no input")]
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
         private bool _Modal;
@@ -46,42 +47,46 @@ namespace EDIVE.View.Windows
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
         [FormerlySerializedAs("_CloseOnBack")]
-        private WindowBackAction _Back;
+        [FormerlySerializedAs("_Back")]
+        private WindowBackAction _BackAction;
 
-        // Windows below get hidden once this one is opened
+        [Tooltip("Windows below get hidden once this one is opened")]
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
-        private bool _Opaque;
+        [FormerlySerializedAs("_Opaque")]
+        private bool _HideWindowsBelow;
 
-        // Kept hidden after close and reused by the next open
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
-        private bool _KeepAfterClose;
+        [FormerlySerializedAs("_KeepAfterClose")]
+        private bool _ReuseInstance;
 
-        // Closes instead of minimizing, for windows without state worth keeping
+        [Tooltip("Closes instead of minimizing, for windows without state worth keeping")]
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
         private bool _CloseOnMinimize;
 
+        [Tooltip("Opening it again: Multiple opens another, Single brings it to front, Replace reopens it")]
         [SerializeField]
         [EnhancedBoxGroup("Screen")]
-        private WindowInstancePolicy _InstancePolicy;
+        [FormerlySerializedAs("_InstancePolicy")]
+        private WindowInstancePolicy _ReopenPolicy;
 
-        // Name, icon, color and tooltip for the window header, dock and library
+        [Tooltip("Name, icon, color and tooltip for the window header, dock and library")]
         [SerializeField]
         [EnhancedBoxGroup("Visual")]
         [HideLabel]
         private VisualPreset _Visual = new();
 
-        public WindowLayer Layer => _Layer;
+        public WindowLayer Layer => _WindowLayer;
         public bool Modal => _Modal;
         public bool CloseOnBackdrop => _Modal && _CloseOnBackdrop;
-        public WindowBackAction Back => _Back;
+        public WindowBackAction Back => _BackAction;
         public VisualPreset Visual => _Visual;
-        public bool Opaque => _Opaque;
-        public bool KeepAfterClose => _KeepAfterClose;
+        public bool Opaque => _HideWindowsBelow;
+        public bool KeepAfterClose => _ReuseInstance;
         public bool CloseOnMinimize => _CloseOnMinimize;
-        public WindowInstancePolicy InstancePolicy => _InstancePolicy;
+        public WindowInstancePolicy InstancePolicy => _ReopenPolicy;
 
         private bool UsesReference => _Prefab == null && _PrefabReference != null && !string.IsNullOrEmpty(_PrefabReference.Address);
 

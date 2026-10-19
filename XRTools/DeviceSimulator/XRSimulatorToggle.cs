@@ -10,6 +10,7 @@ using EDIVE.View.Windows.Dialog;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
+using EDIVE.View.Windows.Screens;
 
 namespace EDIVE.XRTools.DeviceSimulator
 {

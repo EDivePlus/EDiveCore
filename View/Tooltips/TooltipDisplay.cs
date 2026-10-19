@@ -6,13 +6,15 @@ using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.Tooltips
 {
     public class TooltipDisplay : MonoBehaviour
     {
         [SerializeField]
-        private VisualSwitcher _Switcher;
+        [FormerlySerializedAs("_Switcher")]
+        private VisualSwitcher _VisualSwitcher;
 
         [SerializeField]
         private RectTransform _Container;
@@ -24,7 +26,7 @@ namespace EDIVE.View.Tooltips
         public void ShowTooltip(VisualPreset preset, RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement)
         {
             gameObject.SetActive(true);
-            _Switcher.Apply(preset);
+            _VisualSwitcher.Apply(preset);
             UpdatePlacement(target, canvas, preferredPlacement);
         }
         

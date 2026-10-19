@@ -2,6 +2,7 @@
 // Created: 08.10.2026
 
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.ViewTree
 {
@@ -11,11 +12,12 @@ namespace EDIVE.View.ViewTree
     {
         [SerializeField]
         [Tooltip("Keep animator state while hidden.")]
-        private bool _KeepState = true;
+        [FormerlySerializedAs("_KeepState")]
+        private bool _KeepAnimatorState = true;
 
         protected override void SetActive(Animator component, bool active)
         {
-            if (!active && _KeepState)
+            if (!active && _KeepAnimatorState)
                 component.keepAnimatorStateOnDisable = true;
             component.enabled = active;
         }

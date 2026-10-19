@@ -7,6 +7,8 @@ using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
+using EDIVE.View.Windows.Screens;
 
 namespace EDIVE.View.Windows.Dialog
 {
@@ -20,7 +22,8 @@ namespace EDIVE.View.Windows.Dialog
 
         [SerializeField]
         [Required]
-        private DialogSetup _Setup;
+        [FormerlySerializedAs("_Setup")]
+        private DialogSetup _DialogSetup;
 
         private Button _button;
         private bool _isOpen;
@@ -52,7 +55,7 @@ namespace EDIVE.View.Windows.Dialog
             }
 
             _isOpen = true;
-            var result = await screen.Open(_DialogWindow, _Setup).Closed;
+            var result = await screen.Open(_DialogWindow, _DialogSetup).Closed;
             _isOpen = false;
 
             if (result is IAction action)

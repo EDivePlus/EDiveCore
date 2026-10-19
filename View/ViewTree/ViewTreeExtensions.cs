@@ -25,5 +25,25 @@ namespace EDIVE.View.ViewTree
             var node = component as AViewNode;
             return node != null ? node : component.GetComponentInParent<AViewNode>(true);
         }
+
+        // Links content created inactive below a group, e.g. right after Instantiate into a plain container
+        public static void LinkViewTree(this Component root)
+        {
+            if (root != null)
+                ViewGroup.LinkHierarchy(root.transform);
+        }
+
+        public static void LinkViewTree(this GameObject root)
+        {
+            if (root != null)
+                ViewGroup.LinkHierarchy(root.transform);
+        }
+
+        // From the sender's node up the view tree, true when handled
+        public static bool SendViewEvent<TEvent>(this Component sender, TEvent viewEvent)
+        {
+            var node = sender.FindViewNode();
+            return node != null && node.SendViewEvent(viewEvent);
+        }
     }
 }

@@ -9,8 +9,10 @@ using EDIVE.View.ViewTree;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
+using UnityEngine.Serialization;
+using EDIVE.View.Windows.Screens;
 
-namespace EDIVE.View.Windows
+namespace EDIVE.View.Windows.Buttons
 {
     // Opens its window in the nearest screen, brings it forward when it is behind or minimized.
     // Dock buttons minimize the front window instead. Shows the window visual and its running and front states,
@@ -18,30 +20,33 @@ namespace EDIVE.View.Windows
     public class WindowButton : MonoBehaviour
     {
         [SerializeField]
-        private WindowDefinition _Definition;
+        [FormerlySerializedAs("_Definition")]
+        private WindowDefinition _Window;
 
         [SerializeReference]
-        private IActivation _Activation;
+        [FormerlySerializedAs("_Activation")]
+        private IActivation _OpenActivation;
 
-        // Dock behaviour, a second press puts the window away
+        [Tooltip("Dock behaviour, a second press puts the window away")]
         [SerializeField]
         private bool _MinimizeWhenFront;
 
-        // Optional pages to select, e.g. "audio"
+        [Tooltip("Optional pages to select, e.g. \"audio\"")]
         [SerializeField]
-        private string _Path;
+        [FormerlySerializedAs("_Path")]
+        private string _PagePath;
 
-        // Applies the definition visual, e.g. icon, color, name
         [SerializeField]
         [EnhancedBoxGroup("Display")]
         private VisualSwitcher _Switcher = new();
 
-        // On while the window is open, minimized or not
+        [Tooltip("On while the window is open, minimized or not")]
         [SerializeField]
         [EnhancedBoxGroup("Display")]
-        private AToggleState _RunningState;
+        [FormerlySerializedAs("_RunningState")]
+        private AToggleState _OpenState;
 
-        // On while the window is the shown one of its layer
+        [Tooltip("On while the window is the shown one of its layer")]
         [SerializeField]
         [EnhancedBoxGroup("Display")]
         private AToggleState _FrontState;
@@ -49,12 +54,12 @@ namespace EDIVE.View.Windows
         private ScreenRoot _screen;
         private IDisposable _listener;
 
-        public WindowDefinition Definition => _Definition;
+        public WindowDefinition Definition => _Window;
 
         // For spawned buttons, the screen is the nearest one when not given
         public void Setup(WindowDefinition definition, ScreenRoot screen = null)
         {
-            _Definition = definition;
+            _Window = definition;
             if (screen != null)
                 Bind(screen);
             ApplyVisual();
@@ -70,7 +75,7 @@ namespace EDIVE.View.Windows
 
         private void OnEnable()
         {
-            _listener = _Activation.RegisterDisposable(OnActivated);
+            _listener = _OpenActivation.RegisterDisposable(OnActivated);
             Refresh();
         }
 
@@ -95,12 +100,12 @@ namespace EDIVE.View.Windows
 
         private void ApplyVisual()
         {
-            if (_Definition == null)
+            if (_Window == null)
                 return;
 
-            _Switcher.Apply(_Definition.Visual);
+            _Switcher.Apply(_Window.Visual);
             foreach (var receiver in GetComponents<IVisualPresetReceiver>())
-                receiver.SetPreset(_Definition.Visual);
+                receiver.SetPreset(_Window.Visual);
         }
 
         private void OnActivated()
@@ -108,15 +113,15 @@ namespace EDIVE.View.Windows
             if (_screen == null)
                 Bind(this.FindInViewTree<ScreenRoot>());
 
-            if (_screen == null || _Definition == null)
+            if (_screen == null || _Window == null)
             {
                 Debug.LogWarning($"[WindowButton] {name} has no screen or window to open.", this);
                 return;
             }
 
-            var handle = _screen.FindHandle(_Definition);
+            var handle = _screen.FindHandle(_Window);
             if (handle == null)
-                handle = _screen.Open(_Definition);
+                handle = _screen.Open(_Window);
             else if (_MinimizeWhenFront && _screen.IsFront(handle))
             {
                 _screen.Minimize(handle);
@@ -125,17 +130,17 @@ namespace EDIVE.View.Windows
             else
                 _screen.BringToFront(handle);
 
-            if (!string.IsNullOrEmpty(_Path))
-                handle.Navigate(_Path);
+            if (!string.IsNullOrEmpty(_PagePath))
+                handle.Navigate(_PagePath);
         }
 
         private void OnScreenChanged(ScreenRoot screen) => Refresh();
 
         private void Refresh()
         {
-            var handle = _screen != null && _Definition != null ? _screen.FindHandle(_Definition) : null;
-            if (_RunningState != null)
-                _RunningState.SetState(handle != null);
+            var handle = _screen != null && _Window != null ? _screen.FindHandle(_Window) : null;
+            if (_OpenState != null)
+                _OpenState.SetState(handle != null);
             if (_FrontState != null)
                 _FrontState.SetState(handle != null && _screen.IsFront(handle));
         }

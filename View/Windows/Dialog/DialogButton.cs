@@ -5,6 +5,7 @@ using System;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.Windows.Dialog
 {
@@ -12,7 +13,8 @@ namespace EDIVE.View.Windows.Dialog
     public class DialogButton : MonoBehaviour
     {
         [SerializeField]
-        private VisualSwitcher _Switcher = new();
+        [FormerlySerializedAs("_Switcher")]
+        private VisualSwitcher _VisualSwitcher = new();
 
         private Button _button;
 
@@ -35,7 +37,7 @@ namespace EDIVE.View.Windows.Dialog
         public void Apply(DialogButtonSetup setup)
         {
             Setup = setup;
-            _Switcher.ApplyExclusive(setup?.Visual);
+            _VisualSwitcher.ApplyExclusive(setup?.Visual);
         }
 
         private void OnClicked() => Clicked?.Invoke(this);

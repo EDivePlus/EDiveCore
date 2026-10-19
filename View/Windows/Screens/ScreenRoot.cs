@@ -11,8 +11,9 @@ using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
-namespace EDIVE.View.Windows
+namespace EDIVE.View.Windows.Screens
 {
     // Root of one screen, hosts its windows. Orders them by layer and open order, caps their view state:
     // top is Focused, below a modal Visible, below an opened opaque window Hidden. Minimized windows run hidden
@@ -31,31 +32,35 @@ namespace EDIVE.View.Windows
 
         [SerializeField]
         [EnhancedBoxGroup("Windows")]
-        private List<LayerContainer> _Layers = new();
+        [FormerlySerializedAs("_Layers")]
+        private List<LayerContainer> _LayerContainers = new();
 
-        // Sorted just below the top modal, needs a Canvas
+        [Tooltip("Sorted just below the top modal, needs a Canvas")]
         [SerializeField]
         [EnhancedBoxGroup("Windows")]
-        private ViewGroup _Backdrop;
+        [FormerlySerializedAs("_Backdrop")]
+        private ViewGroup _ModalBackdrop;
 
         [SerializeField]
         [EnhancedBoxGroup("Windows")]
         private Button _BackdropButton;
 
-        // Instantiated into the pool on start, only for Keep After Close definitions
+        [Tooltip("Instantiated into the pool on start, only for Reuse Instance definitions")]
         [SerializeField]
         [EnhancedBoxGroup("Windows")]
-        private List<WindowDefinition> _Preload = new();
+        [FormerlySerializedAs("_Preload")]
+        private List<WindowDefinition> _PreloadedWindows = new();
 
-        // Definitions Navigate can open by their route ID
+        [Tooltip("Definitions Navigate can open by their route ID")]
         [SerializeField]
         [EnhancedBoxGroup("Windows")]
-        private List<WindowDefinition> _Routes = new();
+        [FormerlySerializedAs("_Routes")]
+        private List<WindowDefinition> _RouteWindows = new();
 
-        // Opened on start, in order
         [SerializeField]
         [EnhancedBoxGroup("Windows")]
-        private List<WindowDefinition> _OpenOnStart = new();
+        [FormerlySerializedAs("_OpenOnStart")]
+        private List<WindowDefinition> _WindowsOpenedOnStart = new();
 
         [SerializeReference]
         [EnhancedBoxGroup("Windows")]
@@ -83,10 +88,10 @@ namespace EDIVE.View.Windows
             _poolRoot = poolObject.transform;
             _poolRoot.SetParent(transform, false);
 
-            if (_Backdrop != null)
+            if (_ModalBackdrop != null)
             {
-                _backdropCanvas = _Backdrop.GetComponent<Canvas>();
-                _Backdrop.SetState(ViewState.Hidden);
+                _backdropCanvas = _ModalBackdrop.GetComponent<Canvas>();
+                _ModalBackdrop.SetState(ViewState.Hidden);
             }
 
             if (_BackdropButton != null)
@@ -97,13 +102,13 @@ namespace EDIVE.View.Windows
 
         private void Start()
         {
-            foreach (var definition in _Preload)
+            foreach (var definition in _PreloadedWindows)
             {
                 if (definition != null && definition.KeepAfterClose)
                     PreloadAsync(definition, destroyCancellationToken).Forget();
             }
 
-            foreach (var definition in _OpenOnStart)
+            foreach (var definition in _WindowsOpenedOnStart)
             {
                 if (definition != null)
                     Open(definition, null, true);
@@ -533,7 +538,7 @@ namespace EDIVE.View.Windows
             if (string.IsNullOrEmpty(routeID))
                 return null;
 
-            foreach (var definition in _Routes)
+            foreach (var definition in _RouteWindows)
             {
                 if (definition != null && string.Equals(definition.UniqueID, routeID, StringComparison.Ordinal))
                     return definition;
@@ -571,6 +576,8 @@ namespace EDIVE.View.Windows
                 return;
             }
 
+            // Pooled windows can be filled differently next time
+            window.ResetView();
             window.transform.SetParent(_poolRoot, false);
             if (!_pool.TryGetValue(definition, out var pooled))
                 _pool[definition] = pooled = new Stack<AWindow>();
@@ -590,7 +597,7 @@ namespace EDIVE.View.Windows
 
         private Transform GetContainer(WindowLayer layer)
         {
-            foreach (var entry in _Layers)
+            foreach (var entry in _LayerContainers)
             {
                 if (entry.Layer == layer)
                     return entry.Container;
@@ -658,14 +665,14 @@ namespace EDIVE.View.Windows
                     cap = ViewState.Hidden;
             }
 
-            if (_Backdrop != null)
+            if (_ModalBackdrop != null)
             {
                 if (_topModal != null && _backdropCanvas != null)
                 {
                     _backdropCanvas.overrideSorting = true;
                     _backdropCanvas.sortingOrder = _topModal.Window.SortingOrder - 1;
                 }
-                _Backdrop.SetState(_topModal != null ? ViewState.Focused : ViewState.Hidden);
+                _ModalBackdrop.SetState(_topModal != null ? ViewState.Focused : ViewState.Hidden);
             }
 
             Changed?.Invoke(this);

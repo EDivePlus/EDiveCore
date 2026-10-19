@@ -20,22 +20,21 @@ namespace EDIVE.View.Windows
         [Serializable]
         public class Page
         {
-            // Unique in its window, used by Navigate paths
+            [Tooltip("Unique in its window, used by Navigate paths")]
             [Required]
             public string ID;
 
             [Required]
             public ViewGroup Group;
 
-            // Selects this page, e.g. tab button
+            [Tooltip("Selects this page, e.g. tab button")]
             [SerializeReference]
             public IActivation Activation;
 
-            // On while selected, e.g. tab button look
+            [Tooltip("On while selected, e.g. tab button look")]
             public AToggleState Toggle;
         }
 
-        // First page when empty
         [SerializeField]
         [EnhancedBoxGroup("Switch")]
         [EnhancedValueDropdown("GetPageIDs")]
@@ -92,7 +91,18 @@ namespace EDIVE.View.Windows
             return true;
         }
 
-        public void Select(int index)
+        public void Select(int index) => Select(index, false);
+
+        // Back to the default page, e.g. a pooled window before reuse
+        public void ResetSelection()
+        {
+            if (_Pages.Count > 0)
+                Select(Mathf.Max(0, IndexOf(_DefaultPage)), true);
+        }
+
+        protected override void OnViewReset() => ResetSelection();
+
+        private void Select(int index, bool immediate)
         {
             if (index < 0 || index >= _Pages.Count)
                 return;
@@ -103,7 +113,7 @@ namespace EDIVE.View.Windows
 
             _selected = index;
             RefreshChildCaps();
-            ApplyToggles(false);
+            ApplyToggles(immediate);
             SelectionChanged?.Invoke(this);
         }
 
@@ -133,6 +143,9 @@ namespace EDIVE.View.Windows
 
             foreach (var child in scope.Children)
             {
+                if (child == null)
+                    continue;
+
                 if (child is ViewSwitch childSwitch)
                 {
                     if (childSwitch.TrySelect(id, out page))
@@ -210,6 +223,23 @@ namespace EDIVE.View.Windows
 
                 if (page.Group != null && page.Group.GetDesignatedParent() != this)
                     result.AddError($"Page {page.Group.name} is not a child of this switch in the view tree.");
+            }
+
+            // Navigate takes the nearest switch, a repeated ID can pick the wrong one
+            var window = GetComponentInParent<AWindow>(true);
+            if (window == null)
+                return;
+
+            foreach (var other in window.GetComponentsInChildren<ViewSwitch>(true))
+            {
+                if (other == this)
+                    continue;
+
+                foreach (var page in other._Pages)
+                {
+                    if (page != null && !string.IsNullOrEmpty(page.ID) && ids.Contains(page.ID))
+                        result.AddWarning($"Page ID '{page.ID}' is also used by {other.name} in this window.");
+                }
             }
         }
 #endif

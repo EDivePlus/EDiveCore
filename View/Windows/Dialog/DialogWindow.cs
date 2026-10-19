@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.VisualPresets.Switchers;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EDIVE.View.Windows.Dialog
 {
@@ -13,9 +14,10 @@ namespace EDIVE.View.Windows.Dialog
     {
         [SerializeField]
         [EnhancedBoxGroup("Dialog")]
-        private VisualSwitcher _Switcher = new();
+        [FormerlySerializedAs("_Switcher")]
+        private VisualSwitcher _VisualSwitcher = new();
 
-        // Filled in order, unused ones get disabled
+        [Tooltip("Filled in order, unused ones get disabled")]
         [SerializeField]
         [EnhancedBoxGroup("Dialog")]
         private List<DialogButton> _Buttons = new();
@@ -45,7 +47,7 @@ namespace EDIVE.View.Windows.Dialog
             if (setup == null)
                 Debug.LogError($"[DialogWindow] {name} opened without a dialog setup.", this);
 
-            _Switcher.ApplyExclusive(setup?.Visual);
+            _VisualSwitcher.ApplyExclusive(setup?.Visual);
 
             var setups = setup?.Buttons;
             var count = setups?.Count ?? 0;
