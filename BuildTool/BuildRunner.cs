@@ -85,6 +85,8 @@ namespace EDIVE.BuildTool
                 {
                     Debug.LogError($"[BuildRunner] Build target {buildTarget} is not supported");
                     TeamCityServiceMessages.MessageBuildProblem($"[BuildRunner] Build target {buildTarget} is not supported! Check if it is installed for current version of Unity on building machine!");
+                    if (Application.isBatchMode)
+                        EditorApplication.Exit(1);
                     yield break;
                 }
                 

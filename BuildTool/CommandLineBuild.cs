@@ -35,19 +35,19 @@ namespace EDIVE.BuildTool
             var arguments = GetArguments();
             if (!arguments.TryGetValue(CMD_PLATFORM_CONFIG, out var platformConfigName))
             {
-                TeamCityServiceMessages.MessageBuildProblem("[CMDBuild] Platform config not specified");
+                Fail("[CMDBuild] Platform config not specified");
                 return;
             }
             
             if (!EditorAssetUtils.FindAllAssetsOfType<BuildPlatformConfig>().TryGetFirst(c => c.name == platformConfigName, out var platformConfig ))
             {
-                TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] Platform config '{platformConfigName}' not found");
+                Fail($"[CMDBuild] Platform config '{platformConfigName}' not found");
                 return;
             }
         
             if (!platformConfig.IsValid)
             {
-                TeamCityServiceMessages.MessageBuildProblem($"[CMDBuild] Platform config '{platformConfigName}' is not valid!, open project and fix the issues.");
+                Fail($"[CMDBuild] Platform config '{platformConfigName}' is not valid!, open project and fix the issues.");
                 return;
             }
             
@@ -85,6 +85,13 @@ namespace EDIVE.BuildTool
         
             TeamCityServiceMessages.MessageLog($"[CMDBuild] Preset created: {preset}");
             preset.Build(BuildOptions.None);
+        }
+
+        private static void Fail(string message)
+        {
+            TeamCityServiceMessages.MessageBuildProblem(message);
+            if (UnityEngine.Application.isBatchMode)
+                EditorApplication.Exit(1);
         }
 
         private static Dictionary<string, string> GetArguments()
