@@ -14,7 +14,7 @@ namespace EDIVE.View.Toasts
         public VisualPreset Preset { get; }
 
         // Zero or less stays until dismissed
-        public float Duration { get; }
+        public float Duration { get; internal set; }
 
         public bool IsDismissed { get; internal set; }
 

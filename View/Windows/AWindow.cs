@@ -141,11 +141,11 @@ namespace EDIVE.View.Windows
                 return;
 
             IsMinimized = true;
+            // Drawn but without input while it hides, set first so a pending open doesn't become ready
+            _requests.Set(MINIMIZE_REQUEST, ViewState.Visible);
             if (State == WindowState.Opening)
                 CompleteOpen();
 
-            // Drawn but without input while it hides
-            _requests.Set(MINIMIZE_REQUEST, ViewState.Visible);
             OnWindowMinimizing();
 
             var animation = BeginAnimation(cancellationToken);

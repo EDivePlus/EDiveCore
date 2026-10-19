@@ -119,7 +119,7 @@ namespace EDIVE.View.Windows
 
             foreach (var handle in _screen.Handles)
             {
-                if (handle.IsClosing || handle.IsCloseRequested || handle.IsMinimized || _wanted.Contains(handle.Definition) || !_Catalog.Contains(handle.Definition))
+                if (handle.IsClosing || handle.IsCloseRequested || _wanted.Contains(handle.Definition) || !_Catalog.Contains(handle.Definition))
                     continue;
                 _wanted.Add(handle.Definition);
             }

@@ -40,13 +40,19 @@ namespace EDIVE.View.Toasts
             var existing = FindSame(_visible, preset);
             if (existing != null)
             {
+                if (duration.HasValue)
+                    existing.Duration = duration.Value;
                 existing.Remaining = existing.Duration;
                 return existing;
             }
 
             existing = FindSame(_queue, preset);
             if (existing != null)
+            {
+                if (duration.HasValue)
+                    existing.Duration = existing.Remaining = duration.Value;
                 return existing;
+            }
 
             var handle = new ToastHandle(this, preset, duration ?? _DefaultDuration);
             _queue.Add(handle);
