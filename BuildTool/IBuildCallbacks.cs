@@ -40,6 +40,12 @@ namespace EDIVE.BuildTool
         IEnumerator OnPostprocess(BuildContext context);
     }
     
+    // Before the target switches back, also after a failed build
+    public interface ITargetRestoreBuildCallback : IBuildCallback
+    {
+        IEnumerator OnTargetRestore(BuildContext context);
+    }
+    
     public interface IStateRestoreBuildCallback : IBuildCallback
     {
         IEnumerator OnStateRestore(BuildContext context);

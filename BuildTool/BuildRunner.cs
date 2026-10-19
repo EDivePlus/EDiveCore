@@ -300,6 +300,8 @@ namespace EDIVE.BuildTool
         
         private IEnumerator RestoreBuildTarget()
         {
+            yield return ExecuteBuildCallback<ITargetRestoreBuildCallback>(Preset.GetBuildCallbacks(Context), buildAction => buildAction.OnTargetRestore(_Context));
+
             if (Application.isBatchMode)
             {
                 DebugLite.Log("[BuildRunner] Target switch is ignored in batch mode");

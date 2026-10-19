@@ -133,40 +133,31 @@ namespace EDIVE.BuildTool.PlatformConfigs
         
         public virtual IEnumerator OnStateCapture(BuildContext context)
         {
-             var data = context.GetOrCreateData<Data>();
-
+            // Capture everything before changing anything, a failure midway then restores real values
+            var data = context.GetOrCreateData<Data>();
             data._PrevBackend = PlayerSettings.GetScriptingBackend(NamedBuildTarget);
-            PlayerSettings.SetScriptingBackend(NamedBuildTarget, _ScriptingImplementation);
-
             data._PrevIl2CppConfig = PlayerSettings.GetIl2CppCompilerConfiguration(NamedBuildTarget);
-            PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget, _Il2CppConfig);
-
             data._PrevIl2CppCodeGeneration = PlayerSettings.GetIl2CppCodeGeneration(NamedBuildTarget);
-            PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget, _Il2CppCodeGeneration);
-
             data._PrevAutoGraphicsAPI = PlayerSettings.GetUseDefaultGraphicsAPIs(BuildTarget);
             data._PrevGraphicsAPIs = PlayerSettings.GetGraphicsAPIs(BuildTarget);
-            ApplyGraphicsAPIs(_AutoGraphicsAPI, _GraphicsAPIs);
-
             data._PrevStripEngineCode = PlayerSettings.stripEngineCode;
-            PlayerSettings.stripEngineCode = _StripEngineCode;
-
             data._PrevManagedStrippingLevel = PlayerSettings.GetManagedStrippingLevel(NamedBuildTarget);
-            PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget, _ManagedStrippingLevel);
-
             data._PrevLogs = LoggingSetup.GetCurrent();
-            _LoggingSetup.Apply();
-
             data._PrevWaitForManagedDebugger = EditorUserBuildSettings.waitForManagedDebugger;
-            EditorUserBuildSettings.waitForManagedDebugger = _WaitForManagedDebugger;
-
             data._PrevEnableDeepProfile = EditorUserBuildSettings.buildWithDeepProfilingSupport;
-            EditorUserBuildSettings.buildWithDeepProfilingSupport = _EnableDeepProfile;
-
             data._PrevAutoConnectProfiler = EditorUserBuildSettings.connectProfiler;
-            EditorUserBuildSettings.connectProfiler = _AutoConnectProfiler;
-
             data._PrevGCIncremental = PlayerSettings.gcIncremental;
+
+            PlayerSettings.SetScriptingBackend(NamedBuildTarget, _ScriptingImplementation);
+            PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget, _Il2CppConfig);
+            PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget, _Il2CppCodeGeneration);
+            ApplyGraphicsAPIs(_AutoGraphicsAPI, _GraphicsAPIs);
+            PlayerSettings.stripEngineCode = _StripEngineCode;
+            PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget, _ManagedStrippingLevel);
+            _LoggingSetup.Apply();
+            EditorUserBuildSettings.waitForManagedDebugger = _WaitForManagedDebugger;
+            EditorUserBuildSettings.buildWithDeepProfilingSupport = _EnableDeepProfile;
+            EditorUserBuildSettings.connectProfiler = _AutoConnectProfiler;
             PlayerSettings.gcIncremental = _UseIncrementalGC;
             
             if (_DevelopmentBuild) context.Options |= BuildOptions.Development;
@@ -194,7 +185,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
             EditorUserBuildSettings.connectProfiler = data._PrevAutoConnectProfiler;
             PlayerSettings.gcIncremental = data._PrevGCIncremental;
             PlayerSettings.stripEngineCode = data._PrevStripEngineCode;
-            data._PrevLogs.Apply();
+            data._PrevLogs?.Apply();
         }
 
         private void ApplyGraphicsAPIs(bool useDefault, IReadOnlyList<GraphicsDeviceType> apis)

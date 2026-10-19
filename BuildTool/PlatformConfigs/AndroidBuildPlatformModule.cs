@@ -20,7 +20,7 @@ using Unity.Android.Types;
 namespace EDIVE.BuildTool.PlatformConfigs
 {
     [Serializable]
-    public class AndroidBuildPlatformModule : ABuildTargetPlatformModule, IPreprocessBuildCallback, IPostprocessBuildCallback
+    public class AndroidBuildPlatformModule : ABuildTargetPlatformModule, IPreprocessBuildCallback, ITargetRestoreBuildCallback
     {
         public override string PlatformName => "Android";
 
@@ -142,7 +142,7 @@ namespace EDIVE.BuildTool.PlatformConfigs
         }
 
         // Still on Android here, restore target switches away
-        public IEnumerator OnPostprocess(BuildContext context)
+        public IEnumerator OnTargetRestore(BuildContext context)
         {
 #if UNITY_ANDROID
             if (context.TryGetData<SymbolsData>(out var data))
