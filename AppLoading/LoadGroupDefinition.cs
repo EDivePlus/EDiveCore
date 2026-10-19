@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading.Dependencies;
@@ -71,12 +72,21 @@ namespace EDIVE.AppLoading
             if (missing.Count > 0)
                 Debug.LogError($"[{name}] Dependency groups not in the active setup: {string.Join(", ", missing)}");
 
-            await UniTask.WhenAll(dependencies.Where(d => d.CompletionSource != null).Select(d => d.CompletionSource.Task));
+            try
+            {
+                await UniTask.WhenAll(dependencies.Where(d => d.CompletionSource != null).Select(d => d.CompletionSource.Task));
 
-            var itemTasks = GetLoadItems().Select(l => l.Load());
-            await UniTask.WhenAll(itemTasks);
-
-            CompletionSource.TrySetResult();
+                var itemTasks = GetLoadItems().Select(l => l.Load());
+                await UniTask.WhenAll(itemTasks);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+            finally
+            {
+                CompletionSource?.TrySetResult();
+            }
         }
 
         private IEnumerable<LoadItemDefinition> GetLoadItems()

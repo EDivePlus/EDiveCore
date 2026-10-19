@@ -118,7 +118,7 @@ namespace EDIVE.AppLoading
         public IEnumerable<LoadItemDefinition> GetValidLoadItemsSorted()
         {
             var ctx = _runtimeContext ?? new DependencyResolutionContext(GetValidLoadItems());
-            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups(), ctx).Where(l => l.CheckAvailability());
+            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups(), ctx).Where(l => l.CheckAvailability() && ctx.Contains(l));
         }
 
 #if UNITY_EDITOR

@@ -87,6 +87,9 @@ namespace EDIVE.AppLoading
 
             await Setup.Load();
 
+            foreach (var loadItem in validLoadItems)
+                loadItem.LoadStartedSignal -= OnLoadStarted;
+
             Setup.Terminate();
 
             await OnLoadEnding();

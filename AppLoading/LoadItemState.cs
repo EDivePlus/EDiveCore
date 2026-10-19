@@ -13,7 +13,8 @@ namespace EDIVE.AppLoading
         Undefined,
         Pending,
         Loading,
-        Completed
+        Completed,
+        Failed
     }
 
     public static class LoadItemStateExtensions
@@ -29,6 +30,7 @@ namespace EDIVE.AppLoading
                 LoadItemState.Pending => "\ue8b5",
                 LoadItemState.Loading => "\uef64",
                 LoadItemState.Completed => "\ue86c",
+                LoadItemState.Failed => "\ue000",
                 _ => "\ue837"
             };
         }
@@ -41,6 +43,7 @@ namespace EDIVE.AppLoading
                 LoadItemState.Pending => ColorTools.Aqua,
                 LoadItemState.Loading => ColorTools.Yellow,
                 LoadItemState.Completed => ColorTools.Lime,
+                LoadItemState.Failed => ColorTools.Red,
                 _ => Color.clear
             };
         }
@@ -54,6 +57,7 @@ namespace EDIVE.AppLoading
                 LoadItemState.Pending => FontAwesomeEditorIcons.ClockSolid,
                 LoadItemState.Loading => FontAwesomeEditorIcons.CircleEllipsisSolid,
                 LoadItemState.Completed => FontAwesomeEditorIcons.CircleCheckSolid,
+                LoadItemState.Failed => FontAwesomeEditorIcons.CircleXmarkSolid,
                 _ => FontAwesomeEditorIcons.CircleDotSolid
             };
         }

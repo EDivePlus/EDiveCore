@@ -165,6 +165,27 @@ namespace EDIVE.AppLoading.LoadItems
             if (_runtimeContext == null)
                 return;
 
+            try
+            {
+                await LoadInternal();
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                _fakeLoadingTimeTweener?.Kill();
+                _fakeLoadingTimeTweener = null;
+                if (CurrentState == LoadItemState.Loading)
+                    LoadCompletedSignal?.Invoke(this);
+                CurrentState = LoadItemState.Failed;
+            }
+            finally
+            {
+                CompletionSource?.TrySetResult();
+            }
+        }
+
+        private async UniTask LoadInternal()
+        {
             var resolvedDependencies = ResolveDirectDependencies(_runtimeContext).ToList();
 
             var dependencySources = resolvedDependencies
@@ -193,9 +214,10 @@ namespace EDIVE.AppLoading.LoadItems
             if (_FakeLoadingTime)
                 _fakeLoadingTimeTweener = DOTween.To(() => _currentLoadProgress, v => _currentLoadProgress = v, MAX_FAKE_PROGRESS, _FakeLoadingTimeDuration);
 
+            var success = false;
             if (IsValid)
             {
-                await LoadContent(OnProgressUpdated);
+                success = await LoadContent(OnProgressUpdated);
             }
             else
             {
@@ -205,7 +227,7 @@ namespace EDIVE.AppLoading.LoadItems
             _fakeLoadingTimeTweener?.Kill();
             _fakeLoadingTimeTweener = null;
             LoadCompletedSignal?.Invoke(this);
-            CurrentState = LoadItemState.Completed;
+            CurrentState = success ? LoadItemState.Completed : LoadItemState.Failed;
             CompletionSource.TrySetResult();
 
             LoadTime = stopwatch.ElapsedMilliseconds;
@@ -227,24 +249,27 @@ namespace EDIVE.AppLoading.LoadItems
             }
         }
 
-        public async UniTask LoadContent(Action<float> progressCallback)
+        public async UniTask<bool> LoadContent(Action<float> progressCallback)
         {
             if (!IsValid)
-                return;
+                return false;
 
             try
             {
                 await _Source.LoadContent(this, progressCallback);
+                return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
+                Debug.LogError($"Load item '{name}' failed, dependents may not work.", this);
+                return false;
             }
         }
 
         public float GetCurrentLoadingWeight() => GetLoadingProgress() * LoadWeight;
 
-        public float GetLoadingProgress() => IsLoaded ? 1 : Mathf.Clamp(GetLoadingProgressRaw(), 0, 0.99f);
+        public float GetLoadingProgress() => CurrentState is LoadItemState.Completed or LoadItemState.Failed ? 1 : Mathf.Clamp(GetLoadingProgressRaw(), 0, 0.99f);
 
         protected virtual float GetLoadingProgressRaw() => _currentLoadProgress;
 
