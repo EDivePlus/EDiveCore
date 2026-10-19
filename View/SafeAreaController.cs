@@ -38,6 +38,10 @@ namespace EDIVE.View
         [SerializeField]
         private SafeAreaAlignment _Alignment = SafeAreaAlignment.None;
 
+        [Tooltip("Minimum inset per side in canvas units.")]
+        [SerializeField]
+        private RectOffset _MinInset = new();
+
         private RectTransform _rectTransform;
         private Canvas _canvas;
         private DrivenRectTransformTracker _tracker;
@@ -110,6 +114,9 @@ namespace EDIVE.View
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Bottom)) anchorMin.y = 0;
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Right)) anchorMax.x = 1;
             if (!ShouldUpdateSide(SafeAreaUpdateSide.Top)) anchorMax.y = 1;
+
+            anchorMin = Vector2.Max(anchorMin, new Vector2(_MinInset.left, _MinInset.bottom) / parentRect.size);
+            anchorMax = Vector2.Min(anchorMax, Vector2.one - new Vector2(_MinInset.right, _MinInset.top) / parentRect.size);
 
             if (HasAlignment(SafeAreaAlignment.CenterHorizontally))
             {
