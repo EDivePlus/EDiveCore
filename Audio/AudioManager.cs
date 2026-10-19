@@ -87,6 +87,7 @@ namespace EDIVE.Audio
 
         private List<IAudioFilter> _encodeFilters;
         private CapturingAudioFilter _capturingFilter;
+        private RNNoiseFilter _rnNoiseFilter;
         
         [DisableInEditorMode]
         [ShowInInspector]
@@ -230,6 +231,8 @@ namespace EDIVE.Audio
                 
             AudioUtils.CheckMicrophonePermission(micPermissionGranted =>
             {
+                if (this == null)
+                    return;
                 _microphonePermissionGranted = micPermissionGranted;
                 if (micPermissionGranted)
                 {
@@ -329,8 +332,13 @@ namespace EDIVE.Audio
         
         private async UniTask InitializePeerSpatialAudioAsync(PlayerID playerID, StreamedAudioSourceOutput output)
         {
-            var playerManager = AppCore.Services.Get<NetworkPlayerManager>();
+            if (!AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
+                return;
             var playerController = await playerManager.AwaitPlayerController(playerID);
+
+            // Peer left or the manager went away while waiting
+            if (this == null || output == null)
+                return;
 
             if (playerController == null)
             {
@@ -457,8 +465,9 @@ namespace EDIVE.Audio
         private List<IAudioFilter> BuildEncodeFilters()
         {
             var filters = new List<IAudioFilter>();
+            // Reused, its native denoiser is never released
             if (_Config.UseRnNoise)
-                filters.Add(new RNNoiseFilter()); // Noise suppression
+                filters.Add(_rnNoiseFilter ??= new RNNoiseFilter()); // Noise suppression
             if (_Config.UseSimpleVad)
                 filters.Add(new SimpleVadFilter(new SimpleVad(_Config.BuildVadConfig()))); // Voice activity detection
             filters.Add(new ConcentusEncodeFilter(
@@ -484,7 +493,7 @@ namespace EDIVE.Audio
             if (!Application.isPlaying)
                 return;
 
-            RefreshAudioInput();
+            RefreshAudioInput(true);
 
             if (_voiceChatSession == null || _encodeFilters == null)
                 return;
@@ -529,12 +538,13 @@ namespace EDIVE.Audio
             return true;
         }
 
-        private void RefreshAudioInput()
+        // Force restarts the same mic, e.g. new frequency or frame duration
+        private void RefreshAudioInput(bool force = false)
         {
             var micDevice = ResolveMicrophone();
             if (_currentAudioInput is UniMicInput uniMicInput)
             {
-                if (uniMicInput.Device == micDevice)
+                if (uniMicInput.Device == micDevice && !force)
                     return;
                 uniMicInput.Device.StopRecording();
             }
@@ -567,7 +577,7 @@ namespace EDIVE.Audio
             if (micDevice.SupportsAnyFrequency)
                 return desired;
 
-            if (micDevice.MaxFrequency == desired || micDevice.MinFrequency == desired)
+            if (desired >= micDevice.MinFrequency && desired <= micDevice.MaxFrequency)
                 return desired;
 
             // If the desired frequency is not supported, use the maximum supported frequency
@@ -609,7 +619,8 @@ namespace EDIVE.Audio
                 return;
 
             var manager = NetworkManager.main;
-            if (manager == null || manager.isServer) 
+            // Nothing is broadcast here, so the host invokes it too
+            if (manager == null)
                 return;
 
             // Process the raw audio frame through the same filters as the voice chat frames

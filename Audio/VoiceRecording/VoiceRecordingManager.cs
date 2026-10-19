@@ -24,7 +24,7 @@ namespace EDIVE.Audio.VoiceRecording
         [ShowInInspector]
         [KeepRefreshing]
         [TimeSpanDrawerSettings(TimeUnit.Minutes)]
-        public TimeSpan CurrentRecordingTime => Recording ? TimeSpan.FromSeconds(UnityEngine.Time.time - _recordingStartTime) : TimeSpan.Zero;
+        public TimeSpan CurrentRecordingTime => Recording ? TimeSpan.FromSeconds(UnityEngine.Time.realtimeSinceStartup - _recordingStartTime) : TimeSpan.Zero;
         
         public TimeSpan MaxClipDuration => _MaxClipDuration;
         
@@ -72,7 +72,7 @@ namespace EDIVE.Audio.VoiceRecording
                 return;
             }
             
-            _recordingStartTime = UnityEngine.Time.time;
+            _recordingStartTime = UnityEngine.Time.realtimeSinceStartup;
             PathUtility.EnsurePathExists(RecordingsFolderPath);
             _wavFileWriter = new WavFileWriter(Path.Combine(RecordingsFolderPath, $"VoiceRecording_{DateTime.Now:yyyyMMddHHmmss}.wav"));
             _audioManager.AddVoiceChatMuteRequest(this);
