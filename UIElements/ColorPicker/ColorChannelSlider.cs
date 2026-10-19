@@ -34,6 +34,7 @@ namespace EDIVE.UIElements.ColorPicker
         public event Action<ColorChannel, float> ValueChanged;
 
         public ColorChannel Channel => _Channel;
+        public Slider Slider => _Slider;
 
         private Texture2D _texture;
         private Color _from = Color.black;

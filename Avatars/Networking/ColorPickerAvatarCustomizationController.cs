@@ -16,12 +16,12 @@ namespace EDIVE.Avatars.Networking
         private void OnEnable()
         {
             if (_ColorPickerController != null)
-                _ColorPickerController.ColorChanged += OnColorChanged;
+                _ColorPickerController.ColorCommitted += OnColorCommitted;
         }
         private void OnDisable()
         {
             if (_ColorPickerController != null)
-                _ColorPickerController.ColorChanged -= OnColorChanged;
+                _ColorPickerController.ColorCommitted -= OnColorCommitted;
         }
 
         protected override void OnRecordChanged(ColorVisualPresetRecord current)
@@ -30,7 +30,7 @@ namespace EDIVE.Avatars.Networking
                 _ColorPickerController.SetColor(current.Color, false);
         }
 
-        private void OnColorChanged(Color newColor)
+        private void OnColorCommitted(Color newColor)
         {
             SetRecord(new ColorVisualPresetRecord(ChangedVisualID, newColor));
         }

@@ -36,6 +36,7 @@ namespace EDIVE.UIElements.ColorPicker
         private Texture2D _texture;
 
         public float Hue => _Slider ? _Slider.normalizedValue : 0f;
+        public Slider Slider => _Slider;
 
         private void Awake()
         {

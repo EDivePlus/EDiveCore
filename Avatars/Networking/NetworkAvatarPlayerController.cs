@@ -42,6 +42,7 @@ namespace EDIVE.Avatars.Networking
         private SaveDataService _saveDataService;
         private ClientAuthService _clientAuth;
         private AvatarPlayerSaveData _saveData;
+        private CancellationTokenSource _loadCts;
 
         private readonly SyncVar<AvatarDefinition> _avatarDefinition = new(ownerAuth: true);
 
@@ -80,7 +81,7 @@ namespace EDIVE.Avatars.Networking
             if (!isOwner)
                 return;
 
-            LoadAndApplySavedAvatar(destroyCancellationToken).Forget();
+            StartLoad();
             if (_clientAuth != null)
                 _clientAuth.OnLoginSucceeded += OnLoggedIn;
         }
@@ -89,6 +90,7 @@ namespace EDIVE.Avatars.Networking
         {
             if (_clientAuth != null)
                 _clientAuth.OnLoginSucceeded -= OnLoggedIn;
+            CancelLoad();
             ReleaseSaveData();
         }
 
@@ -96,7 +98,22 @@ namespace EDIVE.Avatars.Networking
         private void OnLoggedIn(LoginResponse response)
         {
             ReleaseSaveData();
-            LoadAndApplySavedAvatar(destroyCancellationToken).Forget();
+            StartLoad();
+        }
+
+        // A newer load replaces the running one
+        private void StartLoad()
+        {
+            CancelLoad();
+            _loadCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            LoadAndApplySavedAvatar(_loadCts.Token).Forget();
+        }
+
+        private void CancelLoad()
+        {
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = null;
         }
 
         private void ReleaseSaveData()
@@ -115,7 +132,7 @@ namespace EDIVE.Avatars.Networking
             
             var result = await _saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, ct);
 
-            if (result.Value == null || !isSpawned)
+            if (ct.IsCancellationRequested || result.Value == null || !isSpawned)
                 return;
             _saveData = result.Value;
             // Nothing saved yet keeps the current avatar, e.g. after logging in while connected

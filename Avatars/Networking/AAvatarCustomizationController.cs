@@ -1,9 +1,11 @@
 ﻿// Author: Michal Petr
 // Created: 21.09.2026
 
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.ServiceHub;
+using EDIVE.ServiceHub.Auth;
 using EDIVE.ServiceHub.SaveData;
 using EDIVE.VisualPresets.Presets;
 using EDIVE.VisualPresets.VisualIDs;
@@ -20,6 +22,9 @@ namespace EDIVE.Avatars.Networking
 
         private AvatarPlayerSaveData _saveData;
         private TRecord _lastSetRecord;
+        private SaveDataService _saveDataService;
+        private ClientAuthService _clientAuth;
+        private CancellationTokenSource _loadCts;
 
         protected TVisualID ChangedVisualID => _ChangedVisualID;
 
@@ -27,19 +32,48 @@ namespace EDIVE.Avatars.Networking
         {
             if (!AppCore.Services.TryGet<ServiceHubManager>(out var serviceHub) || serviceHub.SaveData == null)
                 return;
-            var saveDataService = serviceHub.SaveData;
-            LoadSaveData(saveDataService).Forget();
+            _saveDataService = serviceHub.SaveData;
+            _clientAuth = serviceHub.ClientAuth;
+            if (_clientAuth != null)
+                _clientAuth.OnLoginSucceeded += OnLoggedIn;
+            StartLoad();
         }
 
         protected virtual void OnDestroy()
         {
-            if (_saveData != null)
-                _saveData.CustomizationChanged -= OnCustomizationChanged;
+            if (_clientAuth != null)
+                _clientAuth.OnLoginSucceeded -= OnLoggedIn;
+            ReleaseSaveData();
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = null;
         }
 
-        private async UniTask LoadSaveData(SaveDataService saveDataService)
+        // Save data belongs to the logged in account
+        private void OnLoggedIn(LoginResponse response) => StartLoad();
+
+        private void StartLoad()
         {
-            var result = await saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, destroyCancellationToken);
+            ReleaseSaveData();
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            LoadSaveData(_loadCts.Token).Forget();
+        }
+
+        private void ReleaseSaveData()
+        {
+            if (_saveData != null)
+                _saveData.CustomizationChanged -= OnCustomizationChanged;
+            _saveData = null;
+            _lastSetRecord = null;
+        }
+
+        private async UniTask LoadSaveData(CancellationToken cancellationToken)
+        {
+            var result = await _saveDataService.User.GetSaveDataAsync<AvatarPlayerSaveData>(AvatarPlayerSaveData.KEY, cancellationToken);
+            if (cancellationToken.IsCancellationRequested)
+                return;
             _saveData = result.Value;
             if (_saveData == null)
                 return;

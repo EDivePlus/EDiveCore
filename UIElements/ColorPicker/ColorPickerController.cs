@@ -36,6 +36,8 @@ namespace EDIVE.UIElements.ColorPicker
         private Color _DefaultColor = Color.red;
         
         public event Action<Color> ColorChanged;
+        // After the pointer is released, right away for other edits
+        public event Action<Color> ColorCommitted;
 
         private float _hue;
         private float _saturation = 1f;
@@ -47,6 +49,60 @@ namespace EDIVE.UIElements.ColorPicker
         public Color Color => Color.HSVToRGB(_hue, _saturation, _value).WithA(_alpha);
 
         private bool _initialized;
+        private int _pressCount;
+        private bool _uncommitted;
+        private readonly List<ColorPickerPressRelay> _relays = new();
+
+        private void Awake()
+        {
+            if (_HueSlider && _HueSlider.Slider)
+                AddRelay(_HueSlider.Slider);
+            if (_SaturationValueField)
+                AddRelay(_SaturationValueField);
+            foreach (var slider in _ChannelSliders)
+            {
+                if (slider && slider.Slider)
+                    AddRelay(slider.Slider);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var relay in _relays)
+            {
+                if (relay == null)
+                    continue;
+                relay.Pressed -= OnPressed;
+                relay.Released -= OnReleased;
+            }
+        }
+
+        private void AddRelay(Component target)
+        {
+            var relay = target.GetOrAddComponent<ColorPickerPressRelay>();
+            if (_relays.Contains(relay))
+                return;
+            relay.Pressed += OnPressed;
+            relay.Released += OnReleased;
+            _relays.Add(relay);
+        }
+
+        private void OnPressed() => _pressCount++;
+
+        private void OnReleased()
+        {
+            _pressCount = Mathf.Max(0, _pressCount - 1);
+            if (_pressCount == 0)
+                CommitPending();
+        }
+
+        private void CommitPending()
+        {
+            if (!_uncommitted)
+                return;
+            _uncommitted = false;
+            ColorCommitted?.Invoke(Color);
+        }
 
         private void OnEnable()
         {
@@ -76,6 +132,10 @@ namespace EDIVE.UIElements.ColorPicker
                 if (slider)
                     slider.ValueChanged -= OnChannelChanged;
             }
+
+            // No release comes after disable
+            _pressCount = 0;
+            CommitPending();
         }
         
         private void Start()
@@ -137,8 +197,13 @@ namespace EDIVE.UIElements.ColorPicker
                 _HexInput.SetColor(color);
             _ColorPreviews.Where(p => p != null).ForEach(p => p.color = color);
             UpdateChannelWidgets(color);
-            if (_initialized && notify)
-                ColorChanged?.Invoke(color);
+            if (!_initialized || !notify)
+                return;
+
+            ColorChanged?.Invoke(color);
+            _uncommitted = true;
+            if (_pressCount == 0)
+                CommitPending();
         }
 
         private void UpdateChannelWidgets(Color color)
