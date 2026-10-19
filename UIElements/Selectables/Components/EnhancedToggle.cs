@@ -48,7 +48,7 @@ namespace EDIVE.UIElements.Selectables
             onValueChanged.RemoveListener(OnValueChanged);
         }
 
-        // SetIsOnWithoutNotify skips onValueChanged
+        // SetIsOnWithoutNotify skips onValueChanged and can't be overridden, callers hold plain Toggle refs
         private void LateUpdate()
         {
             if (_StateToggle && _StateToggle.State != isOn)
