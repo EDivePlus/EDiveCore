@@ -50,7 +50,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
         _DetailOffset("Detail Offset", Vector) = (0, 0, 0, 0)
 
         // Triplanar projection
-        [KeywordEnum(World, Object)] _ProjectionSpace("Projection Space", Float) = 0
+        [KeywordEnum(World, Object, UV)] _ProjectionSpace("Projection Space", Float) = 0
         [ToggleUI] _ScaleInvariant("Scale Invariant", Float) = 0.0
         _Tiling("Tiling", Vector) = (1, 1, 1, 0)
         _ProjectionOffset("Offset", Vector) = (0, 0, 0, 0)
@@ -197,6 +197,36 @@ Shader "EDIVE/TriPlanar Projection Lit"
             return uv;
         }
 
+        // Baked UV0: position on the plane (xy) and plane index (z), 0 = X, 1 = Y, 2 = Z
+        int GetBakedPlane(float3 uvw)
+        {
+            return (int)round(uvw.z);
+        }
+
+        float2 SelectPlane(float3 v, int plane)
+        {
+            return plane == 0 ? v.zy : plane == 1 ? v.xz : v.xy;
+        }
+
+        float GetBakedRotation(float3 uvw)
+        {
+            int plane = GetBakedPlane(uvw);
+            return plane == 0 ? _PlaneRotation.x : plane == 1 ? _PlaneRotation.y : _PlaneRotation.z;
+        }
+
+        // Same UV in every plane slot
+        TriplanarUV GetBakedUV(float3 uvw, float3 offset, float3 tiling)
+        {
+            int plane = GetBakedPlane(uvw);
+            float2 p = RotatePlane((uvw.xy - SelectPlane(offset, plane)) * SelectPlane(tiling, plane), GetBakedRotation(uvw));
+            TriplanarUV uv;
+            uv.x = p;
+            uv.y = p;
+            uv.z = p;
+            uv.weights = half3(1, 0, 0);
+            return uv;
+        }
+
         TriplanarUV GetTriplanarUV(float3 position, float3 normal, float3 tiling)
         {
             TriplanarUV uv = ProjectPlanes((position - _ProjectionOffset.xyz) * tiling);
@@ -215,9 +245,13 @@ Shader "EDIVE/TriPlanar Projection Lit"
 
         half4 SampleTriplanar(TEXTURE2D_PARAM(map, sampler_map), TriplanarUV uv)
         {
+        #if defined(_PROJECTIONSPACE_UV)
+            return SAMPLE_TEXTURE2D(map, sampler_map, uv.x);
+        #else
             return SAMPLE_TEXTURE2D(map, sampler_map, uv.x) * uv.weights.x
                  + SAMPLE_TEXTURE2D(map, sampler_map, uv.y) * uv.weights.y
                  + SAMPLE_TEXTURE2D(map, sampler_map, uv.z) * uv.weights.z;
+        #endif
         }
 
         half4 SampleBaseMap(TriplanarUV uv)
@@ -248,6 +282,37 @@ Shader "EDIVE/TriPlanar Projection Lit"
             detailUV.x += RotatePlane(RotatePlane(offsetX, -rotation.x) * ratio.zy, rotation.x);
             detailUV.y += RotatePlane(RotatePlane(offsetY, -rotation.y) * ratio.xz, rotation.y);
             detailUV.z += RotatePlane(RotatePlane(offsetZ, -rotation.z) * ratio.xy, rotation.z);
+        #endif
+        }
+
+        // One-step parallax on the baked plane
+        void ApplyBakedParallax(half3 viewDirTS, float3 uvw, inout TriplanarUV uv, inout TriplanarUV detailUV)
+        {
+        #if defined(_PARALLAXMAP)
+            float rotation = GetBakedRotation(uvw);
+            float2 offset = ParallaxMapping(TEXTURE2D_ARGS(_ParallaxMap, sampler_ParallaxMap), half3(RotatePlane(viewDirTS.xy, rotation), viewDirTS.z), _Parallax, uv.x);
+            uv.x += offset;
+            uv.y = uv.x;
+            uv.z = uv.x;
+
+            float3 baseTiling = _Tiling.xyz;
+            baseTiling = abs(baseTiling) < 1e-6 ? float3(1, 1, 1) : baseTiling;
+            float2 ratio = SelectPlane(_DetailTiling.xyz / baseTiling, GetBakedPlane(uvw));
+            detailUV.x += RotatePlane(RotatePlane(offset, -rotation) * ratio, rotation);
+            detailUV.y = detailUV.x;
+            detailUV.z = detailUV.x;
+        #endif
+        }
+
+        // Base UV only, for alpha clipping
+        TriplanarUV GetBaseUV(float3 positionWS, float3 normalWS, float3 uvw)
+        {
+        #if defined(_PROJECTIONSPACE_UV)
+            return GetBakedUV(uvw, _ProjectionOffset.xyz, _Tiling.xyz);
+        #else
+            float3 position, normal;
+            GetProjectionSpace(positionWS, normalWS, position, normal);
+            return GetTriplanarUV(position, normal, _Tiling.xyz);
         #endif
         }
 
@@ -319,6 +384,18 @@ Shader "EDIVE/TriPlanar Projection Lit"
         #else
             return half3(normal);
         #endif
+        }
+
+        // World normal from the mesh tangents, rotation undone to match them
+        half3 SampleBakedNormal(TriplanarUV uv, TriplanarUV detailUV, half detailMask, float3 uvw, half3 normalWS, half4 tangentWS)
+        {
+            half3 normalTS = half3(0, 0, 1);
+        #if defined(_NORMALMAP)
+            normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uv.x), _BumpScale);
+        #endif
+            normalTS = ApplyDetailNormal(normalTS, detailUV.x, detailMask);
+            normalTS.xy = half2(RotatePlane(normalTS.xy, -GetBakedRotation(uvw)));
+            return NormalizeNormalPerPixel(TransformTangentToWorld(normalTS, CreateTangentToWorld(normalWS, tangentWS.xyz, tangentWS.w)));
         }
 
         half4 SampleMetallicSpecGloss(TriplanarUV uv, half albedoAlpha)
@@ -405,7 +482,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
 
-            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT
+            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT _PROJECTIONSPACE_UV
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _ALPHAPREMULTIPLY_ON
@@ -460,6 +537,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
                 float2 staticLightmapUV : TEXCOORD1;
+            #if defined(_PROJECTIONSPACE_UV)
+                float3 uv0 : TEXCOORD0;
+                float4 tangentOS : TANGENT;
+            #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -479,6 +560,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #ifdef USE_APV_PROBE_OCCLUSION
                 float4 probeOcclusion : TEXCOORD5;
             #endif
+            #if defined(_PROJECTIONSPACE_UV)
+                float3 uvw : TEXCOORD6;
+                half4 tangentWS : TEXCOORD7;
+            #endif
                 float4 positionCS : SV_POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
@@ -494,6 +579,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
                 output.positionWS = vertexInput.positionWS;
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+            #if defined(_PROJECTIONSPACE_UV)
+                output.uvw = input.uv0;
+                output.tangentWS = half4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w * GetOddNegativeScale());
+            #endif
 
                 half fogFactor = 0;
             #if !defined(_FOG_FRAGMENT)
@@ -530,11 +619,19 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 LODFadeCrossFade(input.positionCS);
             #endif
 
+                float3 viewDirWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
+            #if defined(_PROJECTIONSPACE_UV)
+                half3 normalWS = half3(normalize(input.normalWS));
+                TriplanarUV uv = GetBakedUV(input.uvw, _ProjectionOffset.xyz, _Tiling.xyz);
+                TriplanarUV detailUV = GetBakedUV(input.uvw, _ProjectionOffset.xyz + _DetailOffset.xyz, _DetailTiling.xyz);
+                ApplyBakedParallax(GetViewDirectionTangentSpace(input.tangentWS, normalWS, half3(viewDirWS)), input.uvw, uv, detailUV);
+            #else
                 float3 position, normal;
                 GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
                 TriplanarUV uv = GetTriplanarUV(position, normal, _Tiling.xyz);
                 TriplanarUV detailUV = GetDetailUV(position, uv);
-                ApplyTriplanarParallax(GetWorldSpaceNormalizeViewDir(input.positionWS), normal, uv, detailUV);
+                ApplyTriplanarParallax(viewDirWS, normal, uv, detailUV);
+            #endif
 
                 half detailMask = SampleDetailMask(uv);
 
@@ -544,9 +641,13 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 InputData inputData = (InputData)0;
                 inputData.positionWS = input.positionWS;
                 inputData.positionCS = input.positionCS;
+            #if defined(_PROJECTIONSPACE_UV)
+                inputData.normalWS = SampleBakedNormal(uv, detailUV, detailMask, input.uvw, normalWS, input.tangentWS);
+            #else
                 inputData.normalWS = ProjectionToWorldNormal(SampleTriplanarNormal(uv, normal, detailUV, detailMask));
+            #endif
                 surfaceData.smoothness = ApplySpecularAA(surfaceData.smoothness, inputData.normalWS);
-                inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
+                inputData.viewDirectionWS = viewDirWS;
             #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
                 inputData.shadowCoord = input.shadowCoord;
             #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
@@ -607,7 +708,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma vertex ShadowPassVertex
             #pragma fragment ShadowPassFragment
 
-            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT
+            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT _PROJECTIONSPACE_UV
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
@@ -624,6 +725,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+            #if defined(_PROJECTIONSPACE_UV)
+                float3 uv0 : TEXCOORD0;
+            #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -633,6 +737,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #if defined(_ALPHATEST_ON)
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
+                float3 uvw : TEXCOORD2;
             #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -657,6 +762,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #if defined(_ALPHATEST_ON)
                 output.positionWS = positionWS;
                 output.normalWS = normalWS;
+            #if defined(_PROJECTIONSPACE_UV)
+                output.uvw = input.uv0;
+            #endif
             #endif
                 return output;
             }
@@ -665,9 +773,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
             #if defined(_ALPHATEST_ON)
-                float3 position, normal;
-                GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
-                Alpha(SampleBaseMap(GetTriplanarUV(position, normal, _Tiling.xyz)).a, half4(1, 1, 1, 1), _Cutoff);
+                Alpha(SampleBaseMap(GetBaseUV(input.positionWS, normalize(input.normalWS), input.uvw)).a, half4(1, 1, 1, 1), _Cutoff);
             #endif
             #ifdef LOD_FADE_CROSSFADE
                 LODFadeCrossFade(input.positionCS);
@@ -692,7 +798,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma vertex DepthOnlyVertex
             #pragma fragment DepthOnlyFragment
 
-            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT
+            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT _PROJECTIONSPACE_UV
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
@@ -703,6 +809,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+            #if defined(_PROJECTIONSPACE_UV)
+                float3 uv0 : TEXCOORD0;
+            #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -712,6 +821,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #if defined(_ALPHATEST_ON)
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
+                float3 uvw : TEXCOORD2;
             #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
@@ -727,6 +837,9 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #if defined(_ALPHATEST_ON)
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+            #if defined(_PROJECTIONSPACE_UV)
+                output.uvw = input.uv0;
+            #endif
             #endif
                 return output;
             }
@@ -735,9 +848,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
             #if defined(_ALPHATEST_ON)
-                float3 position, normal;
-                GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
-                Alpha(SampleBaseMap(GetTriplanarUV(position, normal, _Tiling.xyz)).a, half4(1, 1, 1, 1), _Cutoff);
+                Alpha(SampleBaseMap(GetBaseUV(input.positionWS, normalize(input.normalWS), input.uvw)).a, half4(1, 1, 1, 1), _Cutoff);
             #endif
             #ifdef LOD_FADE_CROSSFADE
                 LODFadeCrossFade(input.positionCS);
@@ -761,7 +872,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma vertex DepthNormalsVertex
             #pragma fragment DepthNormalsFragment
 
-            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT
+            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT _PROJECTIONSPACE_UV
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
@@ -776,6 +887,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+            #if defined(_PROJECTIONSPACE_UV)
+                float3 uv0 : TEXCOORD0;
+                float4 tangentOS : TANGENT;
+            #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -784,6 +899,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
+            #if defined(_PROJECTIONSPACE_UV)
+                float3 uvw : TEXCOORD2;
+                half4 tangentWS : TEXCOORD3;
+            #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -798,6 +917,10 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 output.positionCS = TransformWorldToHClip(output.positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+            #if defined(_PROJECTIONSPACE_UV)
+                output.uvw = input.uv0;
+                output.tangentWS = half4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w * GetOddNegativeScale());
+            #endif
                 return output;
             }
 
@@ -815,18 +938,30 @@ Shader "EDIVE/TriPlanar Projection Lit"
                 LODFadeCrossFade(input.positionCS);
             #endif
 
+                float3 viewDirWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
+            #if defined(_PROJECTIONSPACE_UV)
+                half3 normalWS = half3(normalize(input.normalWS));
+                TriplanarUV uv = GetBakedUV(input.uvw, _ProjectionOffset.xyz, _Tiling.xyz);
+                TriplanarUV detailUV = GetBakedUV(input.uvw, _ProjectionOffset.xyz + _DetailOffset.xyz, _DetailTiling.xyz);
+                ApplyBakedParallax(GetViewDirectionTangentSpace(input.tangentWS, normalWS, half3(viewDirWS)), input.uvw, uv, detailUV);
+            #else
                 float3 position, normal;
                 GetProjectionSpace(input.positionWS, normalize(input.normalWS), position, normal);
                 TriplanarUV uv = GetTriplanarUV(position, normal, _Tiling.xyz);
                 TriplanarUV detailUV = GetDetailUV(position, uv);
-                ApplyTriplanarParallax(GetWorldSpaceNormalizeViewDir(input.positionWS), normal, uv, detailUV);
+                ApplyTriplanarParallax(viewDirWS, normal, uv, detailUV);
+            #endif
 
             #if defined(_ALPHATEST_ON)
                 Alpha(SampleBaseMap(uv).a, half4(1, 1, 1, 1), _Cutoff);
             #endif
 
                 half detailMask = SampleDetailMask(uv);
+            #if defined(_PROJECTIONSPACE_UV)
+                outNormalWS = half4(SampleBakedNormal(uv, detailUV, detailMask, input.uvw, normalWS, input.tangentWS), 0);
+            #else
                 outNormalWS = half4(ProjectionToWorldNormal(SampleTriplanarNormal(uv, normal, detailUV, detailMask)), 0);
+            #endif
 
             #ifdef _WRITE_RENDERING_LAYERS
                 outRenderingLayers = EncodeMeshRenderingLayer();
@@ -835,7 +970,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             ENDHLSL
         }
 
-        // Lightmap bake, uses UV0
+        // Lightmap bake, uses UV0 (baked projection in UV mode)
         Pass
         {
             Name "Meta"
@@ -849,6 +984,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             #pragma vertex MetaPassVertex
             #pragma fragment MetaPassFragment
 
+            #pragma shader_feature_local _PROJECTIONSPACE_WORLD _PROJECTIONSPACE_OBJECT _PROJECTIONSPACE_UV
             #pragma shader_feature_local_fragment _EMISSION
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MetaInput.hlsl"
@@ -856,7 +992,7 @@ Shader "EDIVE/TriPlanar Projection Lit"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float2 uv0 : TEXCOORD0;
+                float3 uv0 : TEXCOORD0;
                 float2 uv1 : TEXCOORD1;
                 float2 uv2 : TEXCOORD2;
             };
@@ -871,7 +1007,11 @@ Shader "EDIVE/TriPlanar Projection Lit"
             {
                 Varyings output;
                 output.positionCS = MetaVertexPosition(input.positionOS, input.uv1, input.uv2, unity_LightmapST, unity_DynamicLightmapST);
-                output.uv = input.uv0;
+            #if defined(_PROJECTIONSPACE_UV)
+                output.uv = GetBakedUV(input.uv0, _ProjectionOffset.xyz, _Tiling.xyz).x;
+            #else
+                output.uv = input.uv0.xy;
+            #endif
                 return output;
             }
 

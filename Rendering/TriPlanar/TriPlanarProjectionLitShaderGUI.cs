@@ -1,4 +1,6 @@
 #if UNITY_EDITOR
+using System;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEditor.Rendering.Universal.ShaderGUI;
@@ -10,14 +12,18 @@ namespace EDIVE.Rendering.TriPlanar
     // URP Lit inspector with triplanar projection instead of UV tiling, plus a Detail Inputs foldout.
     public class TriPlanarProjectionLitShaderGUI : BaseShaderGUI
     {
+        // Set by a project tool that bakes the projection into mesh UVs
+        public static Action<Material[]> BakeToUvs;
+
         private static readonly GUIContent BASE_MAP_STRENGTH = EditorGUIUtility.TrTextContent("Base Map Strength", "0 = color only.");
         private static readonly GUIContent PROJECTION_HEADER = EditorGUIUtility.TrTextContent("Triplanar Projection");
-        private static readonly GUIContent SPACE = EditorGUIUtility.TrTextContent("Space", "World space, or local space so the texture follows the object.");
+        private static readonly GUIContent SPACE = EditorGUIUtility.TrTextContent("Space", "World space, local space so the texture follows the object, or UV for meshes baked with Bake to UVs.");
         private static readonly GUIContent SCALE_INVARIANT = EditorGUIUtility.TrTextContent("Scale Invariant", "Ignore object scale so the texture doesn't stretch.");
         private static readonly GUIContent TILING = EditorGUIUtility.TrTextContent("Tiling", "Repeats per unit, per axis.");
         private static readonly GUIContent OFFSET = EditorGUIUtility.TrTextContent("Offset", "Shifts the projection origin.");
         private static readonly GUIContent PLANE_ROTATION = EditorGUIUtility.TrTextContent("Plane Rotation", "Rotates the texture on the X, Y and Z facing sides, in degrees.");
         private static readonly GUIContent BLEND_SHARPNESS = EditorGUIUtility.TrTextContent("Blend Sharpness", "Higher is sharper.");
+        private static readonly GUIContent BAKE_TO_UVS = EditorGUIUtility.TrTextContent("Bake to UVs", "Bakes the projection into UV0 of the selected objects using this material and switches them to a _UV copy of it.");
 
         private static readonly GUIContent SPECULAR_AA_VARIANCE = EditorGUIUtility.TrTextContent("Specular AA", "Roughens highlights on detail smaller than a pixel to stop shimmer. 0 is off.");
         private static readonly GUIContent SPECULAR_AA_THRESHOLD = EditorGUIUtility.TrTextContent("Specular AA Limit", "Most roughness specular AA can add.");
@@ -47,6 +53,8 @@ namespace EDIVE.Rendering.TriPlanar
 
         private const string DETAIL_MULX2_KEYWORD = "_DETAIL_MULX2";
         private const string DETAIL_SCALED_KEYWORD = "_DETAIL_SCALED";
+        private const float SPACE_OBJECT = 1f;
+        private const float SPACE_UV = 2f;
 
         private static readonly int DETAIL_ALBEDO_MAP_ID = Shader.PropertyToID(DETAIL_ALBEDO_MAP_PROP);
         private static readonly int DETAIL_ALBEDO_MAP_SCALE_ID = Shader.PropertyToID(DETAIL_ALBEDO_MAP_SCALE_PROP);
@@ -148,12 +156,21 @@ namespace EDIVE.Rendering.TriPlanar
             EditorGUILayout.LabelField(PROJECTION_HEADER, EditorStyles.boldLabel);
 
             Draw(_projectionSpace, SPACE);
-            if (_projectionSpace != null && Mathf.Approximately(_projectionSpace.floatValue, 1f))
+            var space = _projectionSpace != null && !_projectionSpace.hasMixedValue ? _projectionSpace.floatValue : -1f;
+            if (Mathf.Approximately(space, SPACE_OBJECT))
                 Draw(_scaleInvariant, SCALE_INVARIANT, 1);
             DrawVector3(_tiling, TILING);
             DrawVector3(_projectionOffset, OFFSET);
             DrawVector3(_planeRotation, PLANE_ROTATION);
-            Draw(_blendSharpness, BLEND_SHARPNESS);
+            if (!Mathf.Approximately(space, SPACE_UV))
+                Draw(_blendSharpness, BLEND_SHARPNESS);
+
+            if (BakeToUvs == null || space < 0f || Mathf.Approximately(space, SPACE_UV))
+                return;
+            if (!GUILayout.Button(BAKE_TO_UVS))
+                return;
+            var materials = materialEditor.targets.OfType<Material>().ToArray();
+            EditorApplication.delayCall += () => BakeToUvs?.Invoke(materials);
         }
 
         private void DrawDetailInputs()
