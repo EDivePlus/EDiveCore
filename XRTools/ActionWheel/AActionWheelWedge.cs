@@ -55,6 +55,6 @@ namespace EDIVE.XRTools.ActionWheel
         }
         public virtual void OnHide() { }
 
-        public abstract void ExecuteActions();
+        public abstract void ExecuteActions(ActionWheelContext context);
     }
 }

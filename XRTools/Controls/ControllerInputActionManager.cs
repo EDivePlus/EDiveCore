@@ -209,6 +209,14 @@ namespace EDIVE.XRTools.Controls
 
         readonly HashSet<InputAction> m_LocomotionUsers = new HashSet<InputAction>();
         readonly HashSet<object> m_ThumbstickRequesters = new HashSet<object>();
+        readonly HashSet<object> m_FarInteractionBlockers = new HashSet<object>();
+        bool m_DefaultFarCasting;
+        bool m_DefaultUIInteraction;
+
+        bool farInteractionBlocked => m_FarInteractionBlockers.Count > 0;
+
+        // Teleport interactor stays active one extra frame after cancel to finish the teleport.
+        bool teleportAiming => m_TeleportInteractor != null && m_TeleportInteractor.gameObject.activeSelf && !m_PostponedDeactivateTeleport;
         readonly BindingsGroup m_BindingsGroup = new BindingsGroup();
 
         void SetupInteractorEvents()
@@ -362,12 +370,50 @@ namespace EDIVE.XRTools.Controls
             m_PostponedDeactivateTeleport = true;
 
             if (m_RayInteractor != null)
-                m_RayInteractor.gameObject.SetActive(true);
+                m_RayInteractor.gameObject.SetActive(!farInteractionBlocked);
 
             if (m_NearFarInteractor != null)
                 m_NearFarInteractor.gameObject.SetActive(true);
 
             m_RayInteractorChanged?.Invoke(m_RayInteractor);
+        }
+
+        /// <summary>
+        /// Disables ray and UI interaction of this controller while at least one requester blocks it.
+        /// </summary>
+        public void BlockFarInteraction(object requester)
+        {
+            if (!m_FarInteractionBlockers.Add(requester) || m_FarInteractionBlockers.Count > 1)
+                return;
+
+            if (m_NearFarInteractor != null)
+            {
+                m_DefaultFarCasting = m_NearFarInteractor.enableFarCasting;
+                m_DefaultUIInteraction = m_NearFarInteractor.enableUIInteraction;
+                m_NearFarInteractor.enableFarCasting = false;
+                m_NearFarInteractor.enableUIInteraction = false;
+            }
+
+            if (m_RayInteractor != null)
+                m_RayInteractor.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Releases a previous block. Interaction is restored once no blockers remain.
+        /// </summary>
+        public void UnblockFarInteraction(object requester)
+        {
+            if (!m_FarInteractionBlockers.Remove(requester) || farInteractionBlocked)
+                return;
+
+            if (m_NearFarInteractor != null)
+            {
+                m_NearFarInteractor.enableFarCasting = m_DefaultFarCasting;
+                m_NearFarInteractor.enableUIInteraction = m_DefaultUIInteraction;
+            }
+
+            if (m_RayInteractor != null && !teleportAiming)
+                m_RayInteractor.gameObject.SetActive(true);
         }
 
         /// <summary>

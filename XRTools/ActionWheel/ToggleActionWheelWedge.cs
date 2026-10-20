@@ -57,12 +57,12 @@ namespace EDIVE.XRTools.ActionWheel
             RefreshState();
         }
 
-        public override void ExecuteActions()
+        public override void ExecuteActions(ActionWheelContext context)
         {
             if (State)
-                _OnActions.ForEach(action => action.Execute());
+                _OnActions.ForEach(action => action.Execute(context));
             else
-                _OffActions.ForEach(action => action.Execute());
+                _OffActions.ForEach(action => action.Execute(context));
 
             RefreshState();
         }

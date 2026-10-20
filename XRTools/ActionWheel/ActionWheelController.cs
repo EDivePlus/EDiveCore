@@ -14,6 +14,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 namespace EDIVE.XRTools.ActionWheel
 {
@@ -145,9 +146,16 @@ namespace EDIVE.XRTools.ActionWheel
         private void HideAndExecute()
         {
             var selectedWedge = _hoveredWedge;
+            var context = CreateContext(_activeHand);
             Hide();
             if (selectedWedge != null && selectedWedge.CanExecute)
-                selectedWedge.ExecuteActions();
+                selectedWedge.ExecuteActions(context);
+        }
+
+        private ActionWheelContext CreateContext(Hand hand)
+        {
+            var handedness = hand == _LeftHand ? InteractorHandedness.Left : hand == _RightHand ? InteractorHandedness.Right : InteractorHandedness.None;
+            return new ActionWheelContext(handedness, hand?.Anchor);
         }
 
         private void Show(Hand hand)

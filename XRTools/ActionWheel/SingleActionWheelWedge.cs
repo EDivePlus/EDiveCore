@@ -19,9 +19,9 @@ namespace EDIVE.XRTools.ActionWheel
 
         public override LocalizedString Label => _Label;
 
-        public override void ExecuteActions()
+        public override void ExecuteActions(ActionWheelContext context)
         {
-            _Actions.ForEach(action => action.Execute());
+            _Actions.ForEach(action => action.Execute(context));
         }
     }
 }
