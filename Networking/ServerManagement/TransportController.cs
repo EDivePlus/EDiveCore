@@ -1,9 +1,6 @@
 ﻿// Author: František Holubec
 // Created: 13.05.2026
 
-using System;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 using EDIVE.Core.Services;
 using PurrNet;
 using PurrNet.Transports;
@@ -22,75 +19,6 @@ namespace EDIVE.Networking.ServerManagement
         [Required]
         [SerializeField]
         private LocalTransport _LocalTransport;
-
-        [SerializeField]
-        [MinValue(1)]
-        [Tooltip("Seconds between attempts to listen on the relay again after the host lost it.")]
-        private float _RelayRetryDelay = 5f;
-
-        private PurrTransport _relayTransport;
-        private CancellationTokenSource _relayRetryCts;
-
-        protected override void OnEnable()
-        {
-            base.OnEnable();
-            if (_CompositeTransports.TryGetTransport(out _relayTransport))
-                _relayTransport.transport.onConnectionState += OnRelayConnectionState;
-        }
-
-        protected override void OnDisable()
-        {
-            base.OnDisable();
-            if (_relayTransport)
-                _relayTransport.transport.onConnectionState -= OnRelayConnectionState;
-
-            _relayRetryCts?.Cancel();
-            _relayRetryCts?.Dispose();
-            _relayRetryCts = null;
-        }
-
-        // PurrTransport stops listening when its relay link drops, the rest of the server keeps running
-        private void OnRelayConnectionState(ConnectionState state, bool asServer)
-        {
-            if (!asServer || state != ConnectionState.Disconnected || _relayRetryCts != null || !IsServerListening())
-                return;
-
-            _relayRetryCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
-            RelistenRelayAsync(_relayRetryCts).Forget();
-        }
-
-        private async UniTaskVoid RelistenRelayAsync(CancellationTokenSource cts)
-        {
-            var relay = _relayTransport.transport;
-            try
-            {
-                while (relay.listenerState == ConnectionState.Disconnected)
-                {
-                    await UniTask.Delay(TimeSpan.FromSeconds(_RelayRetryDelay), true, cancellationToken: cts.Token);
-                    if (!IsServerListening())
-                        return;
-
-                    Debug.LogWarning("[TransportController] Relay listener lost, listening again.");
-                    relay.Listen(0);
-                    await UniTask.WaitWhile(() => relay.listenerState == ConnectionState.Connecting, cancellationToken: cts.Token);
-                }
-            }
-            catch (OperationCanceledException) { }
-            finally
-            {
-                if (_relayRetryCts == cts)
-                {
-                    _relayRetryCts.Dispose();
-                    _relayRetryCts = null;
-                }
-            }
-        }
-
-        private bool IsServerListening()
-        {
-            return NetworkManager.main && NetworkManager.main.transport == _CompositeTransports
-                && _CompositeTransports.listenerState is ConnectionState.Connected or ConnectionState.Connecting;
-        }
 
         public bool HasTransport<T>() where T : GenericTransport
         {
