@@ -1392,6 +1392,18 @@
     color: var(--dm-error);
 }
 
+/* Sidebar: solid dot */
+.dm-badges--compact .dm-badge.dm-level--warning {
+    background-color: var(--dm-warning);
+}
+
+.dm-badges--compact .dm-badge.dm-level--error {
+    background-color: var(--dm-error);
+}
+
+.dm-badges--compact .dm-badge .dm-badge__count {
+    color: var(--dm-on-accent);
+}
 .dm-root .dm-badge__icon {
     font-size: 18px;
     margin-right: 4px;
@@ -1422,7 +1434,6 @@
     opacity: 0;
 }
 
-/* Red for errors, amber for warnings only */
 .dm-trigger__dot {
     position: absolute;
     left: 5px;
@@ -1430,14 +1441,13 @@
     width: 10px;
     height: 10px;
     border-radius: 5px;
-}
-
-.dm-trigger__dot--error {
     background-color: #ef4444;
+    transition-property: opacity;
+    transition-duration: 0.12s;
 }
 
-.dm-trigger__dot--warning {
-    background-color: #f59e0b;
+.dm-trigger__dot--dim {
+    opacity: 0.15;
 }
 
 /* Toasts: top center, over the menu and the app. Bottom bars like a dock stay visible */

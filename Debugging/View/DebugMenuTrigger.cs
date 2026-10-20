@@ -7,10 +7,13 @@ using UnityEngine.UIElements;
 
 namespace EDIVE.Debugging
 {
-    // Invisible top left corner, hold to open. A dot shows logs that came since the menu was last open,
-    // red for errors, amber for warnings only.
+    // Invisible top left corner, hold to open. A red dot shows errors logged since the menu was last open,
+    // blinks when a new one comes.
     public sealed class DebugMenuTrigger : VisualElement
     {
+        private const int BLINK_COUNT = 3;
+        private const long BLINK_INTERVAL = 150;
+
         private readonly float _holdTime;
         private readonly VisualElement _area;
         private readonly VisualElement _fill;
@@ -21,7 +24,9 @@ namespace EDIVE.Debugging
         private int _pointerId = -1;
         private bool _dotScheduled;
         private int _seenErrors;
-        private int _seenWarnings;
+        private int _lastErrors;
+        private IVisualElementScheduledItem _blink;
+        private int _blinkStep;
 
         public event Action Activated;
 
@@ -80,23 +85,31 @@ namespace EDIVE.Debugging
         public void MarkSeen()
         {
             _seenErrors = DebugLogBuffer.Count(DebugLogLevel.Error);
-            _seenWarnings = DebugLogBuffer.Count(DebugLogLevel.Warning);
             UpdateDot();
         }
 
         private void UpdateDot()
         {
             var errorCount = DebugLogBuffer.Count(DebugLogLevel.Error);
-            var warningCount = DebugLogBuffer.Count(DebugLogLevel.Warning);
-            // Cleared or trimmed buffer, counts went down
+            // Cleared or trimmed buffer, count went down
             _seenErrors = Mathf.Min(_seenErrors, errorCount);
-            _seenWarnings = Mathf.Min(_seenWarnings, warningCount);
 
             var errors = errorCount > _seenErrors;
-            var warnings = warningCount > _seenWarnings;
-            _dot.EnableInClassList("dm-trigger__dot--error", errors);
-            _dot.EnableInClassList("dm-trigger__dot--warning", !errors && warnings);
-            _dot.style.display = errors || warnings ? DisplayStyle.Flex : DisplayStyle.None;
+            _dot.style.display = errors ? DisplayStyle.Flex : DisplayStyle.None;
+            if (errors && errorCount > _lastErrors)
+                Blink();
+            _lastErrors = errorCount;
+        }
+
+        private void Blink()
+        {
+            _blinkStep = 0;
+            _blink ??= schedule.Execute(() =>
+            {
+                _blinkStep++;
+                _dot.EnableInClassList("dm-trigger__dot--dim", _blinkStep % 2 == 1);
+            }).Every(BLINK_INTERVAL).Until(() => _blinkStep >= BLINK_COUNT * 2);
+            _blink.Resume();
         }
 
         private void OnPointerDown(PointerDownEvent evt)
