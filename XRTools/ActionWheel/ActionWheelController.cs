@@ -6,11 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using EDIVE.NativeUtils;
+using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Tweening;
 using EDIVE.UIElements.Layout;
 using EDIVE.XRTools.Controls;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
 namespace EDIVE.XRTools.ActionWheel
@@ -48,6 +50,15 @@ namespace EDIVE.XRTools.ActionWheel
 
         [SerializeField]
         private TweenAnimationController _HideAnimation;
+
+        [SerializeField]
+        private LocalizeStringEvent _TooltipText;
+
+        [SerializeField]
+        private AToggleState _TooltipVisual;
+
+        [SerializeField]
+        private AToggleState _TooltipLockedVisual;
 
         private Hand _activeHand;
         private AActionWheelWedge[] _wedges;
@@ -204,6 +215,25 @@ namespace EDIVE.XRTools.ActionWheel
 
             if (_hoveredWedge != null)
                 _hoveredWedge.SetHovered(true);
+
+            RefreshTooltip();
+        }
+
+        private void RefreshTooltip()
+        {
+            var label = _hoveredWedge != null ? _hoveredWedge.Label : null;
+            var visible = label != null && !label.IsEmpty;
+
+            if (visible)
+            {
+                if (_TooltipText != null)
+                    _TooltipText.StringReference.SetReference(label.TableReference, label.TableEntryReference);
+                if (_TooltipLockedVisual != null)
+                    _TooltipLockedVisual.SetState(!_hoveredWedge.IsUnlocked, true);
+            }
+
+            if (_TooltipVisual != null)
+                _TooltipVisual.SetState(visible);
         }
 
         [Serializable]

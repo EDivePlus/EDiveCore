@@ -4,14 +4,22 @@
 using System;
 using System.Collections.Generic;
 using EDIVE.Conditions;
+using EDIVE.Localization;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.Utils.Actions;
 using UnityEngine;
+using UnityEngine.Localization;
 
 namespace EDIVE.XRTools.ActionWheel
 {
     public class ToggleActionWheelWedge : AActionWheelWedge
     {
+        [SerializeField]
+        private SafeLocalizedString _OnLabel;
+
+        [SerializeField]
+        private SafeLocalizedString _OffLabel;
+
         [SerializeReference]
         private List<IAction> _OnActions = new();
         
@@ -27,6 +35,8 @@ namespace EDIVE.XRTools.ActionWheel
         private IDisposable _stateObserver;
         
         private bool State => _StateCondition?.Evaluate() ?? false;
+
+        public override LocalizedString Label => State ? _OnLabel : _OffLabel;
 
         private void OnEnable()
         {

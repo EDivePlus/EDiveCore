@@ -6,6 +6,7 @@ using EDIVE.StateHandling.ToggleStates;
 using EDIVE.UIElements.Layout;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using UnityEngine.Localization;
 
 namespace EDIVE.XRTools.ActionWheel
 {
@@ -28,6 +29,8 @@ namespace EDIVE.XRTools.ActionWheel
         
         [SerializeReference]
         private ICondition _UnlockedCondition;
+
+        public abstract LocalizedString Label { get; }
 
         public bool IsVisible => _VisibleCondition?.Evaluate() ?? true;
         public bool IsUnlocked => _UnlockedCondition?.Evaluate() ?? true;

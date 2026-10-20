@@ -32,7 +32,9 @@
         "Unity.XR.Management.Editor",
         "EDIVE.UIElements",
         "EDIVE.Utils.Actions",
-        "EDIVE.Tweening"
+        "EDIVE.Tweening",
+        "EDIVE.Localization",
+        "Unity.Localization"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
