@@ -9,7 +9,8 @@
         "UniTask",
         "EDIVE.DataStructures",
         "Unity.Splines",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "EDIVE.SerializedTypeMigration"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

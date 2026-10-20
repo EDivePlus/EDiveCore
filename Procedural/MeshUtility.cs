@@ -58,60 +58,6 @@ namespace EDIVE.Procedural
             mesh.RecalculateTangents();
         }
         
-        private static readonly List<Vector3> TEMP_VERTICES = new();
-
-        public static void SliceScaleMesh(Mesh original, Mesh target, Vector3 referenceSize, Vector3 scale, Vector3 sliceMin, Vector3 sliceMax)
-        {
-            SliceScaleMesh(original, target, referenceSize, scale, sliceMin, sliceMax, Matrix4x4.identity);
-        }
-        
-        public static void SliceScaleMesh(Mesh original, Mesh target, Vector3 referenceSize, Vector3 scale, Vector3 sliceMin, Vector3 sliceMax, Transform meshTransform, Transform root)
-        {
-            var matrix = ChildToRootMatrix(meshTransform, root);
-            SliceScaleMesh(original, target, referenceSize, scale, sliceMin, sliceMax, matrix);
-        }
-        
-        public static void SliceScaleMesh(Mesh original, Mesh target, Vector3 referenceSize, Vector3 scale, Vector3 sliceMin, Vector3 sliceMax, Matrix4x4 matrix)
-        {
-            var halfSize = referenceSize * 0.5f;
-            var scaledHalf = halfSize.MultiplyElementWise(scale);
-            var offset = scaledHalf - halfSize;
-            
-            var inverse = matrix.inverse;
-            TEMP_VERTICES.Clear();
-            original.GetVertices(TEMP_VERTICES);
-            for (var i = 0; i < TEMP_VERTICES.Count; i++)
-            {
-                var point = matrix.MultiplyPoint3x4(TEMP_VERTICES[i]);
-                point = SliceScalePoint(point, sliceMin, sliceMax, offset);
-                TEMP_VERTICES[i] = inverse.MultiplyPoint3x4(point);
-            }
-            target.SetVertices(TEMP_VERTICES);
-            target.RecalculateNormals();
-            target.RecalculateTangents();
-            target.RecalculateBounds();
-        }
-
-
-        private static Vector3 SliceScalePoint(Vector3 value, Vector3 sliceMin, Vector3 sliceMax, Vector3 offsets)
-        {
-            value.x = SliceScaleSingleAxis(value.x, sliceMin.x, sliceMax.x, offsets.x);
-            value.y = SliceScaleSingleAxis(value.y, sliceMin.y, sliceMax.y, offsets.y);
-            value.z = SliceScaleSingleAxis(value.z, sliceMin.z, sliceMax.z, offsets.z);
-            return value;
-        }
-
-        private static float SliceScaleSingleAxis(float value, float sliceMin, float sliceMax, float offset)
-        {
-            if (value <= sliceMin)
-                return value - offset;
-            
-            if (value >= sliceMax)
-                return value + offset;
-            
-            return Mathf.Lerp(sliceMin - offset, sliceMax + offset, (value - sliceMin) / (sliceMax - sliceMin));
-        }
-     
         public static Matrix4x4 ChildToRootMatrix(Transform child, Transform root)
         {
             return root.worldToLocalMatrix * child.localToWorldMatrix;

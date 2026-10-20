@@ -80,7 +80,7 @@ Check here first before writing a helper. If EDIVE has it, use it.
 - Http: `RestUtils`, `JwtUtils`. CredentialStore: OS secrets, `[CredentialField]`.
 - AddressableAssets: `AssetAddressReference<T>`, `SceneAssetReference`.
 - Rendering (URP): mirrors, UV decals, LitLayered, TriPlanar, grids, vignette shaders.
-- Procedural: `MeshSliceScaler`, `SplineMeshBender`. GeoToolkit: geo coords, `MapController`, map services.
+- Procedural: `ObjectScaler` (sliced sizing, `EDIVE/Sliced Lit`), `SplineMeshBender`. GeoToolkit: geo coords, `MapController`, map services.
 - BuildTool: Tools/Build Tool (Ctrl+G), `BuildPreset` = user + app + platform config, custom steps inherit `ABuildAction`.
 - Configuration (`LocalConfigLoader`), Console (headless, `SPECTRE_CONSOLE`), View (`SafeAreaController`).
 - Debugging: UI Toolkit debug menu (`DEBUG_MENU`). `DebugMenu.For(this).Section("Panel/Page", "Section")`.
