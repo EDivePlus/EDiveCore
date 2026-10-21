@@ -5,9 +5,7 @@ using System;
 using EDIVE.Core.Services;
 using EDIVE.StateHandling.ToggleStates;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit.Inputs;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
-using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
 
 namespace EDIVE.XRTools.LaserPointer
 {
@@ -25,8 +23,6 @@ namespace EDIVE.XRTools.LaserPointer
         [SerializeField]
         private Hand _RightHand;
 
-        private Transform _stabilizedOrigin;
-
         public InteractorHandedness ActiveHand { get; private set; }
         public bool IsActive => ActiveHand != InteractorHandedness.None;
         public bool IsFiring { get; private set; }
@@ -39,12 +35,6 @@ namespace EDIVE.XRTools.LaserPointer
         public event Action<InteractorHandedness> ActiveHandChanged;
         public event Action<bool> FiringChanged;
         public event Action BeamUpdated;
-
-        private void Awake()
-        {
-            _stabilizedOrigin = new GameObject("LaserPointerStabilizedOrigin").transform;
-            _stabilizedOrigin.SetParent(transform, false);
-        }
 
         protected override void OnDisable()
         {
@@ -72,11 +62,7 @@ namespace EDIVE.XRTools.LaserPointer
 
             IsFiring = firing;
             if (IsFiring)
-            {
-                var castOrigin = GetHand(ActiveHand).CastOrigin;
-                _stabilizedOrigin.SetPositionAndRotation(castOrigin.position, castOrigin.rotation);
                 UpdateBeam();
-            }
 
             FiringChanged?.Invoke(IsFiring);
         }
@@ -90,10 +76,9 @@ namespace EDIVE.XRTools.LaserPointer
         private void UpdateBeam()
         {
             var hand = GetHand(ActiveHand);
-            hand.Stabilize(ref _stabilizedOrigin, Time.unscaledDeltaTime);
-
-            var origin = _stabilizedOrigin.position;
-            var direction = _stabilizedOrigin.forward;
+            var castOrigin = hand.CastOrigin;
+            var origin = castOrigin.position;
+            var direction = castOrigin.forward;
             HasHit = Physics.Raycast(origin, direction, out var hit, _MaxDistance, _HitMask, QueryTriggerInteraction.Ignore);
             EndPoint = HasHit ? hit.point : origin + direction * _MaxDistance;
             LocalOrigin = hand.Anchor.InverseTransformPoint(origin);
@@ -128,15 +113,6 @@ namespace EDIVE.XRTools.LaserPointer
             {
                 if (_ActiveVisual)
                     _ActiveVisual.SetState(active);
-            }
-
-            public void Stabilize(ref Transform stabilized, float deltaTime)
-            {
-                var castOrigin = CastOrigin;
-                if (_Interactor.farInteractionCaster is InteractionCasterBase { enableStabilization: true } caster)
-                    XRTransformStabilizer.ApplyStabilization(ref stabilized, castOrigin, caster.positionStabilization, caster.angleStabilization, deltaTime);
-                else
-                    stabilized.SetPositionAndRotation(castOrigin.position, castOrigin.rotation);
             }
         }
     }
