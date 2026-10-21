@@ -1,0 +1,21 @@
+{
+    "name": "EDIVE.Rendering.GraphicsWarmup",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "EDIVE.AppLoading",
+        "EDIVE.Debugging",
+        "EDIVE.Utils.Actions",
+        "EDIVE.ScriptableArchitecture",
+        "EDIVE.External.DomainReloadHelper"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
