@@ -76,6 +76,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private bool _relayInitialized;
         private ServerRegistrationState _registrationState;
 
+        private ServiceHubSessionPlayers _sessionPlayers;
+        private bool _updateRequested;
+
         private bool IsServiceUnreachable => _serviceHub.Connectivity != null && _serviceHub.Connectivity.IsServiceUnreachable;
 
         private async UniTask WaitForServiceHub(CancellationToken cancellationToken)
@@ -300,6 +303,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _serverSecret = response.Result.Secret;
             _joinCode = response.Result.Code;
 
+            _sessionPlayers?.SetSecret(_serverSecret);
+            _serviceHub.Presence?.StartHost(_serverSecret);
+            _updateRequested = true;
+
             _lastSuccessfulContactUtc = DateTime.UtcNow;
 
             var endpoints = new List<AServerEndpoint>();
@@ -342,6 +349,9 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             if (!_serviceHub.HasValidSetup)
                 return;
 
+            _sessionPlayers?.Dispose();
+            _sessionPlayers = new ServiceHubSessionPlayers(Lobby, RequestUpdate);
+
             var registerAttempt = 0;
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -360,6 +370,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     }
 
                     SetRegistrationState(ServerRegistrationState.Registering);
+                    _serviceHub.Presence?.StopHost();
                     if (await RegisterLobby(cancellationToken))
                     {
                         registerAttempt = 0;
@@ -376,7 +387,12 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     }
                 }
 
-                await UniTask.Delay(TimeSpan.FromSeconds(Mathf.Max(1f, _HeartbeatInterval)), true, cancellationToken: cancellationToken);
+                // Players joining or leaving update right away
+                var nextUpdate = UnityEngine.Time.realtimeSinceStartup + Mathf.Max(1f, _HeartbeatInterval);
+                await UniTask.WaitUntil(() => _updateRequested || UnityEngine.Time.realtimeSinceStartup >= nextUpdate, cancellationToken: cancellationToken);
+                if (_updateRequested)
+                    await UniTask.Delay(TimeSpan.FromSeconds(0.5f), true, cancellationToken: cancellationToken);
+                _updateRequested = false;
 
                 if (string.IsNullOrEmpty(_serverSecret))
                     continue;
@@ -395,7 +411,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     var request = new UpdateServerRequest{
                         Secret = _serverSecret,
                         Name = _serverConfig.ServerName,
-                        CurrentPlayers = currentPlayers
+                        CurrentPlayers = currentPlayers,
+                        Players = _sessionPlayers?.BuildList()
                     };
 
                     var response = await Lobby.UpdateServerAsync(request, cancellationToken);
@@ -429,6 +446,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             }
         }
 
+        private void RequestUpdate() => _updateRequested = true;
+
         private void SetRegistrationState(ServerRegistrationState state)
         {
             _registrationState = state;
@@ -442,6 +461,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             _heartbeatCancellation?.Dispose();
             _heartbeatCancellation = null;
             _localEndpoints = null;
+
+            _sessionPlayers?.Dispose();
+            _sessionPlayers = null;
+            _serviceHub?.Presence?.StopHost();
             
             if (string.IsNullOrEmpty(_serverSecret) || Lobby == null)
                 return;

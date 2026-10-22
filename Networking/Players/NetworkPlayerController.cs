@@ -4,9 +4,11 @@
 using System;
 using EDIVE.Core;
 using EDIVE.Input.Controls;
+using EDIVE.Networking.ServerManagement;
 using EDIVE.Networking.UI;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Auth;
+using EDIVE.ServiceHub.Presence;
 using EDIVE.StateHandling.ToggleStates;
 using PurrNet;
 using Sirenix.OdinInspector;
@@ -23,6 +25,7 @@ namespace EDIVE.Networking.Players
         private AToggleState _LocalPlayerToggle;
 
         private readonly SyncVar<NetworkUserInfo> _authUserInfo = new(ownerAuth: true);
+        private readonly SyncVar<string> _device = new(ownerAuth: true);
         private readonly SyncVar<int> _ping = new();
 
         private readonly SyncVar<Vector3> _controlsPosition = new(ownerAuth: true);
@@ -38,12 +41,17 @@ namespace EDIVE.Networking.Players
         public Quaternion ControlsRotation => _controlsRotation.value;
         
         public NetworkUserInfo AuthUserInfo => _authUserInfo.value;
+
+        // headset, desktop or mobile
+        public string Device => _device.value;
         
         private const float PING_SEND_INTERVAL = 1f;
         private float _nextPingSendTime;
         private int _lastSentPing = -1;
         
         private ControlsManager _controlsManager;
+        private NetworkServerManager _serverManager;
+        private ServerRecord _presenceServer;
 
         public event Action<NetworkUserInfo> AuthUserInfoChanged
         {
@@ -51,6 +59,12 @@ namespace EDIVE.Networking.Players
             remove => _authUserInfo.onChanged -= value;
         }
         
+        public event Action<string> DeviceChanged
+        {
+            add => _device.onChanged += value;
+            remove => _device.onChanged -= value;
+        }
+
         public event Action<int> PingChanged
         {
             add => _ping.onChanged += value;
@@ -93,6 +107,9 @@ namespace EDIVE.Networking.Players
                 // Log in or linking while connected renames the player
                 if (serviceHubManager != null && serviceHubManager.ClientAuth != null)
                     serviceHubManager.ClientAuth.UserInfoChanged += OnLocalUserInfoChanged;
+
+                _device.value = PresenceService.DetectDevice();
+                BindPresence();
             }
 
         }
@@ -102,6 +119,8 @@ namespace EDIVE.Networking.Players
             _authUserInfo.onChanged -= OnAuthUserInfoChanged;
             if (!asServer && AppCore.Services.TryGet<ServiceHubManager>(out var serviceHubManager) && serviceHubManager.ClientAuth != null)
                 serviceHubManager.ClientAuth.UserInfoChanged -= OnLocalUserInfoChanged;
+            if (!asServer && isOwner)
+                UnbindPresence();
 
             if (AppCore.Services.TryGet<NetworkPlayerManager>(out var playerManager))
             {
@@ -147,6 +166,67 @@ namespace EDIVE.Networking.Players
             if (current != null && current.Id == userInfo.Id && current.Email == userInfo.Email && current.Name == userInfo.Name)
                 return;
             _authUserInfo.value = NetworkUserInfo.FromAuthUserInfo(userInfo);
+        }
+
+        // Server hands a guest its pass for streaming
+        public void SendGuestPass(string pass)
+        {
+            if (!isServer || !owner.HasValue)
+                return;
+            TargetSetGuestPass(owner.Value, pass);
+        }
+
+        [TargetRpc]
+        private void TargetSetGuestPass(PlayerID target, string pass)
+        {
+            if (TryGetPresence(out var presence))
+                presence.SetGuestPass(pass);
+        }
+
+        private void BindPresence()
+        {
+            if (!TryGetPresence(out _) || !AppCore.Services.TryGet(out _serverManager))
+                return;
+            _serverManager.CurrentServerChanged += OnPresenceServerChanged;
+            OnPresenceServerChanged(_serverManager.CurrentServer);
+        }
+
+        private void UnbindPresence()
+        {
+            if (_serverManager != null)
+                _serverManager.CurrentServerChanged -= OnPresenceServerChanged;
+            _serverManager = null;
+            if (_presenceServer != null)
+                _presenceServer.StateChanged -= OnPresenceServerStateChanged;
+            _presenceServer = null;
+
+            if (!TryGetPresence(out var presence))
+                return;
+            presence.SetJoinCode(null);
+            presence.SetGuestPass(null);
+        }
+
+        private void OnPresenceServerChanged(ServerRecord server)
+        {
+            if (_presenceServer != null)
+                _presenceServer.StateChanged -= OnPresenceServerStateChanged;
+            _presenceServer = server;
+            if (_presenceServer != null)
+                _presenceServer.StateChanged += OnPresenceServerStateChanged;
+            OnPresenceServerStateChanged(server);
+        }
+
+        // Join code can arrive after spawn on a host
+        private void OnPresenceServerStateChanged(ServerRecord server)
+        {
+            if (TryGetPresence(out var presence))
+                presence.SetJoinCode(_presenceServer?.JoinCode);
+        }
+
+        private static bool TryGetPresence(out PresenceService presence)
+        {
+            presence = AppCore.Services.TryGet<ServiceHubManager>(out var serviceHubManager) ? serviceHubManager.Presence : null;
+            return presence != null;
         }
 
         private void OnAuthUserInfoChanged(NetworkUserInfo userInfo)

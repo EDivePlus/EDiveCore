@@ -25,15 +25,22 @@ namespace EDIVE.Networking.Players
         [SerializeField]
         private string _Name;
 
+        // Not signed in, the ID is random
+        [JsonProperty("guest")]
+        [SerializeField]
+        private bool _IsGuest;
+
         public string Id => _Id;
         public string Email => _Email;
         public string Name => _Name;
+        public bool IsGuest => _IsGuest;
 
-        public NetworkUserInfo(string id, string email, string name)
+        public NetworkUserInfo(string id, string email, string name, bool isGuest = false)
         {
             _Id = id;
             _Email = email;
             _Name = name;
+            _IsGuest = isGuest;
         }
         
         public static NetworkUserInfo FromAuthUserInfo(AuthUserInfo info)
@@ -46,7 +53,7 @@ namespace EDIVE.Networking.Players
             var id = Guid.NewGuid().ToString();
             if (string.IsNullOrWhiteSpace(name))
                 name = $"Anonymous-{id[..4]}";
-            return new NetworkUserInfo(id, "", name);
+            return new NetworkUserInfo(id, "", name, true);
         }
     }
 }

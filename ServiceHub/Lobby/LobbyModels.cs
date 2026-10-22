@@ -57,6 +57,42 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("current_players")]
         public int? CurrentPlayers;
+
+        // Null keeps the last list, empty means nobody
+        [JsonProperty("players", NullValueHandling = NullValueHandling.Ignore)]
+        public List<SessionPlayer> Players;
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class SessionPlayer
+    {
+        [JsonProperty("user_id", NullValueHandling = NullValueHandling.Ignore)]
+        public string UserId;
+
+        [JsonProperty("guest_id", NullValueHandling = NullValueHandling.Ignore)]
+        public string GuestId;
+
+        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
+        public string Name;
+
+        [JsonProperty("device", NullValueHandling = NullValueHandling.Ignore)]
+        public string Device;
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class GuestPassRequest
+    {
+        [JsonProperty("secret")]
+        public string Secret;
+
+        [JsonProperty("name")]
+        public string Name;
+
+        public GuestPassRequest(string secret, string name)
+        {
+            Secret = secret;
+            Name = name;
+        }
     }
     
     [JsonObject(MemberSerialization.OptIn)]
@@ -194,6 +230,16 @@ namespace EDIVE.ServiceHub.Lobby
 
         [JsonProperty("code")]
         public string Code;
+    }
+
+    [JsonObject(MemberSerialization.OptIn)]
+    public class GuestPassResponse
+    {
+        [JsonProperty("pass")]
+        public string Pass;
+
+        [JsonProperty("guest_id")]
+        public string GuestId;
     }
 
     [Serializable]

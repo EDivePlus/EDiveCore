@@ -27,6 +27,10 @@ namespace EDIVE.ServiceHub
         RegistrationFailed = 24,
         SaveDataQuotaExceeded = 25,
         BatchTooLarge = 26,
-        BannedFromApp = 27
+        BannedFromApp = 27,
+        StreamingUnavailable = 28,
+        PresenceNotFound = 29,
+        NotSessionPlayer = 30,
+        CommandNotFound = 31
     }
 }

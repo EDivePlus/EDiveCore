@@ -22,6 +22,7 @@ namespace EDIVE.ServiceHub.Lobby
         private string HeartbeatUrl => $"{LobbyBaseUrl}/heartbeat";
         private string UpdateUrl => $"{LobbyBaseUrl}/update";
         private string DisposeUrl => $"{LobbyBaseUrl}/dispose";
+        private string GuestPassUrl => $"{LobbyBaseUrl}/guest-pass";
         private string GetUrl => $"{LobbyBaseUrl}/get";
         private string QueryUrl => $"{LobbyBaseUrl}/query";
 
@@ -109,6 +110,26 @@ namespace EDIVE.ServiceHub.Lobby
                 cancellationToken: cancellationToken
             );
             return ApiResponseHelper.UnwrapApi(response, "DisposeServer");
+        }
+
+        // Pass for a player without an account, valid while the session lasts
+        public async UniTask<NetworkResponse<GuestPassResponse>> RequestGuestPassAsync(
+            string serverSecret,
+            string playerName,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(serverSecret))
+                return NetworkResponse<GuestPassResponse>.Error(0, "Server secret is empty");
+
+            var response = await RestUtils.PostAsync<ApiResponse<GuestPassResponse>, GuestPassRequest>(
+                GuestPassUrl,
+                new GuestPassRequest(serverSecret, playerName),
+                authToken: null,
+                headers: null,
+                timeout: RequestTimeoutSeconds,
+                cancellationToken: cancellationToken
+            );
+            return ApiResponseHelper.UnwrapApi(response, "GuestPass");
         }
 
         [Button]

@@ -40,11 +40,17 @@ namespace EDIVE.ServiceHub
         [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Green")]
         private UTimeSpan _BatchSaveDataSyncInterval = TimeSpan.FromSeconds(30);
 
+        [SerializeField]
+        [EnhancedBoxGroup("Presence", Color = "@ColorTools.Purple")]
+        [Tooltip("Reports this app to ServiceHub and receives its commands. Needed for streaming.")]
+        private bool _PresenceEnabled;
+
         public string ServiceBaseUrl => (_ServiceBaseUrl ?? "").TrimEnd('/');
         public string AppSecret => _AppSecret ?? "";
         public int ApiTimeoutSeconds => Mathf.Max(3, _ApiTimeoutSeconds);
         public int AuthTimeoutSeconds => Mathf.Max(3, _AuthTimeoutSeconds);
         public int ContentTimeoutSeconds => Mathf.Max(10, _ContentTimeoutSeconds);
         public TimeSpan BatchSaveDataSyncInterval => _BatchSaveDataSyncInterval;
+        public bool PresenceEnabled => _PresenceEnabled;
     }
 }

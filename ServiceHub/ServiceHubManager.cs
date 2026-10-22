@@ -9,6 +9,7 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.ServiceHub.Auth;
 using EDIVE.ServiceHub.Connectivity;
 using EDIVE.ServiceHub.Lobby;
+using EDIVE.ServiceHub.Presence;
 using EDIVE.ServiceHub.Probe;
 using EDIVE.ServiceHub.RemoteContent;
 using EDIVE.ServiceHub.SaveData;
@@ -58,6 +59,11 @@ namespace EDIVE.ServiceHub
         [EnhancedBoxGroup("Modules")]
         private ConnectivityService _Connectivity;
 
+        [SerializeField]
+        [EnhancedBoxGroup("Modules")]
+        [Tooltip("Optional, needed for streaming")]
+        private PresenceService _Presence;
+
         public ServiceHubSettings Settings => _Settings;
         public ClientAuthService ClientAuth => _ClientAuth;
         public ServerAuthService ServerAuth => _ServerAuth;
@@ -66,6 +72,7 @@ namespace EDIVE.ServiceHub
         public LobbyService Lobby => _Lobby;
         public ProbeService Probe => _Probe;
         public ConnectivityService Connectivity => _Connectivity;
+        public PresenceService Presence => _Presence ? _Presence : null;
 
         public bool HasValidSetup => !string.IsNullOrEmpty(Settings.AppSecret);
 
@@ -122,6 +129,8 @@ namespace EDIVE.ServiceHub
             yield return _Lobby;
             yield return _Probe;
             yield return _Connectivity;
+            if (_Presence)
+                yield return _Presence;
         }
     }
 }
