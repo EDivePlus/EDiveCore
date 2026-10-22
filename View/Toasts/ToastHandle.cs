@@ -18,13 +18,15 @@ namespace EDIVE.View.Toasts
 
         public bool IsDismissed { get; internal set; }
 
+        internal ToastDisplay Prefab { get; }
         internal ToastDisplay Display { get; set; }
         internal float Remaining { get; set; }
         internal bool IsHiding { get; set; }
 
-        internal ToastHandle(ToastManager manager, VisualPreset preset, float duration)
+        internal ToastHandle(ToastManager manager, VisualPreset preset, float duration, ToastDisplay prefab)
         {
             _manager = manager;
+            Prefab = prefab;
             Preset = preset;
             Duration = duration;
             Remaining = duration;

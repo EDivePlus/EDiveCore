@@ -30,7 +30,7 @@ namespace EDIVE.UIElements
             SetProfilePicture(initials, color);
         }
         
-        private static string GetInitials(string name)
+        public static string GetInitials(string name)
         {
             var parts = (name ?? string.Empty).Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
             return parts.Length switch
@@ -41,7 +41,7 @@ namespace EDIVE.UIElements
             };
         }
         
-        private static Color ColorFromString(string input)
+        public static Color ColorFromString(string input)
         {
             var hash = Mathf.Abs((input ?? string.Empty).GetHashCode());
             var hue = (hash % 360) / 360f;

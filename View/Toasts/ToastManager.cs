@@ -32,10 +32,10 @@ namespace EDIVE.View.Toasts
 
         private readonly List<ToastHandle> _visible = new();
         private readonly List<ToastHandle> _queue = new();
-        private readonly Stack<ToastDisplay> _pool = new();
+        private readonly Dictionary<ToastDisplay, Stack<ToastDisplay>> _pools = new();
 
-        // Same preset already shown restarts its timer, already queued returns the queued one
-        public ToastHandle Show(VisualPreset preset, float? duration = null)
+        // Same preset already shown restarts its timer, already queued returns the queued one. Prefab overrides the default display
+        public ToastHandle Show(VisualPreset preset, float? duration = null, ToastDisplay prefab = null)
         {
             var existing = FindSame(_visible, preset);
             if (existing != null)
@@ -54,7 +54,7 @@ namespace EDIVE.View.Toasts
                 return existing;
             }
 
-            var handle = new ToastHandle(this, preset, duration ?? _DefaultDuration);
+            var handle = new ToastHandle(this, preset, duration ?? _DefaultDuration, prefab ? prefab : _DisplayPrefab);
             _queue.Add(handle);
             ShowQueued();
             return handle;
@@ -105,7 +105,7 @@ namespace EDIVE.View.Toasts
                 var handle = _queue[0];
                 _queue.RemoveAt(0);
 
-                var display = _pool.Count > 0 ? _pool.Pop() : Instantiate(_DisplayPrefab, _Container, false);
+                var display = GetPool(handle.Prefab).TryPop(out var pooled) ? pooled : Instantiate(handle.Prefab, _Container, false);
                 display.transform.SetAsLastSibling();
                 display.Show(handle.Preset, handle.Dismiss);
 
@@ -127,9 +127,16 @@ namespace EDIVE.View.Toasts
             }
 
             _visible.Remove(handle);
-            _pool.Push(handle.Display);
+            GetPool(handle.Prefab).Push(handle.Display);
             handle.Display = null;
             ShowQueued();
+        }
+
+        private Stack<ToastDisplay> GetPool(ToastDisplay prefab)
+        {
+            if (!_pools.TryGetValue(prefab, out var pool))
+                _pools[prefab] = pool = new Stack<ToastDisplay>();
+            return pool;
         }
 
         private static ToastHandle FindSame(List<ToastHandle> handles, VisualPreset preset)
