@@ -40,7 +40,10 @@
         "EDIVE.UIElements",
         "EDIVE.UIElements.RecyclableScroller",
         "EDIVE.Conditions",
-        "EDIVE.Utils.Activations"
+        "EDIVE.Utils.Activations",
+        "EDIVE.View.Tooltips",
+        "EDIVE.View.ViewTree",
+        "EDIVE.VisualPresets"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
