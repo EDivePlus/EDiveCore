@@ -1,0 +1,56 @@
+{
+    "name": "EDIVE.ServiceHub.Streaming",
+    "rootNamespace": "",
+    "references": [
+        "UniTask",
+        "LiveKit",
+        "LiveKit.UniTask",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "EDIVE.Core",
+        "EDIVE.AppLoading",
+        "EDIVE.Http",
+        "EDIVE.ServiceHub",
+        "EDIVE.Audio",
+        "Adrenak.UniVoice.Runtime",
+        "EDIVE.Networking",
+        "EDIVE.OdinExtensions",
+        "EDIVE.StateHandling",
+        "EDIVE.DataStructures",
+        "EDIVE.NativeUtils",
+        "PurrNet.Runtime",
+        "Unity.Localization",
+        "EDIVE.AssetTranslation",
+        "EDIVE.UIElements",
+        "EDIVE.VisualPresets",
+        "EDIVE.Localization",
+        "EDIVE.Utils.Activations",
+        "EDIVE.View.ViewTree",
+        "EDIVE.View.Windows",
+        "EDIVE.View.Toasts",
+        "EDIVE.View.Tooltips"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "PURRNET",
+        "LIVEKIT"
+    ],
+    "versionDefines": [
+        {
+            "name": "dev.purrnet.purrnet",
+            "expression": "",
+            "define": "PURRNET"
+        },
+        {
+            "name": "io.livekit.livekit-sdk",
+            "expression": "",
+            "define": "LIVEKIT"
+        }
+    ],
+    "noEngineReferences": false
+}
