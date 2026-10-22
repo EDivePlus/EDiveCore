@@ -34,6 +34,7 @@
         "EDIVE.Utils.Actions",
         "EDIVE.Tweening",
         "EDIVE.Localization",
+        "EDIVE.VisualPresets",
         "Unity.Localization"
     ],
     "includePlatforms": [],
