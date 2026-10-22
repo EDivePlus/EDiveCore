@@ -26,7 +26,7 @@ namespace EDIVE.Procedural.ObjectScaling
         [HideLabel]
         [InlineProperty]
         [SerializeField]
-        [OnValueChanged(nameof(EditorRefresh), true)]
+        [OnValueChanged("EditorRefresh", true)]
         private ObjectScaleDetails _Details = new();
 
         [PropertySpace]
@@ -34,7 +34,7 @@ namespace EDIVE.Procedural.ObjectScaling
         [FormerlySerializedAs("_Components")]
         [HideReferenceObjectPicker]
         [CustomValueDrawer("CustomModuleDrawer")]
-        [OnValueChanged(nameof(EditorRefresh), true)]
+        [OnValueChanged("EditorRefresh", true)]
         private List<AObjectScalerModule> _Modules = new();
 
         public event Action SizeChanged;
