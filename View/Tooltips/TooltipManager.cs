@@ -18,6 +18,10 @@ namespace EDIVE.View.Tooltips
         
         [SerializeField]
         private RectTransform _TooltipRoot;
+
+        [Tooltip("Flip tooltips that leave the parent canvas rect. Off for small world space canvases like cards.")]
+        [SerializeField]
+        private bool _KeepInsideCanvas = true;
         
         private Queue<TooltipDisplay> AvailableDisplays { get; set; }
 
@@ -47,7 +51,7 @@ namespace EDIVE.View.Tooltips
             }
             
             display.transform.SetAsLastSibling();
-            display.ShowTooltip(preset, target, _ParentCanvas, preferredPlacement);
+            display.ShowTooltip(preset, target, _ParentCanvas, preferredPlacement, _KeepInsideCanvas);
             
             return new TooltipHandle(this, display);
         }

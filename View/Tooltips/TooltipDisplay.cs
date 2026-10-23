@@ -12,6 +12,8 @@ namespace EDIVE.View.Tooltips
 {
     public class TooltipDisplay : MonoBehaviour
     {
+        private static readonly Vector3[] CORNERS = new Vector3[4];
+
         [SerializeField]
         [FormerlySerializedAs("_Switcher")]
         private VisualSwitcher _VisualSwitcher;
@@ -23,11 +25,11 @@ namespace EDIVE.View.Tooltips
         [ValidateMultiState(typeof(TooltipPlacement))]
         private AMultiState _PlacementState;
         
-        public void ShowTooltip(VisualPreset preset, RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement)
+        public void ShowTooltip(VisualPreset preset, RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement, bool keepInsideCanvas = true)
         {
             gameObject.SetActive(true);
             _VisualSwitcher.Apply(preset);
-            UpdatePlacement(target, canvas, preferredPlacement);
+            UpdatePlacement(target, canvas, preferredPlacement, keepInsideCanvas);
         }
         
         public void HideTooltip()
@@ -35,30 +37,26 @@ namespace EDIVE.View.Tooltips
             gameObject.SetActive(false);
         }
         
-        private void UpdatePlacement(RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement)
+        private void UpdatePlacement(RectTransform target, Canvas canvas, TooltipPlacement preferredPlacement, bool keepInsideCanvas)
         {
-            gameObject.SetActive(true);
-            var rectTr = (RectTransform) transform;
-            var canvasRect = (RectTransform) canvas.transform;
-
             _PlacementState.SetState(preferredPlacement);
-            
-            rectTr.localPosition = GetEdgePosition(target, canvasRect, preferredPlacement);
+
+            transform.localPosition = GetEdgePosition(target, preferredPlacement);
             LayoutRebuilder.ForceRebuildLayoutImmediate(_Container);
 
-            ResolvePlacement(target, canvasRect, preferredPlacement);
+            if (keepInsideCanvas)
+                ResolvePlacement(target, (RectTransform) canvas.transform, preferredPlacement);
         }
 
+        // Flips to the side with room when the tooltip leaves the canvas rect
         private void ResolvePlacement(RectTransform target, RectTransform canvasRect, TooltipPlacement preferredPlacement)
         {
-            var rectTr = (RectTransform) transform;
-            var objectCorners = new Vector3[4];
-            _Container.GetWorldCorners(objectCorners);
-            
+            _Container.GetWorldCorners(CORNERS);
+
             float minX = float.MaxValue, maxX = float.MinValue;
             float minY = float.MaxValue, maxY = float.MinValue;
 
-            foreach (var corner in objectCorners)
+            foreach (var corner in CORNERS)
             {
                 var screenPoint = canvasRect.InverseTransformPoint(corner);
                 if (screenPoint.x < minX) minX = screenPoint.x;
@@ -93,12 +91,13 @@ namespace EDIVE.View.Tooltips
                 return;
             
             _PlacementState.SetState(newPlacement);
-            rectTr.localPosition = GetEdgePosition(target, canvasRect, newPlacement);
+            transform.localPosition = GetEdgePosition(target, newPlacement);
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(_Container);
         }
         
-        private Vector3 GetEdgePosition(RectTransform target, RectTransform canvasRect, TooltipPlacement placement)
+        // Target edge in the parent's space, it's what localPosition is relative to
+        private Vector3 GetEdgePosition(RectTransform target, TooltipPlacement placement)
         {
             var targetRect = target.rect;
             var localPoint = targetRect.center;
@@ -106,7 +105,7 @@ namespace EDIVE.View.Tooltips
             localPoint.y = placement.IsBottom() ? targetRect.yMin : targetRect.yMax;
 
             var worldPoint = target.TransformPoint(localPoint);
-            return canvasRect.InverseTransformPoint(worldPoint);
+            return transform.parent.InverseTransformPoint(worldPoint);
         }
     }
 }
