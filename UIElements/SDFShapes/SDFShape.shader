@@ -233,13 +233,19 @@ Shader "Hidden/EDIVE/SDFShapes/SDFShape"
                     [branch]
                     if (hasArc > 0.5)
                     {
-                        float sector = SectorDistance(p, IN.sectorA, IN.sectorB);
-                        edgeCos = EdgeCosine(shape, sector, p);
+                        float2 sectorNormal;
+                        float sector = SectorDistance(p, IN.sectorA, IN.sectorB, sectorNormal);
+                        // The ring folds the shape at its center line, the side flips the unfolded normal back
+                        float ringSide = IN.ring.y >= 0 ? sign(dist - IN.ring.x) : 1.0;
+                        edgeCos = EdgeCosine(dist, p, sectorNormal) * ringSide;
                         sdf = WrappedMax(shape, sector, IN.ring.w, edgeCos, cornerWrap);
                     }
                 }
 
-                float delta = fwidth(sdf);
+                // Pixel size from the position, the field jumps far outside where arcs meet the ring fold
+                float2 dpx = ddx(p);
+                float2 dpy = ddy(p);
+                float delta = sqrt(0.5 * (dot(dpx, dpx) + dot(dpy, dpy)));
 
                 half3 rgb;
                 float alpha;

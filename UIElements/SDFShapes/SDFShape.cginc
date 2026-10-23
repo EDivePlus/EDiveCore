@@ -214,12 +214,12 @@ float2 ShapeGradient(float field, float2 p)
     return float2(dpy.y * df.x - dpx.y * df.y, dpx.x * df.y - dpy.x * df.x) / det;
 }
 
-// Cosine of the angle between the edge normals of two fields at this pixel
-float EdgeCosine(float a, float b, float2 p)
+// Cosine of the angle between the edge normals of a field and the sector at this pixel.
+// The field must be free of folds: mobile GPUs share derivatives over 2x2 pixels, so a fold bends the whole block.
+float EdgeCosine(float field, float2 p, float2 sectorNormal)
 {
-    float2 ga = ShapeGradient(a, p);
-    float2 gb = ShapeGradient(b, p);
-    return dot(ga, gb) / max(length(ga) * length(gb), 1e-6);
+    float2 g = ShapeGradient(field, p);
+    return dot(g, sectorNormal) / max(length(g), 1e-6);
 }
 
 // Intersection of two distance fields. cosTheta is the cosine of the angle between their edge normals, which
@@ -232,10 +232,11 @@ float WrappedMax(float a, float b, float r, float cosTheta, float wrap)
     float outside;
     if (r > 0.0 || wrap < 0.5)
     {
-        bool corner = q.x >= q.y * cosTheta && q.y >= q.x * cosTheta && max(q.x, q.y) > 0.0;
-        float sinSq = max(1.0 - cosTheta * cosTheta, 1e-4);
+        // Clamped once for both terms, so near parallel edges fall back to the max instead of collapsing inside
+        float c = clamp(cosTheta, -0.999, 0.999);
+        bool corner = q.x >= q.y * c && q.y >= q.x * c && max(q.x, q.y) > 0.0;
         outside = corner
-            ? sqrt(max(q.x * q.x + q.y * q.y - 2.0 * q.x * q.y * cosTheta, 0.0) / sinSq)
+            ? sqrt(max(q.x * q.x + q.y * q.y - 2.0 * q.x * q.y * c, 0.0) / (1.0 - c * c))
             : max(o.x, o.y);
     }
     else if (wrap < 1.5)
@@ -281,15 +282,27 @@ void PrepareSector(float4 arc, float r, out float4 sectorA, out float4 sectorB)
     sectorB = float4(sc, r, sgn);
 }
 
-// Per pixel part of the sector, see PrepareSector
-float SectorDistance(float2 p, float4 sectorA, float4 sectorB)
+// Per pixel part of the sector, see PrepareSector. normal is the outward edge normal in sdf space.
+float SectorDistance(float2 p, float4 sectorA, float4 sectorB, out float2 normal)
 {
     float2 d = p - sectorA.xy;
     float2 up = sectorA.zw;
-    float2 q = float2(abs(dot(d, float2(up.y, -up.x))), dot(d, up));
+    float2 side = float2(up.y, -up.x);
+    float across = dot(d, side);
+    float2 q = float2(abs(across), dot(d, up));
     float2 sc = sectorB.xy;
-    float m = length(q - sc * max(dot(q, sc), 0.0));
-    return sectorB.w * (m * sign(sc.y * q.x - sc.x * q.y) - sectorB.z);
+    float2 toEdge = q - sc * max(dot(q, sc), 0.0);
+    float m = length(toEdge);
+    float s = sc.y * q.x - sc.x * q.y >= 0.0 ? 1.0 : -1.0;
+    float2 n = toEdge / max(m, 1e-5) * (s * sectorB.w);
+    normal = n.x * (across < 0.0 ? -side : side) + n.y * up;
+    return sectorB.w * (m * s - sectorB.z);
+}
+
+float SectorDistance(float2 p, float4 sectorA, float4 sectorB)
+{
+    float2 normal;
+    return SectorDistance(p, sectorA, sectorB, normal);
 }
 
 // shadow = shadowSize * 4 + shadowBlur * 4 * 4096, both in 1/4 px.
