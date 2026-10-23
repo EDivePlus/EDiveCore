@@ -82,5 +82,33 @@ namespace EDIVE.XRTools
 
             return false;
         }
+
+        // Where the interactor points: from its cast origin toward the current end point, or straight ahead
+        public static bool TryGetCurrentRay(this IXRHoverInteractor interactor, out Ray ray)
+        {
+            ray = default;
+
+            if (interactor is XRRayInteractor rayInteractor)
+            {
+                var origin = rayInteractor.rayOriginTransform != null ? rayInteractor.rayOriginTransform : rayInteractor.transform;
+                ray = new Ray(origin.position, origin.forward);
+                return true;
+            }
+
+            if (interactor is NearFarInteractor nearFarInteractor)
+            {
+                var origin = nearFarInteractor.curveOrigin != null ? nearFarInteractor.curveOrigin : nearFarInteractor.transform;
+                var direction = nearFarInteractor.TryGetCurveEndPoint(out var endPoint) == EndPointType.ValidCastHit
+                    ? endPoint - origin.position
+                    : origin.forward;
+                if (direction.sqrMagnitude < 0.0001f)
+                    return false;
+
+                ray = new Ray(origin.position, direction.normalized);
+                return true;
+            }
+
+            return false;
+        }
     }
 }
