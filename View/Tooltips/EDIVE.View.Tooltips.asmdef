@@ -5,7 +5,8 @@
         "EDIVE.View.ViewTree",
         "EDIVE.StateHandling",
         "EDIVE.VisualPresets",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

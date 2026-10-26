@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using EDIVE.VisualPresets.Presets;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace EDIVE.View.Tooltips
 {
@@ -25,6 +26,9 @@ namespace EDIVE.View.Tooltips
         
         private Queue<TooltipDisplay> AvailableDisplays { get; set; }
 
+        private IDisposable _lingeringTooltip;
+        private float _lingerEndTime;
+
         private void Awake()
         {
             if (_ParentCanvas == null)
@@ -42,8 +46,38 @@ namespace EDIVE.View.Tooltips
             }
         }
         
+        private void Update()
+        {
+            // A new tap anywhere hides it too
+            if (_lingeringTooltip != null && (Time.unscaledTime >= _lingerEndTime || IsTouchStarted()))
+                ReleaseLingering();
+        }
+
+        private static bool IsTouchStarted() => Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+
+        // Keeps a shown tooltip up for a while, the next shown tooltip replaces it
+        public void HideAfter(IDisposable tooltip, float delay)
+        {
+            ReleaseLingering();
+            _lingeringTooltip = tooltip;
+            _lingerEndTime = Time.unscaledTime + delay;
+        }
+
+        public void HideNow(IDisposable tooltip)
+        {
+            if (ReferenceEquals(_lingeringTooltip, tooltip))
+                ReleaseLingering();
+        }
+
+        private void ReleaseLingering()
+        {
+            _lingeringTooltip?.Dispose();
+            _lingeringTooltip = null;
+        }
+
         public IDisposable ShowTooltip(VisualPreset preset, RectTransform target, TooltipPlacement preferredPlacement)
         {
+            ReleaseLingering();
             if (!AvailableDisplays.TryDequeue(out var display))
             {
                 Debug.LogWarning("No available tooltip displays in the pool!");

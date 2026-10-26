@@ -6,6 +6,7 @@ using EDIVE.View.ViewTree;
 using EDIVE.VisualPresets.Presets;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace EDIVE.View.Tooltips
@@ -20,16 +21,36 @@ namespace EDIVE.View.Tooltips
         [SerializeField]
         private TooltipPlacement _Placement;
 
+        [Tooltip("Hover delay for mouse and rays, touch shows right away")]
+        [SerializeField]
+        private float _ShowDelay = 0.35f;
+
+        [Tooltip("Touch has no hover, keeps the tooltip up after the finger lifts")]
+        [SerializeField]
+        private float _TouchHideDelay = 1.5f;
+
         private Graphic _graphic;
         private TooltipManager _tooltipManager;
 
         private IDisposable _tooltipSubscription;
+        private IDisposable _lingeringSubscription;
         private VisualPreset _currentVisualPreset;
+        private float _showTime;
+        private bool _showPending;
 
         protected override void Awake()
         {
             _graphic = GetComponent<Graphic>();
             base.Awake();
+        }
+
+        private void Update()
+        {
+            if (_showPending && Time.unscaledTime >= _showTime)
+            {
+                _showPending = false;
+                ShowTooltip();
+            }
         }
 
         // Pointer exit never comes once disabled, the tooltip would stay up
@@ -73,7 +94,17 @@ namespace EDIVE.View.Tooltips
                 ShowTooltip();
         }
 
-        public void OnPointerEnter(PointerEventData eventData) => ShowTooltip();
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (_ShowDelay <= 0 || IsTouch(eventData))
+            {
+                ShowTooltip();
+                return;
+            }
+
+            _showTime = Time.unscaledTime + _ShowDelay;
+            _showPending = true;
+        }
 
         private void ShowTooltip()
         {
@@ -86,12 +117,29 @@ namespace EDIVE.View.Tooltips
             _tooltipSubscription = _tooltipManager.ShowTooltip(_currentVisualPreset, _graphic.rectTransform, _Placement);
         }
 
-        public void OnPointerExit(PointerEventData eventData) => HideTooltip();
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (_TouchHideDelay > 0 && _tooltipSubscription != null && _tooltipManager != null && IsTouch(eventData))
+            {
+                _lingeringSubscription = _tooltipSubscription;
+                _tooltipSubscription = null;
+                _tooltipManager.HideAfter(_lingeringSubscription, _TouchHideDelay);
+                return;
+            }
+
+            HideTooltip();
+        }
+
+        private static bool IsTouch(PointerEventData eventData) => eventData is ExtendedPointerEventData {pointerType: UIPointerType.Touch};
 
         private void HideTooltip()
         {
+            _showPending = false;
             _tooltipSubscription?.Dispose();
             _tooltipSubscription = null;
+            if (_lingeringSubscription != null && _tooltipManager != null)
+                _tooltipManager.HideNow(_lingeringSubscription);
+            _lingeringSubscription = null;
         }
     }
 }
