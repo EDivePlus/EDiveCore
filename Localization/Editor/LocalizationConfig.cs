@@ -140,8 +140,21 @@ namespace EDIVE.Localization.Editor
         }
 
         [HorizontalGroup("Edit/PushPull")]
-        [IconButton("Pull (Import)", FontAwesomeEditorIconType.DownloadSolid)]
-        private void PullAll()
+        [IconButton("Pull (Merge)", FontAwesomeEditorIconType.DownloadSolid)]
+        [Tooltip("Adds and updates keys from the sheet, keeps keys missing in it.")]
+        private void PullMerge() => PullAll(false);
+
+        [HorizontalGroup("Edit/PushPull")]
+        [IconButton("Pull (Override)", FontAwesomeEditorIconType.DownloadSolid)]
+        [Tooltip("Mirrors the sheet, deletes keys missing in it.")]
+        private void PullOverride()
+        {
+            if (!EditorUtility.DisplayDialog("Pull (Override)", "Keys missing from the sheet will be deleted from Unity. Continue?", "Pull", "Cancel"))
+                return;
+            PullAll(true);
+        }
+
+        private void PullAll(bool removeMissing)
         {
             PullAllInternal().Forget();
             return;
@@ -166,7 +179,7 @@ namespace EDIVE.Localization.Editor
                         if (sheetExtensionCount == 0)
                             continue;
                         // Several sheets feed one table, clear once up front
-                        if (sheetExtensionCount > 1)
+                        if (removeMissing && sheetExtensionCount > 1)
                             collection.ClearAllEntries();
 
                         for (var j = 0; j < collection.Extensions.Count; j++)
@@ -185,7 +198,7 @@ namespace EDIVE.Localization.Editor
 
                             // Now update the collection. We can pass in an optional ProgressBarReporter so that we can updates in the Editor.
                             googleSheets.PullIntoStringTableCollection(googleExtension.SheetId, googleExtension.TargetCollection as StringTableCollection, googleExtension.Columns,
-                                removeMissingEntries: sheetExtensionCount == 1, reporter: progressBarReporter);
+                                removeMissingEntries: removeMissing && sheetExtensionCount == 1, reporter: progressBarReporter);
                         }
                     }
                 }
@@ -200,6 +213,8 @@ namespace EDIVE.Localization.Editor
         [IconButton("Push (Export)", FontAwesomeEditorIconType.UploadSolid)]
         private void PushAll()
         {
+            if (!EditorUtility.DisplayDialog("Push", "The sheet will be overwritten with Unity tables. Keys only in the sheet will be lost. Continue?", "Push", "Cancel"))
+                return;
             PushAllInternal().Forget();
             return;
 
