@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace EDIVE.NativeUtils
@@ -20,6 +21,30 @@ namespace EDIVE.NativeUtils
         {
             for (var i = 0; i < 8; i++)
                 corners[i] = matrix.MultiplyPoint3x4(bounds.GetCorner(i));
+        }
+
+        // Grows the bounds by other, or takes other when not initialized yet
+        public static void EncapsulateOrInit(this ref Bounds bounds, Bounds other, ref bool initialized)
+        {
+            if (initialized)
+                bounds.Encapsulate(other);
+            else
+                bounds = other;
+            initialized = true;
+        }
+
+        // False when there is no renderer to take bounds from
+        public static bool TryGetBounds(this IReadOnlyList<Renderer> renderers, out Bounds bounds, bool enabledOnly = false)
+        {
+            bounds = default;
+            var initialized = false;
+            for (var i = 0; i < renderers.Count; i++)
+            {
+                if (!enabledOnly || renderers[i].enabled)
+                    bounds.EncapsulateOrInit(renderers[i].bounds, ref initialized);
+            }
+
+            return initialized;
         }
     }
 }

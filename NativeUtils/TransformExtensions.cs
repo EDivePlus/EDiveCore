@@ -89,5 +89,16 @@ namespace EDIVE.NativeUtils
 
             return pathBuilder.ToString();
         }
+
+        public static void SetPositionRotationScale(this Transform transform, Vector3 position, Quaternion rotation, Vector3 localScale)
+        {
+            transform.SetPositionAndRotation(position, rotation);
+            transform.localScale = localScale;
+        }
+
+        public static void SetPositionRotationScale(this Transform transform, Vector3 position, Quaternion rotation, float localScale)
+        {
+            transform.SetPositionRotationScale(position, rotation, Vector3.one * localScale);
+        }
     }
 }

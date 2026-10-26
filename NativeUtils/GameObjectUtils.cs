@@ -2,6 +2,7 @@
 // Created: 05.03.2026
 
 using UnityEngine;
+using UnityEngine.Rendering;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -18,6 +19,21 @@ namespace EDIVE.NativeUtils
                 return (T) PrefabUtility.InstantiatePrefab(prefab, parent);
 #endif
             return Object.Instantiate(prefab, parent);
+        }
+
+        // Runtime quad without collider and shadows
+        public static Renderer CreateQuad(string name, Transform parent, Material material)
+        {
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = name;
+            Object.Destroy(quad.GetComponent<Collider>());
+            quad.transform.SetParent(parent, true);
+
+            var renderer = quad.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return renderer;
         }
     }
 }

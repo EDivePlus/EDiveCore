@@ -141,5 +141,11 @@ namespace EDIVE.NativeUtils
                 _ => throw new System.ArgumentOutOfRangeException(nameof(roundingMode), roundingMode, null)
             };
         }
+
+        // Frame rate independent lerp factor for smoothing toward a target
+        public static float DampFactor(this float speed, float deltaTime)
+        {
+            return 1f - Mathf.Exp(-speed * deltaTime);
+        }
     }
 }
