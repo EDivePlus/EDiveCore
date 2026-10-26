@@ -123,8 +123,10 @@ namespace EDIVE.ServiceHub.Connectivity
 
         private void Refresh(ConnectivityState state, bool isChecking)
         {
-            if (_StateMultiState && _StateMultiState.State != state.ToString())
-                _StateMultiState.SetState(state);
+            // Unknown is the checking icon
+            var shownState = _manualCheck ? ConnectivityState.Unknown : state;
+            if (_StateMultiState && _StateMultiState.State != shownState.ToString())
+                _StateMultiState.SetState(shownState);
             if (_CheckingToggle) _CheckingToggle.SetState(_manualCheck || state == ConnectivityState.Unknown || isChecking && state != ConnectivityState.Connected);
         }
     }
