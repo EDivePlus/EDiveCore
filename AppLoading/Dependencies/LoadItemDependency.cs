@@ -9,11 +9,13 @@ namespace EDIVE.AppLoading.Dependencies
     [Serializable]
     public class LoadItemDependency 
     {
+        [HorizontalGroup]
+        [HideLabel]
         [Required]
         [SerializeField]
         private LoadItemDefinition _Definition;
 
-        [EnhancedTableColumn(60)]
+        [HorizontalGroup(Width = 80)]
         [SerializeField]
         private bool _Optional;
 

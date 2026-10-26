@@ -16,6 +16,7 @@ using UnityEngine;
 #if UNITY_EDITOR
 using EDIVE.EditorUtils;
 using Sirenix.Utilities.Editor;
+using UnityEditor;
 #endif
 
 namespace EDIVE.AppLoading
@@ -28,16 +29,17 @@ namespace EDIVE.AppLoading
         [SerializeReference]
         private ILoadFinalizer _Finalizer;
 
-        [ShowCreateNew]
-        [EnhancedInlineEditor]
         [PropertySpace]
+        [Searchable]
         [SerializeField]
-        [EnhancedValidate("ValidateGroups")]
-        internal List<LoadGroupDefinition> _Groups = new();
+        [EnhancedValidate("ValidateLoadItems")]
+        [CustomValueDrawer("DecoratedLoadItemDrawer")]
+        [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = "OnLoadItemsTitleGUI")]
+        private List<LoadItemDefinition> _LoadItems = new();
 
         public ILoadFinalizer Finalizer => _Finalizer;
 
-        public IEnumerable<LoadGroupDefinition> Groups => _Groups;
+        public IReadOnlyList<LoadItemDefinition> LoadItems => _LoadItems;
 
         private DependencyResolutionContext _runtimeContext;
         public DependencyResolutionContext RuntimeContext => _runtimeContext;
@@ -45,17 +47,25 @@ namespace EDIVE.AppLoading
         public void Initialize()
         {
             _runtimeContext = new DependencyResolutionContext(GetValidLoadItems());
-            foreach (var group in _Groups)
+            foreach (var loadItem in _LoadItems)
             {
-                group.Initialize(_runtimeContext);
+                if (loadItem == null) continue;
+                if (!loadItem.IsValid)
+                    Debug.LogError($"[{name}] Load item '{loadItem.name}' is not valid", loadItem);
+                loadItem.Initialize(_runtimeContext);
             }
+
+            var cycle = LoaderUtils.FindCycle(_runtimeContext.AllItems, i => i.GetSortingDependencies(_runtimeContext));
+            if (cycle != null)
+                Debug.LogError($"[{name}] Cyclic dependency, these items will never load: {string.Join(" → ", cycle.Select(i => i.name))}", this);
         }
 
         public void Terminate()
         {
-            foreach (var group in _Groups)
+            foreach (var loadItem in _LoadItems)
             {
-                group.Terminate();
+                if (loadItem == null) continue;
+                loadItem.Terminate();
             }
             _runtimeContext = null;
         }
@@ -74,51 +84,30 @@ namespace EDIVE.AppLoading
             }
             else
             {
-                var groupTasks = _Groups
-                    .Where(g => g.IsAvailable)
-                    .Select(g => g.Load());
-                await UniTask.WhenAll(groupTasks);
+                await UniTask.WhenAll(_runtimeContext.AllItems.Select(l => l.Load()));
             }
-        }
-
-        public IEnumerable<LoadGroupDefinition> GetAvailableLoadGroups()
-        {
-            return _Groups.Where(group => group.IsAvailable);
         }
 
         public IEnumerable<LoadItemDefinition> GetValidLoadItems()
         {
-            var availableGroups = GetAvailableLoadGroups();
-            var groupIndex = -1;
-            foreach (var availableGroup in availableGroups)
+            for (var i = 0; i < _LoadItems.Count; i++)
             {
-                groupIndex++;
-                if (availableGroup == null)
+                var loadItem = _LoadItems[i];
+                if (loadItem == null)
                 {
-                    Debug.LogError($"Group at index {groupIndex} is null ");
+                    Debug.LogError($"[{name}] Load item at index {i} is null");
                     continue;
                 }
 
-                var itemIndex = -1;
-                foreach (var loadItem in availableGroup.LoadItems)
-                {
-                    itemIndex++;
-                    if (loadItem == null)
-                    {
-                        Debug.LogError($"Load item at index {itemIndex} in group '{availableGroup.UniqueID}' is null");
-                        continue;
-                    }
-
-                    if (loadItem.CheckAvailability())
-                        yield return loadItem;
-                }
+                if (loadItem.CheckAvailability())
+                    yield return loadItem;
             }
         }
 
         public IEnumerable<LoadItemDefinition> GetValidLoadItemsSorted()
         {
             var ctx = _runtimeContext ?? new DependencyResolutionContext(GetValidLoadItems());
-            return LoaderUtils.SortLoadItems(GetAvailableLoadGroups(), ctx).Where(l => l.CheckAvailability() && ctx.Contains(l));
+            return LoaderUtils.SortLoadItems(ctx.AllItems, ctx).Where(l => l.CheckAvailability() && ctx.Contains(l));
         }
 
 #if UNITY_EDITOR
@@ -127,51 +116,37 @@ namespace EDIVE.AppLoading
         [PropertyOrder(50)]
         [Searchable]
         [ReadOnlyListElements]
-        [CustomValueDrawer("DecoratedLoadItemDrawer")]
-        [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "OnAllLoadItemsTitleGUI")]
-        public List<LoadItemDefinition> AllLoadItems { get; private set; }
-
-        [ShowInInspector]
-        [PropertyOrder(50)]
-        [Searchable]
-        [ReadOnlyListElements]
-        [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "OnLoadItemsWithoutGroupTitleGUI")]
-        public List<LoadItemDefinition> LoadItemsWithoutGroup { get; private set; }
+        [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "OnLoadItemsNotInSetupTitleGUI")]
+        public List<LoadItemDefinition> LoadItemsNotInSetup { get; private set; }
 
         [UsedImplicitly]
-        private void OnAllLoadItemsTitleGUI()
+        private void OnLoadItemsTitleGUI()
         {
-            if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
-            {
-                ResolveAllLoadItems();
-            }
-
             if (SirenixEditorGUI.ToolbarButton(FontAwesomeEditorIcons.ArrowDownAZSolid))
             {
-                AllLoadItems = LoaderUtils.SortLoadItems(_Groups, DependencyResolutionContext.EditorContext);
+                Undo.RecordObject(this, "Sort Load Items");
+                var setupItems = _LoadItems.Where(i => i != null).Distinct().ToList();
+                var setupContext = new DependencyResolutionContext(setupItems);
+                var sorted = LoaderUtils.SortLoadItems(setupItems, i => i.EnumerateEditorPossibleDirectDependencies(setupContext));
+                _LoadItems.RemoveAll(i => i != null);
+                _LoadItems.AddRange(sorted.Where(setupContext.Contains));
+                EditorUtility.SetDirty(this);
             }
         }
 
         [UsedImplicitly]
-        private void OnLoadItemsWithoutGroupTitleGUI()
+        private void OnLoadItemsNotInSetupTitleGUI()
         {
             if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
             {
-                ResolveLoadItemsWithoutGroup();
+                ResolveLoadItemsNotInSetup();
             }
         }
 
         [OnInspectorInit]
-        public void ResolveLoadItemsWithoutGroup()
+        public void ResolveLoadItemsNotInSetup()
         {
-            LoadItemsWithoutGroup = EditorAssetUtils.FindAllAssetsOfType<LoadItemDefinition>()
-                .Except(Groups.Where(g => g != null).SelectMany(g => g.LoadItems)).ToList();
-        }
-
-        [OnInspectorInit]
-        public void ResolveAllLoadItems()
-        {
-            AllLoadItems = Groups.Where(g => g != null).SelectMany(g => g.LoadItems).Distinct().Where(i => i != null).ToList();
+            LoadItemsNotInSetup = EditorAssetUtils.FindAllAssetsOfType<LoadItemDefinition>().Except(_LoadItems).ToList();
         }
 
         private LoadItemDefinition DecoratedLoadItemDrawer(LoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
@@ -180,36 +155,19 @@ namespace EDIVE.AppLoading
         }
 
         [UsedImplicitly]
-        private void ValidateGroups(SelfValidationResult result)
+        private void ValidateLoadItems(SelfValidationResult result)
         {
-            var missingGroupTexts = new List<string>();
-            foreach (var group in _Groups)
-            {
-                if (group == null) continue;
-                group.ResolveCompleteDependencies();
-                var missingGroups = group.TransitiveDependencies.Except(_Groups).ToList();
-                if (missingGroups.Count > 0)
-                    missingGroupTexts.Add($"[{group.name} - {string.Join(", ", missingGroups.Select(v => v.name))}]");
-            }
+            var setupItems = _LoadItems.Where(i => i != null).Distinct().ToList();
+            var setupContext = new DependencyResolutionContext(setupItems);
 
-            if (missingGroupTexts.Count > 0)
-            {
-                result.AddError($"Missing group dependencies: {string.Join(", ", missingGroupTexts)}");
-            }
-
-            ResolveAllLoadItems();
             var missingItemsTexts = new List<string>();
-            foreach (var group in _Groups)
+            foreach (var loadItem in setupItems)
             {
-                if (group == null) continue;
-                foreach (var loadItem in group.LoadItems)
-                {
-                    if (loadItem == null) continue;
-                    loadItem.ResolveTransitiveDependencies();
-                    var missingItems = loadItem.TransitiveDependencies.Except(AllLoadItems).ToList();
-                    if (missingItems.Count > 0)
-                        missingItemsTexts.Add($"[{group.name}:{loadItem.name} - {string.Join(", ", missingItems.Select(v => v.name))}]");
-                }
+                var missingItems = loadItem.EnumerateEditorPossibleDirectDependencies(DependencyResolutionContext.EditorContext, setupContext)
+                    .Where(d => !setupContext.Contains(d))
+                    .ToList();
+                if (missingItems.Count > 0)
+                    missingItemsTexts.Add($"[{loadItem.name} - {string.Join(", ", missingItems.Select(v => v.name))}]");
             }
 
             if (missingItemsTexts.Count > 0)
@@ -217,11 +175,14 @@ namespace EDIVE.AppLoading
                 result.AddError($"Missing item dependencies: {string.Join(", ", missingItemsTexts)}");
             }
 
-            var duplicateItems = _Groups.Where(g => g != null)
-                .SelectMany(g => g.LoadItems.Select(i => new{Item = i, Group = g}))
-                .GroupBy(i => i.Item)
+            var cycle = LoaderUtils.FindCycle(setupItems, i => i.EnumerateEditorPossibleDirectDependencies(setupContext));
+            if (cycle != null)
+                result.AddError($"Cyclic dependency detected: {string.Join(" → ", cycle.Select(i => i.name))}");
+
+            var duplicateItems = _LoadItems.Where(i => i != null)
+                .GroupBy(i => i)
                 .Where(g => g.Count() > 1)
-                .Select(i => $"[{i.Key.name} at {string.Join(",", i.Select(s => s.Group.name))}]")
+                .Select(g => g.Key.name)
                 .ToList();
 
             if (duplicateItems.Count > 0)
@@ -229,10 +190,7 @@ namespace EDIVE.AppLoading
                 result.AddError($"There are duplicate items: {string.Join(", ", duplicateItems)}");
             }
 
-            // Warn when a setup contains >1 item representing the same type referenced by any TypedDependency.
-            // At runtime the context would resolve the type to multiple candidates — ambiguous and likely wrong.
-            var setupItems = _Groups.Where(g => g != null).SelectMany(g => g.LoadItems).Where(i => i != null).Distinct().ToList();
-            // Build map: Type → items in this setup that represent it
+            // Multiple items representing a type referenced by a TypedDependency resolve ambiguously at runtime.
             var typeToItems = new Dictionary<Type, List<LoadItemDefinition>>();
             foreach (var item in setupItems)
             {

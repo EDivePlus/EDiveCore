@@ -32,30 +32,29 @@ namespace EDIVE.AppLoading.Utils
             return components;
         }
 
-        public static List<LoadItemDefinition> SortLoadItems(IEnumerable<LoadGroupDefinition> groups, DependencyResolutionContext context)
+        public static List<LoadItemDefinition> SortLoadItems(IEnumerable<LoadItemDefinition> loadItems, DependencyResolutionContext context)
+        {
+            return SortLoadItems(loadItems, i => i.GetSortingDependencies(context));
+        }
+
+        public static List<LoadItemDefinition> SortLoadItems(IEnumerable<LoadItemDefinition> loadItems, Func<LoadItemDefinition, IEnumerable<LoadItemDefinition>> getDependencies)
         {
             var sortedList = new List<LoadItemDefinition>();
             var visited = new HashSet<LoadItemDefinition>();
 
-            var groupList = groups as IList<LoadGroupDefinition> ?? groups.ToList();
-            foreach (var group in groupList)
-            {
-                group.PrepareSorting();
-            }
-
-            var nodes = groupList.SelectMany(g => g.LoadItems);
-            foreach (var loadItem in nodes)
+            foreach (var loadItem in loadItems)
             {
                 if (!visited.Contains(loadItem))
                 {
-                    TopologicalSortUtil(loadItem, visited, sortedList, context);
+                    TopologicalSortUtil(loadItem, visited, sortedList, getDependencies);
                 }
             }
 
             return sortedList;
         }
 
-        private static void TopologicalSortUtil(LoadItemDefinition loadItem, HashSet<LoadItemDefinition> visited, List<LoadItemDefinition> sortedList, DependencyResolutionContext context)
+        private static void TopologicalSortUtil(LoadItemDefinition loadItem, HashSet<LoadItemDefinition> visited, List<LoadItemDefinition> sortedList,
+            Func<LoadItemDefinition, IEnumerable<LoadItemDefinition>> getDependencies)
         {
             if (loadItem == null)
                 return;
@@ -63,16 +62,53 @@ namespace EDIVE.AppLoading.Utils
             if (!visited.Add(loadItem))
                 return;
 
-            foreach (var dependency in loadItem.GetSortingDependencies(context))
+            foreach (var dependency in getDependencies(loadItem))
             {
                 if (!visited.Contains(dependency))
                 {
-                    TopologicalSortUtil(dependency, visited, sortedList, context);
+                    TopologicalSortUtil(dependency, visited, sortedList, getDependencies);
                 }
             }
 
             // Directly add the node to the sorted list instead of pushing it onto a stack
             sortedList.Add(loadItem);
+        }
+
+        public static List<LoadItemDefinition> FindCycle(IEnumerable<LoadItemDefinition> loadItems, Func<LoadItemDefinition, IEnumerable<LoadItemDefinition>> getDependencies)
+        {
+            var done = new HashSet<LoadItemDefinition>();
+            var path = new List<LoadItemDefinition>();
+            foreach (var loadItem in loadItems)
+            {
+                var cycle = FindCycleUtil(loadItem, done, path, getDependencies);
+                if (cycle != null)
+                    return cycle;
+            }
+
+            return null;
+        }
+
+        private static List<LoadItemDefinition> FindCycleUtil(LoadItemDefinition loadItem, HashSet<LoadItemDefinition> done, List<LoadItemDefinition> path,
+            Func<LoadItemDefinition, IEnumerable<LoadItemDefinition>> getDependencies)
+        {
+            if (loadItem == null || done.Contains(loadItem))
+                return null;
+
+            var index = path.IndexOf(loadItem);
+            if (index >= 0)
+                return path.Skip(index).Append(loadItem).ToList();
+
+            path.Add(loadItem);
+            foreach (var dependency in getDependencies(loadItem))
+            {
+                var cycle = FindCycleUtil(dependency, done, path, getDependencies);
+                if (cycle != null)
+                    return cycle;
+            }
+
+            path.RemoveAt(path.Count - 1);
+            done.Add(loadItem);
+            return null;
         }
 
 #if UNITY_EDITOR
@@ -96,7 +132,7 @@ namespace EDIVE.AppLoading.Utils
         public static LoadItemDefinition DecoratedLoadItemDrawer(LoadItemDefinition value, GUIContent label, Func<GUIContent, bool> callNextDrawer)
         {
             GUILayout.BeginHorizontal();
-            if (Application.isPlaying)
+            if (Application.isPlaying && value != null)
             {
                 GUIHelper.PushContentColor(value.CurrentState.GetColor());
                 GUILayout.Label(GUIHelper.TempContent(value.CurrentState.GetEditorIcon().Highlighted), GUILayout.Width(20), GUILayout.Height(18));

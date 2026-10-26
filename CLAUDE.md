@@ -18,8 +18,8 @@ How-to and lessons live in skills under `.claude/skills`: `edive-core`, `edive-u
 ## App startup and services
 - `AppCore` (Core): root singleton in RootScene. `AppCore.Services` = service locator (`Get/TryGet/AwaitRegistered/WhenRegistered<T>`). Services implement `IService`.
 - Service bases: `AServiceBehaviour<T>` (register OnEnable), `ALoadableServiceBehaviour<T>` (async `LoadRoutine`, `PopulateDependencies`), `ANetworkServiceBehaviour<T>` (register on spawn).
-- AppLoading: `AppLoaderController` in RootScene runs `LoadSetupDefinition` -> `LoadGroupDefinition`s (parallel) -> `LoadItemDefinition`s (prefab / addressable / serialized `ILoadable` sources, typed dependencies, `ICondition`) -> `ILoadFinalizer` (e.g. load scene).
-- New manager: `ALoadableServiceBehaviour<T>` prefab -> `LoadItemDefinition` -> "Refresh Resolved Data" -> add to a group.
+- AppLoading: `AppLoaderController` in RootScene runs `LoadSetupDefinition` (flat item list, all parallel) -> `LoadItemDefinition`s (prefab / addressable / serialized `ILoadable` sources, `ICondition`, dependencies: typed, manual items, `LoadCategoryDefinition`s) -> `ILoadFinalizer` (e.g. load scene). Items carry categories (Boot, Services), other items depend on a whole category.
+- New manager: `ALoadableServiceBehaviour<T>` prefab -> `LoadItemDefinition` -> "Refresh Resolved Data" -> add categories -> add to the setup.
 - Toolbar "EDive/Play Root Scene" plays from RootScene.
 - `AUniqueDefinition` (AssetTranslation): SO with stable `UniqueID` from file name; sent over network / JSON as ID via `ADefinitionTranslator<T>`.
 

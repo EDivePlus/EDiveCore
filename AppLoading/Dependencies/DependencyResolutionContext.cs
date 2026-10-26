@@ -24,7 +24,7 @@ namespace EDIVE.AppLoading.Dependencies
             }
         }
 #endif
-        
+
         private readonly List<LoadItemDefinition> _allItems;
         private readonly HashSet<LoadItemDefinition> _itemSet;
         private readonly Dictionary<Type, List<LoadItemDefinition>> _cache = new();
@@ -66,6 +66,12 @@ namespace EDIVE.AppLoading.Dependencies
 
             _cache[type] = matches;
             return matches;
+        }
+
+        public IEnumerable<LoadItemDefinition> GetItemsInCategory(LoadCategoryDefinition category)
+        {
+            if (category == null) return Array.Empty<LoadItemDefinition>();
+            return _allItems.Where(i => i.Categories.Contains(category));
         }
     }
 }

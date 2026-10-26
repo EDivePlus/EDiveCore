@@ -29,46 +29,56 @@ namespace EDIVE.AppLoading.LoadItems
     public class LoadItemDefinition : AUniqueDefinition, IComparable<LoadItemDefinition>, ISerializationCallbackReceiver
     {
         [SerializeReference]
-        [EnhancedBoxGroup("Source", false, Color = "@ColorTools.Lime")]
-        [EnhancedTypeSelector(true, 1, OnTypeChanged = "OnSourceChanged")]
+        [EnhancedTypeSelector(true, BoxColor = "@ColorTools.Lime", OnTypeChanged = "OnSourceChanged")]
         [EnhancedValidate("ValidateSource")]
         [OnValueChanged("RefreshResolvedData", true)]
         protected ALoadItemSource _Source;
         
         [SerializeReference]
-        [EnhancedBoxGroup("Condition", false, Color = "@ColorTools.Cyan", SpaceBefore = 4)]
+        [PropertySpace]
+        [EnhancedTypeSelector(true, BoxColor = "@ColorTools.Cyan")]
         protected ICondition _Condition;
 
+        [ListDrawerSettings(ShowFoldout = false)]
         [PropertySpace]
+        [SerializeField]
+        [EnhancedValidate("ValidateCategories")]
+        private List<LoadCategoryDefinition> _Categories = new();
+        
         [SerializeField]
         private float _LoadWeight = 1f;
 
         [SerializeField]
         private bool _FakeLoadingTime;
-
+    
         [SerializeField]
         [SuffixLabel("s", true)]
         [ShowIf(nameof(_FakeLoadingTime))]
         private float _FakeLoadingTimeDuration = 2;
-        
-        [EnhancedBoxGroup("Dependencies", Color = "@ColorTools.Orange", Order = 20, SpaceBefore = 8)]
+
+        [EnhancedBoxGroup("Dependencies", Color = "@ColorTools.Yellow", Order = 20, SpaceBefore = 8)]
         [SerializeField]
-        [InlineProperty]
-        [EnhancedValidate("ValidateResolvedData")]
-        [ListDrawerSettings(IsReadOnly = true)]
-        private List<UType> _RepresentedTypes = new();
+        [ListDrawerSettings(ShowFoldout = false)]
+        private List<LoadCategoryDefinition> _CategoryDependencies = new();
+        
+        [EnhancedBoxGroup("Dependencies")]
+        [SerializeField]
+        [ListDrawerSettings(ShowFoldout = false)]
+        private List<LoadItemDependency> _ManualDependencies = new();
 
         [EnhancedBoxGroup("Dependencies")]
         [SerializeField]
-        [ListDrawerSettings(IsReadOnly = true)]
+        [ListDrawerSettings(IsReadOnly = true, ShowFoldout = false, OnTitleBarGUI = "ResolvedDataTitleBarGUI")]
         [EnhancedValidate("ValidateDependencies")]
         private List<TypedDependency> _ResolvedDependencies = new();
-
+        
+        [PropertySpace]
         [EnhancedBoxGroup("Dependencies")]
         [SerializeField]
-        [EnhancedTableList]
-        private List<LoadItemDependency> _ManualDependencies = new();
-        
+        [EnhancedValidate("ValidateResolvedData")]
+        [ListDrawerSettings(IsReadOnly = true, ShowFoldout = false, OnTitleBarGUI = "ResolvedDataTitleBarGUI")]
+        private List<UType> _RepresentedTypes = new();
+
         [ReadOnly]
         [ShowInInspector]
         public bool IsValid => _Source != null && _Source.IsValid;
@@ -81,6 +91,8 @@ namespace EDIVE.AppLoading.LoadItems
         public IReadOnlyList<UType> RepresentedTypes => _RepresentedTypes;
         public IReadOnlyList<TypedDependency> ResolvedDependencies => _ResolvedDependencies;
         public IReadOnlyList<LoadItemDependency> ManualDependencies => _ManualDependencies;
+        public IReadOnlyList<LoadCategoryDefinition> Categories => _Categories;
+        public IReadOnlyList<LoadCategoryDefinition> CategoryDependencies => _CategoryDependencies;
         
         public UniTaskCompletionSource CompletionSource { get; private set; }
         
@@ -93,8 +105,6 @@ namespace EDIVE.AppLoading.LoadItems
         private Tweener _fakeLoadingTimeTweener;
         private float _currentLoadProgress;
         private DependencyResolutionContext _runtimeContext;
-
-        internal LoadGroupDefinition SortingPreparedGroup;
 
         private const float MAX_FAKE_PROGRESS = 0.9f;
 
@@ -150,6 +160,16 @@ namespace EDIVE.AppLoading.LoadItems
                 }
 
                 if (seen.Add(dep)) yield return dep;
+            }
+
+            foreach (var category in _CategoryDependencies)
+            {
+                foreach (var item in context.GetItemsInCategory(category))
+                {
+                    if (item == this) continue;
+                    if (!item.CheckAvailability()) continue;
+                    if (seen.Add(item)) yield return item;
+                }
             }
         }
 
@@ -285,16 +305,7 @@ namespace EDIVE.AppLoading.LoadItems
 
         internal IEnumerable<LoadItemDefinition> GetSortingDependencies(DependencyResolutionContext context)
         {
-            var ctx = context ?? _runtimeContext;
-            var direct = ResolveDirectDependencies(ctx);
-
-            if (SortingPreparedGroup is null)
-            {
-                DebugLite.LogError($"Load item '{name} has no prepared sorting group, is it assigned to a group?']");
-                return direct;
-            }
-
-            return direct.Concat(SortingPreparedGroup.Dependencies.SelectMany(groupDependency => groupDependency.LoadItems));
+            return ResolveDirectDependencies(context ?? _runtimeContext);
         }
 
     #region Migration
@@ -369,6 +380,15 @@ namespace EDIVE.AppLoading.LoadItems
         }
         
         [UsedImplicitly]
+        private void ValidateCategories(SelfValidationResult result)
+        {
+            if (_Categories.Any(c => c == null))
+                result.AddError("Empty category slot");
+            if (_Categories.Where(c => c != null).GroupBy(c => c).Any(g => g.Count() > 1))
+                result.AddError("Duplicate categories");
+        }
+
+        [UsedImplicitly]
         private void ValidateResolvedData(SelfValidationResult result, InspectorProperty property)
         {
             var (_, _, stale) = ComputeResolvedDataDiff();
@@ -382,8 +402,13 @@ namespace EDIVE.AppLoading.LoadItems
                 });
         }
 
-        [Button]
-        [EnhancedBoxGroup("Dependencies")]
+        [UsedImplicitly]
+        private void ResolvedDataTitleBarGUI()
+        {
+            if (SirenixEditorGUI.ToolbarButton(EditorIcons.Refresh))
+                RefreshResolvedData();
+        }
+
         public void RefreshResolvedData()
         {
             var (newRepresented, newTypeDeps, _) = ComputeResolvedDataDiff();
@@ -456,6 +481,9 @@ namespace EDIVE.AppLoading.LoadItems
             if (duplicates.Count > 0)
                 result.AddError($"Duplicate manual dependencies: {string.Join(", ", duplicates.Distinct())}");
 
+            if (_CategoryDependencies.Any(c => c == null))
+                result.AddError("Empty category dependency slot");
+
             var visited = new HashSet<LoadItemDefinition>();
             var path = new List<LoadItemDefinition>();
             var cycle = DetectCycle(this, this, visited, path, ctx);
@@ -491,8 +519,7 @@ namespace EDIVE.AppLoading.LoadItems
         } 
         
     #region Dependency Previews
-        [EnhancedBoxGroup("Dependencies")]
-        [PropertySpace]
+        [EnhancedBoxGroup("Dependency Graph", Color = "@ColorTools.Orange", Order = 21, SpaceBefore = 4)]
         [Searchable]
         [ShowInInspector]
         [PropertyOrder(10)]
@@ -500,7 +527,7 @@ namespace EDIVE.AppLoading.LoadItems
         [ListDrawerSettings(IsReadOnly = true, OnTitleBarGUI = "TransitiveDependenciesTitleBarGUI")]
         public List<LoadItemDefinition> TransitiveDependencies { get; private set; }
         
-        [EnhancedBoxGroup("Dependencies")]
+        [EnhancedBoxGroup("Dependency Graph")]
         [ShowInInspector]
         [Searchable]
         [PropertyOrder(10)]
@@ -551,7 +578,7 @@ namespace EDIVE.AppLoading.LoadItems
 
             TransitiveDependencies ??= new List<LoadItemDefinition>();
             TransitiveDependencies.Clear();
-            TransitiveDependencies.AddRange(transitiveDependencies);
+            TransitiveDependencies.AddRange(SortInLoadOrder(transitiveDependencies, ctx));
         }
 
         [OnInspectorInit]
@@ -560,10 +587,16 @@ namespace EDIVE.AppLoading.LoadItems
             DependentBy ??= new List<LoadItemDefinition>();
             DependentBy.Clear();
             var ctx = DependencyResolutionContext.EditorContext;
-            DependentBy.AddRange(ctx.AllItems.Where(i => i != this && i.EnumerateEditorPossibleDirectDependencies(ctx).Contains(this)));
+            var dependentBy = ctx.AllItems.Where(i => i != this && i.EnumerateEditorPossibleDirectDependencies(ctx).Contains(this)).ToHashSet();
+            DependentBy.AddRange(SortInLoadOrder(dependentBy, ctx));
+        }
+
+        private static IEnumerable<LoadItemDefinition> SortInLoadOrder(HashSet<LoadItemDefinition> items, DependencyResolutionContext context)
+        {
+            return LoaderUtils.SortLoadItems(items.OrderBy(i => i.name), i => i.EnumerateEditorPossibleDirectDependencies(context)).Where(items.Contains);
         }
         
-        internal IEnumerable<LoadItemDefinition> EnumerateEditorPossibleDirectDependencies(DependencyResolutionContext context)
+        internal IEnumerable<LoadItemDefinition> EnumerateEditorPossibleDirectDependencies(DependencyResolutionContext context, DependencyResolutionContext categoryContext = null)
         {
             var seen = new HashSet<LoadItemDefinition>();
             foreach (var resolvedDependency in _ResolvedDependencies)
@@ -586,6 +619,15 @@ namespace EDIVE.AppLoading.LoadItems
                 var def = manualDependency.Definition;
                 if (def != null && def != this && seen.Add(def))
                     yield return def;
+            }
+
+            foreach (var category in _CategoryDependencies)
+            {
+                foreach (var item in (categoryContext ?? context).GetItemsInCategory(category))
+                {
+                    if (item != this && seen.Add(item))
+                        yield return item;
+                }
             }
         }
     #endregion
