@@ -177,6 +177,7 @@ namespace EDIVE.Rendering.Mirrors
         private static readonly Rect FULL_VIEWPORT = new(0, 0, 1, 1);
 
         private readonly Vector3[] _frustumCorners = new Vector3[4];
+        private readonly Vector3[] _meshCorners = new Vector3[8];
 
         private MaterialSlotOverride _slot;
         private MeshFilter _meshFilter;
@@ -261,7 +262,7 @@ namespace EDIVE.Rendering.Mirrors
                 return false;
 
             GeometryUtility.CalculateFrustumPlanes(cam, FRUSTUM_PLANES);
-            return GeometryUtility.TestPlanesAABB(FRUSTUM_PLANES, _MeshRenderer.bounds);
+            return IntersectsFrustum(FRUSTUM_PLANES);
         }
 
         // Visible in either frustum. Stereo passes one per eye.
@@ -270,9 +271,33 @@ namespace EDIVE.Rendering.Mirrors
             if (!CanBeSeenFrom(viewer, ignoreDistance))
                 return false;
 
-            var bounds = _MeshRenderer.bounds;
-            return GeometryUtility.TestPlanesAABB(planes, bounds)
-                   || (otherPlanes != null && GeometryUtility.TestPlanesAABB(otherPlanes, bounds));
+            return IntersectsFrustum(planes) || (otherPlanes != null && IntersectsFrustum(otherPlanes));
+        }
+
+        // Rotated mesh box, not the world one. A slanted mirror's world box can hold a camera looking away from it.
+        private bool IntersectsFrustum(Plane[] planes)
+        {
+            if (_meshFilter == null || _meshFilter.sharedMesh == null)
+                return GeometryUtility.TestPlanesAABB(planes, _MeshRenderer.bounds);
+
+            _meshFilter.sharedMesh.bounds.GetCorners(_MeshRenderer.transform.localToWorldMatrix, _meshCorners);
+            foreach (var plane in planes)
+            {
+                var inside = false;
+                foreach (var corner in _meshCorners)
+                {
+                    if (plane.GetDistanceToPoint(corner) >= 0f)
+                    {
+                        inside = true;
+                        break;
+                    }
+                }
+
+                if (!inside)
+                    return false;
+            }
+
+            return true;
         }
 
         private bool CanBeSeenFrom(Vector3 viewer, bool ignoreDistance)
