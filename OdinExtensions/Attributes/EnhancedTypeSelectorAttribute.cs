@@ -21,6 +21,12 @@ namespace EDIVE.OdinExtensions.Attributes
         
         public string OnTypeChanged;
 
+        // Draws a box with the dropdown in its header, HideFoldout keeps it always open. BoxColor enables it too
+        public bool Box;
+        public string BoxColor;
+
+        public bool UseBox => Box || BoxColor != null;
+
         // Closed generic types use TypeRegistryItem name and icon of their generic definition
         public bool UseGenericRegistryItems = true;
 

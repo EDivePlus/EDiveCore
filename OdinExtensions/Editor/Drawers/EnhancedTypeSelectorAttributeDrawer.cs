@@ -24,6 +24,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
         private ValueResolver<Type> _baseTypeResolver;
         private ValueResolver<IEnumerable<Type>> _customTypesResolver;
+        private ValueResolver<Color> _boxColorResolver;
 
         private const string PREV_VALUE_ID = "prevValue";
         private const string NEW_VALUE_ID = "newValue";
@@ -54,6 +55,11 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 _customTypesResolver = ValueResolver.Get<IEnumerable<Type>>(Property, Attribute.CustomTypesGetter);
             }
 
+            if (Attribute.BoxColor != null)
+            {
+                _boxColorResolver = ValueResolver.Get<Color>(Property, Attribute.BoxColor);
+            }
+
             _showInInlineEditors = Attribute.HasShowInInlineEditors ? Attribute.ShowInInlineEditors : !typeof(Object).IsAssignableFrom(ValueEntry.BaseValueType);
         }
 
@@ -67,7 +73,7 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
 
             EditorGUILayout.BeginVertical();
             ActionResolver.DrawErrors(_onTypeChanged);
-            ValueResolver.DrawErrors(_baseTypeResolver, _customTypesResolver);
+            ValueResolver.DrawErrors(_baseTypeResolver, _customTypesResolver, _boxColorResolver);
 
             var selectedType = ValueEntry.SmartValue?.GetType();
             var dropdownButtonLabel = selectedType == null
@@ -95,6 +101,16 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
             var inlineFoldout = !typeof(Object).IsAssignableFrom(ValueEntry.BaseValueType);
             if (inlineFoldout)
             {
+                if (Attribute.UseBox)
+                {
+                    var previousBgColor = GUI.backgroundColor;
+                    if (_boxColorResolver is { HasError: false })
+                        GUI.backgroundColor = _boxColorResolver.GetValue();
+                    SirenixEditorGUI.BeginBox();
+                    GUI.backgroundColor = previousBgColor;
+                    SirenixEditorGUI.BeginBoxHeader();
+                }
+
                 bool expanded;
                 if (dropdownLabel == null)
                 {
@@ -124,6 +140,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                     DrawDropdown(fieldRect);
                 }
 
+                if (Attribute.UseBox)
+                    SirenixEditorGUI.EndBoxHeader();
+
                 if (SirenixEditorGUI.BeginFadeGroup(this, expanded))
                 {
                     if (Attribute.Space > 0)
@@ -139,6 +158,9 @@ namespace EDIVE.OdinExtensions.Editor.Drawers
                 }
 
                 SirenixEditorGUI.EndFadeGroup();
+
+                if (Attribute.UseBox)
+                    SirenixEditorGUI.EndBox();
             }
             else
             {
