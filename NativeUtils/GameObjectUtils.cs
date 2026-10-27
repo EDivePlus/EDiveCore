@@ -21,7 +21,7 @@ namespace EDIVE.NativeUtils
             return Object.Instantiate(prefab, parent);
         }
 
-        // Runtime quad without collider and shadows
+        // Runtime quad without collider, shadows and probes
         public static Renderer CreateQuad(string name, Transform parent, Material material)
         {
             var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -33,6 +33,8 @@ namespace EDIVE.NativeUtils
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
             return renderer;
         }
     }
