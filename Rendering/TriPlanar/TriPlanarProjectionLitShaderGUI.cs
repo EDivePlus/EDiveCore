@@ -25,9 +25,6 @@ namespace EDIVE.Rendering.TriPlanar
         private static readonly GUIContent BLEND_SHARPNESS = EditorGUIUtility.TrTextContent("Blend Sharpness", "Higher is sharper.");
         private static readonly GUIContent BAKE_TO_UVS = EditorGUIUtility.TrTextContent("Bake to UVs", "Bakes the projection into UV0 of the selected objects using this material and switches them to a _UV copy of it.");
 
-        private static readonly GUIContent SPECULAR_AA_VARIANCE = EditorGUIUtility.TrTextContent("Specular AA", "Roughens highlights on detail smaller than a pixel to stop shimmer. 0 is off.");
-        private static readonly GUIContent SPECULAR_AA_THRESHOLD = EditorGUIUtility.TrTextContent("Specular AA Limit", "Most roughness specular AA can add.");
-
         private static readonly GUIContent DETAIL_HEADER = EditorGUIUtility.TrTextContent("Detail Inputs", "Overlaid at its own tiling.");
         private static readonly GUIContent DETAIL_MASK = EditorGUIUtility.TrTextContent("Mask", "Alpha masks the detail. Uses the base tiling.");
         private static readonly GUIContent DETAIL_ALBEDO = EditorGUIUtility.TrTextContent("Base Map", "Multiplied over the base. 0.5 grey leaves it unchanged.");
@@ -41,8 +38,6 @@ namespace EDIVE.Rendering.TriPlanar
         private const string PROJECTION_OFFSET_PROP = "_ProjectionOffset";
         private const string PLANE_ROTATION_PROP = "_PlaneRotation";
         private const string BLEND_SHARPNESS_PROP = "_BlendSharpness";
-        private const string SPECULAR_AA_VARIANCE_PROP = "_SpecularAAVariance";
-        private const string SPECULAR_AA_THRESHOLD_PROP = "_SpecularAAThreshold";
         private const string DETAIL_MASK_PROP = "_DetailMask";
         private const string DETAIL_ALBEDO_MAP_PROP = "_DetailAlbedoMap";
         private const string DETAIL_ALBEDO_MAP_SCALE_PROP = "_DetailAlbedoMapScale";
@@ -69,8 +64,6 @@ namespace EDIVE.Rendering.TriPlanar
         private MaterialProperty _projectionOffset;
         private MaterialProperty _planeRotation;
         private MaterialProperty _blendSharpness;
-        private MaterialProperty _specularAAVariance;
-        private MaterialProperty _specularAAThreshold;
 
         private MaterialProperty _detailMask;
         private MaterialProperty _detailAlbedoMap;
@@ -92,8 +85,6 @@ namespace EDIVE.Rendering.TriPlanar
             _projectionOffset = FindProperty(PROJECTION_OFFSET_PROP, properties, false);
             _planeRotation = FindProperty(PLANE_ROTATION_PROP, properties, false);
             _blendSharpness = FindProperty(BLEND_SHARPNESS_PROP, properties, false);
-            _specularAAVariance = FindProperty(SPECULAR_AA_VARIANCE_PROP, properties, false);
-            _specularAAThreshold = FindProperty(SPECULAR_AA_THRESHOLD_PROP, properties, false);
 
             _detailMask = FindProperty(DETAIL_MASK_PROP, properties, false);
             _detailAlbedoMap = FindProperty(DETAIL_ALBEDO_MAP_PROP, properties, false);
@@ -144,8 +135,6 @@ namespace EDIVE.Rendering.TriPlanar
         {
             Draw(_litProperties.highlights, LitGUI.Styles.highlightsText);
             Draw(_litProperties.reflections, LitGUI.Styles.reflectionsText);
-            Draw(_specularAAVariance, SPECULAR_AA_VARIANCE);
-            Draw(_specularAAThreshold, SPECULAR_AA_THRESHOLD);
 
             base.DrawAdvancedOptions(material);
         }
