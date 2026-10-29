@@ -45,7 +45,7 @@ namespace EDIVE.UIElements
         {
             var hash = Mathf.Abs((input ?? string.Empty).GetHashCode());
             var hue = (hash % 360) / 360f;
-            return Color.HSVToRGB(hue, 0.6f, 0.45f);
+            return Color.HSVToRGB(hue, 0.55f, 0.98f);
         }
     }
 }

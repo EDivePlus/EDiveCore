@@ -129,6 +129,7 @@ namespace EDIVE.ServiceHub.Auth
             string password,
             CancellationToken cancellationToken = default)
         {
+            await BeginLoginAsync();
             var request = new LoginRequest(Settings.AppSecret, email, password, DeviceName, true, GetOrCreateDeviceId());
 
             var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, LoginRequest>(
@@ -149,6 +150,7 @@ namespace EDIVE.ServiceHub.Auth
         public async UniTask<NetworkResponse<LoginResponse>> AnonymousLoginClientAsync(
             CancellationToken cancellationToken = default)
         {
+            await BeginLoginAsync();
             var token = GetOrCreateAnonymousToken();
             var request = new AnonymousLoginRequest(Settings.AppSecret, token, DeviceName, true, GetOrCreateDeviceId());
 
@@ -170,6 +172,7 @@ namespace EDIVE.ServiceHub.Auth
         // Code the user approves on the website, poll it with the device secret
         public async UniTask<NetworkResponse<DeviceCodeResponse>> RequestDeviceCodeAsync(CancellationToken cancellationToken = default)
         {
+            await BeginLoginAsync();
             var request = new DeviceCodeRequest(Settings.AppSecret, DeviceName, true, GetOrCreateDeviceId());
             var response = await RestUtils.PostAsync<ApiResponse<DeviceCodeResponse>, DeviceCodeRequest>(
                 ClientDeviceCodeUrl,

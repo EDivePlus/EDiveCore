@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace EDIVE.UIElements
 {
-    // Scrolls a text that does not fit sideways inside its own rect, pauses at the end and jumps back.
+    // Scrolls a text that does not fit sideways inside its own rect to the end and back, pausing at both ends.
     // Glyphs fade out only on a side where the text continues.
     [RequireComponent(typeof(TMP_Text))]
     public class TextMarquee : MonoBehaviour
@@ -63,25 +63,40 @@ namespace EDIVE.UIElements
 
             _time += Time.unscaledDeltaTime;
             var overflow = _text.preferredWidth - _text.rectTransform.rect.width;
+            // Fits again, e.g. the layout widened it after scrolling started
+            if (overflow <= 0 && _scrolling)
+            {
+                _time = 0;
+                StopScrolling();
+                return;
+            }
             if (overflow <= 0 || _time < _Delay)
                 return;
 
             if (!_scrolling)
                 StartScrolling();
 
-            var elapsed = _time - _Delay;
-            if (elapsed > overflow / _Speed + _EndPause)
-            {
-                _time = 0;
-                StopScrolling();
-                return;
-            }
-
             _overflow = overflow;
-            _offset = Mathf.Min(elapsed * _Speed, overflow);
+            _offset = GetOffset(_time, overflow);
             _text.margin = new Vector4(_margin.x - _offset, _margin.y, _margin.z, _margin.w);
             _text.ForceMeshUpdate();
             ClipToRect();
+        }
+
+        // Pause, forth, pause, back, eased at the turns
+        private float GetOffset(float time, float overflow)
+        {
+            var travel = overflow / _Speed;
+            var phase = time % (_Delay + travel + _EndPause + travel);
+            if (phase < _Delay)
+                return 0;
+            phase -= _Delay;
+            if (phase < travel)
+                return Mathf.SmoothStep(0, overflow, phase / travel);
+            phase -= travel;
+            if (phase < _EndPause)
+                return overflow;
+            return Mathf.SmoothStep(overflow, 0, (phase - _EndPause) / travel);
         }
 
         // Vertex alpha hides what lies outside the rect, the fade softens the cut

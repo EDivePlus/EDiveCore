@@ -68,4 +68,17 @@ namespace EDIVE.UIElements.SDFShapes
         public override void ApplyTo(SDFArc targetObject) => targetObject.Value = Value;
         public override void CaptureFrom(SDFArc targetObject) => Value = targetObject.Value;
     }
+
+    [Serializable, Preserve]
+    public class SDFArcFillOriginPreset : AStateValuePreset<SDFArc, ArcFillOrigin>
+    {
+        public override string Title => "Arc Fill Origin";
+        public override void ApplyTo(SDFArc targetObject)
+        {
+            var arc = targetObject.Arc;
+            arc.FillOrigin = Value;
+            targetObject.Arc = arc;
+        }
+        public override void CaptureFrom(SDFArc targetObject) => Value = targetObject.Arc.FillOrigin;
+    }
 }

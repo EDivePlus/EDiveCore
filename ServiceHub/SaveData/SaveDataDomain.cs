@@ -41,7 +41,7 @@ namespace EDIVE.ServiceHub.SaveData
         private Dictionary<string, ASaveDataObject> ObjectCache => _objectCache ??= new Dictionary<string, ASaveDataObject>(StringComparer.Ordinal);
         
         private ServiceHubSettings _settings;
-        private readonly Dictionary<string, UniTask<(ASaveDataObject Value, bool FromRemote)>> _pendingLoads = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, AsyncLazy<(ASaveDataObject Value, bool FromRemote)>> _pendingLoads = new(StringComparer.Ordinal);
         private int _loadGeneration;
 
         public SaveDataDomain() { }
@@ -170,13 +170,13 @@ namespace EDIVE.ServiceHub.SaveData
             // Share one load per key, parallel loads would split into untracked copies
             if (!_pendingLoads.TryGetValue(key, out var pending))
             {
-                pending = LoadAsync<T>(key).Preserve();
+                pending = LoadAsync<T>(key).ToAsyncLazy();
                 // Finished synchronously, nothing left to share
-                if (!pending.Status.IsCompleted())
+                if (!pending.Task.Status.IsCompleted())
                     _pendingLoads[key] = pending;
             }
             // A caller cancelling only stops its own wait, the shared load keeps running
-            var (value, fromRemote) = await pending.AttachExternalCancellation(ct);
+            var (value, fromRemote) = await pending.Task.AttachExternalCancellation(ct);
             return value is T typed
                 ? SaveDataResult<T>.Success(typed, fromRemote)
                 : SaveDataResult<T>.Success(GetOrCreateTracked<T>(key), false);

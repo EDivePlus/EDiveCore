@@ -141,6 +141,7 @@ namespace EDIVE.ServiceHub.Auth
             _isPasswordHidden = true;
             ApplyPasswordMaskState();
 
+            _clientAuth.OnLoginStarted += HideError;
             _clientAuth.OnLoginSucceeded += OnClientLoginOk;
             _clientAuth.OnLoginFailed += OnClientLoginFail;
             _clientAuth.SessionEnded += OnSessionEnded;
@@ -162,6 +163,7 @@ namespace EDIVE.ServiceHub.Auth
         
         private void OnDisable()
         {
+            _clientAuth.OnLoginStarted -= HideError;
             _clientAuth.OnLoginSucceeded -= OnClientLoginOk;
             _clientAuth.OnLoginFailed -= OnClientLoginFail;
             _clientAuth.SessionEnded -= OnSessionEnded;

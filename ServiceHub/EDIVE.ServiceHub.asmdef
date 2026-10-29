@@ -18,6 +18,9 @@
         "EDIVE.Conditions",
         "EDIVE.Console",
         "EDIVE.UIElements",
+        "EDIVE.View.ViewTree",
+        "EDIVE.View.Windows",
+        "EDIVE.AssetTranslation",
         "Unity.Localization",
         "EDIVE.External.DomainReloadHelper"
     ],

@@ -15,12 +15,15 @@ namespace EDIVE.ServiceHub.Auth
     {
         protected ServiceHubSettings Settings { get; private set; }
 
+        public event Action OnLoginStarted;
         public event Action<TLoginResponse> OnLoginSucceeded;
         public event Action<long, string> OnLoginFailed;
         public event Func<CancellationToken, UniTask> OnLoggingOutAsync;
         public event Action OnLoggedOut;
 
         public bool IsLoggedIn => Storage.HasSession;
+
+        private AsyncLazy _logout;
 
         protected abstract AuthStorage Storage { get; }
         protected abstract string LogScope { get; }
@@ -32,6 +35,33 @@ namespace EDIVE.ServiceHub.Auth
         }
 
         public async UniTask LogoutAsync(CancellationToken cancellationToken = default)
+        {
+            if (_logout != null)
+            {
+                await _logout.Task;
+                return;
+            }
+
+            // Lazy allows several awaiters while it runs, a preserved task doesn't
+            var logout = RunLogoutAsync(cancellationToken).ToAsyncLazy();
+            if (!logout.Task.Status.IsCompleted())
+                _logout = logout;
+            await logout.Task;
+        }
+
+        private async UniTask RunLogoutAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await LogoutInternalAsync(cancellationToken);
+            }
+            finally
+            {
+                _logout = null;
+            }
+        }
+
+        private async UniTask LogoutInternalAsync(CancellationToken cancellationToken)
         {
             var effectiveToken = cancellationToken == CancellationToken.None
                 ? destroyCancellationToken
@@ -68,6 +98,14 @@ namespace EDIVE.ServiceHub.Auth
         }
 
         protected void NotifyLoginFailed(long status, string message) => OnLoginFailed?.Invoke(status, message);
+
+        // Waits for a running logout, its late token clear would end the new session
+        protected async UniTask BeginLoginAsync()
+        {
+            if (_logout != null)
+                await _logout.Task.SuppressCancellationThrow();
+            OnLoginStarted?.Invoke();
+        }
 
         // Ends the session on the server before the tokens are deleted
         protected virtual UniTask EndRemoteSessionAsync(CancellationToken cancellationToken) => UniTask.CompletedTask;

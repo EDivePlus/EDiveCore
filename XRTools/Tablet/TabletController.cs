@@ -33,6 +33,11 @@ namespace EDIVE.XRTools.Tablet
 
         [SerializeField]
         private float _InitialScale = 1;
+
+        [SerializeField]
+        [Tooltip("Camera jump that counts as a teleport, the tablet comes along when open and in view (m)")]
+        [MinValue(0f)]
+        private float _TeleportDistance = 1f;
         
         [SerializeField]
         private float _TweenDuration = 0.3f;
@@ -50,6 +55,10 @@ namespace EDIVE.XRTools.Tablet
         private bool _isOpen;
         private float _openScale;
         private Tween _animTween;
+        private bool _hasCameraSample;
+        private Vector3 _lastCameraPosition;
+        private float _lastCameraYaw;
+        private bool _wasInView;
 
         protected override void OnEnable()
         {
@@ -112,6 +121,31 @@ namespace EDIVE.XRTools.Tablet
                 transform.localScale = newScale;
             else
                 _animTween = transform.DOScale(newScale, _TweenDuration).SetEase(Ease.InOutQuad);
+        }
+
+        // After the rig moved this frame, teleports included
+        private void LateUpdate()
+        {
+            var cam = _CameraFollower != null ? _CameraFollower.CameraTransform : null;
+            if (cam == null)
+            {
+                _hasCameraSample = false;
+                return;
+            }
+
+            var position = cam.position;
+            var yaw = cam.eulerAngles.y;
+            // A following tablet snaps on its own
+            if (_hasCameraSample && _wasInView && !_CameraFollower.IsFollowing && Vector3.Distance(position, _lastCameraPosition) > _TeleportDistance)
+            {
+                var turn = Quaternion.Euler(0f, yaw - _lastCameraYaw, 0f);
+                transform.SetPositionAndRotation(position + turn * (transform.position - _lastCameraPosition), turn * transform.rotation);
+            }
+
+            _lastCameraPosition = position;
+            _lastCameraYaw = yaw;
+            _wasInView = IsOpen && CheckInView();
+            _hasCameraSample = true;
         }
 
         private bool CheckInView()

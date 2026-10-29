@@ -76,6 +76,7 @@ namespace EDIVE.ServiceHub.Auth
             string secret,
             CancellationToken cancellationToken = default)
         {
+            await BeginLoginAsync();
             var request = new ServerLoginRequest(serverId, secret);
 
             var response = await RestUtils.PostAsync<ApiResponse<ServerLoginResponse>, ServerLoginRequest>(
@@ -90,7 +91,7 @@ namespace EDIVE.ServiceHub.Auth
             return HandleLoginResponse(response);
         }
 
-        private UniTask? _preparing;
+        private AsyncLazy _preparing;
 
         // Credentials the service refused, retried only once the config changes
         private (string ServerId, string Secret)? _rejectedCredentials;
@@ -99,11 +100,11 @@ namespace EDIVE.ServiceHub.Auth
         public UniTask PrepareServerAuthAsync(string serverId, string serverSecret, CancellationToken cancellationToken = default)
         {
             // Shared run is not tied to one caller, each caller only stops its own wait
-            if (_preparing is { Status: UniTaskStatus.Pending } running)
-                return running.AttachExternalCancellation(cancellationToken);
-            var preparing = PrepareServerAuthCoreAsync(serverId, serverSecret, destroyCancellationToken).Preserve();
+            if (_preparing != null && _preparing.Task.Status == UniTaskStatus.Pending)
+                return _preparing.Task.AttachExternalCancellation(cancellationToken);
+            var preparing = PrepareServerAuthCoreAsync(serverId, serverSecret, destroyCancellationToken).ToAsyncLazy();
             _preparing = preparing;
-            return preparing.AttachExternalCancellation(cancellationToken);
+            return preparing.Task.AttachExternalCancellation(cancellationToken);
         }
 
         private async UniTask PrepareServerAuthCoreAsync(string serverId, string serverSecret, CancellationToken cancellationToken)

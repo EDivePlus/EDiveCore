@@ -90,8 +90,16 @@ namespace EDIVE.ServiceHub.Connectivity
             Refresh(_service.State, _service.IsChecking);
         }
 
-        private void OnStateChanged(ConnectivityState _) => Refresh(_service.State, _service.IsChecking);
-        private void OnCheckingChanged(bool _) => Refresh(_service.State, _service.IsChecking);
+        // Can still fire after unbinding when the same event disabled this display
+        private void OnStateChanged(ConnectivityState _)
+        {
+            if (_service != null) Refresh(_service.State, _service.IsChecking);
+        }
+
+        private void OnCheckingChanged(bool _)
+        {
+            if (_service != null) Refresh(_service.State, _service.IsChecking);
+        }
 
         private void OnCheckClicked()
         {

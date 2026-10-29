@@ -53,8 +53,17 @@ namespace EDIVE.ServiceHub.Streaming.Players
             BindPresence(null);
         }
 
-        private void OnStreamingRegistered(StreamingManager streaming) => BindViewShare(streaming.ViewShare);
-        private void OnServiceHubRegistered(ServiceHubManager serviceHub) => BindPresence(serviceHub.Presence);
+        private void OnStreamingRegistered(StreamingManager streaming)
+        {
+            BindViewShare(streaming.ViewShare);
+            Publish();
+        }
+
+        private void OnServiceHubRegistered(ServiceHubManager serviceHub)
+        {
+            BindPresence(serviceHub.Presence);
+            Publish();
+        }
 
         private void BindViewShare(ViewShare viewShare)
         {
@@ -63,7 +72,6 @@ namespace EDIVE.ServiceHub.Streaming.Players
             _viewShare = viewShare;
             if (_viewShare != null)
                 _viewShare.Changed += OnViewShareChanged;
-            Publish();
         }
 
         private void BindPresence(PresenceService presence)
@@ -73,7 +81,6 @@ namespace EDIVE.ServiceHub.Streaming.Players
             _presence = presence;
             if (_presence?.Player != null)
                 _presence.Player.Reported += OnPresenceReported;
-            Publish();
         }
 
         private void OnViewShareChanged(ViewShare _) => Publish();
