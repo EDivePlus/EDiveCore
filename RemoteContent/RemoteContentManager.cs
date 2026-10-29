@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.AppLoading;
 using EDIVE.Core;
+using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.RemoteContent.Handlers;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -29,6 +30,8 @@ namespace EDIVE.ServiceHub.RemoteContent
 
         public ARemoteContentHandler FocusedHandler { get; private set; }
         public event Action<ARemoteContentHandler> FocusedHandlerChanged;
+
+        public event Action<ContentItemInfo, ServiceHubError> SpawnFailed;
 
         protected override UniTask LoadRoutine(Action<float> progressCallback)
         {
@@ -68,6 +71,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 if (!shareResponse.IsSuccess || shareResponse.Result == null || string.IsNullOrEmpty(shareResponse.Result.Token))
                 {
                     Debug.LogError($"[RemoteContentManager] Failed to create share for '{content.Id}': {shareResponse.ErrorMessage}");
+                    SpawnFailed?.Invoke(content, ServiceHubErrors.Classify(shareResponse.StatusCode, shareResponse.ApiStatus));
                     return;
                 }
                 shareToken = shareResponse.Result.Token;

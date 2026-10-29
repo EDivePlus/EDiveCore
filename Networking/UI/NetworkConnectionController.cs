@@ -2,9 +2,11 @@
 // Created: 19.05.2026
 
 using System.Net;
+using System.Net.Sockets;
 using Cysharp.Threading.Tasks;
 using EDIVE.Configuration;
 using EDIVE.Core;
+using EDIVE.Localization;
 using EDIVE.Networking.ServerManagement;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.ToggleStates;
@@ -12,7 +14,6 @@ using EDIVE.Utils.SerializableDictionary;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
-using EDIVE.Localization;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 using ZLinq;
@@ -175,14 +176,11 @@ namespace EDIVE.Networking.UI
         private void ShowJoinError(JoinError error)
         {
             SafeLocalizedString message = null;
-            var shown = error != JoinError.None
+            var shown = error is not (JoinError.None or JoinError.Busy)
                 && (_JoinErrorMessages.TryGetValue(error, out message) || _JoinErrorMessages.TryGetValue(JoinError.Unknown, out message))
                 && message is { IsEmpty: false };
-            if (_JoinErrorLocalize)
-            {
-                if (shown) _JoinErrorLocalize.StringReference = message;
-                _JoinErrorLocalize.gameObject.SetActive(shown);
-            }
+            if (shown && _JoinErrorLocalize)
+                _JoinErrorLocalize.StringReference = message;
             if (_JoinErrorState) _JoinErrorState.SetState(shown);
         }
 
@@ -211,19 +209,23 @@ namespace EDIVE.Networking.UI
             {
                 var hostPart = input[..separatorIndex];
                 var portPart = input[(separatorIndex + 1)..];
-                if (!IPAddress.TryParse(hostPart, out _) || !ushort.TryParse(portPart, out port))
+                if (!IsFullAddress(hostPart) || !ushort.TryParse(portPart, out port))
                     return false;
 
                 address = hostPart;
                 return true;
             }
 
-            if (!IPAddress.TryParse(input, out _))
+            if (!IsFullAddress(input))
                 return false;
 
             address = input;
             return true;
         }
+
+        // IPAddress also takes short forms like 192.168.1
+        private static bool IsFullAddress(string input) =>
+            IPAddress.TryParse(input, out var address) && (address.AddressFamily == AddressFamily.InterNetworkV6 || input.Split('.').Length == 4);
 
         private static bool IsLobbyCode(string input)
         {

@@ -45,6 +45,7 @@
         "EDIVE.Utils.Activations",
         "EDIVE.View.Tooltips",
         "EDIVE.View.ViewTree",
+        "EDIVE.View.Windows",
         "EDIVE.VisualPresets"
     ],
     "includePlatforms": [],

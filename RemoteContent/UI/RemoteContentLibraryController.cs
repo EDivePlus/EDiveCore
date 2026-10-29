@@ -6,12 +6,17 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.Localization;
 using EDIVE.NativeUtils;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.SerializableDictionary;
+using EDIVE.View.Toasts;
+using EDIVE.View.ViewTree;
+using EDIVE.VisualPresets.Presets;
+using EDIVE.VisualPresets.VisualIDs;
 using TMPro;
 using UnityEngine;
-using EDIVE.Localization;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Components;
 using UnityEngine.UI;
@@ -68,11 +73,32 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
 
         [SerializeField]
         [EnhancedBoxGroup("Errors")]
-        private SafeLocalizedString _UnreachableMessage = new();
+        [Tooltip("On while an error shows")]
+        private AToggleState _ErrorState;
 
         [SerializeField]
         [EnhancedBoxGroup("Errors")]
-        private SafeLocalizedString _FailedMessage = new();
+        [Tooltip("Loading the list failed, Failed is the fallback")]
+        private SerializableDictionary<ServiceHubError, SafeLocalizedString> _LoadErrorMessages = new();
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        [Tooltip("Opening content failed, Failed is the fallback")]
+        private SerializableDictionary<ServiceHubError, SafeLocalizedString> _OpenErrorMessages = new();
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        [Tooltip("Icon and colors of the toast when content can't be opened")]
+        private VisualPreset _OpenFailedToast = new();
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        private StringVisualID _ToastTitleID;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        private StringVisualID _ToastTextID;
+
 
         private readonly List<RemoteContentInfoDisplay> _spawned = new();
         private List<ContentMediaTypeResponse> _mediaTypes;
@@ -86,6 +112,8 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
 
         private void OnEnable()
         {
+            if (AppCore.Services.TryGet<RemoteContentManager>(out var manager))
+                manager.SpawnFailed += OnSpawnFailed;
             if (_PreviousPageButton != null)
                 _PreviousPageButton.onClick.AddListener(OnPrevClicked);
             if (_NextPageButton != null)
@@ -101,6 +129,8 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
         private void OnDisable()
         {
             CancelInFlight();
+            if (AppCore.Services.TryGet<RemoteContentManager>(out var manager))
+                manager.SpawnFailed -= OnSpawnFailed;
 
             if (_PreviousPageButton != null)
                 _PreviousPageButton.onClick.RemoveListener(OnPrevClicked);
@@ -129,14 +159,27 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
             catch (OperationCanceledException) { }
         }
 
+        private void OnSpawnFailed(ContentItemInfo content, ServiceHubError error)
+        {
+            var toasts = this.FindInViewTree<ToastManager>();
+            if (toasts == null || _ToastTitleID == null)
+                return;
+            var message = _OpenErrorMessages.GetMessage(error) ?? _OpenErrorMessages.GetMessage(ServiceHubError.Failed);
+            if (message == null)
+                return;
+            var preset = new VisualPreset(new StringVisualPresetRecord(_ToastTitleID, message.GetLocalizedString()));
+            if (_ToastTextID != null)
+                preset = preset.CombineWith(new VisualPreset(new StringVisualPresetRecord(_ToastTextID, content?.Name ?? string.Empty)));
+            toasts.Show(_OpenFailedToast.CombineWith(preset));
+        }
+
         private void ShowError(LocalizedString message)
         {
-            if (!_ErrorLocalize)
-                return;
             var shown = message is { IsEmpty: false };
-            if (shown)
+            if (shown && _ErrorLocalize)
                 _ErrorLocalize.StringReference = message;
-            _ErrorLocalize.gameObject.SetActive(shown);
+            if (_ErrorState)
+                _ErrorState.SetState(shown);
         }
 
         private async UniTask PopulateMediaTypesAsync(CancellationToken ct)
@@ -184,7 +227,8 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
                     if (response.ApiStatus != (int) ServiceHubStatus.ServiceDisabled)
                     {
                         Repopulate(null);
-                        ShowError(ServiceHubErrors.IsUnreachable(response.StatusCode) ? _UnreachableMessage : _FailedMessage);
+                        var error = ServiceHubErrors.Classify(response.StatusCode, response.ApiStatus);
+                        ShowError(_LoadErrorMessages.GetMessage(error) ?? _LoadErrorMessages.GetMessage(ServiceHubError.Failed));
                     }
                     return;
                 }

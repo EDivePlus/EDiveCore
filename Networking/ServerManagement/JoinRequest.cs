@@ -40,7 +40,11 @@ namespace EDIVE.Networking.ServerManagement
         Banned,
         Unreachable,
         ConnectFailed,
-        Unknown
+        ServerFull,
+        VersionMismatch,
+        Unknown,
+        // Another join is still running
+        Busy
     }
 
     // Adapter answer to a join request: not handled, a server to connect to, or why it failed

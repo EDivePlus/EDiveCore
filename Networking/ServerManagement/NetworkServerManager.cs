@@ -9,6 +9,7 @@ using EDIVE.AppLoading;
 using EDIVE.Configuration;
 using EDIVE.Console;
 using EDIVE.Core;
+using EDIVE.Core.Versions;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Utils;
 using EDIVE.OdinExtensions.Attributes;
@@ -105,6 +106,9 @@ namespace EDIVE.Networking.ServerManagement
         public AServerEndpoint ConnectedEndpoint { get; private set; }
         
         public event Action<AServerEndpoint> ConnectedEndpointChanged;
+
+        // A join started by the user failed
+        public event Action<ServerRecord, JoinError> JoinFailed;
 
         public bool IsReconnectPending => _reconnectAt.HasValue;
         public bool ReconnectFailed { get; private set; }
@@ -367,9 +371,40 @@ namespace EDIVE.Networking.ServerManagement
             return endpoint is AddressServerEndpoint addressEndpoint && NetworkUtils.IsLocalAddress(addressEndpoint.Address);
         }
 
+        // Joins started by the user, failures are reported through JoinFailed
         public void ConnectToServer(ServerRecord server, AServerEndpoint endpoint = null)
         {
-            ConnectToServerAsync(server, endpoint).Forget();
+            ConnectByUserAsync(server, endpoint).Forget();
+        }
+
+        private async UniTaskVoid ConnectByUserAsync(ServerRecord server, AServerEndpoint endpoint)
+        {
+            var (canceled, error) = await JoinAsync(server, endpoint, StopToken).SuppressCancellationThrow();
+            if (!canceled && error is not (JoinError.None or JoinError.Busy))
+                JoinFailed?.Invoke(server, error);
+        }
+
+        // None when connected
+        public async UniTask<JoinError> JoinAsync(ServerRecord server, AServerEndpoint endpoint = null, CancellationToken cancellationToken = default)
+        {
+            if (server == null)
+                return JoinError.NotFound;
+            var error = CheckJoinable(server);
+            if (error != JoinError.None)
+                return error;
+            if (_connecting)
+                return JoinError.Busy;
+            return await ConnectToServerAsync(server, endpoint, cancellationToken) ? JoinError.None : JoinError.ConnectFailed;
+        }
+
+        // Full or on another version, connecting would only time out
+        private static JoinError CheckJoinable(ServerRecord server)
+        {
+            if (server.MaxPlayers > 0 && server.CurrentPlayers >= server.MaxPlayers)
+                return JoinError.ServerFull;
+            if (server.Version != AppVersion.ZERO && server.Version.CompareTo(AppCore.CurrentVersion, AppVersionSignificance.Minor) != 0)
+                return JoinError.VersionMismatch;
+            return JoinError.None;
         }
 
         public void ConnectToServer(IJoinRequest joinRequest)
@@ -386,7 +421,7 @@ namespace EDIVE.Networking.ServerManagement
             if (_connecting)
             {
                 Debug.LogWarning("[NetworkServerManager] Connect attempt already in progress, ignoring.");
-                return JoinError.None;
+                return JoinError.Busy;
             }
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StopToken);
@@ -408,12 +443,14 @@ namespace EDIVE.Networking.ServerManagement
 
                 resolved = true;
                 cts.Token.ThrowIfCancellationRequested();
-                if (await ConnectToServerAsync(result.Record, null, cts.Token))
+                var joinError = await JoinAsync(result.Record, null, cts.Token);
+                if (joinError == JoinError.None)
                     return JoinError.None;
+                error = joinError;
             }
 
             if (resolved)
-                return JoinError.ConnectFailed;
+                return error;
             if (error == JoinError.None)
                 Debug.LogWarning($"[NetworkServerManager] No adapter could handle join request of type {joinRequest.GetType().Name}.");
             return error == JoinError.None ? JoinError.NotFound : error;
