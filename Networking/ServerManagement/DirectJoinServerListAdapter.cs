@@ -7,10 +7,10 @@ namespace EDIVE.Networking.ServerManagement
 {
     public class DirectJoinServerListAdapter : AServerListAdapter
     {
-        public override UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request)
+        public override UniTask<JoinResult> TryHandleJoinRequest(IJoinRequest request)
         {
             if (request is not DirectJoinRequest directJoinRequest)
-                return UniTask.FromResult((false, default(ServerRecord)));
+                return UniTask.FromResult(JoinResult.NotHandled);
             
             var endpoint = new AddressServerEndpoint
             {
@@ -19,7 +19,7 @@ namespace EDIVE.Networking.ServerManagement
                 Port = directJoinRequest.Port
             };
             
-            return UniTask.FromResult((true, ServerRecord.CreateUnknown(endpoint)));
+            return UniTask.FromResult(JoinResult.Found(ServerRecord.CreateUnknown(endpoint)));
         }
     }
 }

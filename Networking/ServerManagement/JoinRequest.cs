@@ -29,4 +29,36 @@ namespace EDIVE.Networking.ServerManagement
             Code = code;
         }
     }
+
+    public enum JoinError
+    {
+        None,
+        InvalidInput,
+        NotFound,
+        TooManyAttempts,
+        ServiceOff,
+        Banned,
+        Unreachable,
+        ConnectFailed,
+        Unknown
+    }
+
+    // Adapter answer to a join request: not handled, a server to connect to, or why it failed
+    public readonly struct JoinResult
+    {
+        public readonly ServerRecord Record;
+        public readonly JoinError Error;
+
+        public bool Handled => Record != null || Error != JoinError.None;
+
+        private JoinResult(ServerRecord record, JoinError error)
+        {
+            Record = record;
+            Error = error;
+        }
+
+        public static JoinResult NotHandled => default;
+        public static JoinResult Found(ServerRecord record) => new(record, JoinError.None);
+        public static JoinResult Failed(JoinError error) => new(null, error);
+    }
 }

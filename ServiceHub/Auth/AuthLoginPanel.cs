@@ -82,6 +82,16 @@ namespace EDIVE.ServiceHub.Auth
 
         [SerializeField]
         [EnhancedBoxGroup("Error display")]
+        [Tooltip("Password account with an unconfirmed email, the server sent a new link")]
+        private LocalizedString _EmailNotConfirmedMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
+        [Tooltip("Any other failure, e.g. a device code that couldn't be requested")]
+        private LocalizedString _FailedMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
         [Tooltip("On after the server signed this device out")]
         private AToggleState _SignedOutState;
 
@@ -226,16 +236,22 @@ namespace EDIVE.ServiceHub.Auth
                 case (int) ServiceHubStatus.AccountAlreadyLinked:
                     ShowError(_AccountLinkedMessage, message);
                     break;
+                case (int) ServiceHubStatus.EmailNotConfirmed:
+                    ShowError(_EmailNotConfirmedMessage, message);
+                    break;
                 case 429:
                     ShowError(_TooManyAttemptsMessage, message);
                     CooldownAsync().Forget();
                     break;
-                case 0:
-                case >= 500:
+                case (int) ServiceHubStatus.InvalidCredentials:
+                case 401:
+                    ShowError(_InvalidCredentialsMessage, message);
+                    break;
+                case var code when ServiceHubErrors.IsUnreachable(code):
                     ShowError(_UnreachableMessage, message);
                     break;
                 default:
-                    ShowError(_InvalidCredentialsMessage, message);
+                    ShowError(_FailedMessage is { IsEmpty: false } ? _FailedMessage : _InvalidCredentialsMessage, message);
                     break;
             }
         }

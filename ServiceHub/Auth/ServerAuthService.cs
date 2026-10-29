@@ -139,6 +139,9 @@ namespace EDIVE.ServiceHub.Auth
 
         private static bool IsRejected(NetworkResponse<ServerLoginResponse> response)
         {
+            // Servers turned off, the credentials may be fine
+            if (response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled)
+                return false;
             if (response.StatusCode is 401 or 403)
                 return true;
 

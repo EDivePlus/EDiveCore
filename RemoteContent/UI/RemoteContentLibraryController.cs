@@ -11,6 +11,9 @@ using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.ToggleStates;
 using TMPro;
 using UnityEngine;
+using EDIVE.Localization;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
 namespace EDIVE.ServiceHub.RemoteContent.UI
@@ -57,6 +60,19 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
 
         [SerializeField]
         private AToggleState _IsLoadingState;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        [Tooltip("Shown instead of the list when loading fails")]
+        private LocalizeStringEvent _ErrorLocalize;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        private SafeLocalizedString _UnreachableMessage = new();
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        private SafeLocalizedString _FailedMessage = new();
 
         private readonly List<RemoteContentInfoDisplay> _spawned = new();
         private List<ContentMediaTypeResponse> _mediaTypes;
@@ -113,6 +129,16 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
             catch (OperationCanceledException) { }
         }
 
+        private void ShowError(LocalizedString message)
+        {
+            if (!_ErrorLocalize)
+                return;
+            var shown = message is { IsEmpty: false };
+            if (shown)
+                _ErrorLocalize.StringReference = message;
+            _ErrorLocalize.gameObject.SetActive(shown);
+        }
+
         private async UniTask PopulateMediaTypesAsync(CancellationToken ct)
         {
             var response = await _serviceHub.ListContentMediaTypesAsync(ct);
@@ -154,8 +180,16 @@ namespace EDIVE.ServiceHub.RemoteContent.UI
                 if (!response.IsSuccess || response.Result == null)
                 {
                     Debug.LogWarning($"[RemoteContentLibrary] Failed to load page {page}: {response.ErrorMessage}");
+                    // Service off has its own overlay
+                    if (response.ApiStatus != (int) ServiceHubStatus.ServiceDisabled)
+                    {
+                        Repopulate(null);
+                        ShowError(ServiceHubErrors.IsUnreachable(response.StatusCode) ? _UnreachableMessage : _FailedMessage);
+                    }
                     return;
                 }
+
+                ShowError(null);
 
                 var pagination = response.Result.Pagination;
                 _currentPage = pagination?.Page ?? page;

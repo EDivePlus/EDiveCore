@@ -55,7 +55,7 @@ namespace EDIVE.Networking.ServerManagement.LocalNetwork
             hostServer.Endpoints.AddRange(GetLocalServerEndpoints());
         }
 
-        public override UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request) => UniTask.FromResult((false, default(ServerRecord)));
+        public override UniTask<JoinResult> TryHandleJoinRequest(IJoinRequest request) => UniTask.FromResult(JoinResult.NotHandled);
 
         private static ServerRecord GetRecord(IPEndPoint endPoint, NetworkDiscoveryResponse response)
         {

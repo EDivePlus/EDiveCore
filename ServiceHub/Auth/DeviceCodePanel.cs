@@ -105,13 +105,14 @@ namespace EDIVE.ServiceHub.Auth
         {
             _StartButton.interactable = _NewCodeButton.interactable = false;
             var response = await _clientAuth.RequestDeviceCodeAsync(cancellationToken);
-            _StartButton.interactable = _NewCodeButton.interactable = true;
             if (cancellationToken.IsCancellationRequested)
                 return;
+            _StartButton.interactable = _NewCodeButton.interactable = true;
 
+            // The login panel shows why
             if (!response.IsSuccess)
             {
-                SetState(DeviceCodeState.Expired);
+                SetState(DeviceCodeState.Hidden);
                 return;
             }
 

@@ -2,6 +2,11 @@
     "name": "EDIVE.ServiceHub",
     "rootNamespace": "",
     "references": [
+        "EDIVE.Utils",
+        "EDIVE.Localization",
+        "EDIVE.Debugging",
+        "EDIVE.Utils.Actions",
+        "EDIVE.ScriptableArchitecture",
         "UniTask",
         "Unity.TextMeshPro",
         "EDIVE.Core",

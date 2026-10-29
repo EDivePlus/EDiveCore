@@ -179,7 +179,11 @@ namespace EDIVE.ServiceHub.Auth
                 timeout: Settings.AuthTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, "DeviceCode");
+            var result = ApiResponseHelper.UnwrapApi(response, "DeviceCode");
+            // Shown by the login panel like any other sign-in error
+            if (!result.IsSuccess && !cancellationToken.IsCancellationRequested)
+                NotifyLoginFailed(result.ApiStatus > 0 ? result.ApiStatus : result.StatusCode, result.ErrorMessage);
+            return result;
         }
 
         // Logs in once approved. Pending, denied and expired come back as ApiStatus without login events

@@ -67,6 +67,7 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
         private AServerEndpoint[] _localEndpoints;
         
         private string _serverSecret;
+        private bool _registerRejected;
         private string _joinCode;
             
         private bool _disposing;
@@ -166,21 +167,35 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             hostServer.JoinCode = _joinCode;
         }
 
-        public override async UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request)
+        public override async UniTask<JoinResult> TryHandleJoinRequest(IJoinRequest request)
         {
             if (request is not CodeJoinRequest codeRequest)
-                return (false, null);
+                return JoinResult.NotHandled;
 
             _serviceHub ??= AppCore.Services.Get<ServiceHubManager>();
             if (_serviceHub == null)
-                return (false, null);
+                return JoinResult.NotHandled;
 
             var response = await Lobby.GetServerAsync(codeRequest.Code, CancellationToken.None);
-            if (!response.IsSuccess || response.Result == null)                
-                return (false, null);
-            
+            if (!response.IsSuccess || response.Result == null)
+                return JoinResult.Failed(GetJoinError(response.StatusCode, response.ApiStatus));
+
             var record = BuildRecords(new[] { response.Result }).FirstOrDefault();
-            return (record != null, record);
+            return record != null ? JoinResult.Found(record) : JoinResult.Failed(JoinError.NotFound);
+        }
+
+        private static JoinError GetJoinError(long statusCode, int apiStatus)
+        {
+            if (ServiceHubErrors.IsRateLimited(statusCode))
+                return JoinError.TooManyAttempts;
+            return apiStatus switch
+            {
+                (int) ServiceHubStatus.ServerNotFound => JoinError.NotFound,
+                (int) ServiceHubStatus.ServiceDisabled => JoinError.ServiceOff,
+                (int) ServiceHubStatus.BannedFromApp => JoinError.Banned,
+                _ when ServiceHubErrors.IsUnreachable(statusCode) => JoinError.Unreachable,
+                _ => JoinError.Unknown
+            };
         }
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
@@ -260,8 +275,25 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
             }
         }
 
+        // Only network errors, 5xx and rate limits are worth retrying
+        private static bool IsPermanentFailure(long statusCode, int apiStatus) =>
+            apiStatus != (int) ServiceHubStatus.ServiceDisabled && statusCode is not (0 or 408 or 429) && statusCode < 500;
+
+        private static string GetRejectReason(int apiStatus, string message) => (ServiceHubStatus) apiStatus switch
+        {
+            ServiceHubStatus.AppNotFound => "app not found, check the app secret",
+            ServiceHubStatus.InvalidSecret => "server secret rejected, check the server ID and secret",
+            ServiceHubStatus.Unauthorized => "server credentials not accepted, check the server ID and secret",
+            ServiceHubStatus.ValueTooLarge => "server data too large, shorten the name or address",
+            _ => message
+        };
+
+        private string GetRegisterConfigKey() =>
+            $"{_serverConfig.ServerID}|{_serverConfig.ServerSecret}|{_serverConfig.ServerName}|{_serverConfig.PublicAddress}";
+
         private async UniTask<bool> RegisterLobby(CancellationToken cancellationToken = default)
         {
+            _registerRejected = false;
             if (!_serviceHub.HasValidSetup)
                 return false;
 
@@ -299,7 +331,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             if (!response.IsSuccess || response.Result == null)
             {
-                if (response.ApiStatus != (int) ServiceHubStatus.ServiceDisabled)
+                _registerRejected = IsPermanentFailure(response.StatusCode, response.ApiStatus);
+                if (_registerRejected)
+                    Debug.LogError($"[ServiceHubServerListAdapter] Server registration rejected, not retrying until the server config changes: {GetRejectReason(response.ApiStatus, response.ErrorMessage)}");
+                else if (response.ApiStatus != (int) ServiceHubStatus.ServiceDisabled)
                     Debug.LogError($"[ServiceHubServerListAdapter] Server registration failed: {response.ErrorMessage}");
                 return false;
             }
@@ -392,6 +427,14 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     {
                         if (!AppServices.IsEnabled(AppService.Lobby))
                             continue;
+                        if (_registerRejected)
+                        {
+                            SetRegistrationState(ServerRegistrationState.Failed);
+                            var configKey = GetRegisterConfigKey();
+                            await UniTask.WaitUntil(() => GetRegisterConfigKey() != configKey, cancellationToken: cancellationToken);
+                            registerAttempt = 0;
+                            continue;
+                        }
                         registerAttempt++;
                         SetRegistrationState(IsServiceUnreachable ? ServerRegistrationState.Offline : ServerRegistrationState.Failed);
                         var delay = Mathf.Min(_RegisterRetryMaxDelay, _RegisterRetryBaseDelay * Mathf.Pow(2f, registerAttempt - 1));
@@ -440,9 +483,14 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                         Debug.Log($"[ServiceHubServerListAdapter] Lobby entry no longer valid (api status {response.ApiStatus}: {response.ErrorMessage}) — re-registering server.");
                         _serverSecret = null;
                     }
+                    // Lobby turned off, the join code is gone with the entry
                     else if (response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled)
                     {
                         _serverSecret = null;
+                        _joinCode = null;
+                        _serviceHub.Presence?.StopHost();
+                        if (_currentServerRecord != null)
+                            _currentServerRecord.JoinCode = null;
                     }
                     else
                     {

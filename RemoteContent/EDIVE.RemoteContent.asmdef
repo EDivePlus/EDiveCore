@@ -2,6 +2,7 @@
   "name": "EDIVE.RemoteContent",
   "rootNamespace": "",
   "references": [
+        "EDIVE.Localization",
     "EDIVE.AppLoading",
     "UniTask",
     "EDIVE.Core",
@@ -13,6 +14,7 @@
     "Unity.TextMeshPro",
     "EDIVE.TimeHandling",
     "EDIVE.OdinExtensions",
+        "Unity.Localization",
     "EDIVE.NativeUtils",
     "UnityGLTFScripts",
     "Unity.XR.Interaction.Toolkit",

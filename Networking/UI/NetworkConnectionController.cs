@@ -7,9 +7,13 @@ using EDIVE.Configuration;
 using EDIVE.Core;
 using EDIVE.Networking.ServerManagement;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.SerializableDictionary;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using EDIVE.Localization;
+using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 using ZLinq;
 
@@ -26,7 +30,22 @@ namespace EDIVE.Networking.UI
 
         [SerializeField]
         private Button _DirectJoinButton;
-        
+
+        [SerializeField]
+        [EnhancedBoxGroup("Join errors", SpaceBefore = 8)]
+        [Tooltip("Message under the join field")]
+        private LocalizeStringEvent _JoinErrorLocalize;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Join errors")]
+        [Tooltip("On while a join error is shown")]
+        private AToggleState _JoinErrorState;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Join errors")]
+        [Tooltip("Unknown is used for errors without their own message")]
+        private SerializableDictionary<JoinError, SafeLocalizedString> _JoinErrorMessages = new();
+
         [SerializeField]
         [EnhancedBoxGroup("Host Config", SpaceBefore = 8)]
         private TMP_InputField _ServerNameInput;
@@ -55,10 +74,14 @@ namespace EDIVE.Networking.UI
         [EnhancedBoxGroup("Host Config")]
         private TMP_InputField _ServiceHubSecretInput;
 
+        private bool _joining;
+
         private void OnEnable()
         {
             if (_DirectJoinButton) _DirectJoinButton.onClick.AddListener(OnDirectJoinClicked);
-            
+            if (_DirectJoinInput) _DirectJoinInput.onValueChanged.AddListener(OnDirectJoinInputChanged);
+            ShowJoinError(JoinError.None);
+
             if (_ServerNameInput) _ServerNameInput.text = _Config.ServerName;
             if (_MaxPlayersInput) _MaxPlayersInput.text = _Config.MaxPlayers.ToString();
             if (_PublicAddressInput) _PublicAddressInput.text = _Config.PublicAddress;
@@ -87,6 +110,7 @@ namespace EDIVE.Networking.UI
             if (_ServiceHubSecretInput) _ServiceHubSecretInput.onValueChanged.RemoveListener(OnInputChanged);
             
             if (_DirectJoinButton) _DirectJoinButton.onClick.RemoveListener(OnDirectJoinClicked);
+            if (_DirectJoinInput) _DirectJoinInput.onValueChanged.RemoveListener(OnDirectJoinInputChanged);
         }
 
         private void OnInputChanged(string value) => SaveConfig();
@@ -107,9 +131,11 @@ namespace EDIVE.Networking.UI
             AppCore.Services.Get<LocalConfigLoader>().SaveConfig(_Config).Forget();
         }
         
+        private void OnDirectJoinInputChanged(string value) => ShowJoinError(JoinError.None);
+
         private void OnDirectJoinClicked()
         {
-            if (_DirectJoinInput == null)
+            if (_DirectJoinInput == null || _joining)
                 return;
 
             var input = _DirectJoinInput.text?.Trim();
@@ -122,11 +148,42 @@ namespace EDIVE.Networking.UI
             var joinRequest = ParseJoinRequest(input);
             if (joinRequest == null)
             {
-                Debug.LogError($"[NetworkConnectionController] '{input}' is not a valid IP:port address or lobby code.");
+                Debug.LogWarning($"[NetworkConnectionController] '{input}' is not a valid IP:port address or lobby code.");
+                ShowJoinError(JoinError.InvalidInput);
                 return;
             }
-                
-            AppCore.Services.Get<NetworkServerManager>().ConnectToServer(joinRequest);
+
+            JoinAsync(joinRequest).Forget();
+        }
+
+        private async UniTaskVoid JoinAsync(IJoinRequest joinRequest)
+        {
+            _joining = true;
+            ShowJoinError(JoinError.None);
+            if (_DirectJoinButton) _DirectJoinButton.interactable = false;
+            var (canceled, error) = await AppCore.Services.Get<NetworkServerManager>()
+                .ConnectToServerAsync(joinRequest, destroyCancellationToken)
+                .SuppressCancellationThrow();
+            if (!this)
+                return;
+            _joining = false;
+            if (_DirectJoinButton) _DirectJoinButton.interactable = true;
+            if (!canceled)
+                ShowJoinError(error);
+        }
+
+        private void ShowJoinError(JoinError error)
+        {
+            SafeLocalizedString message = null;
+            var shown = error != JoinError.None
+                && (_JoinErrorMessages.TryGetValue(error, out message) || _JoinErrorMessages.TryGetValue(JoinError.Unknown, out message))
+                && message is { IsEmpty: false };
+            if (_JoinErrorLocalize)
+            {
+                if (shown) _JoinErrorLocalize.StringReference = message;
+                _JoinErrorLocalize.gameObject.SetActive(shown);
+            }
+            if (_JoinErrorState) _JoinErrorState.SetState(shown);
         }
 
         private IJoinRequest ParseJoinRequest(string input)

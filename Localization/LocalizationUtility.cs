@@ -144,6 +144,10 @@ namespace EDIVE.Localization
             };
         }
 
+        // Message set for the key, null when there is none
+        public static SafeLocalizedString GetMessage<TKey>(this IDictionary<TKey, SafeLocalizedString> messages, TKey key) =>
+            messages.TryGetValue(key, out var message) && message is { IsEmpty: false } ? message : null;
+
         public static SafeLocalizedString WithLocaleOverride(this SafeLocalizedString value, Locale locale)
         {
             return new SafeLocalizedString

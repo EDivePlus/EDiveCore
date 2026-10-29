@@ -2,6 +2,7 @@
     "name": "EDIVE.Networking",
     "rootNamespace": "",
     "references": [
+        "EDIVE.Localization",
         "UniTask",
         "Unity.TextMeshPro",
         "EDIVE.Core",
@@ -34,6 +35,7 @@
         "EDIVE.Configuration",
         "EDIVE.ServiceHub",
         "EDIVE.Http",
+        "Unity.Localization",
         "UnityNetworkDiscovery",
         "EDIVE.UnityServices",
         "Unity.Mathematics",

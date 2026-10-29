@@ -92,8 +92,8 @@ namespace EDIVE.Networking.ServerManagement.UnityServices
         }
 
         // Joins go through listed lobbies only
-        public override UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request)
-            => UniTask.FromResult<(bool, ServerRecord)>((false, null));
+        public override UniTask<JoinResult> TryHandleJoinRequest(IJoinRequest request)
+            => UniTask.FromResult(JoinResult.NotHandled);
 
         private async UniTaskVoid SearchTask(CancellationToken cancellationToken)
         {

@@ -54,7 +54,7 @@ namespace EDIVE.Networking.ServerManagement
             _currentServerRecord = hostServer;
         }
         
-        public abstract UniTask<(bool, ServerRecord)> TryHandleJoinRequest(IJoinRequest request);
+        public abstract UniTask<JoinResult> TryHandleJoinRequest(IJoinRequest request);
 
         protected void SetServers(IEnumerable<ServerRecord> records)
         {

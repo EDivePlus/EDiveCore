@@ -67,6 +67,8 @@ namespace EDIVE.ServiceHub.Auth
             OnLoggedOut?.Invoke();
         }
 
+        protected void NotifyLoginFailed(long status, string message) => OnLoginFailed?.Invoke(status, message);
+
         // Ends the session on the server before the tokens are deleted
         protected virtual UniTask EndRemoteSessionAsync(CancellationToken cancellationToken) => UniTask.CompletedTask;
 

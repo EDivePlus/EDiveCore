@@ -5,10 +5,15 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
+using EDIVE.Localization;
+using EDIVE.OdinExtensions.Attributes;
 using EDIVE.StateHandling.MultiStates;
+using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.SerializableDictionary;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization.Components;
 using UnityEngine.UI;
 
 namespace EDIVE.ServiceHub.Auth
@@ -65,6 +70,21 @@ namespace EDIVE.ServiceHub.Auth
         [MinValue(1)]
         private float _PollInterval = 3;
 
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        [Tooltip("Shown under the link button when getting a code fails")]
+        private LocalizeStringEvent _ErrorLocalize;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        [Tooltip("On while an error shows")]
+        private AToggleState _ErrorState;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Errors")]
+        [Tooltip("Failed is the fallback")]
+        private SerializableDictionary<ServiceHubError, SafeLocalizedString> _ErrorMessages = new();
+
         private ClientAuthService _clientAuth;
         private CancellationTokenSource _linkCancellation;
         private DateTime _expiresAt;
@@ -104,8 +124,24 @@ namespace EDIVE.ServiceHub.Auth
 
         private void SetState(LinkState state) => _State.SetState(state);
 
+        private void ShowError(long statusCode, int apiStatus)
+        {
+            var message = _ErrorMessages.GetMessage(ServiceHubErrors.Classify(statusCode, apiStatus)) ?? _ErrorMessages.GetMessage(ServiceHubError.Failed);
+            var shown = message is { IsEmpty: false };
+            if (shown && _ErrorLocalize)
+                _ErrorLocalize.StringReference = message;
+            if (_ErrorState)
+                _ErrorState.SetState(shown);
+        }
+
+        private void HideError()
+        {
+            if (_ErrorState) _ErrorState.SetState(false);
+        }
+
         private void StartLink()
         {
+            HideError();
             StopLink();
             _linkCancellation = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
             LinkAsync(_linkCancellation.Token).Forget();
@@ -113,6 +149,7 @@ namespace EDIVE.ServiceHub.Auth
 
         private void CancelLink()
         {
+            HideError();
             StopLink();
             _clientAuth.TryGetAuthUserInfo(out var userInfo);
             SetState(OfferState(userInfo));
@@ -132,15 +169,17 @@ namespace EDIVE.ServiceHub.Auth
         {
             _LinkButton.interactable = _NewCodeButton.interactable = false;
             var response = await _clientAuth.RequestLinkCodeAsync(cancellationToken);
-            _LinkButton.interactable = _NewCodeButton.interactable = true;
             if (cancellationToken.IsCancellationRequested)
                 return;
+            _LinkButton.interactable = _NewCodeButton.interactable = true;
 
             if (!response.IsSuccess)
             {
                 // Already has an email, the stored info was stale
                 if (response.ApiStatus == (int) ServiceHubStatus.AccountAlreadyLinked)
                     await _clientAuth.CheckClientAuthAsync(cancellationToken);
+                else
+                    ShowError(response.StatusCode, response.ApiStatus);
                 return;
             }
 
@@ -182,6 +221,14 @@ namespace EDIVE.ServiceHub.Auth
                                 SetState(LinkState.Expired);
                                 return;
                         }
+                    }
+                    // Session ended meanwhile, polling can't succeed
+                    else if (ServiceHubErrors.IsSignedOut(status.StatusCode, status.ApiStatus))
+                    {
+                        _clientAuth.TryGetAuthUserInfo(out var userInfo);
+                        SetState(OfferState(userInfo));
+                        ShowError(status.StatusCode, status.ApiStatus);
+                        return;
                     }
                 }
 

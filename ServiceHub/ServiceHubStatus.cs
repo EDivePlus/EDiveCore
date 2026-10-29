@@ -35,6 +35,38 @@ namespace EDIVE.ServiceHub
         ServiceDisabled = 32,
         DeviceCodePending = 33,
         DeviceCodeDenied = 34,
-        DeviceCodeExpired = 35
+        DeviceCodeExpired = 35,
+        EmailNotConfirmed = 36
+    }
+
+    // Failure kinds the UI has a message for
+    public enum ServiceHubError
+    {
+        Failed,
+        Unreachable,
+        TooManyRequests,
+        SignedOut,
+        ServiceOff,
+        NotFound
+    }
+
+    // Status groups shared by the UI messages
+    public static class ServiceHubErrors
+    {
+        public static ServiceHubError Classify(long statusCode, int apiStatus) => apiStatus switch
+        {
+            (int) ServiceHubStatus.ServiceDisabled => ServiceHubError.ServiceOff,
+            (int) ServiceHubStatus.ContentItemNotFound => ServiceHubError.NotFound,
+            _ when IsSignedOut(statusCode, apiStatus) => ServiceHubError.SignedOut,
+            _ when IsRateLimited(statusCode) => ServiceHubError.TooManyRequests,
+            _ when IsUnreachable(statusCode) => ServiceHubError.Unreachable,
+            _ => ServiceHubError.Failed
+        };
+
+        public static bool IsUnreachable(long statusCode) => statusCode is 0 or >= 500;
+        public static bool IsRateLimited(long statusCode) => statusCode == 429;
+
+        public static bool IsSignedOut(long statusCode, int apiStatus) =>
+            statusCode == 401 || (ServiceHubStatus) apiStatus is ServiceHubStatus.Unauthorized or ServiceHubStatus.InvalidRefreshToken;
     }
 }

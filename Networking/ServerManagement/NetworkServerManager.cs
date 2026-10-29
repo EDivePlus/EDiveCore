@@ -377,37 +377,46 @@ namespace EDIVE.Networking.ServerManagement
             ConnectToServerAsync(joinRequest).Forget();
         }
 
-        public async UniTask ConnectToServerAsync(IJoinRequest joinRequest, CancellationToken cancellationToken = default)
+        // None when connected, otherwise the first adapter error or ConnectFailed
+        public async UniTask<JoinError> ConnectToServerAsync(IJoinRequest joinRequest, CancellationToken cancellationToken = default)
         {
             if (joinRequest == null)
-                return;
+                return JoinError.InvalidInput;
 
             if (_connecting)
             {
                 Debug.LogWarning("[NetworkServerManager] Connect attempt already in progress, ignoring.");
-                return;
+                return JoinError.None;
             }
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StopToken);
             var resolved = false;
+            var error = JoinError.None;
             foreach (var adapter in _Adapters)
             {
                 if (adapter == null)
                     continue;
 
                 cts.Token.ThrowIfCancellationRequested();
-                var (handled, record) = await adapter.TryHandleJoinRequest(joinRequest);
-                if (!handled || record == null)
+                var result = await adapter.TryHandleJoinRequest(joinRequest);
+                if (result.Record == null)
+                {
+                    if (error == JoinError.None)
+                        error = result.Error;
                     continue;
+                }
 
                 resolved = true;
                 cts.Token.ThrowIfCancellationRequested();
-                if (await ConnectToServerAsync(record, null, cts.Token))
-                    return;
+                if (await ConnectToServerAsync(result.Record, null, cts.Token))
+                    return JoinError.None;
             }
 
-            if (!resolved)
+            if (resolved)
+                return JoinError.ConnectFailed;
+            if (error == JoinError.None)
                 Debug.LogWarning($"[NetworkServerManager] No adapter could handle join request of type {joinRequest.GetType().Name}.");
+            return error == JoinError.None ? JoinError.NotFound : error;
         }
 
         public UniTask<bool> ReconnectAsync(CancellationToken cancellationToken = default)
