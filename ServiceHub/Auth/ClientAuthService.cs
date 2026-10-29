@@ -15,6 +15,8 @@ namespace EDIVE.ServiceHub.Auth
     public class ClientAuthService : AAuthService<LoginResponse>
     {
         private const string K_ANONYMOUS_TOKEN = "auth.anonymousToken";
+        private const string K_ANONYMOUS_USER_ID = "auth.anonymousUserId";
+        private const string K_DEVICE_ID = "auth.deviceId";
 
         protected override AuthStorage Storage => AuthStorage.Client;
         protected override string LogScope => "Login";
@@ -25,6 +27,8 @@ namespace EDIVE.ServiceHub.Auth
         private string ClientRefreshUrl => $"{Settings.ServiceBaseUrl}/auth/refresh";
         private string ClientLogoutUrl => $"{Settings.ServiceBaseUrl}/auth/logout";
         private string ClientLinkCodeUrl => $"{Settings.ServiceBaseUrl}/auth/link-code";
+        private string ClientDeviceCodeUrl => $"{Settings.ServiceBaseUrl}/auth/device-code";
+        private string ClientDeviceCodePollUrl => $"{Settings.ServiceBaseUrl}/auth/device-code/poll";
 
         private UniTaskCompletionSource<bool> _refresh;
 
@@ -34,6 +38,9 @@ namespace EDIVE.ServiceHub.Auth
 
         // Why the server last ended the session, cleared on login
         public ServiceHubStatus? SessionEndReason { get; private set; }
+
+        // Shown in the user's signed-in devices: computer name on desktop, model on headsets and phones
+        private static string DeviceName => SystemInfo.deviceType == DeviceType.Desktop ? SystemInfo.deviceName : SystemInfo.deviceModel;
 
         public override void Initialize(ServiceHubSettings settings)
         {
@@ -122,7 +129,7 @@ namespace EDIVE.ServiceHub.Auth
             string password,
             CancellationToken cancellationToken = default)
         {
-            var request = new LoginRequest(Settings.AppSecret, email, password, SystemInfo.deviceModel, true);
+            var request = new LoginRequest(Settings.AppSecret, email, password, DeviceName, true, GetOrCreateDeviceId());
 
             var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, LoginRequest>(
                 ClientAuthLoginUrl,
@@ -143,7 +150,7 @@ namespace EDIVE.ServiceHub.Auth
             CancellationToken cancellationToken = default)
         {
             var token = GetOrCreateAnonymousToken();
-            var request = new AnonymousLoginRequest(Settings.AppSecret, token, SystemInfo.deviceModel, true);
+            var request = new AnonymousLoginRequest(Settings.AppSecret, token, DeviceName, true, GetOrCreateDeviceId());
 
             var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, AnonymousLoginRequest>(
                 ClientAnonymousAuthLoginUrl,
@@ -153,6 +160,45 @@ namespace EDIVE.ServiceHub.Auth
                 timeout: Settings.AuthTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
+
+            // Key of an account linked meanwhile, the next anonymous login makes a new one
+            if (response.Result?.Status == (int) ServiceHubStatus.AccountAlreadyLinked)
+                ForgetAnonymousToken();
+            return HandleLoginResponse(response);
+        }
+
+        // Code the user approves on the website, poll it with the device secret
+        public async UniTask<NetworkResponse<DeviceCodeResponse>> RequestDeviceCodeAsync(CancellationToken cancellationToken = default)
+        {
+            var request = new DeviceCodeRequest(Settings.AppSecret, DeviceName, true, GetOrCreateDeviceId());
+            var response = await RestUtils.PostAsync<ApiResponse<DeviceCodeResponse>, DeviceCodeRequest>(
+                ClientDeviceCodeUrl,
+                request,
+                authToken: null,
+                headers: null,
+                timeout: Settings.AuthTimeoutSeconds,
+                cancellationToken: cancellationToken
+            );
+            return ApiResponseHelper.UnwrapApi(response, "DeviceCode");
+        }
+
+        // Logs in once approved. Pending, denied and expired come back as ApiStatus without login events
+        public async UniTask<NetworkResponse<LoginResponse>> PollDeviceCodeAsync(string deviceSecret, CancellationToken cancellationToken = default)
+        {
+            var response = await RestUtils.PostAsync<ApiResponse<LoginResponse>, DeviceCodePollRequest>(
+                ClientDeviceCodePollUrl,
+                new DeviceCodePollRequest(deviceSecret),
+                authToken: null,
+                headers: null,
+                timeout: Settings.AuthTimeoutSeconds,
+                cancellationToken: cancellationToken
+            );
+
+            // Offline or still waiting, no login events
+            if (response.Result == null)
+                return NetworkResponse<LoginResponse>.Error(response.StatusCode, response.ErrorMessage);
+            if (response.Result.Status is (int) ServiceHubStatus.DeviceCodePending or (int) ServiceHubStatus.DeviceCodeDenied or (int) ServiceHubStatus.DeviceCodeExpired)
+                return NetworkResponse<LoginResponse>.Error(response.StatusCode, response.Result.Message, apiStatus: response.Result.Status);
 
             return HandleLoginResponse(response);
         }
@@ -272,6 +318,7 @@ namespace EDIVE.ServiceHub.Auth
             var email = userInfo?.Email ?? JwtUtils.GetClaim(accessToken, "email") ?? "";
             if (!string.IsNullOrEmpty(email))
                 AuthStorage.Client.SetLastEmail(email);
+            TrackAnonymousToken(userInfo);
             if (userInfo != null)
                 UserInfoChanged?.Invoke(userInfo);
         }
@@ -279,7 +326,33 @@ namespace EDIVE.ServiceHub.Auth
         private void SaveUserInfo(AuthUserInfo userInfo)
         {
             Storage.SetInfoJson(JsonConvert.SerializeObject(userInfo));
+            TrackAnonymousToken(userInfo);
             UserInfoChanged?.Invoke(userInfo);
+        }
+
+        // Once the anonymous account is linked its token is dead, the next anonymous login gets a fresh one
+        private static void TrackAnonymousToken(AuthUserInfo userInfo)
+        {
+            if (userInfo == null || string.IsNullOrEmpty(userInfo.Id))
+                return;
+
+            if (userInfo.IsAnonymous)
+            {
+                PlayerPrefs.SetString(K_ANONYMOUS_USER_ID, userInfo.Id);
+                PlayerPrefs.Save();
+                return;
+            }
+
+            if (userInfo.Id != PlayerPrefs.GetString(K_ANONYMOUS_USER_ID, ""))
+                return;
+            ForgetAnonymousToken();
+        }
+
+        private static void ForgetAnonymousToken()
+        {
+            PlayerPrefs.DeleteKey(K_ANONYMOUS_TOKEN);
+            PlayerPrefs.DeleteKey(K_ANONYMOUS_USER_ID);
+            PlayerPrefs.Save();
         }
 
         public static string GetOrCreateAnonymousToken()
@@ -292,6 +365,19 @@ namespace EDIVE.ServiceHub.Auth
             PlayerPrefs.SetString(K_ANONYMOUS_TOKEN, token);
             PlayerPrefs.Save();
             return token;
+        }
+
+        // Per install, lets the server replace this device's previous session on login
+        public static string GetOrCreateDeviceId()
+        {
+            var existing = PlayerPrefs.GetString(K_DEVICE_ID, "");
+            if (!string.IsNullOrEmpty(existing))
+                return existing;
+
+            var id = Guid.NewGuid().ToString("N");
+            PlayerPrefs.SetString(K_DEVICE_ID, id);
+            PlayerPrefs.Save();
+            return id;
         }
     }
 }

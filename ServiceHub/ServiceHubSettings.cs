@@ -2,6 +2,9 @@
 // Created: 12.05.2026
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using EDIVE.ServiceHub.Auth;
 using EDIVE.OdinExtensions.Attributes;
 using EDIVE.TimeHandling.TimeSpanUtils;
 using Sirenix.OdinInspector;
@@ -45,6 +48,11 @@ namespace EDIVE.ServiceHub
         [Tooltip("Reports this app to ServiceHub and receives its commands. Needed for streaming.")]
         private bool _PresenceEnabled;
 
+        [SerializeReference]
+        [EnhancedBoxGroup("Login", Color = "@ColorTools.Yellow")]
+        [Tooltip("Sign-in providers shown on the login screen")]
+        private List<ALoginProvider> _LoginProviders = new();
+
         public string ServiceBaseUrl => (_ServiceBaseUrl ?? "").TrimEnd('/');
         public string AppSecret => _AppSecret ?? "";
         public int ApiTimeoutSeconds => Mathf.Max(3, _ApiTimeoutSeconds);
@@ -52,5 +60,11 @@ namespace EDIVE.ServiceHub
         public int ContentTimeoutSeconds => Mathf.Max(10, _ContentTimeoutSeconds);
         public TimeSpan BatchSaveDataSyncInterval => _BatchSaveDataSyncInterval;
         public bool PresenceEnabled => _PresenceEnabled;
+
+        public bool TryGetLoginProvider(string id, out ALoginProvider provider)
+        {
+            provider = _LoginProviders.FirstOrDefault(p => p != null && p.Id == id);
+            return provider != null;
+        }
     }
 }

@@ -2,6 +2,7 @@
 // Created: 08.09.2025
 
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Http;
@@ -40,7 +41,12 @@ namespace EDIVE.ServiceHub.Auth
         [EnhancedBoxGroup("Anonymous login", Color = "@ColorTools.Green")]
         [SerializeField]
         private Button _AnonymousLoginButton;
-        
+
+        [EnhancedBoxGroup("Provider login", Color = "@ColorTools.Yellow")]
+        [SerializeField]
+        [Tooltip("Shown when the provider is set up in ServiceHubSettings")]
+        private List<LoginProviderButton> _ProviderButtons = new();
+
         [SerializeField]
         [EnhancedBoxGroup("Error display", Color = "@ColorTools.Red")]
         private AToggleState _ErrorState;
@@ -71,6 +77,11 @@ namespace EDIVE.ServiceHub.Auth
 
         [SerializeField]
         [EnhancedBoxGroup("Error display")]
+        [Tooltip("Anonymous account of this device was linked meanwhile")]
+        private LocalizedString _AccountLinkedMessage;
+
+        [SerializeField]
+        [EnhancedBoxGroup("Error display")]
         [Tooltip("On after the server signed this device out")]
         private AToggleState _SignedOutState;
 
@@ -83,13 +94,16 @@ namespace EDIVE.ServiceHub.Auth
         [Optional]
         private Button _LogoutButton;
 
+        private ServiceHubSettings _settings;
         private ClientAuthService _clientAuth;
         private bool _isPasswordHidden = true;
         private bool _coolingDown;
 
         private void Awake()
         {
-            _clientAuth = AppCore.Services.Get<ServiceHubManager>().ClientAuth;
+            var serviceHub = AppCore.Services.Get<ServiceHubManager>();
+            _settings = serviceHub.Settings;
+            _clientAuth = serviceHub.ClientAuth;
         }
 
         private void OnEnable()
@@ -129,6 +143,11 @@ namespace EDIVE.ServiceHub.Auth
             _CredentialsEmailInput.onEndEdit.AddListener(OnEmailEndEdit);
             if (_CredentialsTogglePasswordButton != null) _CredentialsTogglePasswordButton.onClick.AddListener(OnTogglePasswordClicked);
             if (_AnonymousLoginButton != null) _AnonymousLoginButton.onClick.AddListener(OnAnonymousLoginClicked);
+            foreach (var providerButton in _ProviderButtons)
+            {
+                providerButton.gameObject.SetActive(_settings.TryGetLoginProvider(providerButton.ProviderId, out _));
+                providerButton.Clicked += OnProviderClicked;
+            }
         }
         
         private void OnDisable()
@@ -141,6 +160,8 @@ namespace EDIVE.ServiceHub.Auth
             _CredentialsEmailInput.onEndEdit.RemoveListener(OnEmailEndEdit);
             if (_CredentialsTogglePasswordButton != null) _CredentialsTogglePasswordButton.onClick.RemoveListener(OnTogglePasswordClicked);
             if (_AnonymousLoginButton != null) _AnonymousLoginButton.onClick.RemoveListener(OnAnonymousLoginClicked);
+            foreach (var providerButton in _ProviderButtons)
+                providerButton.Clicked -= OnProviderClicked;
         }
 
         private void OnLoginClicked()
@@ -162,6 +183,11 @@ namespace EDIVE.ServiceHub.Auth
         {
             Debug.Log("Logging in anonymously…");
             _clientAuth.AnonymousLoginClient();
+        }
+
+        private static void OnProviderClicked(string provider)
+        {
+            Debug.LogWarning($"[ServiceHub] {provider} login is not implemented yet.");
         }
 
         private void OnClientLoginOk(LoginResponse r)
@@ -196,6 +222,9 @@ namespace EDIVE.ServiceHub.Auth
             {
                 case (int) ServiceHubStatus.BannedFromApp:
                     ShowError(_BannedMessage, message);
+                    break;
+                case (int) ServiceHubStatus.AccountAlreadyLinked:
+                    ShowError(_AccountLinkedMessage, message);
                     break;
                 case 429:
                     ShowError(_TooManyAttemptsMessage, message);

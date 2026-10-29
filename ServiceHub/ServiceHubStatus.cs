@@ -31,6 +31,10 @@ namespace EDIVE.ServiceHub
         StreamingUnavailable = 28,
         PresenceNotFound = 29,
         NotSessionPlayer = 30,
-        CommandNotFound = 31
+        CommandNotFound = 31,
+        ServiceDisabled = 32,
+        DeviceCodePending = 33,
+        DeviceCodeDenied = 34,
+        DeviceCodeExpired = 35
     }
 }

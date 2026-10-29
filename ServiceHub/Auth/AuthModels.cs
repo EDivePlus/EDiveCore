@@ -11,7 +11,7 @@ namespace EDIVE.ServiceHub.Auth
     // --------
     // Requests
     // --------
-    
+
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginRequest
@@ -19,7 +19,7 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("app_secret")]
         [SerializeField]
         private string _AppSecret;
-        
+
         [JsonProperty("email")]
         [SerializeField]
         private string _Email;
@@ -32,17 +32,22 @@ namespace EDIVE.ServiceHub.Auth
         [SerializeField]
         private string _DeviceName;
 
+        [JsonProperty("device_id", NullValueHandling = NullValueHandling.Ignore)]
+        [SerializeField]
+        private string _DeviceId;
+
         [JsonProperty("use_refresh_token")]
         [SerializeField]
         private bool _UseRefreshToken;
 
-        public LoginRequest(string appSecret, string email, string password, string deviceName = null, bool useRefreshToken = false)
+        public LoginRequest(string appSecret, string email, string password, string deviceName = null, bool useRefreshToken = false, string deviceId = null)
         {
             _AppSecret = appSecret;
             _Email = email;
             _Password = password;
             _DeviceName = deviceName;
             _UseRefreshToken = useRefreshToken;
+            _DeviceId = deviceId;
         }
     }
 
@@ -53,7 +58,7 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("app_secret")]
         [SerializeField]
         private string _AppSecret;
-        
+
         [JsonProperty("token")]
         [SerializeField]
         private string _Token;
@@ -62,16 +67,64 @@ namespace EDIVE.ServiceHub.Auth
         [SerializeField]
         private string _DeviceName;
 
+        [JsonProperty("device_id", NullValueHandling = NullValueHandling.Ignore)]
+        [SerializeField]
+        private string _DeviceId;
+
         [JsonProperty("use_refresh_token")]
         [SerializeField]
         private bool _UseRefreshToken;
 
-        public AnonymousLoginRequest(string appSecret, string token, string deviceName = null, bool useRefreshToken = false)
+        public AnonymousLoginRequest(string appSecret, string token, string deviceName = null, bool useRefreshToken = false, string deviceId = null)
         {
             _AppSecret = appSecret;
             _Token = token;
             _DeviceName = deviceName;
             _UseRefreshToken = useRefreshToken;
+            _DeviceId = deviceId;
+        }
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class DeviceCodeRequest
+    {
+        [JsonProperty("app_secret")]
+        [SerializeField]
+        private string _AppSecret;
+
+        [JsonProperty("device_name", NullValueHandling = NullValueHandling.Ignore)]
+        [SerializeField]
+        private string _DeviceName;
+
+        [JsonProperty("device_id", NullValueHandling = NullValueHandling.Ignore)]
+        [SerializeField]
+        private string _DeviceId;
+
+        [JsonProperty("use_refresh_token")]
+        [SerializeField]
+        private bool _UseRefreshToken;
+
+        public DeviceCodeRequest(string appSecret, string deviceName = null, bool useRefreshToken = false, string deviceId = null)
+        {
+            _AppSecret = appSecret;
+            _DeviceName = deviceName;
+            _UseRefreshToken = useRefreshToken;
+            _DeviceId = deviceId;
+        }
+    }
+
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class DeviceCodePollRequest
+    {
+        [JsonProperty("device_secret")]
+        [SerializeField]
+        private string _DeviceSecret;
+
+        public DeviceCodePollRequest(string deviceSecret)
+        {
+            _DeviceSecret = deviceSecret;
         }
     }
 
@@ -100,18 +153,18 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("secret")]
         [SerializeField]
         private string _ServerSecret;
-        
+
         public ServerLoginRequest(string serverId, string serverSecret)
         {
             _ServerId = serverId;
             _ServerSecret = serverSecret;
         }
     }
-    
+
     // ---------
     // Responses
     // ---------
-    
+
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginResponse
@@ -174,6 +227,42 @@ namespace EDIVE.ServiceHub.Auth
         public string LinkUrl => _LinkUrl;
     }
 
+    [Serializable]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class DeviceCodeResponse
+    {
+        [JsonProperty("code")]
+        [SerializeField]
+        private string _Code;
+
+        [JsonProperty("device_secret")]
+        [SerializeField]
+        private string _DeviceSecret;
+
+        [JsonProperty("verify_url")]
+        [SerializeField]
+        private string _VerifyUrl;
+
+        [JsonProperty("verify_url_complete")]
+        [SerializeField]
+        private string _VerifyUrlComplete;
+
+        [JsonProperty("expires_in")]
+        [SerializeField]
+        private int _ExpiresIn;
+
+        [JsonProperty("interval")]
+        [SerializeField]
+        private int _Interval;
+
+        public string Code => _Code;
+        public string DeviceSecret => _DeviceSecret;
+        public string VerifyUrl => _VerifyUrl;
+        public string VerifyUrlComplete => _VerifyUrlComplete;
+        public int ExpiresIn => _ExpiresIn;
+        public int Interval => _Interval;
+    }
+
     public enum LinkCodeState
     {
         None,
@@ -202,7 +291,7 @@ namespace EDIVE.ServiceHub.Auth
         public int ExpiresIn => _ExpiresIn;
         public string Email => _Email;
     }
-    
+
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class AuthUserInfo
@@ -222,7 +311,7 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("roles")]
         [SerializeField]
         private List<string> _Roles;
-        
+
         [JsonProperty("is_anonymous")]
         [SerializeField]
         private bool _IsAnonymous;
@@ -259,15 +348,15 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("expires_in")]
         [SerializeField]
         private int _ExpiresIn;
-        
+
         [JsonProperty("server_id")]
         [SerializeField]
         private string _ServerId;
-        
+
         [JsonProperty("name")]
         [SerializeField]
         private string _Name;
-        
+
         [JsonProperty("app_secret")]
         [SerializeField]
         private string _AppSecret;
