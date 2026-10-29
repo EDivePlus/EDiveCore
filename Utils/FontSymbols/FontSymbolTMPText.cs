@@ -1,0 +1,212 @@
+﻿// Author: Michal Petr
+// Created: 29.10.2026
+
+using System.Collections.Generic;
+using EDIVE.OdinExtensions.Attributes;
+using JetBrains.Annotations;
+using Sirenix.OdinInspector;
+using TMPro;
+using UnityEngine;
+
+#if UNITY_EDITOR
+using EDIVE.EditorUtils;
+using UnityEditor;
+using Sirenix.OdinInspector.Editor;
+#endif
+
+namespace EDIVE.Utils.FontSymbols
+{
+    // World space version of FontSymbolTMPTextUI.
+    [AddComponentMenu("Mesh/Font Symbol (TMP Text)")]
+    public class FontSymbolTMPText : TextMeshPro
+    {
+        // TextMeshPro font size per world unit of em.
+        private const float FONT_SIZE_PER_UNIT = 10f;
+
+        [SerializeField]
+        [OnValueChanged(nameof(RefreshSymbol))]
+        [EnhancedValidate("ValidateFontSymbol")]
+        private FontSymbol _FontSymbol;
+
+        [SerializeField]
+        [OnValueChanged(nameof(RefreshSymbol))]
+        private float _Scale = 1f;
+
+        public FontSymbol FontSymbol
+        {
+            get => _FontSymbol;
+            set
+            {
+                _FontSymbol = value;
+                RefreshSymbol();
+            }
+        }
+
+        public char Symbol
+        {
+            get => FontSymbol.Symbol;
+            set => FontSymbol = FontSymbol.WithSymbol(value);
+        }
+
+        public FontSymbolsDefinition Definition
+        {
+            get => FontSymbol.Definition;
+            set => FontSymbol = FontSymbol.WithDefinition(value);
+        }
+
+        public float Scale
+        {
+            get => _Scale;
+            set
+            {
+                _Scale = value;
+                RefreshSymbol();
+            }
+        }
+
+        [PropertySpace]
+        [ShowInInspector]
+        public Color Color
+        {
+            get => color;
+            set => color = value;
+        }
+
+        [ShowInInspector]
+        [EnhancedValueDropdown("GetMaterialPresets", true)]
+        public Material MaterialPreset
+        {
+            get => fontSharedMaterial;
+            set => fontSharedMaterial = value;
+        }
+
+        [ShowInInspector]
+        public bool Bold
+        {
+            get => fontStyle.HasFlag(FontStyles.Bold);
+            set => fontStyle = value ? fontStyle | FontStyles.Bold : fontStyle & ~FontStyles.Bold;
+        }
+
+        [ShowInInspector]
+        public bool IsScaleStatic
+        {
+            get => isTextObjectScaleStatic;
+            set => isTextObjectScaleStatic = value;
+        }
+
+        private void RefreshSymbol()
+        {
+#pragma warning disable CS0219
+            var changed = false;
+#pragma warning restore CS0219
+            enableAutoSizing = false;
+            richText = false;
+            textWrappingMode = TextWrappingModes.NoWrap;
+            overflowMode = TextOverflowModes.Overflow;
+            alignment = TextAlignmentOptions.Center;
+            emojiFallbackSupport = false;
+
+            if (!Definition)
+                return;
+            if (Definition.TMPFont == null)
+                return;
+
+            if (font != Definition.TMPFont)
+            {
+                font = Definition.TMPFont;
+                changed = true;
+            }
+
+            var newFontSize = Mathf.Min(rectTransform.rect.width, rectTransform.rect.height) * _Scale * FONT_SIZE_PER_UNIT;
+            if (newFontSize > 0 && !Mathf.Approximately(fontSize, newFontSize))
+            {
+                fontSize = newFontSize;
+                changed = true;
+            }
+
+            var newText = $"{Symbol}";
+            if (text != newText)
+            {
+                text = newText;
+                changed = true;
+            }
+
+#if UNITY_EDITOR
+            if (changed) EditorUtility.SetDirty(this);
+#endif
+        }
+
+        protected override void OnRectTransformDimensionsChange()
+        {
+            base.OnRectTransformDimensionsChange();
+            RefreshSymbol();
+        }
+
+#if UNITY_EDITOR
+        [UsedImplicitly]
+        private IEnumerable<ValueDropdownItem<Material>> GetMaterialPresets()
+        {
+            if (font == null) yield break;
+
+            var fontPath = AssetDatabase.GetAssetPath(font);
+            if (string.IsNullOrEmpty(fontPath)) yield break;
+
+            var atlas = font.atlasTexture;
+            var folder = System.IO.Path.GetDirectoryName(fontPath)?.Replace('\\', '/');
+            var searchFolders = string.IsNullOrEmpty(folder) ? null : new[] { folder };
+
+            var materials = EditorAssetUtils.FindAllAssetsOfType<Material>(searchFolders);
+            if (materials == null) yield break;
+
+            foreach (var mat in materials)
+            {
+                if (mat == null) continue;
+                if (!mat.HasProperty(ShaderUtilities.ID_MainTex)) continue;
+                if (atlas != null && mat.GetTexture(ShaderUtilities.ID_MainTex) != atlas) continue;
+                yield return new ValueDropdownItem<Material>(mat.name, mat);
+            }
+        }
+
+        [UsedImplicitly]
+        private void ValidateFontSymbol(FontSymbol symbol, SelfValidationResult result, InspectorProperty property)
+        {
+            if (symbol.Definition == null)
+            {
+                result.AddError("Missing symbol definition");
+                return;
+            }
+
+            if (symbol.Definition.TMPFont == null)
+            {
+                result.AddError("Definition does not have a valid TMP Font assigned");
+                return;
+            }
+
+            if (symbol.CheckSymbolAvailability() == FontSymbolAvailability.NotSupported)
+            {
+                result.AddError("Symbol is not supported by the assigned TMP Font.")
+                    .WithFix(() => symbol.Definition.TryAddCharacterToTMP(symbol.Symbol));
+            }
+        }
+
+        protected override void Reset()
+        {
+            base.Reset();
+            Symbol = '';
+            RefreshSymbol();
+        }
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+            RefreshSymbol();
+        }
+#endif
+    }
+
+#if UNITY_EDITOR
+    [CustomEditor(typeof(FontSymbolTMPText))]
+    [CanEditMultipleObjects]
+    public class FontSymbolTMPTextEditor : ABaseFontSymbolEditor<FontSymbolTMPText> { }
+#endif
+}
