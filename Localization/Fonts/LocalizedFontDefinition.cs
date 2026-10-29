@@ -30,6 +30,19 @@ namespace EDIVE.Localization.Fonts
             return _LanguageOverrides != null && _LanguageOverrides.TryGetFirst(p => p?.Languages != null && p.Languages.Contains(languageID), out var result) ? result.Preset : _DefaultPreset;
         }
 
+        public IEnumerable<FontPreset> GetAllPresets()
+        {
+            yield return _DefaultPreset;
+            if (_LanguageOverrides == null)
+                yield break;
+
+            foreach (var languageOverride in _LanguageOverrides)
+            {
+                if (languageOverride?.Preset != null)
+                    yield return languageOverride.Preset;
+            }
+        }
+
         public bool IsMatching(TMP_FontAsset fontAsset, Material material)
         {
             return _DefaultPreset.Font == fontAsset && _DefaultPreset.Material == material;
