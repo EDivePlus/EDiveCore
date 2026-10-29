@@ -22,6 +22,9 @@ namespace EDIVE.ServiceHub.Streaming
 
         private readonly HashSet<NetworkStreamPlayer> _players = new();
         private readonly HashSet<string> _asked = new();
+        private readonly Dictionary<string, (StreamRequestError Error, int Id)> _askFailures = new();
+        private readonly CancellationTokenSource _disposed = new();
+        private int _askFailureId;
         private readonly HashSet<string> _allowedSources = new();
         private readonly Dictionary<string, Action<string>> _whenLive = new();
         private readonly IDisposable _streamingRegistration;
@@ -38,6 +41,8 @@ namespace EDIVE.ServiceHub.Streaming
 
         public event Action Changed;
 
+        private const float ASK_FAILURE_SECONDS = 5f;
+
         public StreamDirectory()
         {
             _streamingRegistration = AppCore.Services.WhenRegistered<StreamingManager>(BindStreaming);
@@ -47,6 +52,8 @@ namespace EDIVE.ServiceHub.Streaming
 
         public void Dispose()
         {
+            _disposed.Cancel();
+            _disposed.Dispose();
             _streamingRegistration?.Dispose();
             _playersRegistration?.Dispose();
             _serviceHubRegistration?.Dispose();
@@ -82,6 +89,16 @@ namespace EDIVE.ServiceHub.Streaming
         }
 
         public bool IsAsked(string identity) => identity != null && _asked.Contains(identity);
+
+        // Declined or failed asks stay on the row for a few seconds
+        public bool TryGetAskFailure(string identity, out StreamRequestError error)
+        {
+            error = StreamRequestError.None;
+            if (identity == null || !_askFailures.TryGetValue(identity, out var failure))
+                return false;
+            error = failure.Error;
+            return true;
+        }
 
         // Shares of people in the session, then web presentations on displays
         public List<StreamLiveItem> GetLive(string sharingInfo, string presentingInfo)
@@ -131,9 +148,19 @@ namespace EDIVE.ServiceHub.Streaming
                 return false;
             Changed?.Invoke();
 
+            _askFailures.Remove(identity);
             var response = await Presence.RequestViewAsync(identity, cancellationToken);
             _asked.Remove(identity);
             var allowed = response.IsSuccess && response.Result?.Result == PresenceResult.ALLOW;
+            if (!allowed && !cancellationToken.IsCancellationRequested)
+            {
+                var error = !response.IsSuccess ? StreamRequestErrors.FromStatus(response.StatusCode, response.ApiStatus)
+                    : response.Result?.Result == PresenceResult.DENY ? StreamRequestError.Declined
+                    : response.Result?.Result == PresenceResult.TIMEOUT ? StreamRequestError.NoAnswer
+                    : StreamRequestError.Failed;
+                _askFailures[identity] = (error, ++_askFailureId);
+                ExpireAskFailureAsync(identity, _askFailureId).Forget();
+            }
             if (allowed && onLive != null)
             {
                 _whenLive[identity] = onLive;
@@ -143,6 +170,17 @@ namespace EDIVE.ServiceHub.Streaming
             }
             Changed?.Invoke();
             return allowed;
+        }
+
+        private async UniTaskVoid ExpireAskFailureAsync(string identity, int id)
+        {
+            if (await UniTask.Delay(TimeSpan.FromSeconds(ASK_FAILURE_SECONDS), true, cancellationToken: _disposed.Token).SuppressCancellationThrow())
+                return;
+            // A newer failure keeps its own time
+            if (!_askFailures.TryGetValue(identity, out var current) || current.Id != id)
+                return;
+            _askFailures.Remove(identity);
+            Changed?.Invoke();
         }
 
         private async UniTaskVoid PollAsync(CancellationToken cancellationToken)

@@ -109,21 +109,24 @@ namespace EDIVE.ServiceHub.Streaming
         }
 
         // Goes through ServiceHub like on the web: follows the display's rule and asks a presenter to hand over
-        public async UniTask<StreamActionResponse> SetDisplayAsync(StreamScreen screen, string source, CancellationToken cancellationToken = default)
+        public async UniTask<StreamActionResult> SetDisplayAsync(StreamScreen screen, string source, CancellationToken cancellationToken = default)
         {
             if (screen == null || _presence == null)
-                return new StreamActionResponse { Result = PresenceResult.FAILED };
+                return StreamActionResult.Failed(StreamRequestError.Failed);
             var response = await _presence.SetDisplayAsync(screen.Id, source, cancellationToken);
             if (response.IsSuccess && response.Result != null)
-                return response.Result;
-            return new StreamActionResponse { Result = PresenceResult.FAILED, Message = response.ErrorMessage };
+                return StreamActionResult.From(response.Result);
+            return StreamActionResult.Failed(StreamRequestErrors.FromStatus(response.StatusCode, response.ApiStatus), response.ErrorMessage);
         }
 
         // Shares my view with everyone first, the display is seen by the whole room
-        public async UniTask<StreamActionResponse> ShowMyViewAsync(StreamScreen screen, CancellationToken cancellationToken = default)
+        public async UniTask<StreamActionResult> ShowMyViewAsync(StreamScreen screen, CancellationToken cancellationToken = default)
         {
-            if (ViewShare == null || !await ViewShare.StartAsync(cancellationToken))
-                return new StreamActionResponse { Result = PresenceResult.FAILED };
+            if (ViewShare == null)
+                return StreamActionResult.Failed(StreamRequestError.Failed);
+            var error = await ViewShare.StartAsync(cancellationToken);
+            if (!ViewShare.IsSharing)
+                return StreamActionResult.Failed(error);
             return await SetDisplayAsync(screen, ViewShare.SourceId, cancellationToken);
         }
 

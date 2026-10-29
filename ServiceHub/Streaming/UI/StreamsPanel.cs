@@ -10,10 +10,11 @@ using EDIVE.Localization;
 using EDIVE.Networking.Players;
 using EDIVE.ServiceHub;
 using EDIVE.ServiceHub.Presence;
-using EDIVE.StateHandling.ToggleStates;
 using EDIVE.ServiceHub.Streaming.Displays;
 using EDIVE.ServiceHub.Streaming.Players;
 using EDIVE.ServiceHub.Streaming.Sources;
+using EDIVE.StateHandling.ToggleStates;
+using EDIVE.Utils.SerializableDictionary;
 using EDIVE.View.ViewTree;
 using EDIVE.View.Windows;
 using EDIVE.View.Windows.Screens;
@@ -59,6 +60,19 @@ namespace EDIVE.ServiceHub.Streaming.UI
         [BoxGroup("My view")]
         [SerializeField]
         private SafeLocalizedString _WatchedByText = new();
+
+        [BoxGroup("My view")]
+        [SerializeField]
+        private SafeLocalizedString _ShareFailedText = new();
+
+        [BoxGroup("My view")]
+        [SerializeField]
+        [Tooltip("Share and ask failures, missing ones use the share failed text")]
+        private SerializableDictionary<StreamRequestError, SafeLocalizedString> _ShareErrorMessages = new();
+
+        [BoxGroup("My view")]
+        [SerializeField]
+        private float _ShareErrorDuration = 4f;
 
         [BoxGroup("My view")]
         [SerializeField]
@@ -110,6 +124,8 @@ namespace EDIVE.ServiceHub.Streaming.UI
         private readonly List<StreamPersonRow> _otherRows = new();
         private StreamDirectory _directory;
         private bool _dirty;
+        private StreamRequestError _shareError;
+        private float _shareErrorUntil = -1f;
 
         private StreamingManager Streaming => _directory?.Streaming;
 
@@ -153,6 +169,11 @@ namespace EDIVE.ServiceHub.Streaming.UI
 
         private void LateUpdate()
         {
+            if (_shareErrorUntil >= 0f && Time.realtimeSinceStartup >= _shareErrorUntil)
+            {
+                _shareErrorUntil = -1f;
+                _dirty = true;
+            }
             if (!_dirty)
                 return;
             _dirty = false;
@@ -181,7 +202,9 @@ namespace EDIVE.ServiceHub.Streaming.UI
 
             if (!_MyViewInfo)
                 return;
-            if (!sharing)
+            if (!sharing && _shareErrorUntil >= 0f)
+                _MyViewInfo.text = _ShareErrorMessages.GetMessage(_shareError) ?? _ShareFailedText;
+            else if (!sharing)
                 _MyViewInfo.text = _NotSharedText;
             else if (share.Viewers.Count == 0)
                 _MyViewInfo.text = _NobodyWatchingText;
@@ -198,17 +221,20 @@ namespace EDIVE.ServiceHub.Streaming.UI
             {
                 var item = live[i];
                 var action = item.CanWatch ? StreamPersonRow.RowAction.Watch : GetAskAction(item.Identity);
-                row.Set(item.Name, item.Info, action, item.CanWatch ? () => OpenWatch(item.Source) : () => Ask(item.Identity));
+                row.Set(item.Name, GetAskFailureText(item.Identity) ?? item.Info, action, item.CanWatch ? () => OpenWatch(item.Source) : () => Ask(item.Identity));
             });
             Fill(_otherRows, _OthersContainer, others.Count, (row, i) =>
             {
                 var identity = others[i].State.Identity;
-                row.Set(StreamDirectory.GetName(others[i]), null, GetAskAction(identity), () => Ask(identity));
+                row.Set(StreamDirectory.GetName(others[i]), GetAskFailureText(identity), GetAskAction(identity), () => Ask(identity));
             });
 
             if (_LiveSection) _LiveSection.SetActive(live.Count > 0);
             if (_OthersSection) _OthersSection.SetActive(others.Count > 0);
         }
+
+        private string GetAskFailureText(string identity) =>
+            _directory != null && _directory.TryGetAskFailure(identity, out var error) ? _ShareErrorMessages.GetMessage(error) : null;
 
         private StreamPersonRow.RowAction GetAskAction(string identity)
         {
@@ -256,10 +282,20 @@ namespace EDIVE.ServiceHub.Streaming.UI
         // Opens the watch window once their share reaches us
         private void Ask(string identity) => _directory?.AskAsync(identity, OpenWatch, destroyCancellationToken).Forget();
 
-        private void OnShareClicked()
+        private void OnShareClicked() => ShareAsync().Forget();
+
+        private async UniTaskVoid ShareAsync()
         {
-            if (Streaming?.ViewShare != null)
-                Streaming.ViewShare.StartAsync(destroyCancellationToken).Forget();
+            var share = Streaming?.ViewShare;
+            if (share == null)
+                return;
+            _shareErrorUntil = -1f;
+            var (canceled, error) = await share.StartAsync(destroyCancellationToken).SuppressCancellationThrow();
+            if (canceled || error == StreamRequestError.None)
+                return;
+            _shareError = error;
+            _shareErrorUntil = Time.realtimeSinceStartup + _ShareErrorDuration;
+            MarkDirty();
         }
 
         private void OnStopClicked() => Streaming?.ViewShare?.Stop();

@@ -85,9 +85,10 @@ namespace EDIVE.ServiceHub.Streaming.Sources
         }
 
         // Started by the user: everyone in the room may watch
-        public UniTask<bool> StartAsync(CancellationToken cancellationToken = default) => StartAsync(true, null, cancellationToken);
+        public UniTask<StreamRequestError> StartAsync(CancellationToken cancellationToken = default) => StartAsync(true, null, cancellationToken);
 
-        public async UniTask<bool> StartAsync(bool open, IEnumerable<string> allowed, CancellationToken cancellationToken = default)
+        // None when sharing or already starting
+        public async UniTask<StreamRequestError> StartAsync(bool open, IEnumerable<string> allowed, CancellationToken cancellationToken = default)
         {
             if (IsSharing)
             {
@@ -95,19 +96,20 @@ namespace EDIVE.ServiceHub.Streaming.Sources
                     IsOpen = true;
                 AddAllowed(allowed);
                 ApplyPermissions();
-                return true;
+                return StreamRequestError.None;
             }
             if (_starting || _source == null)
-                return false;
+                return _source == null ? StreamRequestError.Failed : StreamRequestError.None;
 
             _starting = true;
             _room.Hold();
             try
             {
-                if (!await _room.WaitConnectedAsync(JOIN_TIMEOUT, cancellationToken))
+                var joinError = await _room.WaitConnectedAsync(JOIN_TIMEOUT, cancellationToken);
+                if (joinError != StreamRequestError.None)
                 {
                     _room.Unhold();
-                    return false;
+                    return joinError;
                 }
 
                 var room = _room.Room;
@@ -143,7 +145,7 @@ namespace EDIVE.ServiceHub.Streaming.Sources
                 {
                     Debug.LogWarning("[ViewShare] Publish failed.");
                     Cleanup();
-                    return false;
+                    return StreamRequestError.Failed;
                 }
 
                 _videoSource.Start();
@@ -151,12 +153,12 @@ namespace EDIVE.ServiceHub.Streaming.Sources
                 ReportSource();
                 _audio = new ViewShareAudio(room, _room.Identity);
                 await ApplyAudioAsync(cancellationToken);
-                return true;
+                return StreamRequestError.None;
             }
             catch (OperationCanceledException)
             {
                 Cleanup();
-                return false;
+                return StreamRequestError.None;
             }
             finally
             {

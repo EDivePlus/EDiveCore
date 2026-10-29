@@ -2,6 +2,7 @@
     "name": "EDIVE.ServiceHub.Streaming",
     "rootNamespace": "",
     "references": [
+        "EDIVE.Utils",
         "UniTask",
         "LiveKit",
         "LiveKit.UniTask",

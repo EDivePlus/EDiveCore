@@ -12,6 +12,7 @@ using EDIVE.ServiceHub.Streaming.Displays;
 using EDIVE.StateHandling.MultiStates;
 using EDIVE.StateHandling.ToggleStates;
 using EDIVE.UIElements;
+using EDIVE.Utils.SerializableDictionary;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -139,6 +140,11 @@ namespace EDIVE.ServiceHub.Streaming.UI
         [SerializeField]
         [EnhancedBoxGroup("Message")]
         private SafeLocalizedString _FailedText = new();
+
+        [SerializeField]
+        [EnhancedBoxGroup("Message")]
+        [Tooltip("Request failures, missing ones use the failed text")]
+        private SerializableDictionary<StreamRequestError, SafeLocalizedString> _ErrorMessages = new();
 
         [SerializeField]
         [EnhancedBoxGroup("Message")]
@@ -275,16 +281,19 @@ namespace EDIVE.ServiceHub.Streaming.UI
                     if (item.CanWatch)
                         row.Set(item.Name, item.Info, StreamPersonRow.RowAction.Watch, () => Request(item.Source));
                     else
-                        row.Set(item.Name, item.Info, GetAskAction(item.Identity), () => AskThenShow(item.Identity));
+                        row.Set(item.Name, GetAskFailureText(item.Identity) ?? item.Info, GetAskAction(item.Identity), () => AskThenShow(item.Identity));
                 }
                 else if (i < count)
                 {
                     var player = others[i - live.Count];
                     var identity = player.State.Identity;
-                    row.Set(StreamDirectory.GetName(player), _NotSharingText, GetAskAction(identity), () => AskThenShow(identity));
+                    row.Set(StreamDirectory.GetName(player), GetAskFailureText(identity) ?? _NotSharingText, GetAskAction(identity), () => AskThenShow(identity));
                 }
             }
         }
+
+        private string GetAskFailureText(string identity) =>
+            _directory != null && _directory.TryGetAskFailure(identity, out var error) ? _ErrorMessages.GetMessage(error) : null;
 
         private StreamPersonRow.RowAction GetAskAction(string identity)
         {
@@ -333,7 +342,7 @@ namespace EDIVE.ServiceHub.Streaming.UI
                 RunRequest(token => Streaming.SetDisplayAsync(_Screen, source, token), false).Forget();
         }
 
-        private async UniTaskVoid RunRequest(Func<CancellationToken, UniTask<StreamActionResponse>> send, bool pickAfter)
+        private async UniTaskVoid RunRequest(Func<CancellationToken, UniTask<StreamActionResult>> send, bool pickAfter)
         {
             if (_request != null || Streaming == null)
                 return;
@@ -345,7 +354,7 @@ namespace EDIVE.ServiceHub.Streaming.UI
             if (!state.IsEmpty && !IsMine(state))
                 StartWaiting();
 
-            StreamActionResponse response;
+            StreamActionResult response;
             try
             {
                 response = await send(_request.Token);
@@ -370,7 +379,7 @@ namespace EDIVE.ServiceHub.Streaming.UI
             if (response.Result == PresenceResult.REFUSED)
                 ShowMessage(string.IsNullOrEmpty(response.Message) ? _KeptText.GetLocalizedString(presenter) : response.Message);
             else
-                ShowMessage(_FailedText);
+                ShowMessage(_ErrorMessages.GetMessage(response.Error) ?? _FailedText);
         }
 
         private void CancelRequest()

@@ -35,7 +35,7 @@ namespace EDIVE.ServiceHub.Presence
         [ShowInInspector, ReadOnly]
         public bool IsEnabled => Settings != null && !string.IsNullOrEmpty(Settings.AppSecret) && !IsUnsupported && AppServices.IsEnabled(AppService.Streams);
 
-        // ServiceHub has no presence or Streams is off, stays off until restart
+        // ServiceHub has no presence, stays off until restart
         [ShowInInspector, ReadOnly]
         public bool IsUnsupported { get; private set; }
 
@@ -57,11 +57,28 @@ namespace EDIVE.ServiceHub.Presence
         public void Initialize(ServiceHubSettings settings)
         {
             Settings = settings;
-            if (!IsEnabled)
+            if (string.IsNullOrEmpty(Settings?.AppSecret))
                 return;
 
             Player = new PresenceClient(this, null);
-            Player.Start(destroyCancellationToken);
+            AppServices.Changed -= RefreshRunning;
+            AppServices.Changed += RefreshRunning;
+            RefreshRunning();
+        }
+
+        // Streams can be turned on or off for the app at any time
+        private void RefreshRunning()
+        {
+            if (Player == null)
+                return;
+            if (IsEnabled)
+            {
+                if (!Player.IsRunning)
+                    Player.Start(destroyCancellationToken);
+                return;
+            }
+            Player.Stop();
+            StopHost();
         }
 
         public void SetJoinCode(string joinCode)
@@ -202,6 +219,7 @@ namespace EDIVE.ServiceHub.Presence
 
         private void OnDestroy()
         {
+            AppServices.Changed -= RefreshRunning;
             Player?.Stop();
             StopHost();
         }

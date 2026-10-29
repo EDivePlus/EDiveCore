@@ -87,11 +87,16 @@ namespace EDIVE.ServiceHub.Streaming
             _holds = Mathf.Max(0, _holds - 1);
         }
 
-        public async UniTask<bool> WaitConnectedAsync(float timeoutSeconds, CancellationToken cancellationToken)
+        private StreamRequestError _joinError;
+
+        // None once connected, otherwise why the last join failed
+        public async UniTask<StreamRequestError> WaitConnectedAsync(float timeoutSeconds, CancellationToken cancellationToken)
         {
             var end = UnityEngine.Time.realtimeSinceStartup + timeoutSeconds;
             await UniTask.WaitUntil(() => IsConnected || UnityEngine.Time.realtimeSinceStartup >= end, cancellationToken: cancellationToken);
-            return IsConnected;
+            if (IsConnected)
+                return StreamRequestError.None;
+            return _joinError != StreamRequestError.None ? _joinError : StreamRequestError.Unreachable;
         }
 
         // Video published from browsers, only known while in the room
@@ -190,6 +195,7 @@ namespace EDIVE.ServiceHub.Streaming
 
             var joinCode = _presence.JoinCode;
             var response = await _presence.RequestStreamTokenAsync(cancellationToken);
+            _joinError = response.IsSuccess ? StreamRequestError.None : StreamRequestErrors.FromStatus(response.StatusCode, response.ApiStatus);
             if (!response.IsSuccess)
             {
                 if (response.ApiStatus != (int) ServiceHubStatus.NotSessionPlayer)
@@ -224,6 +230,7 @@ namespace EDIVE.ServiceHub.Streaming
             }
             if (connect.IsError)
             {
+                _joinError = StreamRequestError.Unreachable;
                 Debug.LogWarning($"[StreamRoom] Can't join {response.Result.Room}.");
                 Release(room);
                 return false;

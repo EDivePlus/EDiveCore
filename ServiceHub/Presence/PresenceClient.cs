@@ -93,6 +93,8 @@ namespace EDIVE.ServiceHub.Presence
                 url, reply, token, headers, _service.Settings.ApiTimeoutSeconds, cancellationToken)));
         }
 
+        internal bool IsRunning => _cancellation != null;
+
         internal void Start(CancellationToken cancellationToken)
         {
             Stop();
@@ -142,6 +144,11 @@ namespace EDIVE.ServiceHub.Presence
                     _reported = true;
                     Reported?.Invoke(this);
                 }
+                // Streams turned off, the service stops this client
+                else if (response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled)
+                {
+                    return;
+                }
                 else if (IsUnsupported(response))
                 {
                     _service.MarkUnsupported();
@@ -187,6 +194,11 @@ namespace EDIVE.ServiceHub.Presence
                 {
                     _reported = false;
                     MarkDirty();
+                }
+                // Streams turned off, the service stops this client
+                else if (response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled)
+                {
+                    return;
                 }
                 else if (IsUnsupported(response))
                 {
@@ -275,9 +287,9 @@ namespace EDIVE.ServiceHub.Presence
             return true;
         }
 
-        // Older ServiceHub without presence, or Streams turned off for the app
+        // Older ServiceHub without presence
         private static bool IsUnsupported<T>(NetworkResponse<T> response) =>
-            response.StatusCode == 404 && response.ApiStatus == 0 || response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled;
+            response.StatusCode == 404 && response.ApiStatus == 0;
 
         internal static NetworkResponse<T> Unwrap<T>(NetworkResponse<ApiResponse<T>> response)
         {
