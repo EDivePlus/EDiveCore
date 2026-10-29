@@ -6,6 +6,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EDIVE.NativeUtils;
 using Sirenix.OdinInspector;
+using TMPro;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -32,12 +33,18 @@ namespace EDIVE.AddressableAssets
         [SerializeField]
         private Transform _Container;
 
+        [SerializeField]
+        [Tooltip("Optional, shows how many are listed, a dash while loading")]
+        private TMP_Text _CountText;
+
         private AsyncOperationHandle<IList<TAsset>> _assetsHandle;
 
         private void Awake()
         {
             if (_PopulateOnAwake)
                 Populate(destroyCancellationToken).Forget();
+            else
+                SetCountText(_Container.childCount.ToString());
         }
 
         private void OnDestroy()
@@ -55,6 +62,8 @@ namespace EDIVE.AddressableAssets
             if (_assetsHandle.IsValid())
                 _assetsHandle.Release();
 
+            SetCountText("–");
+            var count = 0;
             try
             {
                 _assetsHandle = Addressables.LoadAssetsAsync<TAsset>(_AssetLabel.RuntimeKey, null);
@@ -68,6 +77,7 @@ namespace EDIVE.AddressableAssets
                         var displayPrefab = (TPrefab) PrefabUtility.InstantiatePrefab(_DisplayPrefab, _Container);
                         if (displayPrefab)
                             PopulatePrefab(displayPrefab, definition);
+                        count++;
                         continue;
                     }
 #endif
@@ -78,12 +88,24 @@ namespace EDIVE.AddressableAssets
                     });
                     if (display)
                         PopulatePrefab(display, definition);
+                    count++;
                 }
             }
             catch (InvalidKeyException)
             {
                 // ignore
             }
+            finally
+            {
+                if (this)
+                    SetCountText(count.ToString());
+            }
+        }
+
+        private void SetCountText(string text)
+        {
+            if (_CountText)
+                _CountText.text = text;
         }
 
         [Button]

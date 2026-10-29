@@ -27,6 +27,7 @@ namespace EDIVE.Networking.Players
         private readonly SyncVar<NetworkUserInfo> _authUserInfo = new(ownerAuth: true);
         private readonly SyncVar<string> _device = new(ownerAuth: true);
         private readonly SyncVar<int> _ping = new();
+        private readonly SyncVar<bool> _isHost = new();
 
         private readonly SyncVar<Vector3> _controlsPosition = new(ownerAuth: true);
         private readonly SyncVar<Quaternion> _controlsRotation = new(ownerAuth: true);
@@ -41,6 +42,9 @@ namespace EDIVE.Networking.Players
         public Quaternion ControlsRotation => _controlsRotation.value;
         
         public NetworkUserInfo AuthUserInfo => _authUserInfo.value;
+
+        // Player of the host, never true on a dedicated server
+        public bool IsHost => _isHost.value;
 
         // headset, desktop or mobile
         public string Device => _device.value;
@@ -71,6 +75,12 @@ namespace EDIVE.Networking.Players
             remove => _ping.onChanged -= value;
         }
 
+        public event Action<bool> IsHostChanged
+        {
+            add => _isHost.onChanged += value;
+            remove => _isHost.onChanged -= value;
+        }
+
         private void Awake()
         {
             _controlsManager = AppCore.Services.Get<ControlsManager>();
@@ -78,7 +88,11 @@ namespace EDIVE.Networking.Players
 
         protected override void OnOwnerChanged(PlayerID? oldOwner, PlayerID? newOwner, bool asServer)
         {
-            if (asServer) return;
+            if (asServer)
+            {
+                RefreshHost();
+                return;
+            }
             if (_LocalPlayerToggle)
                 _LocalPlayerToggle.SetState(isOwner);
         }
@@ -90,6 +104,9 @@ namespace EDIVE.Networking.Players
 
             _authUserInfo.onChanged += OnAuthUserInfoChanged;
             RefreshNameTag(_authUserInfo.value);
+
+            if (asServer)
+                RefreshHost();
 
             if (!asServer && isOwner)
             {
@@ -155,6 +172,11 @@ namespace EDIVE.Networking.Players
         private void ServerSetPlayerPing(int ping)
         {
             _ping.value = ping;
+        }
+
+        private void RefreshHost()
+        {
+            _isHost.value = isHost && owner.HasValue && owner == localPlayer;
         }
 
         private void OnLocalUserInfoChanged(AuthUserInfo userInfo)

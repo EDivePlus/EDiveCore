@@ -2,6 +2,7 @@
     "name": "EDIVE.AddressableAssets",
     "rootNamespace": "",
     "references": [
+        "Unity.TextMeshPro",
         "UniTask",
         "UniTask.Addressables",
         "EDIVE.OdinExtensions",

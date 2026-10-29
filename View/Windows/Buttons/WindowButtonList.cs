@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using EDIVE.View.ViewTree;
 using Sirenix.OdinInspector;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using EDIVE.View.Windows.Screens;
@@ -36,6 +37,10 @@ namespace EDIVE.View.Windows.Buttons
         [SerializeField]
         [Required]
         private RectTransform _Container;
+
+        [SerializeField]
+        [Tooltip("Optional, shows how many buttons are listed")]
+        private TMP_Text _CountText;
 
         private readonly List<WindowButton> _buttons = new();
         private readonly List<WindowDefinition> _wanted = new();
@@ -93,6 +98,8 @@ namespace EDIVE.View.Windows.Buttons
                 }
                 button.transform.SetSiblingIndex(_firstIndex + i);
             }
+            if (_CountText)
+                _CountText.text = _buttons.Count.ToString();
         }
 
         private void CollectWanted()

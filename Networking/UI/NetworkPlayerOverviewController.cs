@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using EDIVE.Core;
 using EDIVE.NativeUtils;
 using EDIVE.Networking.Players;
+using TMPro;
 using UnityEngine;
 
 namespace EDIVE.Networking.UI
@@ -16,6 +17,10 @@ namespace EDIVE.Networking.UI
         
         [SerializeField]
         private Transform _PlayerDisplayContainer;
+
+        [SerializeField]
+        [Tooltip("Optional, shows how many players are listed")]
+        private TMP_Text _CountText;
         
         private NetworkPlayerManager _networkPlayerManager;
         private readonly List<NetworkPlayerDisplay> _playerDisplays = new();
@@ -57,6 +62,7 @@ namespace EDIVE.Networking.UI
             var display = Instantiate(_PlayerDisplayPrefab, _PlayerDisplayContainer);
             display.SetPlayerController(playerController);
             _playerDisplays.Add(display);
+            UpdateCount();
         }
         
         private void RemovePlayerDisplay(NetworkPlayerController playerController)
@@ -67,6 +73,7 @@ namespace EDIVE.Networking.UI
                 _playerDisplays.Remove(display);
                 Destroy(display.gameObject);
             }
+            UpdateCount();
         }
         
         public void RefreshAllDisplays()
@@ -83,6 +90,13 @@ namespace EDIVE.Networking.UI
             {
                 AddPlayerDisplay(player);
             }
+            UpdateCount();
+        }
+
+        private void UpdateCount()
+        {
+            if (_CountText)
+                _CountText.text = _playerDisplays.Count.ToString();
         }
     }
 }

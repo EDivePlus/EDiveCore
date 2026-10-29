@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using EDIVE.Core;
 using EDIVE.Networking.Players;
+using EDIVE.StateHandling.ToggleStates;
 using EDIVE.UIElements;
 using Sirenix.OdinInspector;
 using TMPro;
@@ -29,6 +30,14 @@ namespace EDIVE.Networking.UI
         [SerializeField]
         private TMP_Text _PingText;
         
+        [SerializeField]
+        [Tooltip("On for the local player")]
+        private AToggleState _YouState;
+
+        [SerializeField]
+        [Tooltip("On for the host")]
+        private AToggleState _HostState;
+
         [PropertySpace]
         [SerializeField]
         private Button _KickButton;
@@ -87,6 +96,7 @@ namespace EDIVE.Networking.UI
             {
                 PlayerController.AuthUserInfoChanged += OnAuthUserInfoChanged;
                 PlayerController.PingChanged += OnPingChanged;
+                PlayerController.IsHostChanged += OnIsHostChanged;
             }
         }
         
@@ -96,6 +106,7 @@ namespace EDIVE.Networking.UI
             {
                 PlayerController.AuthUserInfoChanged -= OnAuthUserInfoChanged;
                 PlayerController.PingChanged -= OnPingChanged;
+                PlayerController.IsHostChanged -= OnIsHostChanged;
             }
         }
 
@@ -108,6 +119,12 @@ namespace EDIVE.Networking.UI
         {
             if (_PingText != null)
                 _PingText.text = $"{ping}ms";
+        }
+
+        private void OnIsHostChanged(bool isHost)
+        {
+            if (_HostState != null)
+                _HostState.SetState(isHost);
         }
         
         private void KickPlayer()
@@ -146,6 +163,10 @@ namespace EDIVE.Networking.UI
             
             if (_PingText != null)
                 _PingText.text = $"{PlayerController.Ping}ms";
+
+            if (_YouState != null)
+                _YouState.SetState(PlayerController.isOwner);
+            OnIsHostChanged(PlayerController.IsHost);
 
             _AdditionalComponents.ForEach(c => c.UpdateDisplay());
         }
