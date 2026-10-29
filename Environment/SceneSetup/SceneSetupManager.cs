@@ -12,7 +12,6 @@ using EDIVE.Input.Controls;
 using EDIVE.Networking;
 using EDIVE.Networking.Scenes;
 using EDIVE.Utils.Loading;
-using EDIVE.XRTools.Tablet;
 using PurrNet;
 using PurrNet.Transports;
 using Sirenix.OdinInspector;
@@ -97,15 +96,6 @@ namespace EDIVE.Environment.SceneSetup
 
             if (AppCore.Services.TryGet<ControlsManager>(out var controlsManager))
                 controlsManager.TeleportToStart();
-
-            RepositionTabletAsync().Forget();
-        }
-
-        private async UniTaskVoid RepositionTabletAsync()
-        {
-            await UniTask.DelayFrame(2, cancellationToken: destroyCancellationToken);
-            if (AppCore.Services.TryGet<TabletController>(out var tablet))
-                tablet.RepositionTablet();
         }
 
         [Button]

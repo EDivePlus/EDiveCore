@@ -3,11 +3,13 @@
 
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using EDIVE.Core;
 using EDIVE.Localization;
 using EDIVE.ServiceHub.Streaming.Displays;
 using EDIVE.ServiceHub.Streaming.Sources;
 using EDIVE.UIElements;
+using EDIVE.Utils.Actions;
 using EDIVE.View.Toasts;
 using EDIVE.View.ViewTree;
 using EDIVE.View.Windows;
@@ -29,6 +31,10 @@ namespace EDIVE.ServiceHub.Streaming.UI
         [SerializeField]
         [Required]
         private WindowDefinition _HandoverWindow;
+
+        [SerializeReference]
+        [Tooltip("Runs before the request window opens, e.g. opens the tablet")]
+        private IAction _RequestAction;
 
         [SerializeField]
         [Required]
@@ -146,10 +152,13 @@ namespace EDIVE.ServiceHub.Streaming.UI
 
         private void OnRequested(StreamShareRequest request)
         {
-            if (_screen != null && _RequestWindow != null)
-                _screen.Open(_RequestWindow, request);
-            else
+            if (_screen == null || _RequestWindow == null)
+            {
                 request.Deny();
+                return;
+            }
+            _RequestAction?.Execute().Forget();
+            _screen.Open(_RequestWindow, request);
         }
 
         private void OnChanged(ViewShare viewShare)

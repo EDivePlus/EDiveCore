@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "EDIVE.Utils",
+        "EDIVE.Utils.Actions",
         "UniTask",
         "LiveKit",
         "LiveKit.UniTask",
