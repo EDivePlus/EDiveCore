@@ -37,7 +37,11 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
         protected static DateTime? Normalize(DateTime? value) =>
             value == null || value.Value == default ? null : value;
 
-        protected void RaiseSyncSuccess(string key, DateTime? updatedAt) => SyncSuccess?.Invoke((key, Normalize(updatedAt)));
+        protected void RaiseSyncSuccess(string key, DateTime? updatedAt)
+        {
+            SaveDataRejections.Remove(Context.Key, key);
+            SyncSuccess?.Invoke((key, Normalize(updatedAt)));
+        }
         protected void RaiseSyncFailure(string key, string error) => SyncFailure?.Invoke((key, error));
 
         public virtual void Initialize(SaveDataService service, ServiceHubSaveDataStore store, SaveDataDomain domain)
@@ -99,6 +103,23 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
         // Bad request 4xx won't fix itself, auth/timeout/rate limit can
         protected static bool IsRetryable(long statusCode) =>
             statusCode < 400 || statusCode >= 500 || statusCode == 401 || statusCode == 403 || statusCode == 408 || statusCode == 429;
+
+        // Queues a retry when it can help, otherwise the key stays unsaved until its value changes
+        protected bool HandleWriteFailure(string key, string json, long statusCode, int apiStatus, string message)
+        {
+            RaiseSyncFailure(key, message);
+            // Service off keeps it queued, the flush waits until it is back
+            if (apiStatus == (int) ServiceHubStatus.ServiceDisabled || !SaveDataRejections.IsPermanent(apiStatus) && IsRetryable(statusCode))
+            {
+                QueueRetry(key, json);
+                return true;
+            }
+
+            var reason = SaveDataRejections.Describe(apiStatus, message);
+            Debug.LogError($"[ServiceHub] {Context.Key} save '{key}' not saved to the server ({statusCode}, {apiStatus}): {reason}. Kept locally, sent again once it changes.");
+            SaveDataRejections.Add(new SaveDataRejection(Context.Key, key, reason));
+            return false;
+        }
 
         protected void QueueRetry(string key, string json)
         {
@@ -163,16 +184,8 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                     RaiseSyncSuccess(key, result.Result.Data?.UpdatedAt);
                     continue;
                 }
-                RaiseSyncFailure(key, result.ErrorMessage ?? result.Result?.Message);
-                if (IsRetryable(result.StatusCode))
-                {
-                    QueueRetry(key, json);
+                if (HandleWriteFailure(key, json, result.StatusCode, result.Result?.Status ?? 0, result.ErrorMessage ?? result.Result?.Message))
                     failed = true;
-                }
-                else if (result.Result?.Status != (int) ServiceHubStatus.ServiceDisabled)
-                {
-                    Debug.LogError($"[ServiceHub] {Context.Key} save '{key}' rejected ({result.StatusCode}), dropped: {result.ErrorMessage}");
-                }
             }
             return failed;
         }

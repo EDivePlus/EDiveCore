@@ -26,9 +26,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                     RaiseSyncSuccess(key, result.Result.Data?.UpdatedAt);
                     return;
                 }
-                RaiseSyncFailure(key, result.ErrorMessage ?? result.Result?.Message);
-                if (IsRetryable(result.StatusCode))
-                    QueueRetry(key, json);
+                HandleWriteFailure(key, json, result.StatusCode, result.Result?.Status ?? 0, result.ErrorMessage ?? result.Result?.Message);
             });
         }
     }

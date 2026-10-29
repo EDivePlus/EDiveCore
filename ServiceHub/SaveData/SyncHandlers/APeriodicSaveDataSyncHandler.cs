@@ -140,10 +140,8 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                     RaiseSyncSuccess(kvp.Key, result.Result.Data?.UpdatedAt);
                     return;
                 }
-                RaiseSyncFailure(kvp.Key, result.ErrorMessage ?? result.Result?.Message);
                 // Retry with backoff, not every sync tick
-                if (IsRetryable(result.StatusCode))
-                    QueueRetry(kvp.Key, kvp.Value);
+                HandleWriteFailure(kvp.Key, kvp.Value, result.StatusCode, result.Result?.Status ?? 0, result.ErrorMessage ?? result.Result?.Message);
                 return;
             }
             

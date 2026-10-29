@@ -126,6 +126,7 @@ namespace EDIVE.ServiceHub.SaveData
         public override async UniTask DeleteAsync(string key)
         {
             _handlers.ForEach(handler => handler.RemovePending(key));
+            SaveDataRejections.Remove(Context.Key, key);
 
             if (!Context.CanSync)
                 return;

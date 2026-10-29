@@ -62,6 +62,7 @@ namespace EDIVE.ServiceHub.SaveData
         // Identity gone, drop cache and queued writes
         public void ResetForIdentityChange()
         {
+            SaveDataRejections.ClearDomain(Key);
             _Stores.ForEach(store => store?.ClearPending());
             ClearCache();
         }
