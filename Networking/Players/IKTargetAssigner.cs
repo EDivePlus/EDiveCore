@@ -21,7 +21,12 @@ namespace EDIVE.Networking.Players
         
         [SerializeField]
         private List<IKTargetRecord> _OtherTargets = new();
-        
+
+        private readonly SyncVar<bool> _leftHandTracked = new(ownerAuth: true);
+        private readonly SyncVar<bool> _rightHandTracked = new(ownerAuth: true);
+
+        private AvatarController _avatar;
+
         [Serializable]
         public class IKTargetRecord
         {
@@ -33,7 +38,43 @@ namespace EDIVE.Networking.Players
 
             public TransformScriptableVariable RigTarget => _RigTarget;
             public Transform SkeletonTarget => _SkeletonTarget;
+
+            public bool IsRigTargetActive()
+            {
+                var rigTarget = _RigTarget != null ? _RigTarget.Value : null;
+                return rigTarget != null && rigTarget.gameObject.activeInHierarchy;
+            }
         }
+
+        private void Awake()
+        {
+            _leftHandTracked.onChanged += OnHandTrackedChanged;
+            _rightHandTracked.onChanged += OnHandTrackedChanged;
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            _leftHandTracked.onChanged -= OnHandTrackedChanged;
+            _rightHandTracked.onChanged -= OnHandTrackedChanged;
+        }
+
+        // Desktop controls have no hands, untracked hands fall back to animation
+        private void Update()
+        {
+            if (!isSpawned || !isOwner)
+                return;
+
+            var leftTracked = _LeftHandTarget.IsRigTargetActive();
+            if (_leftHandTracked.value != leftTracked)
+                _leftHandTracked.value = leftTracked;
+
+            var rightTracked = _RightHandTarget.IsRigTargetActive();
+            if (_rightHandTracked.value != rightTracked)
+                _rightHandTracked.value = rightTracked;
+        }
+
+        private void OnHandTrackedChanged(bool tracked) => ApplyHandSources();
 
         protected override void OnSpawned(bool asServer)
         {
@@ -59,16 +100,25 @@ namespace EDIVE.Networking.Players
         
         public void Assign(AvatarController avatar)
         {
+            _avatar = avatar;
             if (avatar == null)
                 return;
 
             if (avatar.RigFollow)
             {
                 avatar.RigFollow.HeadSource = _HeadTarget.SkeletonTarget;
-                avatar.RigFollow.LeftHandSource = _LeftHandTarget.SkeletonTarget;
-                avatar.RigFollow.RightHandSource = _RightHandTarget.SkeletonTarget;
+                ApplyHandSources();
                 avatar.RigFollow.Refresh();
             }
+        }
+
+        private void ApplyHandSources()
+        {
+            if (_avatar == null || !_avatar.RigFollow)
+                return;
+
+            _avatar.RigFollow.LeftHandSource = _leftHandTracked.value ? _LeftHandTarget.SkeletonTarget : null;
+            _avatar.RigFollow.RightHandSource = _rightHandTracked.value ? _RightHandTarget.SkeletonTarget : null;
         }
     }
 }
