@@ -97,6 +97,8 @@ namespace EDIVE.ServiceHub
             _ClientAuth.OnLoginSucceeded += _ => _SaveData.User.ClearCache();
             _ServerAuth.OnLoggedOut += _SaveData.Server.ResetForIdentityChange;
             _ServerAuth.OnLoginSucceeded += _ => _SaveData.Server.ClearCache();
+            _ClientAuth.UserInfoChanged += _ => AppServices.Refresh();
+            _ClientAuth.OnLoggedOut += AppServices.Refresh;
 
             // Must not throw, dependents wait for registration
             try

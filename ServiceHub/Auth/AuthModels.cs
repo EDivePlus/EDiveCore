@@ -11,7 +11,7 @@ namespace EDIVE.ServiceHub.Auth
     // --------
     // Requests
     // --------
-
+    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginRequest
@@ -19,7 +19,7 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("app_secret")]
         [SerializeField]
         private string _AppSecret;
-
+        
         [JsonProperty("email")]
         [SerializeField]
         private string _Email;
@@ -58,7 +58,7 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("app_secret")]
         [SerializeField]
         private string _AppSecret;
-
+        
         [JsonProperty("token")]
         [SerializeField]
         private string _Token;
@@ -153,18 +153,18 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("secret")]
         [SerializeField]
         private string _ServerSecret;
-
+        
         public ServerLoginRequest(string serverId, string serverSecret)
         {
             _ServerId = serverId;
             _ServerSecret = serverSecret;
         }
     }
-
+    
     // ---------
     // Responses
     // ---------
-
+    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class LoginResponse
@@ -291,7 +291,7 @@ namespace EDIVE.ServiceHub.Auth
         public int ExpiresIn => _ExpiresIn;
         public string Email => _Email;
     }
-
+    
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class AuthUserInfo
@@ -311,7 +311,7 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("roles")]
         [SerializeField]
         private List<string> _Roles;
-
+        
         [JsonProperty("is_anonymous")]
         [SerializeField]
         private bool _IsAnonymous;
@@ -319,6 +319,10 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("app_roles")]
         [SerializeField]
         private List<string> _AppRoles;
+
+        [JsonProperty("app_services")]
+        [SerializeField]
+        private List<string> _AppServices;
 
         [JsonProperty("app_secret")]
         [SerializeField]
@@ -330,6 +334,7 @@ namespace EDIVE.ServiceHub.Auth
         public List<string> Roles => _Roles;
         public bool IsAnonymous => _IsAnonymous;
         public List<string> AppRoles => _AppRoles;
+        public List<string> AppServices => _AppServices;
         public string AppSecret => _AppSecret;
     }
 
@@ -348,15 +353,15 @@ namespace EDIVE.ServiceHub.Auth
         [JsonProperty("expires_in")]
         [SerializeField]
         private int _ExpiresIn;
-
+        
         [JsonProperty("server_id")]
         [SerializeField]
         private string _ServerId;
-
+        
         [JsonProperty("name")]
         [SerializeField]
         private string _Name;
-
+        
         [JsonProperty("app_secret")]
         [SerializeField]
         private string _AppSecret;

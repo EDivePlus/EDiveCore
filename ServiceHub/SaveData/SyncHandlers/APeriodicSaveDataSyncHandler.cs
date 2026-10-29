@@ -76,7 +76,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
 
         private async UniTask FlushSyncBucket(CancellationToken ct)
         {
-            if (!Context.Auth.HasSession)
+            if (!Context.CanSync)
                 return;
 
             Dictionary<string, string> snapshot;

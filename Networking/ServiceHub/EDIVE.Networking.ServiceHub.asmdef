@@ -5,7 +5,14 @@
     "EDIVE.Networking",
     "EDIVE.ServiceHub",
     "PurrNet.Runtime",
-    "EDIVE.NativeUtils"
+    "EDIVE.NativeUtils",
+    "EDIVE.Core",
+    "EDIVE.StateHandling",
+    "EDIVE.AppLoading",
+    "EDIVE.OdinExtensions",
+    "EDIVE.VisualPresets",
+    "EDIVE.View.Windows",
+    "EDIVE.AssetTranslation"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

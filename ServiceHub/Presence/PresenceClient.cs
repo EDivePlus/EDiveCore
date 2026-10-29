@@ -275,8 +275,9 @@ namespace EDIVE.ServiceHub.Presence
             return true;
         }
 
-        // Older ServiceHub without presence
-        private static bool IsUnsupported<T>(NetworkResponse<T> response) => response.StatusCode == 404 && response.ApiStatus == 0;
+        // Older ServiceHub without presence, or Streams turned off for the app
+        private static bool IsUnsupported<T>(NetworkResponse<T> response) =>
+            response.StatusCode == 404 && response.ApiStatus == 0 || response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled;
 
         internal static NetworkResponse<T> Unwrap<T>(NetworkResponse<ApiResponse<T>> response)
         {
@@ -284,7 +285,10 @@ namespace EDIVE.ServiceHub.Presence
             if (api == null)
                 return NetworkResponse<T>.Error(response.StatusCode, response.ErrorMessage);
             if (api.Status != 0 || api.Data == null)
+            {
+                AppServices.HandleStatus(api.Status, AppService.Streams);
                 return NetworkResponse<T>.Error(response.StatusCode, api.Message, apiStatus: api.Status);
+            }
             return NetworkResponse<T>.Success(response.StatusCode, api.Data);
         }
     }

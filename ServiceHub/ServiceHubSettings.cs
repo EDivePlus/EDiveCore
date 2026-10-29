@@ -4,8 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using EDIVE.ServiceHub.Auth;
 using EDIVE.OdinExtensions.Attributes;
+using EDIVE.ServiceHub.Auth;
 using EDIVE.TimeHandling.TimeSpanUtils;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -43,11 +43,6 @@ namespace EDIVE.ServiceHub
         [EnhancedBoxGroup("SaveData", Color = "@ColorTools.Green")]
         private UTimeSpan _BatchSaveDataSyncInterval = TimeSpan.FromSeconds(30);
 
-        [SerializeField]
-        [EnhancedBoxGroup("Presence", Color = "@ColorTools.Purple")]
-        [Tooltip("Reports this app to ServiceHub and receives its commands. Needed for streaming.")]
-        private bool _PresenceEnabled;
-
         [SerializeReference]
         [EnhancedBoxGroup("Login", Color = "@ColorTools.Yellow")]
         [Tooltip("Sign-in providers shown on the login screen")]
@@ -59,7 +54,6 @@ namespace EDIVE.ServiceHub
         public int AuthTimeoutSeconds => Mathf.Max(3, _AuthTimeoutSeconds);
         public int ContentTimeoutSeconds => Mathf.Max(10, _ContentTimeoutSeconds);
         public TimeSpan BatchSaveDataSyncInterval => _BatchSaveDataSyncInterval;
-        public bool PresenceEnabled => _PresenceEnabled;
 
         public bool TryGetLoginProvider(string id, out ALoginProvider provider)
         {

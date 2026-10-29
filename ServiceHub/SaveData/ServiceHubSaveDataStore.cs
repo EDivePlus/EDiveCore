@@ -71,7 +71,7 @@ namespace EDIVE.ServiceHub.SaveData
 
         public override async UniTask<StoreReadResult> GetAsync(string key)
         {
-            if (!Context.Auth.HasSession)
+            if (!Context.CanSync)
                 return StoreReadResult.NotFound;
 
             var response = await Context.Auth.SendAsync(token => RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
@@ -85,7 +85,7 @@ namespace EDIVE.ServiceHub.SaveData
             if (response.IsSuccess && response.Result is { Status: 0, Data: { Value: not null } data })
                 return StoreReadResult.Hit(data.Value.ToString(Formatting.None), Normalize(data.UpdatedAt));
 
-            if (!response.IsSuccess && !response.IsNotFound)
+            if (!response.IsSuccess && !response.IsNotFound && !AppServices.HandleStatus(response.Result?.Status ?? 0, AppService.SaveData))
                 Debug.LogWarning($"[ServiceHub] {Context.Key} get failed for '{key}': {response.ErrorMessage}");
 
             return StoreReadResult.NotFound;
@@ -93,7 +93,7 @@ namespace EDIVE.ServiceHub.SaveData
 
         public override async UniTask<TimestampPeek> GetTimestampAsync(string key)
         {
-            if (!Context.Auth.HasSession)
+            if (!Context.CanSync)
                 return TimestampPeek.Missing;
 
             var response = await Context.Auth.SendAsync(token => RestUtils.GetAsync<ApiResponse<SaveDataResponse>>(
@@ -107,7 +107,7 @@ namespace EDIVE.ServiceHub.SaveData
             if (response.IsSuccess && response.Result is { Status: 0, Data: { } data })
                 return TimestampPeek.At(Normalize(data.UpdatedAt));
 
-            if (!response.IsSuccess && !response.IsNotFound)
+            if (!response.IsSuccess && !response.IsNotFound && !AppServices.HandleStatus(response.Result?.Status ?? 0, AppService.SaveData))
                 Debug.LogWarning($"[ServiceHub] {Context.Key} meta get failed for '{key}': {response.ErrorMessage}");
 
             return TimestampPeek.Missing;
@@ -127,7 +127,7 @@ namespace EDIVE.ServiceHub.SaveData
         {
             _handlers.ForEach(handler => handler.RemovePending(key));
 
-            if (!Context.Auth.HasSession)
+            if (!Context.CanSync)
                 return;
 
             var response = await Context.Auth.SendAsync(token => RestUtils.DeleteAsync<string>(

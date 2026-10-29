@@ -33,9 +33,9 @@ namespace EDIVE.ServiceHub.Presence
         public ServiceHubSettings Settings { get; private set; }
 
         [ShowInInspector, ReadOnly]
-        public bool IsEnabled => Settings != null && Settings.PresenceEnabled && !string.IsNullOrEmpty(Settings.AppSecret) && !IsUnsupported;
+        public bool IsEnabled => Settings != null && !string.IsNullOrEmpty(Settings.AppSecret) && !IsUnsupported && AppServices.IsEnabled(AppService.Streams);
 
-        // ServiceHub has no presence, stays off until restart
+        // ServiceHub has no presence or Streams is off, stays off until restart
         [ShowInInspector, ReadOnly]
         public bool IsUnsupported { get; private set; }
 
@@ -173,7 +173,7 @@ namespace EDIVE.ServiceHub.Presence
                 return;
 
             IsUnsupported = true;
-            Debug.Log("[Presence] ServiceHub has no presence, turning it off.");
+            Debug.Log("[Presence] Presence is not available, turning it off.");
             Player?.Stop();
             StopHost();
         }
@@ -187,7 +187,7 @@ namespace EDIVE.ServiceHub.Presence
 
         private static string CreateInstanceId()
         {
-            var installId = ClientAuthService.GetOrCreateAnonymousToken();
+            var installId = ClientAuthService.GetOrCreateDeviceId();
 #if UNITY_EDITOR
             // ParrelSync clones share PlayerPrefs
             installId += Application.dataPath;

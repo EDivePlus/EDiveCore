@@ -139,7 +139,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
         // True when some write failed again
         private async UniTask<bool> FlushRetriesAsync(CancellationToken ct)
         {
-            if (Context == null || !Context.Auth.HasSession)
+            if (Context == null || !Context.CanSync)
                 return false;
             KeyValuePair<string, string>[] snapshot;
             lock (_retryLock)
@@ -169,7 +169,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                     QueueRetry(key, json);
                     failed = true;
                 }
-                else
+                else if (result.Result?.Status != (int) ServiceHubStatus.ServiceDisabled)
                 {
                     Debug.LogError($"[ServiceHub] {Context.Key} save '{key}' rejected ({result.StatusCode}), dropped: {result.ErrorMessage}");
                 }
@@ -177,14 +177,14 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
             return failed;
         }
 
-        protected UniTask<NetworkResponse<ApiResponse<SaveDataResponse>>> PutSaveDataAsync(
+        protected async UniTask<NetworkResponse<ApiResponse<SaveDataResponse>>> PutSaveDataAsync(
             SaveDataDomain context,
             string key,
             string json,
             CancellationToken ct)
         {
             var request = new SaveDataWriteRequest(json);
-            return context.Auth.SendAsync(token => RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
+            var response = await context.Auth.SendAsync(token => RestUtils.PutAsync<ApiResponse<SaveDataResponse>, SaveDataWriteRequest>(
                 Store.KeyUrl(key),
                 request,
                 token,
@@ -192,15 +192,17 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                 Service.Settings.ApiTimeoutSeconds,
                 ct
             ));
+            AppServices.HandleStatus(response.Result?.Status ?? 0, AppService.SaveData);
+            return response;
         }
 
-        protected UniTask<NetworkResponse<ApiResponse<SaveDataBatchResponse>>> PutSaveDataBatchAsync(
+        protected async UniTask<NetworkResponse<ApiResponse<SaveDataBatchResponse>>> PutSaveDataBatchAsync(
             SaveDataDomain context,
             IReadOnlyDictionary<string, string> entries,
             CancellationToken ct)
         {
             var request = new SaveDataBatchWriteRequest(entries);
-            return context.Auth.SendAsync(token => RestUtils.PutAsync<ApiResponse<SaveDataBatchResponse>, SaveDataBatchWriteRequest>(
+            var response = await context.Auth.SendAsync(token => RestUtils.PutAsync<ApiResponse<SaveDataBatchResponse>, SaveDataBatchWriteRequest>(
                 Store.BatchUrl,
                 request,
                 token,
@@ -208,6 +210,8 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
                 Service.Settings.ApiTimeoutSeconds,
                 ct
             ));
+            AppServices.HandleStatus(response.Result?.Status ?? 0, AppService.SaveData);
+            return response;
         }
     }
 }

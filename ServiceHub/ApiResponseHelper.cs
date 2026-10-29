@@ -8,7 +8,7 @@ namespace EDIVE.ServiceHub
 {
     internal static class ApiResponseHelper
     {
-        public static NetworkResponse<T> UnwrapApi<T>(NetworkResponse<ApiResponse<T>> response, string scope)
+        public static NetworkResponse<T> UnwrapApi<T>(NetworkResponse<ApiResponse<T>> response, string scope, AppService service = AppService.None)
         {
             if (!response.IsSuccess && response.Result == null)
             {
@@ -24,11 +24,18 @@ namespace EDIVE.ServiceHub
             {
                 var message = api?.Message ?? "Unknown error";
                 var status = api?.Status ?? -1;
-                Debug.LogError($"[ServiceHub] {scope} API error ({status}): {message}");
+                if (AppServices.HandleStatus(status, service))
+                    Debug.LogWarning($"[ServiceHub] {scope}: {service} is turned off for this app.");
+                else
+                    Debug.LogError($"[ServiceHub] {scope} API error ({status}): {message}");
                 return NetworkResponse<T>.Error(response.StatusCode, message, apiStatus: status);
             }
 
             return NetworkResponse<T>.Success(response.StatusCode, api.Data);
         }
+
+        // Call skipped, the app has the service turned off
+        public static NetworkResponse<T> ServiceOff<T>(AppService service) =>
+            NetworkResponse<T>.Error(403, $"{service} is turned off for this app", apiStatus: (int) ServiceHubStatus.ServiceDisabled);
     }
 }

@@ -31,6 +31,9 @@ namespace EDIVE.ServiceHub.SaveData
         
         public AuthStorage Auth { get; private set; }
 
+        // Signed in and save data turned on for the app
+        public bool CanSync => Auth != null && Auth.HasSession && AppServices.IsEnabled(AppService.SaveData);
+
         // Logged in identity, empty when logged out
         public string OwnerId => Auth != null && Auth.HasSession ? JwtUtils.GetClaim(Auth.GetAccessToken(), "sub") ?? "" : "";
         

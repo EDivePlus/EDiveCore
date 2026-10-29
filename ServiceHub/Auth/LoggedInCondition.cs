@@ -10,5 +10,8 @@ namespace EDIVE.ServiceHub.Auth
     public class LoggedInCondition : ABoolCondition
     {
         protected override bool GetValue() => AuthStorage.Client.HasSession;
+
+        public override void InitializeObserving() => AuthStorage.Client.SessionChanged += InvokeStateChanged;
+        public override void TerminateObserving() => AuthStorage.Client.SessionChanged -= InvokeStateChanged;
     }
 }

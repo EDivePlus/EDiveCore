@@ -205,6 +205,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     // Keep last list on failed poll
                     if (response.IsSuccess && response.Result != null)
                         SetServers(BuildRecords(response.Result));
+                    else if (response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled)
+                        SetServers(Array.Empty<ServerRecord>());
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
@@ -297,7 +299,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
 
             if (!response.IsSuccess || response.Result == null)
             {
-                Debug.LogError($"[ServiceHubServerListAdapter] Server registration failed: {response.ErrorMessage}");
+                if (response.ApiStatus != (int) ServiceHubStatus.ServiceDisabled)
+                    Debug.LogError($"[ServiceHubServerListAdapter] Server registration failed: {response.ErrorMessage}");
                 return false;
             }
             _serverSecret = response.Result.Secret;
@@ -361,6 +364,15 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                 // server from the lobby.
                 if (string.IsNullOrEmpty(_serverSecret))
                 {
+                    // Lobby off, the session is found on the local network only
+                    if (!AppServices.IsEnabled(AppService.Lobby))
+                    {
+                        SetRegistrationState(ServerRegistrationState.None);
+                        await UniTask.WaitUntil(() => AppServices.IsEnabled(AppService.Lobby), cancellationToken: cancellationToken);
+                        registerAttempt = 0;
+                        continue;
+                    }
+
                     if (IsServiceUnreachable)
                     {
                         SetRegistrationState(ServerRegistrationState.Offline);
@@ -378,6 +390,8 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     }
                     else
                     {
+                        if (!AppServices.IsEnabled(AppService.Lobby))
+                            continue;
                         registerAttempt++;
                         SetRegistrationState(IsServiceUnreachable ? ServerRegistrationState.Offline : ServerRegistrationState.Failed);
                         var delay = Mathf.Min(_RegisterRetryMaxDelay, _RegisterRetryBaseDelay * Mathf.Pow(2f, registerAttempt - 1));
@@ -424,6 +438,10 @@ namespace EDIVE.Networking.ServerManagement.ServiceHub
                     else if (response.ApiStatus is (int) ServiceHubStatus.InvalidSecret or (int) ServiceHubStatus.ServerNotFound)
                     {
                         Debug.Log($"[ServiceHubServerListAdapter] Lobby entry no longer valid (api status {response.ApiStatus}: {response.ErrorMessage}) — re-registering server.");
+                        _serverSecret = null;
+                    }
+                    else if (response.ApiStatus == (int) ServiceHubStatus.ServiceDisabled)
+                    {
                         _serverSecret = null;
                     }
                     else

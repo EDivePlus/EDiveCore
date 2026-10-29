@@ -50,6 +50,9 @@ namespace EDIVE.ServiceHub.RemoteContent
             string shareToken,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<ContentItemInfo>(AppService.Content);
+
             if (string.IsNullOrEmpty(shareToken))
                 return NetworkResponse<ContentItemInfo>.Error(0, "Share token is empty");
 
@@ -60,13 +63,16 @@ namespace EDIVE.ServiceHub.RemoteContent
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, $"GetSharedContentInfo({shareToken})");
+            return ApiResponseHelper.UnwrapApi(response, $"GetSharedContentInfo({shareToken})", AppService.Content);
         }
 
         public async UniTask<NetworkResponse<RemoteContentResult>> GetRemoteContentAsync(
             string shareToken,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<RemoteContentResult>(AppService.Content);
+
             if (string.IsNullOrEmpty(shareToken))
                 return NetworkResponse<RemoteContentResult>.Error(0, "Share token is empty");
 
@@ -129,6 +135,9 @@ namespace EDIVE.ServiceHub.RemoteContent
         public async UniTask<NetworkResponse<ContentMediaTypeListResponse>> ListContentMediaTypesAsync(
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<ContentMediaTypeListResponse>(AppService.Content);
+
             if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentMediaTypeListResponse>.Error(401, "Not authenticated");
 
@@ -139,7 +148,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             ));
-            return ApiResponseHelper.UnwrapApi(response, "ListContentMediaTypes");
+            return ApiResponseHelper.UnwrapApi(response, "ListContentMediaTypes", AppService.Content);
         }
 
         [Button]
@@ -152,6 +161,9 @@ namespace EDIVE.ServiceHub.RemoteContent
             int pageSize = 50,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<ContentItemListResponse>(AppService.Content);
+
             if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentItemListResponse>.Error(401, "Not authenticated");
 
@@ -170,7 +182,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             ));
-            return ApiResponseHelper.UnwrapApi(response, "ListOwnContentItems");
+            return ApiResponseHelper.UnwrapApi(response, "ListOwnContentItems", AppService.Content);
         }
 
         [Button]
@@ -181,6 +193,9 @@ namespace EDIVE.ServiceHub.RemoteContent
             string search = null,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<ContentItemCountResponse>(AppService.Content);
+
             if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentItemCountResponse>.Error(401, "Not authenticated");
 
@@ -197,7 +212,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             ));
-            return ApiResponseHelper.UnwrapApi(response, "CountOwnContentItems");
+            return ApiResponseHelper.UnwrapApi(response, "CountOwnContentItems", AppService.Content);
         }
 
         [Button]
@@ -207,6 +222,9 @@ namespace EDIVE.ServiceHub.RemoteContent
             string itemId,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<ContentShareResponse>(AppService.Content);
+
             if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<ContentShareResponse>.Error(401, "Not authenticated");
 
@@ -221,7 +239,7 @@ namespace EDIVE.ServiceHub.RemoteContent
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             ));
-            return ApiResponseHelper.UnwrapApi(response, $"CreateContentShare({itemId})");
+            return ApiResponseHelper.UnwrapApi(response, $"CreateContentShare({itemId})", AppService.Content);
         }
 
         [Button]
@@ -231,6 +249,9 @@ namespace EDIVE.ServiceHub.RemoteContent
             string itemId,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Content))
+                return ApiResponseHelper.ServiceOff<bool>(AppService.Content);
+
             if (!AuthStorage.Client.HasSession)
                 return NetworkResponse<bool>.Error(401, "Not authenticated");
 

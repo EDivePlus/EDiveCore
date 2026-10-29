@@ -129,7 +129,10 @@ namespace EDIVE.ServiceHub.Auth
                 {
                     if (IsRejected(response))
                         _rejectedCredentials = (serverId, serverSecret);
-                    Debug.LogError($"[ServiceHub] Server '{serverId}' login from ServerConfig failed. Starting unauthenticated; server-scoped save data will not sync.");
+                    if (AppServices.HandleStatus(response.ApiStatus, AppService.Servers))
+                        Debug.LogWarning($"[ServiceHub] Servers are turned off for this app, '{serverId}' runs without ServiceHub login.");
+                    else
+                        Debug.LogError($"[ServiceHub] Server '{serverId}' login from ServerConfig failed. Starting unauthenticated; server-scoped save data will not sync.");
                 }
             }
         }

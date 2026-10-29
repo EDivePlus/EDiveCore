@@ -13,7 +13,8 @@
         "EDIVE.Conditions",
         "EDIVE.Console",
         "EDIVE.UIElements",
-        "Unity.Localization"
+        "Unity.Localization",
+        "EDIVE.External.DomainReloadHelper"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

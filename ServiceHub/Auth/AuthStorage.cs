@@ -38,6 +38,9 @@ namespace EDIVE.ServiceHub.Auth
         // Renews the access token, set by the auth service that owns the refresh token
         public Func<UniTask<bool>> Refresher { get; set; }
 
+        // Saved or cleared tokens
+        public event Action SessionChanged;
+
         private bool CanRefresh => Refresher != null && !string.IsNullOrEmpty(GetRefreshToken());
 
         // Signed in, the access token may need a refresh first
@@ -86,6 +89,7 @@ namespace EDIVE.ServiceHub.Auth
                 PlayerPrefs.SetString(_kInfo, infoJson);
 
             PlayerPrefs.Save();
+            SessionChanged?.Invoke();
         }
 
         public string GetAccessToken() => PlayerPrefs.GetString(_kAccess, "");
@@ -129,6 +133,7 @@ namespace EDIVE.ServiceHub.Auth
             PlayerPrefs.DeleteKey(_kLastEmail);
             PlayerPrefs.DeleteKey(_kInfo);
             PlayerPrefs.Save();
+            SessionChanged?.Invoke();
         }
 
         public void SetLastEmail(string email)

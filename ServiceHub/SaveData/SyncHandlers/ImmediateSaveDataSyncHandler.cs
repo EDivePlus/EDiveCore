@@ -12,7 +12,7 @@ namespace EDIVE.ServiceHub.SaveData.SyncHandlers
         protected override void ScheduleSync(string key, string json)
         {
             // No auth yet, send once it is back
-            if (!Context.Auth.HasSession)
+            if (!Context.CanSync)
             {
                 QueueRetry(key, json);
                 return;

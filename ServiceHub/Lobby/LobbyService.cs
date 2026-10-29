@@ -39,6 +39,9 @@ namespace EDIVE.ServiceHub.Lobby
             CertificateHandler certificateHandler = null,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<ServerRegistrationResponse>(AppService.Lobby);
+
             if (request == null)
                 return NetworkResponse<ServerRegistrationResponse>.Error(0, "Request is null");
 
@@ -55,13 +58,16 @@ namespace EDIVE.ServiceHub.Lobby
                 cancellationToken: cancellationToken,
                 certificateHandler: certificateHandler
             );
-            return ApiResponseHelper.UnwrapApi(response, "RegisterServer");
+            return ApiResponseHelper.UnwrapApi(response, "RegisterServer", AppService.Lobby);
         }
 
         public async UniTask<NetworkResponse<LobbyEmptyResponse>> HeartbeatAsync(
             string serverSecret,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<LobbyEmptyResponse>(AppService.Lobby);
+
             if (string.IsNullOrEmpty(serverSecret))
                 return NetworkResponse<LobbyEmptyResponse>.Error(0, "Server secret is empty");
 
@@ -73,13 +79,16 @@ namespace EDIVE.ServiceHub.Lobby
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, "HeartbeatServer");
+            return ApiResponseHelper.UnwrapApi(response, "HeartbeatServer", AppService.Lobby);
         }
 
         public async UniTask<NetworkResponse<LobbyEmptyResponse>> UpdateServerAsync(
             UpdateServerRequest request,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<LobbyEmptyResponse>(AppService.Lobby);
+
             if (request == null)
                 return NetworkResponse<LobbyEmptyResponse>.Error(0, "Request is null");
 
@@ -91,13 +100,16 @@ namespace EDIVE.ServiceHub.Lobby
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, "UpdateServer");
+            return ApiResponseHelper.UnwrapApi(response, "UpdateServer", AppService.Lobby);
         }
 
         public async UniTask<NetworkResponse<LobbyEmptyResponse>> DisposeServerAsync(
             string serverSecret,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<LobbyEmptyResponse>(AppService.Lobby);
+
             if (string.IsNullOrEmpty(serverSecret))
                 return NetworkResponse<LobbyEmptyResponse>.Error(0, "Server secret is empty");
 
@@ -109,7 +121,7 @@ namespace EDIVE.ServiceHub.Lobby
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, "DisposeServer");
+            return ApiResponseHelper.UnwrapApi(response, "DisposeServer", AppService.Lobby);
         }
 
         // Pass for a player without an account, valid while the session lasts
@@ -118,6 +130,9 @@ namespace EDIVE.ServiceHub.Lobby
             string playerName,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<GuestPassResponse>(AppService.Lobby);
+
             if (string.IsNullOrEmpty(serverSecret))
                 return NetworkResponse<GuestPassResponse>.Error(0, "Server secret is empty");
 
@@ -129,7 +144,7 @@ namespace EDIVE.ServiceHub.Lobby
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, "GuestPass");
+            return ApiResponseHelper.UnwrapApi(response, "GuestPass", AppService.Lobby);
         }
 
         [Button]
@@ -139,6 +154,9 @@ namespace EDIVE.ServiceHub.Lobby
             string joinCode,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<LobbyServerResponse>(AppService.Lobby);
+
             if (string.IsNullOrEmpty(joinCode))
                 return NetworkResponse<LobbyServerResponse>.Error(0, "Join code is empty");
 
@@ -150,7 +168,7 @@ namespace EDIVE.ServiceHub.Lobby
                 timeout: RequestTimeoutSeconds,
                 cancellationToken: cancellationToken
             );
-            return ApiResponseHelper.UnwrapApi(response, $"GetServer({joinCode})");
+            return ApiResponseHelper.UnwrapApi(response, $"GetServer({joinCode})", AppService.Lobby);
         }
 
         [Button]
@@ -160,6 +178,9 @@ namespace EDIVE.ServiceHub.Lobby
             QueryServersRequest request = null,
             CancellationToken cancellationToken = default)
         {
+            if (!AppServices.IsEnabled(AppService.Lobby))
+                return ApiResponseHelper.ServiceOff<List<LobbyServerResponse>>(AppService.Lobby);
+
             request ??= new QueryServersRequest();
 
             if (string.IsNullOrEmpty(request.AppSecret))
@@ -169,7 +190,7 @@ namespace EDIVE.ServiceHub.Lobby
             // Transport error (stale keep-alive, reset). Query is read-only, safe to retry.
             if (!response.IsSuccess && response.StatusCode == 0)
                 response = await PostQueryAsync(request, cancellationToken);
-            return ApiResponseHelper.UnwrapApi(response, "QueryServers");
+            return ApiResponseHelper.UnwrapApi(response, "QueryServers", AppService.Lobby);
         }
 
         private UniTask<NetworkResponse<ApiResponse<List<LobbyServerResponse>>>> PostQueryAsync(QueryServersRequest request, CancellationToken cancellationToken)
