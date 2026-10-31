@@ -45,13 +45,17 @@ namespace EDIVE.Localization.Fonts
 
             if (Object.TryGetComponent<LocalizeFont>(out var localizeFont) && localizeFont.Definition != null)
             {
-                foreach (var preset in localizeFont.Definition.GetAllPresets())
+                var definition = localizeFont.Definition;
+                var materials = definition.StyleMaterial != null
+                    ? new[] {definition.StyleMaterial}
+                    : definition.GetAllFontsInEditor().Select(f => f.material);
+
+                foreach (var definitionMaterial in materials)
                 {
-                    var presetMaterial = preset.Material != null ? preset.Material : preset.Font != null ? preset.Font.material : null;
-                    if (IsAllowed(presetMaterial, allowedShaders))
+                    if (IsAllowed(definitionMaterial, allowedShaders))
                         continue;
 
-                    result.Add(_Severity, $"Font preset material '{GetName(presetMaterial)}' in '{localizeFont.Definition.name}' is not batched");
+                    result.Add(_Severity, $"Font material '{GetName(definitionMaterial)}' in '{definition.name}' is not batched");
                 }
                 return;
             }

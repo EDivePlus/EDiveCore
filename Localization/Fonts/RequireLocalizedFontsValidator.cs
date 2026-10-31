@@ -9,14 +9,16 @@ using Sirenix.Utilities.Editor;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Localization.Components;
+using UnityEngine.Localization.Settings;
 
-[assembly: RegisterValidationRule(typeof(RequireLocalizedFontsValidator), "Require Localized Fonts", "Check if TMP_Text component has LocalizeFont component attached to it", false)]
+[assembly: RegisterValidationRule(typeof(RequireLocalizedFontsValidator), "Require Localized Fonts", "Check if localized TMP_Text has LocalizeFont matching its definition")]
+
 namespace EDIVE.Localization.Fonts
 {
     [Serializable]
     public class RequireLocalizedFontsValidator : RootObjectValidator<TMP_Text>
     {
-        [EnumToggleButtons]
         [SerializeField]
         [FolderPath]
         private List<string> _PathExceptions;
@@ -30,33 +32,94 @@ namespace EDIVE.Localization.Fonts
             if (CheckIgnoreAsset())
                 return;
 
-            if (Object.TryGetComponent<LocalizeFont>(out _) || Object.TryGetComponent<DontLocalizeFont>(out _))
+            if (Object.TryGetComponent<LocalizeFont>(out var localizeFont))
+            {
+                ValidateMatching(result, localizeFont);
+                return;
+            }
+
+            if (!IsLocalized(Object))
                 return;
 
-            result.Add(_Severity, "Missing font localization component!")
+            // Instances get it on the original prefab so every use inherits it.
+            var target = GetFixTarget(Object);
+            var message = target == Object ? "Localized text is missing LocalizeFont" : $"Localized text is missing LocalizeFont, fix adds it to '{target.transform.root.name}'";
+            result.Add(_Severity, message)
                 .WithFix((FixArgs args) =>
                 {
-                    if (Object.TryGetComponent<LocalizeFont>(out var localize))
+                    if (target.TryGetComponent<LocalizeFont>(out _))
                         return;
 
-                    if (args.Localize)
+                    var definition = args.GetMatchingPreset(target);
+                    if (definition == null)
                     {
-                        localize = Object.gameObject.AddComponent<LocalizeFont>();
-                        localize.Definition = args.GetMatchingPreset(Object);
+                        Debug.LogWarning($"No font definition matches '{target.name}'", target);
+                        return;
                     }
-                    else
-                    {
-                        Object.gameObject.AddComponent<DontLocalizeFont>();
-                    }
+
+                    Undo.AddComponent<LocalizeFont>(target.gameObject).Definition = definition;
+                    if (PrefabUtility.IsPartOfPrefabAsset(target))
+                        PrefabUtility.SavePrefabAsset(target.transform.root.gameObject);
                 });
+        }
+
+        private void ValidateMatching(ValidationResult result, LocalizeFont localizeFont)
+        {
+            var definition = localizeFont.Definition;
+            if (definition == null)
+            {
+                result.Add(_Severity, "LocalizeFont has no definition");
+                return;
+            }
+
+            // Edit mode preview drives the text with the previewed locale.
+            var locale = LocalizationSettings.SelectedLocale != null ? LocalizationSettings.SelectedLocale : LocalizationSettings.ProjectLocale;
+            var font = definition.GetFontInEditor(locale);
+            if (font == null)
+                return;
+
+            var material = definition.GetMaterial(font);
+            if (Object.font == font && Object.fontSharedMaterial == material)
+                return;
+
+            result.Add(_Severity, $"Font differs from '{definition.name}'")
+                .WithFix("Apply definition font", () =>
+                {
+                    Object.font = font;
+                    Object.fontSharedMaterial = material;
+                });
+        }
+
+        private static TMP_Text GetFixTarget(TMP_Text text)
+        {
+            if (!PrefabUtility.IsPartOfPrefabInstance(text))
+                return text;
+
+            var source = PrefabUtility.GetCorrespondingObjectFromOriginalSource(text);
+            return source != null ? source : text;
+        }
+
+        private static bool IsLocalized(TMP_Text text)
+        {
+            if (text.TryGetComponent<LocalizeStringEvent>(out _))
+                return true;
+
+            foreach (var stringEvent in text.GetComponentsInParent<LocalizeStringEvent>(true))
+            {
+                var updateEvent = stringEvent.OnUpdateString;
+                for (var i = 0; i < updateEvent.GetPersistentEventCount(); i++)
+                {
+                    if (updateEvent.GetPersistentTarget(i) == text)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private bool CheckIgnoreAsset()
         {
             if (Object == null)
-                return true;
-
-            if (PrefabUtility.IsPartOfPrefabInstance(Object))
                 return true;
 
             var assetPath = AssetDatabase.GetAssetPath(Object);
@@ -82,24 +145,16 @@ namespace EDIVE.Localization.Fonts
         private class FixArgs
         {
             [SerializeField]
-            private bool _DontLocalize = false;
-
-            [HideIfGroup("Localize", Condition = nameof(_DontLocalize))]
-            [SerializeField]
             private bool _AutoDetectPreset = true;
 
-            [HideIfGroup("Localize")]
             [SerializeField]
             [HideIf(nameof(_AutoDetectPreset))]
             private LocalizedFontDefinition _DefaultPreset;
 
-            [HideIfGroup("Localize")]
             [SerializeField]
             [ShowIf(nameof(_AutoDetectPreset))]
             [ListDrawerSettings(ShowFoldout = false, OnTitleBarGUI = nameof(OnPresetsTitleBarGUI))]
             private List<LocalizedFontDefinition> _AvailablePresets;
-
-            public bool Localize => !_DontLocalize;
 
             public LocalizedFontDefinition GetMatchingPreset(TMP_Text text)
             {

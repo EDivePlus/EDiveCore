@@ -17,7 +17,11 @@
         "EDIVE.DataStructures",
         "EDIVE.OdinExtensions.Editor",
         "EDIVE.VisualPresets",
-        "EDIVE.AssetTranslation"
+        "EDIVE.AssetTranslation",
+        "EDIVE.Debugging",
+        "EDIVE.ScriptableArchitecture",
+        "EDIVE.Utils.Actions",
+        "EDIVE.External.DomainReloadHelper"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
