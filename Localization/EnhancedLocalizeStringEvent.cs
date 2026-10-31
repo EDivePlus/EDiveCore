@@ -9,7 +9,9 @@ using UnityEngine;
 using UnityEngine.Localization.Components;
 
 #if UNITY_EDITOR
+using System.Reflection;
 using EDIVE.OdinExtensions.Editor;
+using Sirenix.OdinInspector.Editor;
 #endif
 
 namespace EDIVE.Localization
@@ -37,6 +39,29 @@ namespace EDIVE.Localization
     {
         private static Type _baseEditorType;
         protected override Type BaseEditorType => _baseEditorType ??= Type.GetType("UnityEditor.Localization.UI.LocalizeStringEventEditor, Unity.Localization.Editor");
+        protected override BaseEditorDrawMode BaseEditorDrawMode => BaseEditorDrawMode.OdinEditor;
     }
+
+    // Format arguments are replaced by the string's local variables
+    public class EnhancedLocalizeStringEventAttributeProcessor : OdinAttributeProcessor<EnhancedLocalizeStringEvent>
+    {
+        public override void ProcessChildMemberAttributes(InspectorProperty parentProperty, MemberInfo member, List<Attribute> attributes)
+        {
+            if (member.Name == "m_FormatArguments")
+                attributes.Add(new HideInInspector());
+        }
+    }
+
+    /*
+    [UnityEditor.CustomEditor(typeof(LocalizeStringEvent))]
+    [EditorPriority]
+    [UnityEditor.CanEditMultipleObjects]
+    public class LocalizeStringEventOdinEditor : NativeWrapperOdinEditor<LocalizeStringEvent>
+    {
+        private static Type _baseEditorType;
+        protected override Type BaseEditorType => _baseEditorType ??= Type.GetType("UnityEditor.Localization.UI.LocalizeStringEventEditor, Unity.Localization.Editor");
+        protected override BaseEditorDrawMode BaseEditorDrawMode => BaseEditorDrawMode.OdinEditor;
+    }
+    */
 #endif
 }

@@ -7,6 +7,7 @@
         "Unity.Localization",
         "Unity.Localization.Editor",
         "EDIVE.OdinExtensions",
+        "EDIVE.OdinExtensions.Editor",
         "Sirenix.OdinInspector.Modules.UnityLocalization.Editor",
         "EDIVE.EditorUtils"
     ],

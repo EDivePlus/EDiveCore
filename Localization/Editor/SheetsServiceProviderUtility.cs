@@ -1,10 +1,13 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using UnityEditor.Localization.Plugins.Google;
+using UnityEngine;
 
 namespace EDIVE.Localization.Editor
 {
@@ -45,6 +48,25 @@ namespace EDIVE.Localization.Editor
                     throw new Exception("No connection credentials. You must provide either OAuth2.0 credentials or an Api Key.");
             }
         }
+
+        // True when connecting won't open a browser login
+        public static bool IsSignedIn(this SheetsServiceProvider provider)
+        {
+            if (provider == null)
+                return false;
+
+            return provider.Authentication switch
+            {
+                AuthenticationType.APIKey => !string.IsNullOrEmpty(provider.ApiKey),
+                AuthenticationType.OAuth => provider.GetInternalService() != null || provider.GetOAuthTokenDirectory() is {Exists: true} dir && dir.EnumerateFiles().Any(),
+                _ => false
+            };
+        }
+
+        public static DirectoryInfo GetOAuthTokenDirectory(this SheetsServiceProvider provider) =>
+            new(Path.Combine(Application.dataPath, $"../Library/Google/{provider.name}"));
+
+        public static void ClearConnection(this SheetsServiceProvider provider) => provider.SetInternalService(null);
 
         private static SheetsService GetInternalService(this SheetsServiceProvider provider)
         {
