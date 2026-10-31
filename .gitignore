@@ -58,3 +58,6 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+# Claude Code: personal settings and temp worktrees
+.claude/settings.local.json
+.claude/worktrees/

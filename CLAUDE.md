@@ -2,6 +2,7 @@
 
 Core Unity library shared by EDIVE projects. Unity 6, URP, Odin Inspector, PurrNet, XRI 3, DOTween, UniTask, R3, Newtonsoft.
 Check here first before writing a helper. If EDIVE has it, use it.
+How-to and lessons live in skills under `.claude/skills`: `edive-core`, `edive-ui`, `edive-networking`, `odin-editor-ui`, `unity-mcp-workflow`, `edive-git`.
 
 ## Code style
 - File header: `// Author: <name>` + `// Created: dd.MM.yyyy`. UTF-8 BOM, CRLF.
@@ -32,6 +33,7 @@ Check here first before writing a helper. If EDIVE has it, use it.
 - Utils: `RandomUtility` (RandomItem, Shuffle, weighted), `JsonUtils` (JsonCopy deep clone), `ColorPalette` SO, `ActiveDefinesRegistry`, `IdentifierUtility`.
 - Utils components: `TwoBoneHingeIK`, `LockParentRotation`, `SmoothRestrictedRotateTowards`, `FPSDisplay`, `BoxColliderRendererFitter`.
 - OdinExtensions attributes: `EnhancedBoxGroup/FoldoutGroup` + `ShowInGroupHeader`, `EnhancedValidate`, `RequiredIf`, `EnhancedTypeSelector`, `EnhancedInlineEditor`, `EnhancedValueDropdown`, `EnhancedInfoBox`, `EnhancedAssetList/Selector`, `EnhancedTableList`, `CompactList`, `InlineIconButton`, `IconButton`, `IconEnumToggleButtons`, `LayerField`, `TagSelector`, `SceneReference`, `ShowCreateNew`, `LogRange`, `KeepRefreshing`. Icons: `FontAwesomeEditorIcons`.
+- Editor UI: always Odin in EDIVE style (Enhanced attributes first), validation with `[EnhancedValidate]` on fields rather than `ISelfValidator`, render and check the inspector before calling it done. Details: skill `odin-editor-ui`.
 - EditorUtils: `EditorAssetUtils.FindAllAssetsOfType`, `DefinesUtility`, `SubAssetUtility`, `MainToolbarUtility`.
 
 ## UI

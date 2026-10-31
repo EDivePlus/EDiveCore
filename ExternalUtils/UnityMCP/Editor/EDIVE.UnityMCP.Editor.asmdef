@@ -1,0 +1,31 @@
+{
+    "name": "EDIVE.UnityMCP.Editor",
+    "rootNamespace": "",
+    "references": [
+        "MCPForUnity.Editor",
+        "EDIVE.Core",
+        "EDIVE.AppLoading",
+        "EDIVE.Networking",
+        "PurrNet.Runtime",
+        "UniTask"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_MCP"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.coplaydev.unity-mcp",
+            "expression": "",
+            "define": "UNITY_MCP"
+        }
+    ],
+    "noEngineReferences": false
+}
