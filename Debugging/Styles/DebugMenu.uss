@@ -35,6 +35,7 @@
 }
 
 .unity-base-dropdown__container-outer {
+    min-width: 200px;
     padding: 4px;
     border-width: 1px;
     border-color: var(--dm-control);
@@ -65,6 +66,10 @@
 .unity-base-dropdown__label {
     color: var(--dm-text);
     font-size: 16px;
+}
+
+.unity-base-dropdown .unity-scroller--horizontal {
+    display: none;
 }
 
 .unity-base-dropdown__checkmark {
@@ -989,14 +994,16 @@
 
 /* Scrollbars: thin, no arrow buttons */
 
-.dm-root .unity-scroller--vertical {
+.dm-root .unity-scroller--vertical,
+.unity-base-dropdown .unity-scroller--vertical {
     width: 4px;
     margin-left: 2px;
     border-width: 0;
     background-color: transparent;
 }
 
-.dm-root .unity-scroller--horizontal {
+.dm-root .unity-scroller--horizontal,
+.unity-base-dropdown .unity-scroller--horizontal {
     height: 4px;
     margin-top: 2px;
     border-width: 0;
@@ -1004,14 +1011,19 @@
 }
 
 .dm-root .unity-scroller__low-button,
-.dm-root .unity-scroller__high-button {
+.unity-base-dropdown .unity-scroller__low-button,
+.dm-root .unity-scroller__high-button,
+.unity-base-dropdown .unity-scroller__high-button {
     display: none;
 }
 
 /* Slider, drag container and dragger keep Unity's 24px unless sized too */
 .dm-root .unity-scroller--vertical .unity-scroller__slider,
+.unity-base-dropdown .unity-scroller--vertical .unity-scroller__slider,
 .dm-root .unity-scroller--vertical .unity-base-slider__drag-container,
-.dm-root .unity-scroller--vertical .unity-base-slider__dragger {
+.unity-base-dropdown .unity-scroller--vertical .unity-base-slider__drag-container,
+.dm-root .unity-scroller--vertical .unity-base-slider__dragger,
+.unity-base-dropdown .unity-scroller--vertical .unity-base-slider__dragger {
     width: 4px;
     min-width: 4px;
     left: 0;
@@ -1020,8 +1032,11 @@
 }
 
 .dm-root .unity-scroller--horizontal .unity-scroller__slider,
+.unity-base-dropdown .unity-scroller--horizontal .unity-scroller__slider,
 .dm-root .unity-scroller--horizontal .unity-base-slider__drag-container,
-.dm-root .unity-scroller--horizontal .unity-base-slider__dragger {
+.unity-base-dropdown .unity-scroller--horizontal .unity-base-slider__drag-container,
+.dm-root .unity-scroller--horizontal .unity-base-slider__dragger,
+.unity-base-dropdown .unity-scroller--horizontal .unity-base-slider__dragger {
     height: 4px;
     min-height: 4px;
     top: 0;
@@ -1029,12 +1044,14 @@
     margin-bottom: 0;
 }
 
-.dm-root .unity-scroller .unity-base-slider__tracker {
+.dm-root .unity-scroller .unity-base-slider__tracker,
+.unity-base-dropdown .unity-scroller .unity-base-slider__tracker {
     border-width: 0;
     background-color: transparent;
 }
 
-.dm-root .unity-scroller .unity-base-slider__dragger {
+.dm-root .unity-scroller .unity-base-slider__dragger,
+.unity-base-dropdown .unity-scroller .unity-base-slider__dragger {
     margin: 0;
     border-width: 0;
     border-radius: 2px;
