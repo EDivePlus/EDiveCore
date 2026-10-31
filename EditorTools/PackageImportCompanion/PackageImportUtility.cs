@@ -1,6 +1,7 @@
 // Inspired by https://github.com/Code-Stage/Package2Folder
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
@@ -39,6 +40,10 @@ namespace EDIVE.EditorTools.PackageImportCompanion
 		private static FieldInfo ImportPackageItemsFieldInfo => _importPackageItemsFieldInfo ??= 
 			PackageImportType.GetField("m_ImportPackageItems", BindingFlags.NonPublic | BindingFlags.Instance);
 
+		private static FieldInfo _treeViewStateFieldInfo;
+		private static FieldInfo TreeViewStateFieldInfo => _treeViewStateFieldInfo ??= 
+			PackageImportType.GetField("m_TreeViewState", BindingFlags.NonPublic | BindingFlags.Instance);
+
 		private static FieldInfo _treeFieldInfo;
 		private static FieldInfo TreeFieldInfo => _treeFieldInfo ??= 
 			PackageImportType.GetField("m_Tree", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -64,30 +69,6 @@ namespace EDIVE.EditorTools.PackageImportCompanion
 			}
 		}
 
-		// PackageImport window watcher
-		[InitializeOnLoadMethod]
-		private static void SetupPackageImportWatcher()
-		{
-			EditorApplication.update -= WatchForPackageImportWindows;
-			EditorApplication.update += WatchForPackageImportWindows;
-		}
-
-		private static double _nextWatchTime;
-		private static EditorWindow _lastFocusedWindow;
-
-		private static void WatchForPackageImportWindows()
-		{
-			var current = EditorWindow.focusedWindow;
-			if (current == null || current == _lastFocusedWindow)
-				return;
-			
-			_lastFocusedWindow = current;
-			if (PackageImportType.IsInstanceOfType(EditorWindow.focusedWindow))
-			{
-				PackageImportCompanionWindow.ShowForImportWindow(current);
-			}
-		}
-		
 		// Unity Editor menu integration
 		[MenuItem("Assets/Import Package/To Selected Folder", true)]
 		private static bool IsImportToFolderCheck()
@@ -201,57 +182,46 @@ namespace EDIVE.EditorTools.PackageImportCompanion
 			return ImportPackageItemsFieldInfo.GetValue(importWindow) as object[];
 		}
 
-		public static string[] GetImportItemPaths(EditorWindow importWindow)
-		{
-			var items = GetImportPackageItems(importWindow);
-			if (items == null) return null;
+		private static FieldInfo _exportedAssetPathFieldInfo;
+		private static FieldInfo ExportedAssetPathFieldInfo => _exportedAssetPathFieldInfo ??= 
+			typeof(MenuItem).Assembly.GetType("UnityEditor.ImportPackageItem").GetField("exportedAssetPath");
 
-			var paths = new string[items.Length];
-			for (var i = 0; i < items.Length; i++)
-			{
-				paths[i] = (string)DestinationAssetPathFieldInfo.GetValue(items[i]);
-			}
-			return paths;
-		}
+		private static FieldInfo _existsFieldInfo;
+		private static FieldInfo ExistsFieldInfo => _existsFieldInfo ??= 
+			typeof(MenuItem).Assembly.GetType("UnityEditor.ImportPackageItem").GetField("exists");
 
-		public static void SetImportWindowFolder(EditorWindow importWindow, string selectedFolderPath, string[] originalPaths)
+		public static bool IsImportWindow(EditorWindow window) => window != null && PackageImportType.IsInstanceOfType(window);
+
+		// Paths are computed from the path inside the package, so repeated or reused windows can't stack prefixes.
+		// Items already in the project (same GUID) stay where they are, Unity updates them in place.
+		public static void RemapImportWindow(EditorWindow importWindow, string fromRoot, string toRoot)
 		{
 			var items = GetImportPackageItems(importWindow);
 			if (items == null) return;
 
-			// Restore original paths first to avoid stacking folder prefixes
-			if (originalPaths != null)
-			{
-				for (var i = 0; i < items.Length && i < originalPaths.Length; i++)
-				{
-					DestinationAssetPathFieldInfo.SetValue(items[i], originalPaths[i]);
-				}
-			}
-
-			// Apply the new folder
+			fromRoot = fromRoot?.Replace('\\', '/').TrimEnd('/');
+			toRoot = toRoot?.Replace('\\', '/').TrimEnd('/');
 			foreach (var item in items)
 			{
-				ChangeAssetItemPath(item, selectedFolderPath);
+				if ((bool)ExistsFieldInfo.GetValue(item))
+					continue;
+
+				var path = ((string)ExportedAssetPathFieldInfo.GetValue(item)).Replace('\\', '/');
+				if (!string.IsNullOrEmpty(fromRoot) && !string.IsNullOrEmpty(toRoot))
+				{
+					if (path == fromRoot)
+						path = toRoot;
+					else if (path.StartsWith(fromRoot + "/"))
+						path = toRoot + path[fromRoot.Length..];
+				}
+
+				DestinationAssetPathFieldInfo.SetValue(item, path);
 			}
 
-			// Reset tree view to force rebuild
-			TreeFieldInfo.SetValue(importWindow, null);
-			importWindow.Repaint();
-		}
-		
-		public static void SetImportWindowPaths(EditorWindow importWindow, string[] paths)
-		{
-			var items = GetImportPackageItems(importWindow);
-			if (items == null) return;
-			
-			if (paths != null)
-			{
-				for (var i = 0; i < items.Length && i < paths.Length; i++)
-				{
-					DestinationAssetPathFieldInfo.SetValue(items[i], paths[i]);
-				}
-			}
-			
+			// Rebuilds the tree view with the new paths. Unity re-adds all expanded IDs on rebuild,
+			// duplicates make the first fold of each folder revert.
+			var treeViewState = TreeViewStateFieldInfo.GetValue(importWindow);
+			(treeViewState?.GetType().GetProperty("expandedIDs")?.GetValue(treeViewState) as List<int>)?.Clear();
 			TreeFieldInfo.SetValue(importWindow, null);
 			importWindow.Repaint();
 		}
