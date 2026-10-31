@@ -213,7 +213,7 @@ namespace EDIVE.Networking
         {
             if (!CanStartServer() || !CanStartClient())
             {
-                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartHost: runtime is already {RuntimeMode}.");
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartHost: server is {LiveServerState}, client is {LiveClientState}.");
                 return;
             }
 
@@ -248,7 +248,7 @@ namespace EDIVE.Networking
         {
             if (!CanStartServer() || !CanStartClient())
             {
-                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: runtime is already {RuntimeMode}.");
+                Debug.LogWarning($"[MasterNetworkManager] Ignoring StartServer: server is {LiveServerState}, client is {LiveClientState}.");
                 return;
             }
             
