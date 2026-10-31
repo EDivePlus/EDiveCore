@@ -19,7 +19,7 @@ namespace EDIVE.Tweening.Segments
         [LabelWidth(120)]
         [LabelText("Action")]
         [EnhancedValueDropdown("TweenActionsDropdown", ChildrenDisplayType = DropdownChildrenDisplayType.ShowChildrenInline, SortDropdownItems = true)]
-        [ValidateInput("ValidateObjectAction", ContinuousValidationCheck = true)]
+        [EnhancedValidate("ValidateObjectAction", ContinuousValidationCheck = true)]
         [EnhancedValidate("ValidateLegacyAction")]
         protected ATweenObjectAction _ObjectAction;
 
@@ -61,26 +61,15 @@ namespace EDIVE.Tweening.Segments
         protected abstract bool TryGetTargetType(out Type targetType);
 
         [UsedImplicitly]
-        private bool ValidateObjectAction(ATweenObjectAction objectAction, ref string errorMessage, ref InfoMessageType? messageType)
+        private void ValidateObjectAction(ATweenObjectAction value, SelfValidationResult result)
         {
             if (!TryGetTargetType(out var targetType))
-                return true;
+                return;
 
-            if (objectAction == null)
-            {
-                errorMessage = "Object action not assigned!";
-                messageType = InfoMessageType.Warning;
-                return false;
-            }
-
-            if (!objectAction.IsValidFor(targetType))
-            {
-                errorMessage = $"Object action is not valid for target of type '{targetType.Name}'!";
-                messageType = InfoMessageType.Error;
-                return false;
-            }
-
-            return true;
+            if (value == null)
+                result.AddWarning("Object action not assigned!");
+            else if (!value.IsValidFor(targetType))
+                result.AddError($"Object action is not valid for target of type '{targetType.Name}'!");
         }
 
         [UsedImplicitly]
